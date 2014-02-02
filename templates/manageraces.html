@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import num %}
+{% block pagename %}
+    Races
+{% endblock %}
+{% block scripts %}
+{% endblock %}
+{% block body %}
+    <span class=TextLeft>
+      <form action={{ url_for('manageraces') }}>
+        {{ form.filterseries() }}
+      </form>
+    </span>
+
+    {% if writeallowed %}
+      <button class="toolbutton" id="toolbutton">Tools</button>
+      <div class="tooldialog">
+      <div class="toolpopup">
+        <h3>Import Races</h3>
+        <div>
+          <input type=file name='Import Races'>
+          <button id='manageracesImport'>Import</button>
+        </div>
+      </div>
+      </div>
+    {% endif %}
+    
+    <div class="scrollarea">
+      <table class=DataList cellpadding=0 cellspace=0>
+          <tr>
+              <th>Date</td>
+              <th>Race</td>
+              <th>Miles</th>
+              <th>Surface</th>
+              <th>Results</th>
+              <th>Edit</th>
+          </tr>
+      {% for race in races %}
+          <tr>
+              <td>{{ race.date }}</td>
+              <td>{{ race.name }}</td>
+              <td align=center>{{ num(race.distance,2) }}</td>
+              <td align=center>{{ race.surface }}</td>
+              <td align=center>
+                {% if race.results|length > 0 %}
+                  <a href=#><img class=icon src={{url_for('static',filename='check.png')}}></a>
+                {% else %}
+                  <a href=#>import</a>
+                {% endif %}
+              </td>
+              <td align=center>
+                {% if writeallowed %}
+                  <a href=#><img class=icon src={{url_for('static',filename='pencil.png')}}></a>
+                {% endif %}
+              </td>
+          </tr>
+      {% endfor %}
+      </table>
+    </div>
+{% endblock %}

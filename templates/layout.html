@@ -1,0 +1,64 @@
+<!doctype html>
+<head>
+  <title>Race Results</title>
+</head>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/style.css') }}">
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/sm-f1em-theme/jquery-ui-1.10.4.custom.min.css') }}">
+<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>-->
+<script src="{{ url_for('static', filename='js/jquery-1.11.0.min.js') }}"></script>'
+<script src="{{ url_for('static', filename='js/jquery-ui-1.10.4.custom.min.js') }}"></script>'
+<script src="{{ url_for('static', filename='js/RaceResults.js') }}"></script>'
+<script type=text/javascript>
+  var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+</script>
+{% block scripts %}
+{% endblock %}
+<body>
+<div id="rr-page-{{ request.path|replace("/","") }}"></div>
+<div class=heading>
+  <h1>Race Results</h1>
+  <div class=pagename>{% block pagename %}{% endblock %}</div>
+  <div class=metanav>
+    {% if not session.logged_in %}
+      <a href="{{ url_for('login') }}">log in</a>
+    {% else %}
+      {{ session.user_name }}
+      {% if session.year %}
+        |
+        <select id="year_select" class=sessionoption sessionoptionapi="/_useryear">
+          {% for year in session.year_choices %}
+            <option value={{ year[0] }} {% if year[0] == session.year %}selected{% endif %}>{{ year[1] }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+      {% if session.club_name %}
+        | 
+        <select id="club_select" class=sessionoption sessionoptionapi="/_userclub">
+          {% for club in session.club_choices %}
+            <option value={{ club[0] }} {% if club[0] == session.club_id %}selected{% endif %}>{{ club[1]}}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+      | <a href="{{ url_for('logout') }}">log out</a>
+    {% endif %}
+  </div>  
+</div>
+<div class=wrapper>
+  {% if session.nav %}
+    <ul id="navigation">
+    {% for thisnav in session.nav %}
+       <li><a href={{ thisnav.url }}>{{ thisnav.display }}</a></li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+  <div class=body>
+    {% if error %}<p class=error><strong>Error: {{ error }}</strong></p>{% endif %}
+    {% for message in get_flashed_messages() %}
+      <div class=flash><p>{{ message }}</p></div>
+    {% endfor %}
+    {% block body %}
+    {% endblock %}
+  </div>
+</div>
+</body>
+</html>
