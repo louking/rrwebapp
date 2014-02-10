@@ -3,9 +3,8 @@
 #################
 fsrcresult-old.py
 underdevelopment.txt
-static/css/redmond/
-static/css/sm-f1em-theme
-static/js/jquery*
+static/css/*
+static/js/*
 
 #################
 ## Eclipse

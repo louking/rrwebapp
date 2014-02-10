@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import tabnum,tabbool,tabeditlink %}
+{% block pagename %}
+    Series
+{% endblock %}
+{% block scripts %}
+{% endblock %}
+{% block body %}
+    <div class="scrollarea">
+      <table class=DataList cellpadding=0 cellspace=0>
+          <tr>
+              {% if writeallowed %}
+              <th>Edit</th>
+              {% endif %}
+              <th>Name</td>
+              <th>Max Races</th>
+              <th>Multiplier</th>
+              <th>Max Gen Pts</th>
+              <th>Max Div Pts</th>
+              <th>Max by Num Rnrs</th>
+              <th>Order By</th>
+              <th>Order</th>
+              <th>Members</td>
+              <th>Avg Ties</th>
+              <th>Overall</th>
+              <th>Divisions</th>
+              <th>Age Grade</th>
+          </tr>
+      {% for ss in series %}
+          <tr>
+              {% if writeallowed %}
+                {{ tabeditlink("%s?seriesid=%s"|format("#",ss.id)) }}
+              {% endif %}
+              <td>{{ ss.name }}</td>
+              {{ tabnum(ss.maxraces,0) }}
+              {{ tabnum(ss.multiplier,0) }}
+              {{ tabnum(ss.maxgenpoints,0) }}
+              {{ tabnum(ss.maxdivpoints,0) }}
+              {{ tabbool(ss.maxbynumrunners) }}
+              <td>{{ ss.orderby }}</td>
+              <td>{% if ss.hightolow %}descending{% else %}ascending{% endif %}</td>
+              {{ tabbool(ss.membersonly) }}
+              {{ tabbool(ss.averagetie) }}
+              {{ tabbool(ss.calcoverall) }}
+              {{ tabbool(ss.calcdivisions) }}
+              {{ tabbool(ss.calcagegrade) }}
+          </tr>
+      {% endfor %}
+      </table>
+    </div>
+{% endblock %}

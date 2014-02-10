@@ -1,5 +1,5 @@
 /* overwrite some JQuery theme information */
-.no-close .ui-dialog-titlebar {
+.no-titlebar .ui-dialog-titlebar {
   display: none;
 }
 
@@ -15,11 +15,12 @@
   padding-right:15px;
   width:850px;
   float:left;
-  font-size: 1em;
+  font-size: 0.8em;
 }
 
 .scrollarea {
   height:550px;
+  width: 850px;
   overflow: auto; /* scroll */
 }
 

@@ -2,19 +2,12 @@
 <head>
   <title>Race Results</title>
 </head>
-<link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/style.css') }}">
-<link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/sm-f1em-theme/jquery-ui-1.10.4.custom.min.css') }}">
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/sm-f0-8em-theme/jquery-ui-1.10.4.custom.min.css') }}">
 <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>-->
-<script src="{{ url_for('static', filename='js/jquery-1.11.0.min.js') }}"></script>'
-<script src="{{ url_for('static', filename='js/jquery-ui-1.10.4.custom.min.js') }}"></script>'
-<script src="{{ url_for('static', filename='js/RaceResults.js') }}"></script>'
-<script type=text/javascript>
-  var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-</script>
-{% block scripts %}
-{% endblock %}
 <body>
-<div id="rr-page-{{ request.path|replace("/","") }}"></div>
+{# set requestpath = request.path.split("/") #}
+<!--<div id="rr-page-{# requestpath[1] #}"></div>-->
 <div class=heading>
   <h1>Race Results</h1>
   <div class=pagename>{% block pagename %}{% endblock %}</div>
@@ -60,5 +53,13 @@
     {% endblock %}
   </div>
 </div>
+<script type="text/javascript">
+  var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+</script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.0.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-ui-1.10.4.custom.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='RaceResults.js') }}"></script>
+{% block scripts %}
+{% endblock %}
 </body>
 </html>

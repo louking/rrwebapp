@@ -28,8 +28,6 @@ import flask
 import flask.ext.login as flasklogin
 import flask.ext.principal as principal
 import flask.ext.wtf as flaskwtf
-import wtforms
-from wtforms import validators
 
 # home grown
 from . import app
@@ -40,35 +38,8 @@ from database_flask import db   # this is ok because this module only runs under
 
 # module specific needs
 from racedb import User, Role, Club
+from forms import UserForm, UserSettingsForm
 
-########################################################################
-class UserForm(flaskwtf.Form):
-########################################################################
-    email = wtforms.StringField('Email')
-    name = wtforms.StringField('Name')
-    password = wtforms.StringField('Password',[validators.Optional()])
-    hidden_userid = wtforms.HiddenField('',[validators.Optional()])
-    owner = wtforms.BooleanField('Owner',[validators.Optional()])
-    club = wtforms.SelectField('Club',[validators.Optional()],coerce=int)
-    admin = wtforms.BooleanField('Admin',[validators.Optional()])
-    viewer = wtforms.BooleanField('Viewer',[validators.Optional()])
-    
-########################################################################
-class UserSettingsForm(flaskwtf.Form):
-########################################################################
-    email = wtforms.StringField('Email')
-    name = wtforms.StringField('Name')
-    password = wtforms.StringField('Password',[validators.Optional()])
-    hidden_userid = wtforms.HiddenField('',[validators.Optional()])
-    
-#########################################################################
-#class NewUserForm(flaskwtf.Form):
-#########################################################################
-#    email = wtforms.StringField('Email')
-#    name = wtforms.StringField('Name')
-#    password = wtforms.StringField('Password')
-#    owner = wtforms.BooleanField('Owner')
-    
 ########################################################################
 # Manage Users
 ########################################################################

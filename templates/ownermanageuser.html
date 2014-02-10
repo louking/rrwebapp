@@ -30,6 +30,7 @@
 {% endblock %}
 {% block body %}
   <form action="{{ userurl }}" method=post>
+    {# hidden userid needed because of ajax getJSON call #}
     {{ form.hidden_tag() }}
     <div class="W9emLabel W25emTextBox FloatLeft">
         {{ render_field(form.name,displayonly,size=25) }}

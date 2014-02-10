@@ -70,6 +70,7 @@ def getnavigation():
             
         if club and readcheck.can():
             navigation.append({'display':'Races','url':flask.url_for('manageraces')})
+            navigation.append({'display':'Series','url':flask.url_for('manageseries')})
         
     return navigation
 

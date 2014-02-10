@@ -1,11 +1,11 @@
 ###########################################################################################
-# apicommon - helper functions for api building
+# login -- log in / out views for race results web application
 #
 #       Date            Author          Reason
 #       ----            ------          ------
-#       01/17/14        Lou King        Create
+#       10/11/13        Lou King        Create
 #
-#   Copyright 2014 Lou King
+#   Copyright 2013 Lou King
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -20,36 +20,28 @@
 #   limitations under the License.
 #
 ###########################################################################################
-'''
-apicommon - helper functions for api building
-==================================================
-'''
 
 # standard
 
 # pypi
-import flask
+from functools import wraps
+from flask import request, redirect, current_app
 
 #----------------------------------------------------------------------
-def success_response(**respargs):
+def ssl_required(fn):
 #----------------------------------------------------------------------
     '''
-    build success response for API
-    
-    :param respargs: arguments for response
-    :rtype: json response
+    enable https for a page with this decorator.
+    see http://flask.pocoo.org/snippets/93/
     '''
-
-    return flask.jsonify(success=True,**respargs)
-
-#----------------------------------------------------------------------
-def failure_response(**respargs):
-#----------------------------------------------------------------------
-    '''
-    build failure response for API
-    
-    :param respargs: arguments for response
-    :rtype: json response
-    '''
-
-    return flask.jsonify(success=False,**respargs)
+    @wraps(fn)
+    def decorated_view(*args, **kwargs):
+        if current_app.config.get("SSL"):
+            if request.is_secure:
+                return fn(*args, **kwargs)
+            else:
+                return redirect(request.url.replace("http://", "https://"))
+        
+        return fn(*args, **kwargs)
+            
+    return decorated_view

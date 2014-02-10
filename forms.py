@@ -25,24 +25,73 @@ forms - forms for rrwebapp
 ===============================
 '''
 from flask.ext.wtf import Form
-from wtforms import SelectField, StringField
+from wtforms import HiddenField, SelectField, StringField, IntegerField, BooleanField, validators
+from wtforms import SelectMultipleField, widgets
 
+########################################################################
+class MultiCheckboxField(SelectMultipleField):
+########################################################################
+    """
+    A multiple-select, except displays a list of checkboxes.
+
+    Iterating the field will produce subfields, allowing custom rendering of
+    the enclosed checkbox fields.
+    """
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
+
+########################################################################
+class UserForm(Form):
+########################################################################
+    email = StringField('Email')
+    name = StringField('Name')
+    password = StringField('Password',[validators.Optional()])
+    hidden_userid = HiddenField('',[validators.Optional()])
+    owner = BooleanField('Owner',[validators.Optional()])
+    club = SelectField('Club',[validators.Optional()],coerce=int)
+    admin = BooleanField('Admin',[validators.Optional()])
+    viewer = BooleanField('Viewer',[validators.Optional()])
+    
+########################################################################
+class UserSettingsForm(Form):
+########################################################################
+    email = StringField('Email')
+    name = StringField('Name')
+    password = StringField('Password',[validators.Optional()])
+    hidden_userid = HiddenField('',[validators.Optional()])
+    
 ########################################################################
 class RaceForm(Form):
 ########################################################################
     filterseries = SelectField('FilterSeries',coerce=str)
     date = StringField('Date')
     distance = StringField('Distance')
-    surface = StringField('Surface')
+    surface = SelectField('Surface',choices=[('road','road'),('track','track'),('trail','trail')])
     name = StringField('Name')
     results = StringField('Results')
     
+########################################################################
+class RaceSettingsForm(Form):
+########################################################################
+    name = StringField('Name')
+    date = StringField('Date')
+    distance = StringField('Distance')
+    surface = SelectField('Surface',coerce=str)
+    series = MultiCheckboxField("Series", coerce=int)
+
 ########################################################################
 class SeriesForm(Form):
 ########################################################################
-    date = StringField('Date')
-    distance = StringField('Distance')
-    surface = StringField('Surface')
-    name = StringField('Name')
-    results = StringField('Results')
-    
+    name = StringField('Series Name')
+    maxraces = IntegerField('Max Races')
+    multiplier = IntegerField('Multiplier')
+    maxgenpoints = IntegerField('Max Gender Points')
+    maxdivpoints = IntegerField('Max Division Points')
+    maxbynumrunners = BooleanField('Max by Number of Runners')
+    orderby = SelectField('Order By',coerce=str)
+    hightolow = SelectField('Order')
+    membersonly = BooleanField('Members Only')
+    averagetie = BooleanField('Average Ties')
+    calcoverall = BooleanField('Calculate Overall')
+    calcdivisions = BooleanField('Calculate Divisions')
+    calcagegrade = BooleanField('Calculate Age Grade')

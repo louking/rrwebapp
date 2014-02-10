@@ -1,5 +1,5 @@
 ###########################################################################################
-# raceresultswebapp.login - log in / out views for race results web application
+# login -- log in / out views for race results web application
 #
 #       Date            Author          Reason
 #       ----            ------          ------
@@ -24,6 +24,7 @@
 # standard
 import datetime
 import time
+from functools import wraps
 
 # pypi
 import flask
