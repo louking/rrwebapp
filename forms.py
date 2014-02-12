@@ -83,6 +83,7 @@ class RaceSettingsForm(Form):
 class SeriesForm(Form):
 ########################################################################
     name = StringField('Series Name')
+    copyyear = SelectField('Copy from Year')
     maxraces = IntegerField('Max Races')
     multiplier = IntegerField('Multiplier')
     maxgenpoints = IntegerField('Max Gender Points')

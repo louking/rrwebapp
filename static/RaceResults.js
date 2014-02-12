@@ -4,13 +4,14 @@
             function ( event ) {
                 var apiurl = $( this ).attr('sessionoptionapi');
                 var selected = $( this ).val();
+                
                 $.ajax({
                     url: $SCRIPT_ROOT + apiurl + '/' + selected,
                     type: 'POST',
                     dataType: 'json',
                     complete: function(data){
                         var success = data.success;
-                        location.reload(true)
+                        location.reload(true);
                         }
                 });
             });
@@ -143,5 +144,5 @@
             event.preventDefault();
             ajaximportraces(false);
         });
-
+    
     };  // manageraces

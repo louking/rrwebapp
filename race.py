@@ -68,12 +68,19 @@ class ManageRaces(MethodView):
             form = RaceForm()
     
             seriesl = [('%','all series')]
+            supportedseries = []
             theseseries = Series.query.filter_by(club_id=club_id,active=True,year=year).order_by('name').all()
             for thisseries in theseseries:
                 serieselect = (thisseries.id,thisseries.name)
                 seriesl.append(serieselect)
+                supportedseries.append(thisseries.id)
             form.filterseries.choices = seriesl
+            
+            # not quite sure why this comes in GET method, but make sure this series is supported
             seriesid = request.args.get('filterseries')
+            
+            if seriesid and int(seriesid) not in supportedseries:
+                return flask.redirect(flask.url_for('manageraces'))    # without any form info
             form.filterseries.data = seriesid if seriesid else '%'
             
             races = []
@@ -334,13 +341,16 @@ app.add_url_rule('/_importraces',view_func=AjaxImportRaces.as_view('_importraces
 class SeriesAPI(MethodView):
 #######################################################################
     decorators = [login_required]
-    def get(self, club_id):
+    def post(self, club_id, year):
         """
-        Handle a GET request at /_series/<club_id>/
+        Handle a POST request at /_series/<club_id>/ or /_series/<club_id>/<year>/
         Return a list of 2-tuples (<series_id>, <series_name>)
         """
         try:
-            allseries = Series.query.filter_by(club_id=club_id,active=True).order_by('name').all()
+            if year == -1:
+                allseries = Series.query.filter_by(active=True,club_id=club_id).order_by('name').all()
+            else:
+                allseries = Series.query.filter_by(active=True,club_id=club_id,year=year).order_by('name').all()
             data = [(s.id, s.name) for s in allseries]
             response = make_response(json.dumps(data))
             response.content_type = 'application/json'
@@ -354,7 +364,9 @@ class SeriesAPI(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/_series/<int:club_id>',view_func=SeriesAPI.as_view('series_api'),methods=['GET'])
+series_api_view = SeriesAPI.as_view('series_api')
+app.add_url_rule('/_series/<int:club_id>/',defaults={'year':-1},view_func=series_api_view,methods=['POST'])
+app.add_url_rule('/_series/<int:club_id>/','/_series/<int:club_id>/<int:year>/',defaults={'year':-1},view_func=series_api_view,methods=['POST'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -366,6 +378,7 @@ class ManageSeries(MethodView):
     #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
+            year = flask.session['year']
             
             readcheck = ViewClubDataPermission(club_id)
             writecheck = UpdateClubDataPermission(club_id)
@@ -375,8 +388,42 @@ class ManageSeries(MethodView):
                 db.session.rollback()
                 flask.abort(403)
                 
+            form = SeriesForm()
+    
+            seriesl = []
+            copyyear = []
+            for series in Series.query.filter_by(club_id=club_id,active=True).order_by('name').all():
+                if series.year == year:
+                    seriesl.append(series)
+                if (series.year,series.year) not in copyyear:
+                    copyyear.append((series.year,series.year))
+            copyyear.sort()
+            form.copyyear.choices = copyyear
+            
+            # commit database updates and close transaction
+            db.session.commit()
+            return flask.render_template('manageseries.html',form=form,series=seriesl,copyyear=copyyear,writeallowed=writecheck.can())
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+
+    #----------------------------------------------------------------------
+    def post(self):
+    #----------------------------------------------------------------------
+        try:
+            club_id = flask.session['club_id']
             year = flask.session['year']
             
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can at least read the data, otherwise abort
+            if not writecheck.can():
+                db.session.rollback()
+                flask.abort(403)
+                
             form = SeriesForm()
     
             seriesl = []
@@ -392,7 +439,7 @@ class ManageSeries(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/manageseries',view_func=ManageSeries.as_view('manageseries'),methods=['GET'])
+app.add_url_rule('/manageseries',view_func=ManageSeries.as_view('manageseries'),methods=['GET','POST'])
 #----------------------------------------------------------------------
 
 
