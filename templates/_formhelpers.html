@@ -16,6 +16,10 @@
   </p>
 {% endmacro %}
 
+{% macro widget_field(field) -%}
+    {{ field.label(class='Label') }} {{ field(**kwargs)|safe }}
+{%- endmacro %}
+
 {% macro num(number,floatprecision) %}
   {% if number is none %}
   {% elif number == number|int %}

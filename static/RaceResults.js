@@ -17,50 +17,62 @@
             });
 
     // common
-    var toolstatus = 0;
-    var $toolbutton = $('.toolbutton');
-    var $toolcontent = $('.toolpopup').accordion({
-        heightStyle: "content",
-        animate: 30,
-    })
-    var $tooldialog = $('.tooldialog');
-    
-    function opentoolbutton() {
-        $tooldialog.dialog("open");
-        $toolcontent.show();
-        toolstatus = 1;
-    };
-    
-    function closetoolbutton() {
-        $tooldialog.dialog("close");
-        $toolcontent.hide();
-        toolstatus = 0;
-    };
-    
-    $toolbutton
-        .button({ icons: { secondary: "ui-icon-gear" } })
-        .on('click',
-            function() {
-                if (toolstatus == 0) {
-                    opentoolbutton()
-                } else {
-                    closetoolbutton()
-                };
+    // toolbutton feature
+    var toolbutton = {
+        // toolcontent needs to be formatted as expected by JQuery accordian widget
+        init: function ( toolcontent ) {
+            toolbutton.toolstatus = 0;
+            toolbutton.$toolbutton = $('<button>Tools</button>');
+            toolbutton.$widgets = $('#widgets')
+            toolbutton.$widgets.append(toolbutton.$toolbutton)
+            toolbutton.$toolpopup = $('<div>').append(toolcontent);
+            toolbutton.$toolcontent = toolbutton.$toolpopup.accordion({
+                heightStyle: "content",
+                animate: 30,
             });
-    $tooldialog.dialog({
-                        dialogClass: "no-titlebar",
-                        draggable: false,
-                        //resizeable: false,
-                        open:$toolcontent,
-                        autoOpen: false,
-                        height: "auto",
-                        width: 450,
-                        position:{
-                                my: "left top",
-                                at: "left bottom",
-                                of: $toolbutton
-                                },
-                        });
+            toolbutton.$tooldialog = $('<div>').append(toolbutton.$toolpopup);
+
+            toolbutton.$toolbutton
+                .button({ icons: { secondary: "ui-icon-gear" } })
+                .on('click',
+                    function() {
+                        if (toolbutton.toolstatus == 0) {
+                            toolbutton.open()
+                        } else {
+                            toolbutton.close()
+                        };
+                    });
+                
+            toolbutton.$tooldialog.dialog({
+                                dialogClass: "no-titlebar",
+                                draggable: false,
+                                //resizeable: false,
+                                open:toolbutton.$toolcontent,
+                                autoOpen: false,
+                                height: "auto",
+                                width: 450,
+                                position:{
+                                        my: "left top",
+                                        at: "left bottom",
+                                        of: toolbutton.$toolbutton
+                                        },
+                                });
+
+        },
+        
+        open: function() {
+            toolbutton.$tooldialog.dialog("open");
+            toolbutton.$toolcontent.show();
+            toolbutton.toolstatus = 1;
+        },
+        
+        close: function() {
+            toolbutton.$tooldialog.dialog("close");
+            toolbutton.$toolcontent.hide();
+            toolbutton.toolstatus = 0;
+        },
+        
+    }
     
     // manageraces
     function manageraces() {
@@ -73,7 +85,8 @@
                 });
         
         // put toolbutton in the right place
-        $toolbutton.position({
+        toolbutton.$widgets.css({height:"0px"});   // no more widgets in container
+        toolbutton.$toolbutton.position({
             my: "left center",
             at: "right+3 center",
             of: $filterseries,
@@ -136,7 +149,8 @@
                 success: ajaximportracesresp,
             });
             
-            closetoolbutton();
+            //closetoolbutton();
+            toolbutton.close();
         };
             
         var $importraces = $('#manageracesImport');

@@ -5,6 +5,14 @@
 {% endblock %}
 {% block scripts %}
   <script type="text/javascript">$( document ).ready( function() {manageraces();} )</script>
+  <script type="text/javascript">toolbutton.init("\
+        <h3>Import Races</h3>\
+        <div>\
+          <form id='upload-file' method='post' enctype='multipart/form-data'>\
+            <input id='choosefileImport' type=file name='file'>\
+            <button id='manageracesImport'>Import</button>\
+          </form>\
+        </div>")</script>
 {% endblock %}
 {% block body %}
     <span class=TextLeft>
@@ -13,21 +21,6 @@
       </form>
     </span>
 
-    {% if writeallowed %}
-      <button class="toolbutton" id="toolbutton">Tools</button>
-      <div class="tooldialog">
-      <div class="toolpopup">
-        <h3>Import Races</h3>
-        <div>
-          <form id="upload-file" method="post" enctype="multipart/form-data">
-            <input id='choosefileImport' type=file name='file'>
-            <button id='manageracesImport'>Import</button>
-          </form>
-        </div>
-      </div>
-      </div>
-    {% endif %}
-    
     <div class="scrollarea">
       <table class=DataList cellpadding=0 cellspace=0>
           <tr>

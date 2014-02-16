@@ -1,25 +1,22 @@
 {% extends "layout.html" %}
-{% from '_formhelpers.html' import render_field,tabnum,tabbool,tabeditlink %}
+{% from '_formhelpers.html' import render_field,widget_field,tabnum,tabbool,tabeditlink %}
 {% block pagename %}
     Series
 {% endblock %}
 {% block scripts %}
+  <script type="text/javascript">
+  toolbutton.init('\
+        <h3>Copy Series</h3>\
+        <div>\
+          <form id="copy-series" method="post" enctype="multipart/form-data">\
+            {{ widget_field(form.copyyear) }}\
+            <button id="manageseriesCopy">Copy</button>\
+          </form>\
+        </div>\
+  ');
+  </script>
 {% endblock %}
 {% block body %}
-    {% if writeallowed and copyyear %}
-      <button class="toolbutton" id="toolbutton">Tools</button>
-      <div class="tooldialog">
-      <div class="toolpopup">
-        <h3>Copy Series</h3>
-        <div>
-          <form id="copy-series" method="post" enctype="multipart/form-data">
-            {{ render_field(form.copyyear) }}
-            <button id='manageseriesCopy'>Copy</button>
-          </form>
-        </div>
-      </div>
-      </div>
-    {% endif %}
 
     <div class="scrollarea">
       <table class=DataList cellpadding=0 cellspace=0>
