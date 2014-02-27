@@ -8,16 +8,20 @@
     {{ form.hidden_tag() }}
     <div class="W9emLabel W25emTextBox FloatLeft">
         {{ render_field(form.name,displayonly,size=40) }}
-        {{ render_field(form.date,displayonly,size=15) }}
-        {{ render_field(form.distance,displayonly,size=10) }}
+        {{ render_field(form.racenum,displayonly,type="number") }}
+        {{ render_field(form.date,displayonly,size=15,type="date") }}
+        {{ render_field(form.distance,displayonly,size=10,type="float") }}
         {{ render_field(form.surface,displayonly) }}
         {% for ss in form.series %}
           {{ render_field(ss) }}
         {% endfor %}
         <center>
-            <input type=submit name=whichbutton value=Cancel />
+            <input class="actionbutton cancelbutton" type=submit name=whichbutton value=Cancel />
+            {% if deletebutton %}
+              <input class="actionbutton deletebutton" type="submit" name="whichbutton" value="Delete" />
+            {% endif %}
             {% if action %}
-                <input type=submit name=whichbutton value="{{action}}" >
+              <input class="actionbutton actionbutton" type=submit name=whichbutton value="{{action}}" />
             {% endif %}
         </center>
   </form>

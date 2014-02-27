@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import render_field %}
+{% block pagename %}
+    {{ thispagename }}
+{% endblock %}
+{% block body %}
+  <form action="{{ userurl }}" method=post>
+    {{ form.hidden_tag() }}
+    <div class="W20emLabel W25emTextBox FloatLeft">
+        {{ render_field(form.name,displayonly) }}
+        {{ render_field(form.maxraces,displayonly) }}
+        {{ render_field(form.multiplier,displayonly) }}
+        {{ render_field(form.maxgenpoints,displayonly) }}
+        {{ render_field(form.maxdivpoints,displayonly) }}
+        {{ render_field(form.maxbynumrunners,displayonly) }}
+        {{ render_field(form.orderby,displayonly) }}
+        {{ render_field(form.hightolow,displayonly) }}
+        {{ render_field(form.membersonly,displayonly) }}
+        {{ render_field(form.averagetie,displayonly) }}
+        {{ render_field(form.calcoverall,displayonly) }}
+        {{ render_field(form.calcdivisions,displayonly) }}
+        {{ render_field(form.calcagegrade,displayonly) }}
+        
+        <h1>Races ({{form.name.data}} series) </h1>
+        {% for race in form.races %}
+          {{ render_field(race) }}
+        {% endfor %}
+        <center>
+            <input type=submit name=whichbutton value=Cancel />
+            {% if deletebutton %}
+              <input type="submit" name="whichbutton" value="Delete" onclick="getconfirmation(event,'Please confirm item deletion');"/>
+            {% endif %}
+            {% if action %}
+              <input type=submit name=whichbutton value="{{action}}" >
+            {% endif %}
+        </center>
+  </form>
+{% endblock %}

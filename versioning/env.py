@@ -33,8 +33,8 @@ import os, sys
 sys.path.append(os.getcwd())
 
 # get the app model
-from rrwebapp import app
-from database import db
+from app import app
+from database_flask import db
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

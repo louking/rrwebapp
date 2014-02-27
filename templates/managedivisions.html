@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import render_field,widget_field,tabnum,tabbool,tabeditlink %}
+{% block pagename %}
+    Divisions
+{% endblock %}
+{% block scripts %}
+  <script type="text/javascript">$( document ).ready( function() {managedivisions();} )</script>
+  <script type="text/javascript">
+  toolbutton.init('\
+        <h3>Copy Divisions</h3>\
+        <div>\
+          <form id="copy-divisions" method="post" enctype="multipart/form-data">\
+            {{ widget_field(form.copyyear) }}\
+            <button id="managedivisions-copy-button">Copy</button>\
+          </form>\
+        </div>\
+  ');
+  </script>
+{% endblock %}
+{% block body %}
+
+    <div class="scrollarea">
+      <table class=DataList cellpadding=0 cellspace=0>
+          <tr>
+              {% if writeallowed %}
+              <th>Edit</th>
+              {% endif %}
+              <th>Series</td>
+              <th>Low Age</th>
+              <th>High Age</th>
+          </tr>
+      {% for dd in divisions %}
+          <tr>
+              {% if writeallowed %}
+                {{ tabeditlink(url_for('divisionsettings',divisionid=dd.id)) }}
+              {% endif %}
+              <td>{{ dd.series.name }}</td>
+              {{ tabnum(dd.divisionlow,0) }}
+              {{ tabnum(dd.divisionhigh,0) }}
+          </tr>
+      {% endfor %}
+      </table>
+    </div>
+{% endblock %}

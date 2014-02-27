@@ -4,16 +4,19 @@
     Series
 {% endblock %}
 {% block scripts %}
-  <script type="text/javascript">
-  toolbutton.init('\
+  <script type="text/javascript">$( document ).ready( function() {
+      toolbutton.init('copy-series',
+                  '\
         <h3>Copy Series</h3>\
         <div>\
           <form id="copy-series" method="post" enctype="multipart/form-data">\
             {{ widget_field(form.copyyear) }}\
-            <button id="manageseriesCopy">Copy</button>\
+            <button id="manageseries-copy-button">Copy</button>\
           </form>\
         </div>\
-  ');
+      ');
+      manageseries();
+    } )
   </script>
 {% endblock %}
 {% block body %}
@@ -32,7 +35,7 @@
               <th>Max by Num Rnrs</th>
               <th>Order By</th>
               <th>Order</th>
-              <th>Members</td>
+              <th>Members Only</td>
               <th>Avg Ties</th>
               <th>Overall</th>
               <th>Divisions</th>
@@ -41,7 +44,7 @@
       {% for ss in series %}
           <tr>
               {% if writeallowed %}
-                {{ tabeditlink("%s?seriesid=%s"|format("#",ss.id)) }}
+                {{ tabeditlink(url_for('seriessettings',seriesid=ss.id)) }}
               {% endif %}
               <td>{{ ss.name }}</td>
               {{ tabnum(ss.maxraces,0) }}

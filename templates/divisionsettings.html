@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import render_field %}
+{% block pagename %}
+    {{ thispagename }}
+{% endblock %}
+{% block body %}
+  <form action="{{ userurl }}" method=post>
+    {{ form.hidden_tag() }}
+    <div class="W9emLabel W15emTextBox FloatLeft">
+        {{ render_field(form.seriesid,displayonly) }}
+        {{ render_field(form.divisionlow,displayonly) }}
+        {{ render_field(form.divisionhigh,displayonly) }}
+        
+        <center>
+            <input class="actionbutton cancelbutton" type=submit name=whichbutton value=Cancel />
+            {% if deletebutton %}
+              <input class="actionbutton deletebutton" type="submit" name="whichbutton" value="Delete" onclick="getconfirmation(event,'Please confirm item deletion');"/>
+            {% endif %}
+            {% if action %}
+              <input class="actionbutton acceptbutton" type=submit name=whichbutton value="{{action}}" >
+            {% endif %}
+        </center>
+  </form>
+{% endblock %}

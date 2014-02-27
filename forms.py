@@ -75,24 +75,34 @@ class RaceSettingsForm(Form):
 ########################################################################
     name = StringField('Name')
     date = StringField('Date')
-    distance = StringField('Distance')
+    distance = StringField('Miles')
     surface = SelectField('Surface',coerce=str)
+    racenum = IntegerField('Race Num')
     series = MultiCheckboxField("Series", coerce=int)
 
 ########################################################################
 class SeriesForm(Form):
 ########################################################################
+    copyyear = SelectField('Copy from Year',[validators.Optional()],choices=[])
     name = StringField('Series Name')
-    copyyear = SelectField('Copy from Year')
-    maxraces = IntegerField('Max Races')
-    multiplier = IntegerField('Multiplier')
-    maxgenpoints = IntegerField('Max Gender Points')
-    maxdivpoints = IntegerField('Max Division Points')
+    maxraces = IntegerField('Max Races',[validators.Optional()])
+    multiplier = IntegerField('Multiplier',[validators.Optional()])
+    maxgenpoints = IntegerField('Max Gender Points',[validators.Optional()])
+    maxdivpoints = IntegerField('Max Division Points',[validators.Optional()])
     maxbynumrunners = BooleanField('Max by Number of Runners')
-    orderby = SelectField('Order By',coerce=str)
-    hightolow = SelectField('Order')
+    orderby = SelectField('Order By',coerce=str,choices=[('agtime','agtime'),('agpercent','agpercent'),('time','time')])
+    hightolow = SelectField('Order',coerce=int,choices=[(0,'ascending'),(1,'descending')])
     membersonly = BooleanField('Members Only')
     averagetie = BooleanField('Average Ties')
     calcoverall = BooleanField('Calculate Overall')
     calcdivisions = BooleanField('Calculate Divisions')
     calcagegrade = BooleanField('Calculate Age Grade')
+    races = MultiCheckboxField("Races", coerce=int)
+    
+########################################################################
+class DivisionForm(Form):
+########################################################################
+    copyyear = SelectField('Copy from Year',[validators.Optional()],choices=[])
+    seriesid = SelectField('Series',coerce=int)
+    divisionlow = IntegerField('From Age',[validators.Optional()])
+    divisionhigh = IntegerField('To Age',[validators.Optional()])

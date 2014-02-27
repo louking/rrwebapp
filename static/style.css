@@ -183,6 +183,13 @@ label.Label
 .W11emLabel .FieldDesc { margin-left: 13em; }
 .W11emLabel div.FormPanel div.FormValue { margin-left: 12em; }
 
+.W15emLabel label.Label { width: 15em; }
+.W15emLabel .FieldDesc { margin-left: 16em; }
+
+.W20emLabel label.Label { width: 20em; }
+.W20emLabel .FieldDesc { margin-left: 21em; }
+
+
 .W9emTextBox input[type="date"],
 .W9emTextBox input[type="email"],
 .W9emTextBox input[type="text"],

@@ -4,22 +4,38 @@
     Races
 {% endblock %}
 {% block scripts %}
-  <script type="text/javascript">$( document ).ready( function() {manageraces();} )</script>
-  <script type="text/javascript">toolbutton.init("\
-        <h3>Import Races</h3>\
-        <div>\
-          <form id='upload-file' method='post' enctype='multipart/form-data'>\
-            <input id='choosefileImport' type=file name='file'>\
-            <button id='manageracesImport'>Import</button>\
-          </form>\
-        </div>")</script>
+  <script type="text/javascript">
+    $( document ).ready( function() {
+      {% if writeallowed %}
+        addbutton.init('add-race',
+                       '{{ url_for('racesettings',raceid=0) }}'
+                       );
+        toolbutton.init('tool-button',
+                        "\
+            <h3>Import Races</h3>\
+            <div>\
+              <form id='upload-file' method='post' enctype='multipart/form-data'>\
+                <input id='choosefileImport' type=file name='file'>\
+                <button id='manageracesImport'>Import</button>\
+              </form>\
+            </div>");
+        {% endif %}
+      manageraces( {% if writeallowed %}true{% else %}false{% endif %});    // need to do something here -- $widgets is undefined if not after toolbutton.init
+      {% if writeallowed %}
+        addbutton.position({my: "left center", at: "right+3 center", of: '#filterseries'});
+        toolbutton.position({my: "left center", at: "right+3 center", of: addbutton.selector});
+      {% endif %}
+    })
+  </script>
+  <script type="text/javascript">
+  </script>
 {% endblock %}
 {% block body %}
-    <span class=TextLeft>
+    <div class=TextLeft>
       <form action={{ url_for('manageraces') }}>
         {{ form.filterseries() }}
       </form>
-    </span>
+    </div>
 
     <div class="scrollarea">
       <table class=DataList cellpadding=0 cellspace=0>
@@ -28,6 +44,7 @@
                 <th>Edit</th>
               {% endif %}
               <th>Results</th>
+              <th>Race Num</td>
               <th>Date</td>
               <th>Race</td>
               <th>Miles</th>
@@ -53,6 +70,7 @@
                 {{ tabbool(race.results|length > 0) }}
               {% endif %}
 
+              <td align=center>{{ num(race.racenum,0) }}</td>
               <td>{{ race.date }}</td>
               <td>{{ race.name }}</td>
               <td align=center>{{ num(race.distance,2) }}</td>

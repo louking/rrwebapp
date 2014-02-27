@@ -17,12 +17,46 @@
             });
 
     // common
+    function getconfirmation(event,button,text) {
+        event.preventDefault();
+        $('<div>').append(text).dialog({
+            dialogClass: "no-titlebar",
+            autoOpen: true,
+            height: "auto",
+            modal: true,
+            buttons: [
+                {   text:  'Cancel',
+                    click: function() {
+                        $( this ).dialog('close');
+                    }
+                },{ text:  'Confirm',
+                    click: function(){
+                        $form = $(event.target).closest("form")
+                        $form.append('<input type="hidden" name="whichbutton" value="'+button+'">')
+                        $(event.target).closest("form").submit()
+                        $( this ).dialog('close');
+                    }
+                }
+            ],
+                
+            close: function(event,ui) {$(this).remove()},
+
+            });
+    }
+    
+    // decorate action buttons
+    $(".actionbutton").button();
+    
+    // get confirmation for any deletes
+    $(".deletebutton").on('click', function(event){getconfirmation(event,'Delete','Please confirm item deletion')});
+
+    
     // toolbutton feature
     var toolbutton = {
         // toolcontent needs to be formatted as expected by JQuery accordian widget
-        init: function ( toolcontent ) {
+        init: function ( buttonid, toolcontent ) {
             toolbutton.toolstatus = 0;
-            toolbutton.$toolbutton = $('<button>Tools</button>');
+            toolbutton.$toolbutton = $('<button id="'+buttonid+'">Tools</button>');
             toolbutton.$widgets = $('#widgets')
             toolbutton.$widgets.append(toolbutton.$toolbutton)
             toolbutton.$toolpopup = $('<div>').append(toolcontent);
@@ -57,7 +91,8 @@
                                         of: toolbutton.$toolbutton
                                         },
                                 });
-
+            
+            toolbutton.selector = toolbutton.$toolbutton;
         },
         
         open: function() {
@@ -72,10 +107,103 @@
             toolbutton.toolstatus = 0;
         },
         
+        position: function(position) {
+            toolbutton.$toolbutton.position(position)
+        }
     }
     
+    // addbutton feature
+    var addbutton = {
+        init: function ( buttonid, url ) {
+            addbutton.$addbutton = $('<button id="'+buttonid+'">Add</button>');
+            addbutton.$widgets = $('#widgets');
+            addbutton.$widgets.append(addbutton.$addbutton);
+
+            addbutton.$addbutton
+                .button({ icons: { secondary: "ui-icon-plus" } })
+                .on('click',
+                    function() {
+                        document.location.href = url;
+                    });
+                
+            addbutton.selector = addbutton.$addbutton;
+        },
+        
+        position: function(position) {
+            addbutton.$addbutton.position(position)
+        }
+    };
+    
+    function ajaxupdatedbresp(url,form,data) {
+        console.log(data);
+        if (data.success) {
+            location.reload(true);
+        } else {
+            console.log('FAILURE: ' + data.cause);
+            // if overwrite requested, force the overwrite
+            if (data.confirm) {
+                $("<div>" + data.cause + "</div>").dialog({
+                    dialogClass: 'no-titlebar',
+                    height: "auto",
+                    modal: true,
+                    buttons: [
+                        {   text:  'Cancel',
+                            click: function() {
+                                $( this ).dialog('destroy');
+                            }
+                        },{ text:  'Overwrite',
+                            click: function(){
+                                ajaxupdatedb(url,form,true);
+                                $( this ).dialog('destroy');
+                            }
+                        }
+                    ],
+                });
+            } else {
+                $("<div>Error Occurred: " + data.cause + "</div>").dialog({
+                    dialogClass: 'no-titlebar',
+                    height: "auto",
+                    buttons: [
+                        {   text:  'OK',
+                            click: function(){
+                                $( this ).dialog('destroy');
+                            }
+                        }
+                    ],
+                });
+            };
+        };
+    };
+    
+    function ajaxupdatedb(urlpath,form,force) {
+        var form_data = new FormData($(this).parent()[0]);
+        
+        // force = true means to overwrite existing data for this year
+        params = [{name:"force",value:force}]
+        
+        // get form values into parameters
+        $.each(form.serializeArray(), function(index,value){
+            params.push(value)
+        })
+        
+        var url = urlpath +'?'+$.param(params)
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            contentType: false,
+            cache: false,
+            async: false,
+            success: function(data) {
+                ajaxupdatedbresp(urlpath,form,data);
+            },
+        });
+        
+        toolbutton.close();
+    };
+        
     // manageraces
-    function manageraces() {
+    function manageraces( writeallowed ) {
         var $filterseries = $('#filterseries');
         $filterseries
             //.selectmenu({ icons: { secondary: "ui-icon-triangle-1-s" } })
@@ -84,79 +212,108 @@
                     this.form.submit();
                 });
         
-        // put toolbutton in the right place
-        toolbutton.$widgets.css({height:"0px"});   // no more widgets in container
-        toolbutton.$toolbutton.position({
-            my: "left center",
-            at: "right+3 center",
-            of: $filterseries,
-        });
-        
-        function ajaximportracesresp(data) {
-            console.log(data);
-            if (data.success) {
-                location.reload(true);
-            } else {
-                console.log('FAILURE: ' + data.cause);
-                // if overwrite requested, force the overwrite
-                if (data.confirm) {
-                    $("<div>Overwrite year information?</div>").dialog({
-                        dialogClass: 'no-titlebar',
-                        height: "auto",
-                        buttons: [
-                            {   text:  'Overwrite',
-                                click: function(){
-                                    ajaximportraces(true);
-                                    $( this ).dialog('destroy');
-                                }
-                            },{ text:  'Cancel',
-                                click: function() {
-                                    $( this ).dialog('destroy');
-                                }
-                            }
-                        ],
-                    });
+        if (writeallowed) {
+            // put toolbutton in the right place
+            toolbutton.$widgets.css({height:"0px"});   // no more widgets in container
+            //toolbutton.$toolbutton.position({
+            //    my: "left center",
+            //    at: "right+3 center",
+            //    of: $filterseries,
+            //});
+            
+            
+            function ajaximportracesresp(data) {
+                console.log(data);
+                if (data.success) {
+                    location.reload(true);
                 } else {
-                    $("<div>Error Occurred: "+data.cause+"</div>").dialog({
-                        dialogClass: 'no-titlebar',
-                        height: "auto",
-                        buttons: [
-                            {   text:  'OK',
-                                click: function(){
-                                    $( this ).dialog('destroy');
+                    console.log('FAILURE: ' + data.cause);
+                    // if overwrite requested, force the overwrite
+                    if (data.confirm) {
+                        $("<div>"+data.cause+"</div>").dialog({
+                            dialogClass: 'no-titlebar',
+                            height: "auto",
+                            modal: true,
+                            buttons: [
+                                {   text:  'Cancel',
+                                    click: function() {
+                                        $( this ).dialog('destroy');
+                                    }
+                                },{ text:  'Overwrite',
+                                    click: function(){
+                                        ajaximportraces(true);
+                                        $( this ).dialog('destroy');
+                                    }
                                 }
-                            }
-                        ],
-                    });
+                            ],
+                        });
+                    } else {
+                        $("<div>Error Occurred: "+data.cause+"</div>").dialog({
+                            dialogClass: 'no-titlebar',
+                            height: "auto",
+                            buttons: [
+                                {   text:  'OK',
+                                    click: function(){
+                                        $( this ).dialog('destroy');
+                                    }
+                                }
+                            ],
+                        });
+                    };
                 };
             };
-        };
-        
-        function ajaximportraces(force) {
-            var form_data = new FormData($('#upload-file')[0]);
             
-            // force = true means to overwrite existing data for this year
-            var url = '/_importraces?force='+force
-            
-            $.ajax({
-                type: 'POST',
-                url: url,
-                data: form_data,
-                contentType: false,
-                cache: false,
-                processData: false,
-                async: false,
-                success: ajaximportracesresp,
+            function ajaximportraces(force) {
+                var form_data = new FormData($('#upload-file')[0]);
+                
+                // force = true means to overwrite existing data for this year
+                var url = '/_importraces?force='+force
+                
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    data: form_data,
+                    contentType: false,
+                    cache: false,
+                    processData: false,
+                    async: false,
+                    success: ajaximportracesresp,
+                });
+                
+                //closetoolbutton();
+                toolbutton.close();
+            };
+                
+            var $importraces = $('#manageracesImport');
+            $importraces.click( function( event ) {
+                event.preventDefault();
+                //var form = $(this).parent()
+                //ajaxupdatedb('_importraces',form,false);
+                ajaximportraces(false);
             });
-            
-            //closetoolbutton();
-            toolbutton.close();
-        };
-            
-        var $importraces = $('#manageracesImport');
-        $importraces.click( function( event ) {
+        }
+    };  // manageraces
+    
+    // manageseries
+    function manageseries() {
+        
+        var $copyseries = $('#manageseries-copy-button');
+        $copyseries.click( function( event ) {
             event.preventDefault();
-            ajaximportraces(false);
+            var form = $(this).parent()
+            ajaxupdatedb('_copyseries',form,false);
         });
     
-    };  // manageraces
+    };  // manageseries
+
+    // managedivisions
+    function managedivisions() {
+        
+        var $copydivisions = $('#managedivisions-copy-button');
+        $copydivisions.click( function( event ) {
+            event.preventDefault();
+            var form = $(this).parent()
+            ajaxupdatedb('_copydivisions',form,false);
+        });
+    
+    };  // managedivisions
