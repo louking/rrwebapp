@@ -176,7 +176,10 @@
     };
     
     function ajaxupdatedb(urlpath,form,force) {
-        var form_data = new FormData($(this).parent()[0]);
+        //var form_data = new FormData($(this).parent()[0]);
+        //var form_data = new FormData($(this).closest('form')[0]);
+        var form_data = new FormData($('#copy-series')[0]);
+        //console.log(form_data)
         
         // force = true means to overwrite existing data for this year
         params = [{name:"force",value:force}]
@@ -187,10 +190,13 @@
         })
         
         var url = urlpath +'?'+$.param(params)
+        //form_data.append('force',force)
+        //url = urlpath
 
         $.ajax({
             type: 'POST',
             url: url,
+            //data: form_data,
             contentType: false,
             cache: false,
             async: false,
@@ -222,7 +228,7 @@
             //});
             
             
-            function ajaximportracesresp(data) {
+            function ajaximportfileresp(urlpath,formsel,data) {
                 console.log(data);
                 if (data.success) {
                     location.reload(true);
@@ -241,7 +247,7 @@
                                     }
                                 },{ text:  'Overwrite',
                                     click: function(){
-                                        ajaximportraces(true);
+                                        ajaximportfile(urlpath,formsel,true);
                                         $( this ).dialog('destroy');
                                     }
                                 }
@@ -263,11 +269,11 @@
                 };
             };
             
-            function ajaximportraces(force) {
-                var form_data = new FormData($('#upload-file')[0]);
+            function ajaximportfile(urlpath,formsel,force) {
+                var form_data = new FormData($(formsel)[0]);
                 
                 // force = true means to overwrite existing data for this year
-                var url = '/_importraces?force='+force
+                var url = urlpath+'?force='+force
                 
                 $.ajax({
                     type: 'POST',
@@ -277,7 +283,7 @@
                     cache: false,
                     processData: false,
                     async: false,
-                    success: ajaximportracesresp,
+                    success: function(data) {ajaximportfileresp(urlpath,formsel,data)},
                 });
                 
                 //closetoolbutton();
@@ -289,7 +295,7 @@
                 event.preventDefault();
                 //var form = $(this).parent()
                 //ajaxupdatedb('_importraces',form,false);
-                ajaximportraces(false);
+                ajaximportfile('/_importraces','#import-races',false);
             });
         }
     };  // manageraces
@@ -300,7 +306,7 @@
         var $copyseries = $('#manageseries-copy-button');
         $copyseries.click( function( event ) {
             event.preventDefault();
-            var form = $(this).parent()
+            var form = $(this).closest('form')
             ajaxupdatedb('_copyseries',form,false);
         });
     

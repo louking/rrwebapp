@@ -5,8 +5,12 @@
 {% endblock %}
 {% block scripts %}
   <script type="text/javascript">$( document ).ready( function() {
+    {% if writeallowed %}
+      addbutton.init('add-series',
+                     '{{ url_for('seriessettings',seriesid=0) }}'
+                     );
       toolbutton.init('copy-series',
-                  '\
+                '\
         <h3>Copy Series</h3>\
         <div>\
           <form id="copy-series" method="post" enctype="multipart/form-data">\
@@ -15,7 +19,13 @@
           </form>\
         </div>\
       ');
-      manageseries();
+    {% endif %}
+
+    manageseries();
+
+    {% if writeallowed %}
+      toolbutton.position({my: "left center", at: "right+3 center", of: addbutton.selector});
+    {% endif %}
     } )
   </script>
 {% endblock %}

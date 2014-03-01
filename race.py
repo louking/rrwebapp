@@ -54,6 +54,7 @@ class ManageRaces(MethodView):
     #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
+            thisyear = flask.session['year']
             
             readcheck = ViewClubDataPermission(club_id)
             writecheck = UpdateClubDataPermission(club_id)
@@ -63,13 +64,12 @@ class ManageRaces(MethodView):
                 db.session.rollback()
                 flask.abort(403)
                 
-            year = flask.session['year']
             
             form = RaceForm()
     
             seriesl = [('','all series')]
             supportedseries = []
-            theseseries = Series.query.filter_by(club_id=club_id,active=True,year=year).order_by('name').all()
+            theseseries = Series.query.filter_by(club_id=club_id,active=True,year=thisyear).order_by('name').all()
             for thisseries in theseseries:
                 serieselect = (thisseries.id,thisseries.name)
                 seriesl.append(serieselect)
@@ -85,7 +85,7 @@ class ManageRaces(MethodView):
             
             races = []
             raceseries = []
-            for race in Race.query.filter_by(club_id=club_id,year=year,active=True).order_by('date').all():
+            for race in Race.query.filter_by(club_id=club_id,year=thisyear,active=True).order_by('date').all():
                 thisraceseries = [s.series.id for s in race.series if s.active]
                 if not seriesid or int(seriesid) in thisraceseries:
                     races.append(race)
@@ -112,6 +112,7 @@ class RaceSettings(MethodView):
     #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
+            thisyear = flask.session['year']
             
             readcheck = ViewClubDataPermission(club_id)
             writecheck = UpdateClubDataPermission(club_id)
@@ -121,17 +122,17 @@ class RaceSettings(MethodView):
                 db.session.rollback()
                 flask.abort(403)
                 
-            thisyear = flask.session['year']
-            
-            # raceid = 0 means add
+            # raceid == 0 means add
             if raceid == 0:
                 if not writecheck.can():
                     db.session.rollback()
                     flask.abort(403)
-                race = Race(club_id,'',thisyear,'','','','','')
+                race = Race(club_id,thisyear)
                 form = RaceSettingsForm()
                 action = 'Add'
                 pagename = 'Add Race'
+            
+            # raceid != 0 means update
             else:
                 race = Race.query.filter_by(club_id=club_id,year=thisyear,active=True,id=raceid).first()
     
@@ -159,7 +160,8 @@ class RaceSettings(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             # delete button only for edit (raceid != 0)
-            return flask.render_template('racesettings.html',thispagename=pagename,action=action,deletebutton=(raceid!=0),
+            return flask.render_template('racesettings.html',thispagename=pagename,
+                                         action=action,deletebutton=(raceid!=0),
                                          form=form,race=race,writeallowed=writecheck.can())
         
         except:
@@ -189,7 +191,7 @@ class RaceSettings(MethodView):
                 # commit database updates and close transaction
                 db.session.commit()
                 return flask.redirect(flask.url_for('manageraces'))
-            
+
             # handle Update and Add
             elif request.form['whichbutton'] in ['Update','Add']:
                 # get series for this club,year
@@ -214,7 +216,7 @@ class RaceSettings(MethodView):
                 
                 # add
                 if request.form['whichbutton'] == 'Add':
-                    race = Race(club_id,'',thisyear,'','','','','')
+                    race = Race(club_id,thisyear)
                 # update
                 else:
                     race = Race.query.filter_by(club_id=club_id,year=thisyear,active=True,id=raceid).first()
@@ -277,6 +279,7 @@ class AjaxImportRaces(MethodView):
     
         try:
             club_id = flask.session['club_id']
+            thisyear = flask.session['year']
             
             readcheck = ViewClubDataPermission(club_id)
             writecheck = UpdateClubDataPermission(club_id)
@@ -303,9 +306,8 @@ class AjaxImportRaces(MethodView):
                 print cause
                 return failure_response(cause=cause)
             
-            # get all the races currently in the database for the indicated year
-            # hash them into dict by (name,year)
-            allraces = Race.query.filter_by(active=True,year=flask.session['year']).all()
+            # get all the races currently in the database for the indicated club,year
+            allraces = Race.query.filter_by(club_id=club_id,active=True,year=thisyear).all()
             
             # if some races exist, verify user wants to overwrite
             #print 'force = ' + request.args.get('force')
@@ -348,14 +350,14 @@ class AjaxImportRaces(MethodView):
             # process each name in race list
             for thisrace in fileraces:
                 # add or update race in database
-                race = Race(club_id,thisrace['race'],thisrace['year'],thisrace['racenum'],thisrace['date'],thisrace['time'],thisrace['distance'],thisrace['surface'])
+                race = Race(club_id,thisrace['year'],thisrace['race'],thisrace['racenum'],thisrace['date'],thisrace['time'],thisrace['distance'],thisrace['surface'])
                 added = racedb.insert_or_update(db.session,Race,race,skipcolumns=['id'],name=race.name,year=race.year)
                 
                 # remove this race from collection of races which should be deleted in database
                 if (race.name,race.year) in inactiveraces:
                     inactiveraces.pop((race.name,race.year))
                     
-            # any races remaining in 'inactiveraces' should be deactivated
+            # any races remaining in 'inactiveraces' should be deactivated # TODO: should these be deleted?  That's pretty dangerous
             for (name,year) in inactiveraces:
                 thisrace = Race.query.filter_by(name=name,year=year).first() # should be only one returned by filter
                 thisrace.active = False
@@ -468,16 +470,30 @@ class SeriesSettings(MethodView):
             if not readcheck.can():
                 db.session.rollback()
                 flask.abort(403)
-                
-            series = Series.query.filter_by(club_id=club_id,year=thisyear,active=True,id=seriesid).first()
-    
-            # copy source attributes to form
-            params = {}
-            for field in vars(series):
-                # only copy attributes which are in the form class already
-                params[field] = getattr(series,field)
             
-            form = SeriesForm(**params)
+            # seriesid == 0 means add
+            if seriesid == 0:
+                if not writecheck.can():
+                    db.session.rollback()
+                    flask.abort(403)
+                series = Series(club_id, thisyear)
+                form = SeriesForm()
+                action = 'Add'
+                pagename = 'Add Series'
+ 
+            # seriesid != 0 means update
+            else:
+                series = Series.query.filter_by(club_id=club_id,year=thisyear,active=True,id=seriesid).first()
+        
+                # copy source attributes to form
+                params = {}
+                for field in vars(series):
+                    # only copy attributes which are in the form class already
+                    params[field] = getattr(series,field)
+                
+                form = SeriesForm(**params)
+                action = 'Update'
+                pagename = 'Edit Series'
             
             # get races for this club,year
             races = []
@@ -491,7 +507,7 @@ class SeriesSettings(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             # delete button only for edit (seriesid != 0)
-            return flask.render_template('seriessettings.html',thispagename='Edit Series',action=flask.escape('Update'),deletebutton=(seriesid!=0),
+            return flask.render_template('seriessettings.html',thispagename=pagename,action=action,deletebutton=(seriesid!=0),
                                          form=form,series=series,writeallowed=writecheck.can())
         
         except:
@@ -504,23 +520,33 @@ class SeriesSettings(MethodView):
     #----------------------------------------------------------------------
         form = SeriesForm()
 
-        # handle Cancel
-        if request.form['whichbutton'] == 'Cancel':
-            db.session.rollback() # throw out any changes which have been made
-            return flask.redirect(flask.url_for('manageseries'))
+        try:
+            club_id = flask.session['club_id']
+            thisyear = flask.session['year']
 
-        # TODO add handle 'Delete'
-        elif request.form['whichbutton'] == 'Delete':
-            pass
-        
-        # handle 'Update'
-        elif request.form['whichbutton'] == 'Update':
-            try:    
-                club_id = flask.session['club_id']
-                thisyear = flask.session['year']
-
-                # get the indicated series
+            # handle Cancel
+            if request.form['whichbutton'] == 'Cancel':
+                db.session.rollback() # throw out any changes which have been made
+                return flask.redirect(flask.url_for('manageseries'))
+    
+            # handle Delete
+            elif request.form['whichbutton'] == 'Delete':
                 series = Series.query.filter_by(club_id=club_id,year=thisyear,active=True,id=seriesid).first()
+                db.session.delete(series)
+    
+                # commit database updates and close transaction
+                db.session.commit()
+                return flask.redirect(flask.url_for('manageseries'))
+    
+            # handle 'Update'
+            elif request.form['whichbutton'] in ['Update','Add']:
+                # get the indicated series
+                # add
+                if request.form['whichbutton'] == 'Add':
+                    series = Series(club_id,thisyear)
+                # update
+                else:
+                    series = Series.query.filter_by(club_id=club_id,year=thisyear,active=True,id=seriesid).first()
 
                 # get races for this club,year
                 races = []
@@ -547,6 +573,12 @@ class SeriesSettings(MethodView):
                     if field in form.data:
                         setattr(series,field,form.data[field])
 
+                # add
+                if request.form['whichbutton'] == 'Add':
+                    db.session.add(series)
+                    db.session.flush()  # needed to update series.id
+                    seriesid = series.id
+
                 # get races for this series
                 allraceseries = RaceSeries.query.filter_by(active=True,seriesid=seriesid).all()
                 inactiveraceseries = {}
@@ -571,10 +603,10 @@ class SeriesSettings(MethodView):
                 db.session.commit()
                 return flask.redirect(flask.url_for('manageseries'))
             
-            except:
-                # roll back database updates and close transaction
-                db.session.rollback()
-                raise
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
 #----------------------------------------------------------------------
 app.add_url_rule('/seriessettings/<int:seriesid>',view_func=SeriesSettings.as_view('seriessettings'),methods=['GET','POST'])
 #----------------------------------------------------------------------
@@ -618,7 +650,7 @@ class AjaxCopySeries(MethodView):
             
             # copy each entry from "copyyear"
             for series in Series.query.filter_by(club_id=club_id,active=True,year=copyyear).all():
-                newseries = Series(series.club_id, series.name,thisyear,series.membersonly,
+                newseries = Series(series.club_id,thisyear,series.name,series.membersonly,
                                    series.calcoverall,series.calcdivisions,series.calcagegrade,
                                    series.orderby,series.hightolow,series.averagetie,
                                    series.maxraces,series.multiplier,series.maxgenpoints,series.maxdivpoints, series.maxbynumrunners)
@@ -709,16 +741,30 @@ class DivisionSettings(MethodView):
                 db.session.rollback()
                 flask.abort(403)
                 
-            division = Divisions.query.filter_by(club_id=club_id,year=thisyear,active=True,id=divisionid).first()
+            # divisionid == 0 means add
+            if divisionid == 0:
+                if not writecheck.can():
+                    db.session.rollback()
+                    flask.abort(403)
+                division = Divisions(club_id,thisyear)
+                form = DivisionForm()
+                action = 'Add'
+                pagename = 'Add Division'
+            
+            # divisionid != 0 means update
+            else:
+                division = Divisions.query.filter_by(club_id=club_id,year=thisyear,active=True,id=divisionid).first()
     
-            # copy source attributes to form
-            params = {}
-            for field in vars(division):
-                # only copy attributes which are in the form class already
-                params[field] = getattr(division,field)
-            
-            form = DivisionForm(**params)
-            
+                # copy source attributes to form
+                params = {}
+                for field in vars(division):
+                    # only copy attributes which are in the form class already
+                    params[field] = getattr(division,field)
+                
+                form = DivisionForm(**params)
+                action = 'Update'
+                pagename = 'Edit Division'
+           
             # get series for this club,year
             series = []
             theseseries = Series.query.filter_by(active=True,club_id=club_id,year=thisyear).order_by('name').all()
@@ -730,8 +776,8 @@ class DivisionSettings(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             # delete button only for edit (divisionid != 0)
-            return flask.render_template('divisionsettings.html',thispagename='Edit Division',
-                                         action=flask.escape('Update'),deletebutton=(divisionid!=0),
+            return flask.render_template('divisionsettings.html',thispagename=pagename,
+                                         action=action,deletebutton=(divisionid!=0),
                                          form=form,divisions=division,writeallowed=writecheck.can())
         
         except:
@@ -744,34 +790,32 @@ class DivisionSettings(MethodView):
     #----------------------------------------------------------------------
         form = DivisionForm()
 
-        # handle Cancel
-        if request.form['whichbutton'] == 'Cancel':
-            db.session.rollback() # throw out any changes which have been made
-            return flask.redirect(flask.url_for('managedivisions'))
+        try:
+            club_id = flask.session['club_id']
+            thisyear = flask.session['year']
 
-        # TODO add handle 'Delete'
-        elif request.form['whichbutton'] == 'Delete':
-            try:
-                division = Division.query.filter_by(club_id=club_id,year=thisyear,active=True,id=divisionid).first()
-                db.session.delete(division)
-            
-                # commit database updates and close transaction
-                db.session.commit()
+            # handle Cancel
+            if request.form['whichbutton'] == 'Cancel':
+                db.session.rollback() # throw out any changes which have been made
                 return flask.redirect(flask.url_for('managedivisions'))
-
-            except:
-                # roll back database updates and close transaction
-                db.session.rollback()
-                raise
-
-        # handle 'Update'
-        elif request.form['whichbutton'] == 'Update':
-            try:    
-                club_id = flask.session['club_id']
-                thisyear = flask.session['year']
-
-                # get the indicated division
-                division = Divisions.query.filter_by(club_id=club_id,year=thisyear,active=True,id=divisionid).first()
+    
+            # TODO add handle 'Delete'
+            elif request.form['whichbutton'] == 'Delete':
+                    division = Divisions.query.filter_by(club_id=club_id,year=thisyear,active=True,id=divisionid).first()
+                    db.session.delete(division)
+                
+                    # commit database updates and close transaction
+                    db.session.commit()
+                    return flask.redirect(flask.url_for('managedivisions'))
+    
+            # handle Update and Add
+            elif request.form['whichbutton'] in ['Update','Add']:
+                # add
+                if request.form['whichbutton'] == 'Add':
+                    division = Divisions(club_id,thisyear)
+                else:
+                    # get the indicated division
+                    division = Divisions.query.filter_by(club_id=club_id,year=thisyear,active=True,id=divisionid).first()
 
                 # get series for this club,year
                 series = []
@@ -798,14 +842,21 @@ class DivisionSettings(MethodView):
                     if field in form.data:
                         setattr(division,field,form.data[field])
 
+                # add
+                if request.form['whichbutton'] == 'Add':
+                    db.session.add(division)
+                    db.session.flush()  # needed to update division.id
+                    divisionid = division.id
+                    # well this isn't really needed at this time, but is done for consistency with other views
+
                 # commit database updates and close transaction
                 db.session.commit()
                 return flask.redirect(flask.url_for('managedivisions'))
             
-            except:
-                # roll back database updates and close transaction
-                db.session.rollback()
-                raise
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
 #----------------------------------------------------------------------
 app.add_url_rule('/divisionsettings/<int:divisionid>',view_func=DivisionSettings.as_view('divisionsettings'),methods=['GET','POST'])
 #----------------------------------------------------------------------

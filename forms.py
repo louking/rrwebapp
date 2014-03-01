@@ -106,3 +106,15 @@ class DivisionForm(Form):
     seriesid = SelectField('Series',coerce=int)
     divisionlow = IntegerField('From Age',[validators.Optional()])
     divisionhigh = IntegerField('To Age',[validators.Optional()])
+
+########################################################################
+class MemberForm(Form):
+########################################################################
+    filtermember = StringField('Search')
+    name = StringField('Name')
+    dateofbirth = StringField('Date of Birth')
+    gender = StringField('Gender')
+    hometown = StringField('Hometown')
+    renewdate = StringField('Renew Date')
+    member = BooleanField('Is Member')
+    

@@ -14,13 +14,15 @@
                         "\
             <h3>Import Races</h3>\
             <div>\
-              <form id='upload-file' method='post' enctype='multipart/form-data'>\
+              <form id='import-races' method='post' enctype='multipart/form-data'>\
                 <input id='choosefileImport' type=file name='file'>\
                 <button id='manageracesImport'>Import</button>\
               </form>\
             </div>");
         {% endif %}
+
       manageraces( {% if writeallowed %}true{% else %}false{% endif %});    // need to do something here -- $widgets is undefined if not after toolbutton.init
+
       {% if writeallowed %}
         addbutton.position({my: "left center", at: "right+3 center", of: '#filterseries'});
         toolbutton.position({my: "left center", at: "right+3 center", of: addbutton.selector});
@@ -60,14 +62,14 @@
               {% endif %}
 
               {# TODO: substitute appropriate url_for for "#" #}
-              {% if writeallowed %}
-                {% if race.results|length > 0 %}
-                  {{ tabboollink(true,"%s?raceid=%s"|format("#",race.id)) }}
-                {% else %}
-                  <td align=center><a href={{"%s?raceid=%s"|format("#",race.id)}}>import</a></td>
-                {% endif %}
+              {% if race.results|length > 0 %}
+                {{ tabboollink(true,"%s?raceid=%s"|format("#",race.id)) }}
               {% else %}
-                {{ tabbool(race.results|length > 0) }}
+                {% if writeallowed %}
+                  <td align=center><a href={{"%s?raceid=%s"|format("#",race.id)}}>import</a></td>
+                {% else %}
+                  <td />
+                {% endif %}
               {% endif %}
 
               <td align=center>{{ num(race.racenum,0) }}</td>

@@ -69,6 +69,7 @@ def getnavigation():
             navigation.append({'display':'Users','url':flask.url_for('manageusers')})
             
         if club and readcheck.can():
+            navigation.append({'display':'Members','url':flask.url_for('managemembers')})
             navigation.append({'display':'Races','url':flask.url_for('manageraces')})
             navigation.append({'display':'Series','url':flask.url_for('manageseries')})
             navigation.append({'display':'Divisions','url':flask.url_for('managedivisions')})

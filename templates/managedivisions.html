@@ -4,17 +4,29 @@
     Divisions
 {% endblock %}
 {% block scripts %}
-  <script type="text/javascript">$( document ).ready( function() {managedivisions();} )</script>
-  <script type="text/javascript">
-  toolbutton.init('\
-        <h3>Copy Divisions</h3>\
-        <div>\
-          <form id="copy-divisions" method="post" enctype="multipart/form-data">\
-            {{ widget_field(form.copyyear) }}\
-            <button id="managedivisions-copy-button">Copy</button>\
-          </form>\
-        </div>\
-  ');
+  <script type="text/javascript">$( document ).ready( function() {
+    {% if writeallowed %}
+      addbutton.init('add-division',
+                     '{{ url_for('divisionsettings',divisionid=0) }}'
+                     );
+      toolbutton.init('copy-division',
+            '\
+            <h3>Copy Divisions</h3>\
+            <div>\
+              <form id="copy-divisions" method="post" enctype="multipart/form-data">\
+                {{ widget_field(form.copyyear) }}\
+                <button id="managedivisions-copy-button">Copy</button>\
+              </form>\
+            </div>\
+      ');
+    {% endif %}
+
+    managedivisions();
+
+    {% if writeallowed %}
+      toolbutton.position({my: "left center", at: "right+3 center", of: addbutton.selector});
+    {% endif %}
+  })
   </script>
 {% endblock %}
 {% block body %}

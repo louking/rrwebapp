@@ -55,6 +55,7 @@ import login
 import club
 import userrole
 import race
+import member
 
 @app.before_request
 def before_request():

@@ -402,7 +402,7 @@ class Race(Base):
     series = relationship("RaceSeries", backref='race', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id, name, year, racenum, date, starttime, distance, surface):
+    def __init__(self, club_id, year, name=None, racenum=None, date=None, starttime=None, distance=None, surface=None):
     #----------------------------------------------------------------------
 
         self.club_id = club_id
@@ -466,7 +466,7 @@ class Series(Base):
     results = relationship("RaceResult", backref='series', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id, name, year, membersonly, overall, divisions, agegrade, orderby, hightolow, averagetie, maxraces, multiplier, maxgenpoints, maxdivpoints, maxbynumrunners):
+    def __init__(self, club_id, year, name=None, membersonly=None, overall=None, divisions=None, agegrade=None, orderby=None, hightolow=None, averagetie=None, maxraces=None, multiplier=None, maxgenpoints=None, maxdivpoints=None, maxbynumrunners=None):
     #----------------------------------------------------------------------
         
         self.club_id = club_id
@@ -522,7 +522,7 @@ class RaceResult(Base):
     id = Column(Integer, Sequence('raceresult_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))
     runnerid = Column(Integer, ForeignKey('runner.id'))
-    runnername = Column(String(50))
+    runnername = Column(String(50)) # *** do not use!
     raceid = Column(Integer, ForeignKey('race.id'))
     seriesid = Column(Integer, ForeignKey('series.id'))
     gender = Column(String(1))
@@ -537,7 +537,7 @@ class RaceResult(Base):
     genderplace = Column(Float)
     divisionplace = Column(Float)
     agtimeplace = Column(Float)
-    instandings = Column(Boolean)
+    instandings = Column(Boolean)   # *** always True
 
     #----------------------------------------------------------------------
     def __init__(self, runnerid, raceid, seriesid, time, gender, agage, divisionlow=None, divisionhigh=None,
@@ -625,7 +625,7 @@ class Divisions(Base):
     active = Column(Boolean)
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id, year, seriesid, divisionlow, divisionhigh):
+    def __init__(self, club_id, year, seriesid=None, divisionlow=None, divisionhigh=None):
     #----------------------------------------------------------------------
         
         self.club_id = club_id
@@ -708,6 +708,8 @@ def main():
             OUT.write('found id={0}, runner={1}\n'.format(runner.id,runner))
         
     if args.racefile:
+        print 'needs update due to Race initializer change'
+        return
         import racefile
         races = racefile.RaceFile(args.racefile)
         
