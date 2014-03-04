@@ -49,6 +49,7 @@ dbuser = ak.getkey('dbuser')
 password = ak.getkey('dbpassword')
 dbserver = ak.getkey('dbserver')
 dbname = ak.getkey('dbname')
+print 'using mysql://{uname}:*******@{server}/{dbname}'.format(uname=dbuser,server=dbserver,dbname=dbname)
 
 # temp test code
 #dbuser = 'testuser'

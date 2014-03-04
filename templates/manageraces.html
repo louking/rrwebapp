@@ -41,37 +41,44 @@
 
     <div class="scrollarea">
       <table class=DataList cellpadding=0 cellspace=0>
+        <thead>
           <tr>
-              {% if writeallowed%}
-                <th>Edit</th>
-              {% endif %}
-              <th>Results</th>
-              <th>Race Num</td>
-              <th>Date</td>
-              <th>Race</td>
-              <th>Miles</th>
-              <th>Surface</th>
-              {% for ss in series %}
-                <th>{{ ss.name|title }}</th>
-              {% endfor %}
+            {% if writeallowed%}
+              <th>Edit</th>
+            {% endif %}
+            <th>Results</th>
+            <th>Race Num</td>
+            <th>Date</td>
+            <th>Race</td>
+            <th>Miles</th>
+            <th>Surface</th>
+            {% for ss in series %}
+              <th>{{ ss.name|title }}</th>
+            {% endfor %}
           </tr>
-      {% for race in races %}
-          <tr>
+        </thead>
+        <tbody>
+          {% for race in races %}
+            <tr>
               {% if writeallowed %}
                 {{ tabeditlink(url_for('racesettings',raceid=race.id)) }}
               {% endif %}
-
+    
               {# TODO: substitute appropriate url_for for "#" #}
               {% if race.results|length > 0 %}
-                {{ tabboollink(true,"%s?raceid=%s"|format("#",race.id)) }}
+                <td align=center>
+                  <button class="importResultsButton" raceid="{{race.id}}" imported="true" />
+                </td>
               {% else %}
                 {% if writeallowed %}
-                  <td align=center><a href={{"%s?raceid=%s"|format("#",race.id)}}>import</a></td>
+                  <td align=center>
+                    <button class="importResultsButton" raceid="{{race.id}}" />
+                  </button></td>
                 {% else %}
                   <td />
                 {% endif %}
               {% endif %}
-
+    
               <td align=center>{{ num(race.racenum,0) }}</td>
               <td>{{ race.date }}</td>
               <td>{{ race.name }}</td>
@@ -81,9 +88,10 @@
               {% for ss in series %}
                 {{ tabbool(ss.id in raceseries[ndx]) }}
               {% endfor %}
-                
-          </tr>
-      {% endfor %}
+                  
+            </tr>
+          {% endfor %}
+        </tbody>
       </table>
     </div>
 {% endblock %}

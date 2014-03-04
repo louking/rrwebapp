@@ -33,26 +33,29 @@
 
     <div class="scrollarea">
       <table class=DataList cellpadding=0 cellspace=0>
+        <thead>
           <tr>
-              {% if writeallowed %}
-              <th>Edit</th>
-              {% endif %}
-              <th>Name</td>
-              <th>Max Races</th>
-              <th>Multiplier</th>
-              <th>Max Gen Pts</th>
-              <th>Max Div Pts</th>
-              <th>Max by Num Rnrs</th>
-              <th>Order By</th>
-              <th>Order</th>
-              <th>Members Only</td>
-              <th>Avg Ties</th>
-              <th>Overall</th>
-              <th>Divisions</th>
-              <th>Age Grade</th>
+            {% if writeallowed %}
+            <th>Edit</th>
+            {% endif %}
+            <th>Name</td>
+            <th>Max Races</th>
+            <th>Multiplier</th>
+            <th>Max Gen Pts</th>
+            <th>Max Div Pts</th>
+            <th>Max by Num Rnrs</th>
+            <th>Order By</th>
+            <th>Order</th>
+            <th>Members Only</td>
+            <th>Avg Ties</th>
+            <th>Overall</th>
+            <th>Divisions</th>
+            <th>Age Grade</th>
           </tr>
-      {% for ss in series %}
-          <tr>
+        </thead>
+        <tbody>
+          {% for ss in series %}
+            <tr>
               {% if writeallowed %}
                 {{ tabeditlink(url_for('seriessettings',seriesid=ss.id)) }}
               {% endif %}
@@ -69,8 +72,9 @@
               {{ tabbool(ss.calcoverall) }}
               {{ tabbool(ss.calcdivisions) }}
               {{ tabbool(ss.calcagegrade) }}
-          </tr>
-      {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
       </table>
     </div>
 {% endblock %}

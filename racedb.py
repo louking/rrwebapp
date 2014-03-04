@@ -48,7 +48,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # github
 
 # other
-from database import *
+from database_flask import *
 
 # home grown
 import version
@@ -60,6 +60,8 @@ t = timeu.asctime(DBDATEFMT)
 class dbConsistencyError(Exception): pass
 
 rolenames = ['admin','viewer']
+
+class parameterError(Exception): pass
 
 #----------------------------------------------------------------------
 def getunique(session, model, **kwargs):
@@ -314,22 +316,26 @@ class Runner(Base):
     :param hometown: runner's home town
     :param member: True if member (default True)
     :param renewdate: yyyy-mm-dd date of renewal (default None)
+    :param expdate: yyyy-mm-dd membership expiration date (default None)
     '''
     __tablename__ = 'runner'
     __table_args__ = (UniqueConstraint('name', 'dateofbirth', 'club_id'),)
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))
     name = Column(String(50))
+    fname = Column(String(50))
+    lname = Column(String(50))
     dateofbirth = Column(String(10))
     gender = Column(String(1))
     hometown = Column(String(50))
     renewdate = Column(String(10))
+    expdate = Column(String(10))
     member = Column(Boolean)
     active = Column(Boolean)
     results = relationship("RaceResult", backref='runner', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id, name, dateofbirth, gender, hometown, member=True, renewdate=None):
+    def __init__(self, club_id, name=None, dateofbirth=None, gender=None, hometown=None, member=True, renewdate=None, expdate=None, fname=None, lname=None):
     #----------------------------------------------------------------------
         try:
             if dateofbirth:
@@ -350,11 +356,14 @@ class Runner(Base):
             raise parameterError, 'invalid renewdate {0}'.format(renewdate)
         
         self.club_id = club_id
-        self.name = name
+        self.name = name    
+        self.fname = fname    
+        self.lname = lname    
         self.dateofbirth = dateofbirth
         self.gender = gender
         self.hometown = hometown
         self.renewdate = renewdate
+        self.expdate = expdate
         self.member = member
         self.active = True
         
@@ -446,7 +455,7 @@ class Series(Base):
     __table_args__ = (UniqueConstraint('name','year','club_id'),)
     id = Column(Integer, Sequence('series_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))
-    name = Column(String(50),unique=True)
+    name = Column(String(50))
     year = Column(Integer)
     membersonly = Column(Boolean)
     calcoverall = Column(Boolean)
@@ -496,11 +505,78 @@ class Series(Base):
             )
     
 ########################################################################
+class ManagedResult(Base):
+########################################################################
+    '''
+    Raw results from original official results, annotated with user's
+    disposition about whether each row should be included in standings
+    results, which are recorded in :class:`RaceResult`
+    
+    disposition
+    
+    * exact - exact name match found in runner table, with age consistent with dateofbirth
+    * close - close name match found, with age consistent with dateofbirth
+    * missed - close name match found, but age is inconsistent with dateofbirth
+    * excluded - this name is in the exclusion table, either prior to import or as a result of user decision
+    
+    runnerid is set if found exact or close match, or if user includes this, null otherwise
+    '''
+    __tablename__ = 'managedresult'
+    #__table_args__ = (UniqueConstraint('runnername', 'raceid', 'club_id'),)
+    id = Column(Integer, Sequence('results_id_seq'), primary_key=True)
+    club_id = Column(Integer, ForeignKey('club.id'))
+    raceid = Column(Integer, ForeignKey('race.id'))
+    
+    # from official race result file
+    place = Column(Integer)
+    name = Column(String(50))
+    fname = Column(String(50))
+    lname = Column(String(50))
+    gender = Column(String(1))
+    age = Column(Integer)
+    city = Column(String(50))
+    state = Column(String(2))
+    hometown = Column(String(50))
+    club = Column(String(20))
+    chiptime = Column(Float)
+    guntime = Column(Float)
+    
+    # metadata
+    runnerid = Column(Integer, ForeignKey('runner.id'), nullable=True)
+    disposition = Column(Enum('exact','close','missed','excluded',name='disposition_type'))
+    selectionmethod = Column(Enum('auto','user',name='selectionmethod_type'))
+
+    #----------------------------------------------------------------------
+    def __init__(self, club_id, raceid, place=None, name=None, fname=None, lname=None,
+                 gender=None,age=None,city=None,state=None,club=None,
+                 chiptime=None,guntime=None):
+    #----------------------------------------------------------------------
+        self.club_id = club_id
+        self.raceid = raceid
+        self.place = place
+        self.name = name
+        self.fname = fname
+        self.lname = lname
+        self.gender = gender
+        self.age = age
+        self.city = city
+        self.state = state
+        self.club = club
+        self.chiptime = chiptime
+        self.guntime = guntime
+        self.runnerid = runnerid
+        self.disposition = disposition
+        self.selectionmethod = selectionmethod
+
+    #----------------------------------------------------------------------
+    def __repr__(self):
+    #----------------------------------------------------------------------
+        return "<ManagedResult('%s','%s','%s','%s')>" % (self.raceid, self.place, self.name, self.guntime)
+
+########################################################################
 class RaceResult(Base):
 ########################################################################
     '''
-
-    
     :param runnerid: runner.id
     :param raceid: race.id
     :param seriesid: series.id

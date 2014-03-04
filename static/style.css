@@ -258,11 +258,11 @@ table.DataList img.icon
 
 table.DataList a { display: block; text-decoration:none; }
 
-table.DataList tr:nth-child(odd)
+table.DataList tr:nth-child(even)
 {
     background-color: #F4F8FF;
 }
-table.DataList tr:first-child
+table.DataList tr:nth-child(odd)
 {
     background-color: white;
 }

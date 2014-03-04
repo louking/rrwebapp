@@ -111,10 +111,24 @@ class DivisionForm(Form):
 class MemberForm(Form):
 ########################################################################
     filtermember = StringField('Search')
-    name = StringField('Name')
-    dateofbirth = StringField('Date of Birth')
-    gender = StringField('Gender')
-    hometown = StringField('Hometown')
-    renewdate = StringField('Renew Date')
-    member = BooleanField('Is Member')
+    name = StringField('Name',[validators.Optional()])
+    dateofbirth = StringField('Date of Birth',[validators.Optional()])
+    gender = StringField('Gender',[validators.Optional()])
+    hometown = StringField('Hometown',[validators.Optional()])
+    renewdate = StringField('Renewal Date',[validators.Optional()])
+    expdate = StringField('Expiration Date',[validators.Optional()])
+    member = BooleanField('Is Member',[validators.Optional()])
+    
+########################################################################
+class ManagedResultForm(Form):
+########################################################################
+    place = IntegerField('Place',[validators.Optional()])
+    fname = StringField('First',[validators.Optional()])
+    lname = StringField('Last',[validators.Optional()])
+    gender = SelectField('Gender',[validators.Optional()],coerce=str,choices=[('',''),('F','F'),('M','M')])
+    age = IntegerField('Age',[validators.Optional()])
+    hometown = StringField('Hometown',[validators.Optional()])
+    club = StringField('Club',[validators.Optional()])
+    chiptime = StringField('Net Time',[validators.Optional()])
+    guntime = StringField('Gun Time',[validators.Optional()])
     

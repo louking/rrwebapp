@@ -112,6 +112,64 @@
         }
     }
     
+    // popupbutton feature
+    var popupbutton = {
+
+        init: function ( buttonsel, popupcontent, label, icons ) {
+            popupbutton.popupstatus = 0;
+            //popupbutton.$popuppopup = $('<div>').append(popupcontent);
+            //popupbutton.$popupdialog = $('<div>').append(popupbutton.$popuppopup);
+            popupbutton.$popupdialog = $('<div>').append(popupcontent);
+
+            popupbutton.$popupbutton = $( buttonsel )
+            popupbutton.$popupbutton
+                .button({
+                            icons: icons,
+                            label: label,
+                        })
+                .on('click',
+                    function() {
+                        if (popupbutton.popupstatus == 0) {
+                            popupbutton.open()
+                        } else {
+                            popupbutton.close()
+                        };
+                    });
+                
+            popupbutton.$popupdialog.dialog({
+                                dialogClass: "no-titlebar",
+                                draggable: false,
+                                open:popupbutton.$popupcontent,
+                                autoOpen: false,
+                                height: "auto",
+                                width: 450,
+                                position:{
+                                        my: "left top",
+                                        at: "left bottom",
+                                        of: popupbutton.$popupbutton
+                                        },
+                                });
+            
+            popupbutton.selector = popupbutton.$popupbutton;
+        },
+        
+        open: function() {
+            popupbutton.$popupdialog.dialog("open");
+            popupbutton.$popupcontent.show();
+            popupbutton.popupstatus = 1;
+        },
+        
+        close: function() {
+            popupbutton.$popupdialog.dialog("close");
+            popupbutton.$popupcontent.hide();
+            popupbutton.popupstatus = 0;
+        },
+        
+        position: function(position) {
+            popupbutton.$popupbutton.position(position)
+        }
+    }
+    
     // addbutton feature
     var addbutton = {
         init: function ( buttonid, url ) {
@@ -178,7 +236,7 @@
     function ajaxupdatedb(urlpath,form,force) {
         //var form_data = new FormData($(this).parent()[0]);
         //var form_data = new FormData($(this).closest('form')[0]);
-        var form_data = new FormData($('#copy-series')[0]);
+        var form_data = new FormData($('#copy-series')[0]); // not used
         //console.log(form_data)
         
         // force = true means to overwrite existing data for this year
@@ -208,6 +266,90 @@
         toolbutton.close();
     };
         
+    function ajaximportfileresp(urlpath,formsel,data) {
+        console.log(data);
+        if (data.success) {
+            location.reload(true);
+        } else {
+            console.log('FAILURE: ' + data.cause);
+            // if overwrite requested, force the overwrite
+            if (data.confirm) {
+                $("<div>"+data.cause+"</div>").dialog({
+                    dialogClass: 'no-titlebar',
+                    height: "auto",
+                    modal: true,
+                    buttons: [
+                        {   text:  'Cancel',
+                            click: function() {
+                                $( this ).dialog('destroy');
+                            }
+                        },{ text:  'Overwrite',
+                            click: function(){
+                                ajaximportfile(urlpath,formsel,true);
+                                $( this ).dialog('destroy');
+                            }
+                        }
+                    ],
+                });
+            } else {
+                $("<div>Error Occurred: "+data.cause+"</div>").dialog({
+                    dialogClass: 'no-titlebar',
+                    height: "auto",
+                    buttons: [
+                        {   text:  'OK',
+                            click: function(){
+                                $( this ).dialog('destroy');
+                            }
+                        }
+                    ],
+                });
+            };
+        };
+    };
+    
+    function ajaximportfile(urlpath,formsel,force) {
+        var form_data = new FormData($(formsel)[0]);
+        
+        // force = true means to overwrite existing data for this year
+        var url = urlpath+'?force='+force
+        
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: form_data,
+            contentType: false,
+            cache: false,
+            processData: false,
+            async: false,
+            success: function(data) {ajaximportfileresp(urlpath,formsel,data)},
+        });
+        
+        //closetoolbutton();
+        toolbutton.close();
+    };
+        
+    // managemembers
+    function managemembers( writeallowed ) {
+        //var $filterseries = $('#filterseries');
+        //$filterseries
+        //    //.selectmenu({ icons: { secondary: "ui-icon-triangle-1-s" } })
+        //    .on('change',
+        //        function() {
+        //            this.form.submit();
+        //        });
+        
+        if (writeallowed) {
+            // put toolbutton in the right place
+            //toolbutton.$widgets.css({height:"0px"});   // no more widgets in container
+            
+            var $importmembers = $('#managemembersImport');
+            $importmembers.click( function( event ) {
+                event.preventDefault();
+                ajaximportfile('/_importmembers','#import-members',false);
+            });
+        }
+    };  // managemembers
+    
     // manageraces
     function manageraces( writeallowed ) {
         var $filterseries = $('#filterseries');
@@ -221,81 +363,42 @@
         if (writeallowed) {
             // put toolbutton in the right place
             toolbutton.$widgets.css({height:"0px"});   // no more widgets in container
-            //toolbutton.$toolbutton.position({
-            //    my: "left center",
-            //    at: "right+3 center",
-            //    of: $filterseries,
-            //});
             
-            
-            function ajaximportfileresp(urlpath,formsel,data) {
-                console.log(data);
-                if (data.success) {
-                    location.reload(true);
-                } else {
-                    console.log('FAILURE: ' + data.cause);
-                    // if overwrite requested, force the overwrite
-                    if (data.confirm) {
-                        $("<div>"+data.cause+"</div>").dialog({
-                            dialogClass: 'no-titlebar',
-                            height: "auto",
-                            modal: true,
-                            buttons: [
-                                {   text:  'Cancel',
-                                    click: function() {
-                                        $( this ).dialog('destroy');
-                                    }
-                                },{ text:  'Overwrite',
-                                    click: function(){
-                                        ajaximportfile(urlpath,formsel,true);
-                                        $( this ).dialog('destroy');
-                                    }
-                                }
-                            ],
-                        });
-                    } else {
-                        $("<div>Error Occurred: "+data.cause+"</div>").dialog({
-                            dialogClass: 'no-titlebar',
-                            height: "auto",
-                            buttons: [
-                                {   text:  'OK',
-                                    click: function(){
-                                        $( this ).dialog('destroy');
-                                    }
-                                }
-                            ],
-                        });
-                    };
-                };
-            };
-            
-            function ajaximportfile(urlpath,formsel,force) {
-                var form_data = new FormData($(formsel)[0]);
-                
-                // force = true means to overwrite existing data for this year
-                var url = urlpath+'?force='+force
-                
-                $.ajax({
-                    type: 'POST',
-                    url: url,
-                    data: form_data,
-                    contentType: false,
-                    cache: false,
-                    processData: false,
-                    async: false,
-                    success: function(data) {ajaximportfileresp(urlpath,formsel,data)},
-                });
-                
-                //closetoolbutton();
-                toolbutton.close();
-            };
-                
             var $importraces = $('#manageracesImport');
             $importraces.click( function( event ) {
                 event.preventDefault();
                 //var form = $(this).parent()
                 //ajaxupdatedb('_importraces',form,false);
                 ajaximportfile('/_importraces','#import-races',false);
+            });
+            
+            $(".importResultsButton").each(function(){
+                raceid = $(this).attr('raceid');
+                imported = $(this).attr('imported');
+                if (imported) {
+                    icons = {secondary:'ui-icon-check'};
+                    label = null;
+                } else {
+                    icons = {};
+                    label = 'import';
+                };
+                
+                popupcontent = "\
+                    <form action='/_importresults/'+raceid, id='import-results-'+raceid> \
+                        <input type='file'>Results File: </input> <input type='submit'>Import</input> \
+                    </form>\
+                "
+                popupbutton.init(this, popupcontent, label, icons)
+                
+                //$(this)
+                //    .button({
+                //        icons: icons,
+                //        label: label,
+                //    })
+                //    .click( function( event ) {
+                //        event.preventDefault();
+                //        ajaximportfile('/_importresults/'+raceid,'#import-results-'+raceid,false);
+                //    });
             });
         }
     };  // manageraces

@@ -79,7 +79,7 @@ def upgrade():
     op.create_unique_constraint(None, 'runner', ['name', 'dateofbirth', 'club_id'])
     op.add_column(u'series', sa.Column('club_id', sa.Integer(), nullable=True))
     op.add_column(u'series', sa.Column('year', sa.Integer(), nullable=True))
-    op.drop_constraint(u'name', 'series',type_='unique')    # needed to add this -- had I deleted by accident?
+    op.drop_constraint(u'name', 'series',type_='unique')    # needed to add this -- had I deleted by accident? // this was a bug, two unique constraints were in the table
     op.create_unique_constraint(None, 'series', ['name', 'year', 'club_id'])
     ### end Alembic commands ###
 

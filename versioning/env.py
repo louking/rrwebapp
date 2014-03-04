@@ -34,6 +34,7 @@ sys.path.append(os.getcwd())
 
 # get the app model
 from app import app
+import racedb   # needs to be before database_flask imported
 from database_flask import db
 
 # this is the Alembic Config object, which provides

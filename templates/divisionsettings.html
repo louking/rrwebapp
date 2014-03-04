@@ -12,12 +12,12 @@
         {{ render_field(form.divisionhigh,displayonly) }}
         
         <center>
-          <input class="actionbutton cancelbutton" type=submit name=whichbutton value=Cancel />
+          <input class="actionbutton cancelbutton" type="submit" name="whichbutton" value="Cancel" />
           {% if deletebutton %}
             <input class="actionbutton deletebutton" type="submit" name="whichbutton" value="Delete" />
           {% endif %}
           {% if action %}
-            <input class="actionbutton actionbutton" type=submit name=whichbutton value="{{action}}" />
+            <input class="actionbutton actionbutton" type="submit" name="whichbutton" value="{{action}}" />
           {% endif %}
         </center>
   </form>

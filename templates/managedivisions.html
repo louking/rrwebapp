@@ -33,24 +33,28 @@
 
     <div class="scrollarea">
       <table class=DataList cellpadding=0 cellspace=0>
+        <thead>
           <tr>
-              {% if writeallowed %}
-              <th>Edit</th>
-              {% endif %}
-              <th>Series</td>
-              <th>Low Age</th>
-              <th>High Age</th>
+            {% if writeallowed %}
+            <th>Edit</th>
+            {% endif %}
+            <th>Series</td>
+            <th>Low Age</th>
+            <th>High Age</th>
           </tr>
-      {% for dd in divisions %}
-          <tr>
+        </thead>
+        <tbody>
+          {% for dd in divisions %}
+            <tr>
               {% if writeallowed %}
                 {{ tabeditlink(url_for('divisionsettings',divisionid=dd.id)) }}
               {% endif %}
               <td>{{ dd.series.name }}</td>
               {{ tabnum(dd.divisionlow,0) }}
               {{ tabnum(dd.divisionhigh,0) }}
-          </tr>
-      {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
       </table>
     </div>
 {% endblock %}
