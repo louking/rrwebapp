@@ -44,13 +44,11 @@ from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, Vi
 from database_flask import db   # this is ok because this module only runs under flask
 from apicommon import failure_response, success_response
 import raceresults
+from loutilities.namesplitter import split_full_name
 
 # module specific needs
-from racedb import Runner, ManagedResults, RaceResult, RaceSeries, Race
+from racedb import Runner, ManagedResult, RaceResult, RaceSeries, Race
 from forms import ManagedResultForm 
-
-# module globals
-tYmd = timeu.asctime('%Y-%m-%d')
 
 #######################################################################
 class ManageResults(MethodView):
@@ -91,127 +89,147 @@ app.add_url_rule('/manageresults',view_func=ManageResults.as_view('manageresults
 
 # NOTE: THIS HAS NOT BEEN TESTED AND IS NOT CURRENTLY USED
 # perhaps some kind of result merge will be required in the future, but editing a result would get overwritten by result import
-#######################################################################
-class ResultSettings(MethodView):
-#######################################################################
-    decorators = [login_required]
-    #----------------------------------------------------------------------
-    def get(self,resultid):
-    #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-            
-            readcheck = ViewClubDataPermission(club_id)
-            writecheck = UpdateClubDataPermission(club_id)
-            
-            # verify user can at least read the data, otherwise abort
-            if not readcheck.can():
-                db.session.rollback()
-                flask.abort(403)
-                
-            # resultid == 0 means add
-            if resultid == 0:
-                if not writecheck.can():
-                    db.session.rollback()
-                    flask.abort(403)
-                result = Runner(club_id)
-                form = ManagedResultForm()
-                action = 'Add'
-                pagename = 'Add Result'
-            
-            # resultid != 0 means update
-            else:
-                result = Runner.query.filter_by(club_id=club_id,active=True,id=resultid).first()
-    
-                # copy source attributes to form
-                params = {}
-                for field in vars(result):
-                    params[field] = getattr(result,field)
-                
-                form = ManagedResultForm(**params)
-                action = 'Update'
-                pagename = 'Edit Result'
-    
-            # commit database updates and close transaction
-            db.session.commit()
-            # delete button only for edit (resultid != 0)
-            return flask.render_template('resultsettings.html',thispagename=pagename,
-                                         action=action,deletebutton=(resultid!=0),
-                                         form=form,result=result,writeallowed=writecheck.can())
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-        
-    #----------------------------------------------------------------------
-    def post(self,resultid):
-    #----------------------------------------------------------------------
-        form = ManagedResultForm()
+########################################################################
+#class ResultSettings(MethodView):
+########################################################################
+#    decorators = [login_required]
+#    #----------------------------------------------------------------------
+#    def get(self,resultid):
+#    #----------------------------------------------------------------------
+#        try:
+#            club_id = flask.session['club_id']
+#            thisyear = flask.session['year']
+#            
+#            readcheck = ViewClubDataPermission(club_id)
+#            writecheck = UpdateClubDataPermission(club_id)
+#            
+#            # verify user can at least read the data, otherwise abort
+#            if not readcheck.can():
+#                db.session.rollback()
+#                flask.abort(403)
+#                
+#            # resultid == 0 means add
+#            if resultid == 0:
+#                if not writecheck.can():
+#                    db.session.rollback()
+#                    flask.abort(403)
+#                result = Runner(club_id)
+#                form = ManagedResultForm()
+#                action = 'Add'
+#                pagename = 'Add Result'
+#            
+#            # resultid != 0 means update
+#            else:
+#                result = Runner.query.filter_by(club_id=club_id,active=True,id=resultid).first()
+#    
+#                # copy source attributes to form
+#                params = {}
+#                for field in vars(result):
+#                    params[field] = getattr(result,field)
+#                
+#                form = ManagedResultForm(**params)
+#                action = 'Update'
+#                pagename = 'Edit Result'
+#    
+#            # commit database updates and close transaction
+#            db.session.commit()
+#            # delete button only for edit (resultid != 0)
+#            return flask.render_template('resultsettings.html',thispagename=pagename,
+#                                         action=action,deletebutton=(resultid!=0),
+#                                         form=form,result=result,writeallowed=writecheck.can())
+#        
+#        except:
+#            # roll back database updates and close transaction
+#            db.session.rollback()
+#            raise
+#        
+#    #----------------------------------------------------------------------
+#    def post(self,resultid):
+#    #----------------------------------------------------------------------
+#        form = ManagedResultForm()
+#
+#        try:
+#            club_id = flask.session['club_id']
+#            thisyear = flask.session['year']
+#
+#            # handle Cancel
+#            if request.form['whichbutton'] == 'Cancel':
+#                db.session.rollback() # throw out any changes which have been made
+#                return flask.redirect(flask.url_for('manageresults'))
+#    
+#            # handle Delete
+#            elif request.form['whichbutton'] == 'Delete':
+#                result = Runner.query.filter_by(club_id=club_id,active=True,id=resultid).first()
+#                # db.session.delete(result)   # should we allow result deletion?  maybe not
+#                result.active = False
+#
+#                # commit database updates and close transaction
+#                db.session.commit()
+#                return flask.redirect(flask.url_for('manageresults'))
+#
+#            # handle Update and Add
+#            elif request.form['whichbutton'] in ['Update','Add']:
+#                if not form.validate_on_submit():
+#                    return 'error occurred on form submit -- update error message and display form again'
+#                    
+#                readcheck = ViewClubDataPermission(club_id)
+#                writecheck = UpdateClubDataPermission(club_id)
+#                
+#                # verify user can at write the data, otherwise abort
+#                if not writecheck.can():
+#                    db.session.rollback()
+#                    flask.abort(403)
+#                
+#                # add
+#                if request.form['whichbutton'] == 'Add':
+#                    result = Runner(club_id)
+#                # update
+#                else:
+#                    result = Runner.query.filter_by(club_id=club_id,active=True,id=resultid).first()
+#                
+#                # copy fields from form to db object
+#                for field in vars(result):
+#                    # only copy attributes which are in the form class already
+#                    if field in form.data:
+#                        setattr(result,field,form.data[field])
+#                
+#                # add
+#                if request.form['whichbutton'] == 'Add':
+#                    db.session.add(result)
+#                    db.session.flush()  # needed to update result.id
+#                    resultid = result.id    # not needed yet, but here for consistency
+#
+#                # commit database updates and close transaction
+#                db.session.commit()
+#                return flask.redirect(flask.url_for('manageresults'))
+#            
+#        except:
+#            # roll back database updates and close transaction
+#            db.session.rollback()
+#            raise
+##----------------------------------------------------------------------
+#app.add_url_rule('/resultsettings/<int:resultid>',view_func=ResultSettings.as_view('resultsettings'),methods=['GET','POST'])
+##----------------------------------------------------------------------
 
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-
-            # handle Cancel
-            if request.form['whichbutton'] == 'Cancel':
-                db.session.rollback() # throw out any changes which have been made
-                return flask.redirect(flask.url_for('manageresults'))
-    
-            # handle Delete
-            elif request.form['whichbutton'] == 'Delete':
-                result = Runner.query.filter_by(club_id=club_id,active=True,id=resultid).first()
-                # db.session.delete(result)   # should we allow result deletion?  maybe not
-                result.active = False
-
-                # commit database updates and close transaction
-                db.session.commit()
-                return flask.redirect(flask.url_for('manageresults'))
-
-            # handle Update and Add
-            elif request.form['whichbutton'] in ['Update','Add']:
-                if not form.validate_on_submit():
-                    return 'error occurred on form submit -- update error message and display form again'
-                    
-                readcheck = ViewClubDataPermission(club_id)
-                writecheck = UpdateClubDataPermission(club_id)
-                
-                # verify user can at write the data, otherwise abort
-                if not writecheck.can():
-                    db.session.rollback()
-                    flask.abort(403)
-                
-                # add
-                if request.form['whichbutton'] == 'Add':
-                    result = Runner(club_id)
-                # update
-                else:
-                    result = Runner.query.filter_by(club_id=club_id,active=True,id=resultid).first()
-                
-                # copy fields from form to db object
-                for field in vars(result):
-                    # only copy attributes which are in the form class already
-                    if field in form.data:
-                        setattr(result,field,form.data[field])
-                
-                # add
-                if request.form['whichbutton'] == 'Add':
-                    db.session.add(result)
-                    db.session.flush()  # needed to update result.id
-                    resultid = result.id    # not needed yet, but here for consistency
-
-                # commit database updates and close transaction
-                db.session.commit()
-                return flask.redirect(flask.url_for('manageresults'))
-            
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
 #----------------------------------------------------------------------
-app.add_url_rule('/resultsettings/<int:resultid>',view_func=ResultSettings.as_view('resultsettings'),methods=['GET','POST'])
+def allowed_file(filename):
 #----------------------------------------------------------------------
+    return '.' in filename and filename.split('.')[-1] in ['xls','xlsx','txt','csv']
+
+#----------------------------------------------------------------------
+def cleanresult(managedresult):
+#----------------------------------------------------------------------
+    if not managedresult.name:
+        managedresult.name = ' '.join([managedresult.fname,managedresult.lname])
+    elif not managedresult.fname or not managedresult.lname:
+        names = split_full_name(managedresult.name)
+        managedresult.fname = names['fname']
+        managedresult.lname = names['lname']
+    
+    if not managedresult.hometown:
+        if managedresult.city and managedresult.state:
+            managedresult.hometown = ', '.join([managedresult.city,managedresult.state])
+        
 
 #######################################################################
 class AjaxImportResults(MethodView):
@@ -219,11 +237,8 @@ class AjaxImportResults(MethodView):
     decorators = [login_required]
     
     #----------------------------------------------------------------------
-    def post(self):
+    def post(self,raceid):
     #----------------------------------------------------------------------
-        def allowed_file(filename):
-            return '.' in filename and filename.split('.')[-1] in ['csv','xlsx','xls']
-    
         try:
             club_id = flask.session['club_id']
             thisyear = flask.session['year']
@@ -253,26 +268,71 @@ class AjaxImportResults(MethodView):
                 print cause
                 return failure_response(cause=cause)
 
+            race = Race.query.filter_by(club_id=club_id,id=raceid).first()
+            if not race:
+                db.session.rollback()
+                cause = 'race id={} does not exist for this club'.format(raceid)
+                print cause
+                return failure_response(cause=cause)
+
+            # do we have any results yet?  If so, make sure it is ok to overwrite them
+            dbresults = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).all()
+
+            # if some results exist, verify user wants to overwrite
+            #print 'force = ' + request.args.get('force')
+            if dbresults:
+                # verify overwrite
+                if not request.args.get('force')=='true':
+                    db.session.rollback()
+                    return failure_response(cause='Overwrite results?',confirm=True)
+                # force is true.  delete all the current results for this race
+                else:
+                    numdeleted = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
+                    numdeleted = RaceResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
+            
             # save file for import
             tempdir = tempfile.mkdtemp()
             resultfilename = secure_filename(resultfile.filename)
             resultpathname = os.path.join(tempdir,resultfilename)
             resultfile.save(resultpathname)            
 
-            # bring in data from the file
-            if ext in ['.xls','.xlsx']:
-                results = clubmember.XlClubResult(resultpathname)
-            elif ext in ['.csv']:
-                results = clubmember.CsvClubResult(resultpathname)
+            try:
+                rr = raceresults.RaceResults(resultpathname,race.distance)
             
-            # how did this happen?  check allowed_file() for bugs
-            else:
+            # format not good enough
+            except raceresults.headerError, e:
                 db.session.rollback()
-                cause =  'Program Error: Invalid file type {} for file {} path {} (unexpected)'.format(ext,resultfile.filename,resultpathname)
+                cause =  e
+                print cause
+                return failure_response(cause=cause)
+                
+            # how did this happen?  check allowed_file() for bugs
+            except raceresults.parameterError,e:
+                db.session.rollback()
+                #cause =  'Program Error: Invalid file type {} for file {} path {} (unexpected)'.format(ext,resultfile.filename,resultpathname)
+                cause =  'Program Error: {}'.format(e)
                 print cause
                 return failure_response(cause=cause)
             
+            # collect results from resultsfile
+            numentries = 0
+            dbresults = []
+            while True:
+                try:
+                    fileresult = rr.next()
+                    dbresult   = ManagedResult(club_id,raceid)
+                    for field in fileresult:
+                        if hasattr(dbresult,field):
+                            setattr(dbresult,field,fileresult[field])
+                    cleanresult(dbresult)
+                    db.session.add(dbresult)
+                    dbresults.append(dbresult)
+                except StopIteration:
+                    break
+                numentries += 1
+
             # remove file and temporary directory
+            rr.close()
             os.remove(resultpathname)
             try:
                 os.rmdir(tempdir)
@@ -280,127 +340,6 @@ class AjaxImportResults(MethodView):
             except WindowsError,e:
                 print 'exception ignored: {}'.format(e)
 
-            # get old clubmembers from database
-            dbresults = clubmember.DbClubResult()   # use default database
-
-            # get all the result runners currently in the database
-            # hash them into dict by (name,dateofbirth)
-            allrunners = Runner.query.filter_by(result=True,active=True).all()
-            inactiverunners = {}
-            for thisrunner in allrunners:
-                inactiverunners[thisrunner.name,thisrunner.dateofbirth] = thisrunner
-
-            # if some results exist, verify user wants to overwrite
-            #print 'force = ' + request.args.get('force')
-            if allrunners and not request.args.get('force')=='true':
-                db.session.rollback()
-                return failure_response(cause='Overwrite results?',confirm=True)
-            
-            # prepare for age check
-            thisyear = timeu.epoch2dt(time.time()).year
-            asofasc = '{}-1-1'.format(thisyear) # jan 1 of current year
-            asof = tYmd.asc2dt(asofasc) 
-    
-            # process each name in new resultship list
-            allresults = results.getresults()
-            for name in allresults:
-                theseresults = allresults[name]
-                # NOTE: may be multiple results with same name
-                for thisresult in theseresults:
-                    thisname = thisresult['name']
-                    thisfname = thisresult['fname']
-                    thislname = thisresult['lname']
-                    thisdob = thisresult['dob']
-                    thisgender = thisresult['gender'][0].upper()    # male -> M, female -> F
-                    thishometown = thisresult['hometown']
-                    thisrenewdate = thisresult['renewdate']
-                    thisexpdate = thisresult['expdate']
-        
-                    # prep for if .. elif below by running some queries
-                    # handle close matches, if DOB does match
-                    age = timeu.age(asof,tYmd.asc2dt(thisdob))
-                    matchingresult = dbresults.findresult(thisname,age,asofasc)
-                    dbresult = None
-                    if matchingresult:
-                        resultname,resultdob = matchingresult
-                        if resultdob == thisdob:
-                            dbresult = racedb.getunique(db.session,Runner,result=True,name=resultname,dateofbirth=thisdob)
-                    
-                    # TODO: need to handle case where dob transitions from '' to actual date of birth
-                    
-                    # no result found, maybe there is nonresult of same name already in database
-                    if dbresult is None:
-                        dbnonresult = racedb.getunique(db.session,Runner,result=False,name=thisname)
-                        # TODO: there's a slim possibility that there are two nonresults with the same name, but I'm sure we've already
-                        # bolloxed that up in importresult as there's no way to discriminate between the two
-                        
-                        ## make report for new results
-                        #NEWMEMCSV.writerow({'name':thisname,'dob':thisdob})
-                        
-                    # see if this runner is a result in the database already, or was a result once and make the update
-                    # add or update runner in database
-                    # get instance, if it exists, and make any updates
-                    found = False
-                    if dbresult is not None:
-                        thisrunner = Runner(club_id,resultname,thisdob,thisgender,thishometown,
-                                            fname=thisfname,lname=thislname,
-                                            renewdate=thisrenewdate,expdate=thisexpdate)
-                        
-                        # this is also done down below, but must be done here in case result's name has changed
-                        if (thisrunner.name,thisrunner.dateofbirth) in inactiverunners:
-                            inactiverunners.pop((thisrunner.name,thisrunner.dateofbirth))
-        
-                        # overwrite result's name if necessary
-                        thisrunner.name = thisname  
-                        
-                        added = racedb.update(db.session,Runner,dbresult,thisrunner,skipcolumns=['id'])
-                        found = True
-                        
-                    # if runner's name is in database, but not a result, see if this runner is a nonmeresult which can be converted
-                    # Check first result for age against age within the input file
-                    # if ages match, convert nonresult to result
-                    elif dbnonresult is not None:
-                        # get dt for date of birth, if specified
-                        try:
-                            dob = tYmd.asc2dt(thisdob)
-                        except ValueError:
-                            dob = None
-                            
-                        # nonresult came into the database due to a nonresult race result, so we can use any race result to check nonresult's age
-                        if dob:
-                            result = RaceResult.query.filter_by(runnerid=dbnonresult.id).first()
-                            resultage = result.agage
-                            racedate = tYmd.asc2dt(result.race.date)
-                            expectedage = racedate.year - dob.year - int((racedate.month, racedate.day) < (dob.month, dob.day))
-                        
-                        # we found the right person, always if dob isn't specified, but preferably check race result for correct age
-                        if dob is None or resultage == expectedage:
-                            thisrunner = Runner(club_id,thisname,thisdob,thisgender,thishometown,
-                                                fname=thisfname,lname=thislname,
-                                                renewdate=thisrenewdate,expdate=thisexpdate)
-                            added = racedb.update(db.session,Runner,dbnonresult,thisrunner,skipcolumns=['id'])
-                            found = True
-                        else:
-                            print '{} found in database, wrong age, expected {} found {} in {}'.format(thisname,expectedage,resultage,result)
-                            # TODO: need to make file for these, also need way to force update, because maybe bad date in database for result
-                            # currently this will cause a new runner entry
-                    
-                    # if runner was not found in database, just insert new runner
-                    if not found:
-                        thisrunner = Runner(club_id,thisname,thisdob,thisgender,thishometown,
-                                            fname=thisfname,lname=thislname,
-                                            renewdate=thisrenewdate,expdate=thisexpdate)
-                        added = racedb.insert_or_update(db.session,Runner,thisrunner,skipcolumns=['id'],name=thisname,dateofbirth=thisdob)
-                        
-                    # remove this runner from collection of runners which should be deactivated in database
-                    if (thisrunner.name,thisrunner.dateofbirth) in inactiverunners:
-                        inactiverunners.pop((thisrunner.name,thisrunner.dateofbirth))
-                
-            # any runners remaining in 'inactiverunners' should be deactivated
-            for (name,dateofbirth) in inactiverunners:
-                thisrunner = Runner.query.filter_by(name=name,dateofbirth=dateofbirth).first() # should be only one returned by filter
-                thisrunner.active = False
-        
             # commit database updates and close transaction
             db.session.commit()
             return success_response()
@@ -410,6 +349,6 @@ class AjaxImportResults(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/_importresults',view_func=AjaxImportResults.as_view('_importresults'),methods=['POST'])
+app.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_view('_importresults'),methods=['POST'])
 #----------------------------------------------------------------------
 

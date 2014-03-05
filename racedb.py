@@ -538,8 +538,7 @@ class ManagedResult(Base):
     state = Column(String(2))
     hometown = Column(String(50))
     club = Column(String(20))
-    chiptime = Column(Float)
-    guntime = Column(Float)
+    time = Column(Float)
     
     # metadata
     runnerid = Column(Integer, ForeignKey('runner.id'), nullable=True)
@@ -549,7 +548,8 @@ class ManagedResult(Base):
     #----------------------------------------------------------------------
     def __init__(self, club_id, raceid, place=None, name=None, fname=None, lname=None,
                  gender=None,age=None,city=None,state=None,club=None,
-                 chiptime=None,guntime=None):
+                 time=None,
+                 runnerid=None,disposition=None,selectionmethod=None):
     #----------------------------------------------------------------------
         self.club_id = club_id
         self.raceid = raceid
@@ -562,8 +562,7 @@ class ManagedResult(Base):
         self.city = city
         self.state = state
         self.club = club
-        self.chiptime = chiptime
-        self.guntime = guntime
+        self.time = time
         self.runnerid = runnerid
         self.disposition = disposition
         self.selectionmethod = selectionmethod
@@ -571,7 +570,7 @@ class ManagedResult(Base):
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
-        return "<ManagedResult('%s','%s','%s','%s')>" % (self.raceid, self.place, self.name, self.guntime)
+        return "<ManagedResult('%s','%s','%s','%s')>" % (self.raceid, self.place, self.name, self.time)
 
 ########################################################################
 class RaceResult(Base):

@@ -40,7 +40,7 @@ from database_flask import db   # this is ok because this module only runs under
 from apicommon import failure_response, success_response
 
 # module specific needs
-from racedb import Race, Club, Series, RaceSeries, Divisions
+from racedb import Race, Club, Series, RaceSeries, Divisions, ManagedResult
 from forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 #from runningclub import racefile   # required for xlsx support
 from loutilities.csvu import DictReaderStr2Num
@@ -85,15 +85,25 @@ class ManageRaces(MethodView):
             
             races = []
             raceseries = []
+            rawresults = []
+            tabresults = []
             for race in Race.query.filter_by(club_id=club_id,year=thisyear,active=True).order_by('date').all():
                 thisraceseries = [s.series.id for s in race.series if s.active]
                 if not seriesid or int(seriesid) in thisraceseries:
                     races.append(race)
+                    racerawresults = ManagedResult.query.filter_by(club_id=club_id,raceid=race.id).first()
+                    print 'race {} racerawresults {}'.format(race.id,racerawresults)
+                    rawresults.append(True if racerawresults else False)        # raw results were imported
+                    tabresults.append(True if len(race.results) > 0 else False) # results were tabulated
                     raceseries.append(thisraceseries)
-    
+
+            # combine parallel lists for processing in form
+            raceresultsseries = zip(races,rawresults,tabresults,raceseries)
+            
             # commit database updates and close transaction
             db.session.commit()
-            return flask.render_template('manageraces.html',form=form,races=races,series=theseseries,raceseries=raceseries,writeallowed=writecheck.can())
+            #return flask.render_template('manageraces.html',form=form,races=races,series=theseseries,raceseries=raceseries,writeallowed=writecheck.can())
+            return flask.render_template('manageraces.html',form=form,raceresultsseries=raceresultsseries,series=theseseries,writeallowed=writecheck.can())
         
         except:
             # roll back database updates and close transaction

@@ -113,12 +113,12 @@
     }
     
     // popupbutton feature
+    // TODO: currently overwriting the object variables -- need to store some of this data in attributes of buttonsel
+    //       this is probably why the popup isn't in the right place, too
     var popupbutton = {
 
         init: function ( buttonsel, popupcontent, label, icons ) {
             popupbutton.popupstatus = 0;
-            //popupbutton.$popuppopup = $('<div>').append(popupcontent);
-            //popupbutton.$popupdialog = $('<div>').append(popupbutton.$popuppopup);
             popupbutton.$popupdialog = $('<div>').append(popupcontent);
 
             popupbutton.$popupbutton = $( buttonsel )
@@ -155,13 +155,13 @@
         
         open: function() {
             popupbutton.$popupdialog.dialog("open");
-            popupbutton.$popupcontent.show();
+            //popupbutton.$popupcontent.show();
             popupbutton.popupstatus = 1;
         },
         
         close: function() {
             popupbutton.$popupdialog.dialog("close");
-            popupbutton.$popupcontent.hide();
+            //popupbutton.$popupcontent.hide();
             popupbutton.popupstatus = 0;
         },
         
@@ -372,9 +372,13 @@
                 ajaximportfile('/_importraces','#import-races',false);
             });
             
-            $(".importResultsButton").each(function(){
+            $(".importResultsButton").click(function(){
                 raceid = $(this).attr('raceid');
                 imported = $(this).attr('imported');
+                action = $(this).attr('action');
+                formid = $(this).attr('formid');
+                buttonid = 'import-'+formid
+                
                 if (imported) {
                     icons = {secondary:'ui-icon-check'};
                     label = null;
@@ -384,21 +388,17 @@
                 };
                 
                 popupcontent = "\
-                    <form action='/_importresults/'+raceid, id='import-results-'+raceid> \
-                        <input type='file'>Results File: </input> <input type='submit'>Import</input> \
+                    <form action='"+action+"', id='"+formid+"' method='post' enctype='multipart/form-data'> \
+                        <input type='file' name=file /> <button id='"+buttonid+"'>Import</button> \
                     </form>\
                 "
                 popupbutton.init(this, popupcontent, label, icons)
                 
-                //$(this)
-                //    .button({
-                //        icons: icons,
-                //        label: label,
-                //    })
-                //    .click( function( event ) {
-                //        event.preventDefault();
-                //        ajaximportfile('/_importresults/'+raceid,'#import-results-'+raceid,false);
-                //    });
+                $('#'+buttonid)
+                    .click( function( event ) {
+                        event.preventDefault();
+                        ajaximportfile(action,'#'+formid,false);
+                    });
             });
         }
     };  // manageraces

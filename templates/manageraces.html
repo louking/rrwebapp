@@ -15,7 +15,7 @@
             <h3>Import Races</h3>\
             <div>\
               <form id='import-races' method='post' enctype='multipart/form-data'>\
-                <input id='choosefileImport' type=file name='file'>\
+                <input id='choosefileImport' type='file' name='file' />\
                 <button id='manageracesImport'>Import</button>\
               </form>\
             </div>");
@@ -58,21 +58,21 @@
           </tr>
         </thead>
         <tbody>
-          {% for race in races %}
+          {% for race,rawresults,tabresults,raceseries in raceresultsseries %}
             <tr>
               {% if writeallowed %}
                 {{ tabeditlink(url_for('racesettings',raceid=race.id)) }}
               {% endif %}
     
               {# TODO: substitute appropriate url_for for "#" #}
-              {% if race.results|length > 0 %}
+              {% if rawresults %}
                 <td align=center>
-                  <button class="importResultsButton" raceid="{{race.id}}" imported="true" />
+                  <button class='importResultsButton' raceid='{{race.id}}' imported='true' action='{{url_for("_importresults",raceid=race.id)}}', formid='form-results-{{race.id}}' />
                 </td>
               {% else %}
                 {% if writeallowed %}
                   <td align=center>
-                    <button class="importResultsButton" raceid="{{race.id}}" />
+                    <button class='importResultsButton' raceid='{{race.id}}' action='{{url_for("_importresults",raceid=race.id)}}', formid='form-results-{{race.id}}'/>
                   </button></td>
                 {% else %}
                   <td />
@@ -84,9 +84,8 @@
               <td>{{ race.name }}</td>
               <td align=center>{{ num(race.distance,2) }}</td>
               <td align=center>{{ race.surface }}</td>
-              {% set ndx=loop.index0 %}
               {% for ss in series %}
-                {{ tabbool(ss.id in raceseries[ndx]) }}
+                {{ tabbool(ss.id in raceseries) }}
               {% endfor %}
                   
             </tr>
