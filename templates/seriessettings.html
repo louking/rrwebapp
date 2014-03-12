@@ -26,15 +26,16 @@
           {% for race in form.races %}
             {{ render_field(race) }}
           {% endfor %}
-          <center>
-            <input class="actionbutton cancelbutton" type="submit" name="whichbutton" value="Cancel" />
-            {% if deletebutton %}
-              <input class="actionbutton deletebutton" type="submit" name="whichbutton" value="Delete" />
-            {% endif %}
-            {% if action %}
-              <input class="actionbutton actionbutton" type="submit" name="whichbutton" value="{{action}}" />
-            {% endif %}
-          </center>
+          
+        <center>
+          <input class="_rrwebapp-actionbutton _rrwebapp-cancelbutton" type="submit" name="whichbutton" value="Cancel" />
+          {% if _rrwebapp-deletebutton %}
+            <input class="_rrwebapp-actionbutton _rrwebapp-deletebutton" type="submit" name="whichbutton" value="Delete" />
+          {% endif %}
+          {% if action %}
+            <input class="_rrwebapp-actionbutton " type="submit" name="whichbutton" value="{{action}}" />
+          {% endif %}
+        </center>
         </div>
   </form>
 {% endblock %}

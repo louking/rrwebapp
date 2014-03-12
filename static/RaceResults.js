@@ -44,11 +44,12 @@
             });
     }
     
-    // decorate action buttons
-    $(".actionbutton").button();
+    // decorate buttons
+    $("._rrwebapp-actionbutton").button();
+    $("._rrwebapp-simplebutton").button()
     
     // get confirmation for any deletes
-    $(".deletebutton").on('click', function(event){getconfirmation(event,'Delete','Please confirm item deletion')});
+    $("._rrwebapp-deletebutton").on('click', function(event){getconfirmation(event,'Delete','Please confirm item deletion')});
 
     
     // toolbutton feature
@@ -113,62 +114,45 @@
     }
     
     // popupbutton feature
-    // TODO: currently overwriting the object variables -- need to store some of this data in attributes of buttonsel
-    //       this is probably why the popup isn't in the right place, too
     var popupbutton = {
 
-        init: function ( buttonsel, popupcontent, label, icons ) {
-            popupbutton.popupstatus = 0;
-            popupbutton.$popupdialog = $('<div>').append(popupcontent);
-
-            popupbutton.$popupbutton = $( buttonsel )
-            popupbutton.$popupbutton
+        init: function ( buttonsel, text, label, icons ) {
+            $( buttonsel )
                 .button({
                             icons: icons,
                             label: label,
+                            text: text,
                         })
-                .on('click',
-                    function() {
-                        if (popupbutton.popupstatus == 0) {
-                            popupbutton.open()
-                        } else {
-                            popupbutton.close()
-                        };
-                    });
+        },
+        
+        click: function ( buttonsel, popupcontent, popupaction ) {
+            if (popupbutton.popupstatus) {
+                popupbutton.$popupdialog.dialog("destroy");
+                popupbutton.popupstatus = 0;
+            } else {
+                popupbutton.$popupdialog = $('<div>').append(popupcontent);
+                popupbutton.$popupdialog
+                    .dialog({
+                        dialogClass: "no-titlebar",
+                        draggable: false,
+                        autoOpen: true,
+                        height: "auto",
+                        width: 450,
+                        position:{
+                                my: "left top",
+                                at: "right bottom",
+                                of: $( buttonsel ),
+                                },
+                        });
+    
+                popupbutton.popupstatus = 1;
                 
-            popupbutton.$popupdialog.dialog({
-                                dialogClass: "no-titlebar",
-                                draggable: false,
-                                open:popupbutton.$popupcontent,
-                                autoOpen: false,
-                                height: "auto",
-                                width: 450,
-                                position:{
-                                        my: "left top",
-                                        at: "left bottom",
-                                        of: popupbutton.$popupbutton
-                                        },
-                                });
-            
-            popupbutton.selector = popupbutton.$popupbutton;
+                if (popupaction) {
+                    popupaction();
+                };
+            };
         },
-        
-        open: function() {
-            popupbutton.$popupdialog.dialog("open");
-            //popupbutton.$popupcontent.show();
-            popupbutton.popupstatus = 1;
-        },
-        
-        close: function() {
-            popupbutton.$popupdialog.dialog("close");
-            //popupbutton.$popupcontent.hide();
-            popupbutton.popupstatus = 0;
-        },
-        
-        position: function(position) {
-            popupbutton.$popupbutton.position(position)
-        }
-    }
+    };
     
     // addbutton feature
     var addbutton = {
@@ -372,33 +356,52 @@
                 ajaximportfile('/_importraces','#import-races',false);
             });
             
-            $(".importResultsButton").click(function(){
-                raceid = $(this).attr('raceid');
-                imported = $(this).attr('imported');
-                action = $(this).attr('action');
-                formid = $(this).attr('formid');
-                buttonid = 'import-'+formid
-                
+            $("._rrwebapp-importResultsButton").each(function(){
+                raceid = $(this).attr('_rrwebapp-raceid');
+                imported = $(this).attr('_rrwebapp-imported');
+                action = $(this).attr('_rrwebapp-formaction');
+                formid = $(this).attr('_rrwebapp-formid');
+                buttonid = formid+'-import';
+
                 if (imported) {
                     icons = {secondary:'ui-icon-check'};
+                    text = false;
                     label = null;
                 } else {
                     icons = {};
                     label = 'import';
+                    text = true;
                 };
                 
-                popupcontent = "\
+                popupbutton.init(this, text, label, icons);
+            });
+            
+            $("._rrwebapp-importResultsButton").click(function(){
+                var raceid = $(this).attr('_rrwebapp-raceid');
+                var imported = $(this).attr('_rrwebapp-imported');
+                var formid = $(this).attr('_rrwebapp-formid');
+                var buttonid = formid+'-import'
+                var formaction = $(this).attr('_rrwebapp-formaction');
+                var editaction = $(this).attr('_rrwebapp-editaction');
+                
+                var popupcontent = "\
+                    <form method='link' action='"+editaction+"'>\
+                        <input type='submit' value='Edit' />\
+                    </form>\
                     <form action='"+action+"', id='"+formid+"' method='post' enctype='multipart/form-data'> \
                         <input type='file' name=file /> <button id='"+buttonid+"'>Import</button> \
                     </form>\
                 "
-                popupbutton.init(this, popupcontent, label, icons)
                 
-                $('#'+buttonid)
-                    .click( function( event ) {
-                        event.preventDefault();
-                        ajaximportfile(action,'#'+formid,false);
-                    });
+                var popupaction = function() {
+                    $('#'+buttonid)
+                        .click( function( event ) {
+                            event.preventDefault();
+                            ajaximportfile(formaction,'#'+formid,false);
+                        });
+                }
+                popupbutton.click(this, popupcontent, popupaction)
+                
             });
         }
     };  // manageraces
@@ -426,3 +429,10 @@
         });
     
     };  // managedivisions
+
+    // editresults
+    function editresults(writeallowed) {
+        
+        $('#_rrwebapp-table-editresults').scrollTableBody({rowsToDisplay:15});
+        
+    };  // editresults

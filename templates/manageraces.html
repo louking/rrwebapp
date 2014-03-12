@@ -34,7 +34,7 @@
 {% endblock %}
 {% block body %}
     <div class=TextLeft>
-      <form action={{ url_for('manageraces') }}>
+      <form _rrwebapp-formaction={{ url_for('manageraces') }}>
         {{ form.filterseries() }}
       </form>
     </div>
@@ -67,12 +67,18 @@
               {# TODO: substitute appropriate url_for for "#" #}
               {% if rawresults %}
                 <td align=center>
-                  <button class='importResultsButton' raceid='{{race.id}}' imported='true' action='{{url_for("_importresults",raceid=race.id)}}', formid='form-results-{{race.id}}' />
+                  <button class='_rrwebapp-importResultsButton' _rrwebapp-raceid='{{race.id}}'
+                           _rrwebapp-formaction='{{url_for("_importresults",raceid=race.id)}}' _rrwebapp-formid='_rrwebapp-form-results-{{race.id}}'
+                           _rrwebapp-editaction='{{url_for("editresults",raceid=race.id)}}' 
+                          _rrwebapp-imported='true' />
                 </td>
               {% else %}
                 {% if writeallowed %}
                   <td align=center>
-                    <button class='importResultsButton' raceid='{{race.id}}' action='{{url_for("_importresults",raceid=race.id)}}', formid='form-results-{{race.id}}'/>
+                    <button class='_rrwebapp-importResultsButton' _rrwebapp-raceid='{{race.id}}'
+                            _rrwebapp-formaction='{{url_for("_importresults",raceid=race.id)}}' _rrwebapp-formid='_rrwebapp-form-results-{{race.id}}'
+                            _rrwebapp-editaction='{{url_for("editresults",raceid=race.id)}}' 
+                            />
                   </button></td>
                 {% else %}
                   <td />

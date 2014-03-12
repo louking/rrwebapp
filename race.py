@@ -92,7 +92,6 @@ class ManageRaces(MethodView):
                 if not seriesid or int(seriesid) in thisraceseries:
                     races.append(race)
                     racerawresults = ManagedResult.query.filter_by(club_id=club_id,raceid=race.id).first()
-                    print 'race {} racerawresults {}'.format(race.id,racerawresults)
                     rawresults.append(True if racerawresults else False)        # raw results were imported
                     tabresults.append(True if len(race.results) > 0 else False) # results were tabulated
                     raceseries.append(thisraceseries)

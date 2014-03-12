@@ -15,13 +15,14 @@
         {% for ss in form.series %}
           {{ render_field(ss) }}
         {% endfor %}
+
         <center>
-          <input class="actionbutton cancelbutton" type="submit" name="whichbutton" value="Cancel" />
-          {% if deletebutton %}
-            <input class="actionbutton deletebutton" type="submit" name="whichbutton" value="Delete" />
+          <input class="_rrwebapp-actionbutton _rrwebapp-cancelbutton" type="submit" name="whichbutton" value="Cancel" />
+          {% if _rrwebapp-deletebutton %}
+            <input class="_rrwebapp-actionbutton _rrwebapp-deletebutton" type="submit" name="whichbutton" value="Delete" />
           {% endif %}
           {% if action %}
-            <input class="actionbutton actionbutton" type="submit" name="whichbutton" value="{{action}}" />
+            <input class="_rrwebapp-actionbutton " type="submit" name="whichbutton" value="{{action}}" />
           {% endif %}
         </center>
   </form>

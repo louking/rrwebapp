@@ -56,6 +56,7 @@ from loutilities import timeu
 
 DBDATEFMT = '%Y-%m-%d'
 t = timeu.asctime(DBDATEFMT)
+dbdate = timeu.asctime(DBDATEFMT)
 
 class dbConsistencyError(Exception): pass
 
@@ -518,8 +519,9 @@ class ManagedResult(Base):
     * close - close name match found, with age consistent with dateofbirth
     * missed - close name match found, but age is inconsistent with dateofbirth
     * excluded - this name is in the exclusion table, either prior to import or as a result of user decision
+    * '' - this means zero possible matches were found
     
-    runnerid is set if found exact or close match, or if user includes this, null otherwise
+    runnerid is set if found exact or close match, or if user includes this, null or '' otherwise
     '''
     __tablename__ = 'managedresult'
     #__table_args__ = (UniqueConstraint('runnername', 'raceid', 'club_id'),)
@@ -542,8 +544,9 @@ class ManagedResult(Base):
     
     # metadata
     runnerid = Column(Integer, ForeignKey('runner.id'), nullable=True)
-    disposition = Column(Enum('exact','close','missed','excluded',name='disposition_type'))
-    selectionmethod = Column(Enum('auto','user',name='selectionmethod_type'))
+    #initialdisposition = Column(Enum('definite','similar','missed','excluded','',name='disposition_type'))
+    initialdisposition = Column(String(15))
+    confirmed = Column(Boolean)
 
     #----------------------------------------------------------------------
     def __init__(self, club_id, raceid, place=None, name=None, fname=None, lname=None,
