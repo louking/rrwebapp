@@ -56,10 +56,18 @@
               <td align=center>{{ result.gender }}</td>
               <td align=center>{{ num(result.age,0) }}</td>
               <td align=center>{{ thisdisposition }}</td>
-              <td align=center><input class="_rrwebapp-checkbox-confirmed" type="checkbox" _rrwebapp-resultid={{ result.id }} {% if result.confirmed %}checked{%endif%}></td>
+              <td align=center>
+                <input class="_rrwebapp-editresults-checkbox-confirmed" type="checkbox" {% if result.confirmed %}checked{%endif%}
+                          id="_rrwebapp-editresults-checkbox-confirmed-{{ result.id }}" 
+                          _rrwebapp-field='confirmed'
+                          _rrwebapp-apiurl={{url_for('_updatemanagedresult',resultid=result.id)}}>
+                <label for="_rrwebapp-editresults-checkbox-confirmed-{{ result.id }}"></label>
+              </td>
               <td>
                 {% if thisdisposition == 'missed' or thisdisposition == 'similar' %}
-                  <select class="_rrwebapp-result-select-runner" _rrwebapp-resultid={{ result.id }} >
+                  <select class="_rrwebapp-editresults-select-runner" 
+                          _rrwebapp-field='runnerid'
+                          _rrwebapp-apiurl={{url_for('_updatemanagedresult',resultid=result.id)}}>
                     {% for value,choice in thismemberchoice %}
                       <option value={{value}} {%if value==thismembervalue %}selected{%endif%}>{{choice}}</option>
                     {% endfor %}

@@ -176,7 +176,7 @@
         }
     };
     
-    function ajaxupdatedbresp(url,form,data) {
+    function ajaxupdatedbformresp(url,form,data) {
         console.log(data);
         if (data.success) {
             location.reload(true);
@@ -195,7 +195,7 @@
                             }
                         },{ text:  'Overwrite',
                             click: function(){
-                                ajaxupdatedb(url,form,true);
+                                ajaxupdatedbform(url,form,true);
                                 $( this ).dialog('destroy');
                             }
                         }
@@ -217,10 +217,10 @@
         };
     };
     
-    function ajaxupdatedb(urlpath,form,force) {
+    function ajaxupdatedbform(urlpath,form,force) {
         //var form_data = new FormData($(this).parent()[0]);
         //var form_data = new FormData($(this).closest('form')[0]);
-        var form_data = new FormData($('#copy-series')[0]); // not used
+        //var form_data = new FormData($('#copy-series')[0]); // not used
         //console.log(form_data)
         
         // force = true means to overwrite existing data for this year
@@ -243,11 +243,71 @@
             cache: false,
             async: false,
             success: function(data) {
-                ajaxupdatedbresp(urlpath,form,data);
+                ajaxupdatedbformresp(urlpath,form,data);
             },
         });
         
         toolbutton.close();
+    };
+        
+    function ajaxupdatedbnoformresp(url,addparms,data) {
+        console.log(data);
+        if (!data.success) {
+            console.log('FAILURE: ' + data.cause);
+            // if overwrite requested, force the overwrite
+            if (data.confirm) {
+                $("<div>" + data.cause + "</div>").dialog({
+                    dialogClass: 'no-titlebar',
+                    height: "auto",
+                    modal: true,
+                    buttons: [
+                        {   text:  'Cancel',
+                            click: function() {
+                                $( this ).dialog('destroy');
+                            }
+                        },{ text:  'Overwrite',
+                            click: function(){
+                                ajaxupdatedbnoform(url,addparms,true);
+                                $( this ).dialog('destroy');
+                            }
+                        }
+                    ],
+                });
+            } else {
+                $("<div>Error Occurred: " + data.cause + "</div>").dialog({
+                    dialogClass: 'no-titlebar',
+                    height: "auto",
+                    buttons: [
+                        {   text:  'OK',
+                            click: function(){
+                                $( this ).dialog('destroy');
+                            }
+                        }
+                    ],
+                });
+            };
+        };
+    };
+    
+    function ajaxupdatedbnoform(urlpath,addparms,force) {
+        // force = true means to overwrite existing data, not necessarily used by target page
+        addparms.force = force
+        
+        var url = urlpath +'?'+$.param(addparms)
+        //form_data.append('force',force)
+        //url = urlpath
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            //data: form_data,
+            contentType: false,
+            cache: false,
+            async: false,
+            success: function(data) {
+                ajaxupdatedbnoformresp(urlpath,addparms,data);
+            },
+        });
     };
         
     function ajaximportfileresp(urlpath,formsel,data) {
@@ -352,7 +412,7 @@
             $importraces.click( function( event ) {
                 event.preventDefault();
                 //var form = $(this).parent()
-                //ajaxupdatedb('_importraces',form,false);
+                //ajaxupdatedbform('_importraces',form,false);
                 ajaximportfile('/_importraces','#import-races',false);
             });
             
@@ -413,7 +473,7 @@
         $copyseries.click( function( event ) {
             event.preventDefault();
             var form = $(this).closest('form')
-            ajaxupdatedb('_copyseries',form,false);
+            ajaxupdatedbform('_copyseries',form,false);
         });
     
     };  // manageseries
@@ -425,7 +485,7 @@
         $copydivisions.click( function( event ) {
             event.preventDefault();
             var form = $(this).parent()
-            ajaxupdatedb('_copydivisions',form,false);
+            ajaxupdatedbform('_copydivisions',form,false);
         });
     
     };  // managedivisions
@@ -435,4 +495,35 @@
         
         $('#_rrwebapp-table-editresults').scrollTableBody({rowsToDisplay:15});
         
+        // make button for checkbox
+        $('._rrwebapp-editresults-checkbox-confirmed').button({text:false});
+        function setchecked(sel) {
+            if (sel.checked) {
+                $(sel).button({icons:{ primary: 'ui-icon-check' }});
+            } else {
+                $(sel).button({icons:{ primary: null }});         
+            }
+        };
+        $('._rrwebapp-editresults-checkbox-confirmed').each(function(){setchecked(this);});
+        $('._rrwebapp-editresults-checkbox-confirmed')
+            .on('click',
+                function(){
+                    setchecked(this);
+                });
+        
+        $('._rrwebapp-editresults-select-runner, ._rrwebapp-editresults-checkbox-confirmed')
+            .on('change',
+                function ( event ) {
+                    var apiurl = $( this ).attr('_rrwebapp-apiurl');
+                    var field = $( this ).attr('_rrwebapp-field');
+                    var fieldtype = $( this ).attr('type');
+                    if (field == 'checkbox') {
+                        var value = $( this ).is(':checked')
+                    } else {
+                        var value = $( this ).val();
+                    }
+                    
+                    ajaxupdatedbnoform(apiurl,{field:field,value:value},true)
+                });
+    
     };  // editresults

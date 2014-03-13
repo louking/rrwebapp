@@ -69,6 +69,8 @@ DISP_MISSED = 'missed'          # similar to some member(s), age mismatch (withi
 DISP_EXCLUDED = 'excluded'      # DISP_CLOSE match, but found in exclusions table
 DISP_NOTUSED = ''               # not used for results
 
+class BooleanError(Exception): pass
+
 #######################################################################
 class ManageResults(MethodView):
 #######################################################################
@@ -333,26 +335,25 @@ class AjaxImportResults(MethodView):
             if not resultfile:
                 db.session.rollback()
                 cause = 'Unexpected Error: Missing file'
-                print cause
+                app.logger.error(cause)
                 return failure_response(cause=cause)
             if not allowed_file(resultfile.filename):
                 db.session.rollback()
                 cause = 'Invalid file type {} for file {}'.format(ext,resultfile.filename)
-                print cause
+                app.logger.warning(cause)
                 return failure_response(cause=cause)
 
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
             if not race:
                 db.session.rollback()
                 cause = 'race id={} does not exist for this club'.format(raceid)
-                print cause
+                app.logger.warning(cause)
                 return failure_response(cause=cause)
 
             # do we have any results yet?  If so, make sure it is ok to overwrite them
             dbresults = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).all()
 
             # if some results exist, verify user wants to overwrite
-            #print 'force = ' + request.args.get('force')
             if dbresults:
                 # verify overwrite
                 if not request.args.get('force')=='true':
@@ -376,7 +377,7 @@ class AjaxImportResults(MethodView):
             except raceresults.headerError, e:
                 db.session.rollback()
                 cause =  e
-                print cause
+                app.logger.warning(cause)
                 return failure_response(cause=cause)
                 
             # how did this happen?  check allowed_file() for bugs
@@ -384,7 +385,7 @@ class AjaxImportResults(MethodView):
                 db.session.rollback()
                 #cause =  'Program Error: Invalid file type {} for file {} path {} (unexpected)'.format(ext,resultfile.filename,resultpathname)
                 cause =  'Program Error: {}'.format(e)
-                print cause
+                app.logger.error(cause)
                 return failure_response(cause=cause)
             
             # get race and list of active members
@@ -445,7 +446,7 @@ class AjaxImportResults(MethodView):
                 os.rmdir(tempdir)
             # no idea why this can happen; hopefully doesn't happen on linux
             except WindowsError,e:
-                print 'exception ignored: {}'.format(e)
+                app.logger.warning('exception ignored: {}'.format(e))
 
             # commit database updates and close transaction
             db.session.commit()
@@ -457,5 +458,83 @@ class AjaxImportResults(MethodView):
             raise
 #----------------------------------------------------------------------
 app.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_view('_importresults'),methods=['POST'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class AjaxUpdateManagedResult(MethodView):
+#######################################################################
+    decorators = [login_required]
+    
+    #----------------------------------------------------------------------
+    def post(self,resultid):
+    #----------------------------------------------------------------------
+        try:
+            club_id = flask.session['club_id']
+            thisyear = flask.session['year']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can write the data, otherwise abort
+            if not writecheck.can():
+                db.session.rollback()
+                flask.abort(403)
+                
+            # make sure result exists
+            result = ManagedResult.query.filter_by(club_id=club_id,id=resultid).first()
+            if not result:
+                db.session.rollback()
+                cause = 'Unexpected Error: result id {} not found'.format(resultid)
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+            
+            # which field changed?  if not allowed, return failure response
+            field = flask.request.args.get('field','<not supplied>')
+            if field not in ['runnerid','confirmed']:
+                db.session.rollback()
+                cause = 'Unexpected Error: field {} not supported'.format(field)
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+            
+            # is value ok? if not allowed, return failure response
+            value = flask.request.args.get('value','')
+            if value == '':
+                db.session.rollback()
+                cause = 'Unexpected Error: value must be supplied'
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+            
+            # try to make update, handle exception
+            try:
+                if field == 'runnerid':
+                    if value != 'None':
+                        result.runnerid = int(value)
+                    else:
+                        result.runnerid = None
+                elif field == 'confirmed':
+                    if value in ['true','false']:
+                        result.confirmed = (value == 'true')
+                    else:
+                        raise BooleanError, "invalid literal for boolean: '{}'".format(value)
+                else:
+                    pass    # this was handled above
+                    
+            except Exception,e:
+                db.session.rollback()
+                cause = 'Unexpected Error: value {} not allowed for field {}, {}'.format(value,field,e)
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+                
+                
+            # commit database updates and close transaction
+            db.session.commit()
+            return success_response()
+        
+        except Exception,e:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/_updatemanagedresult/<int:resultid>',view_func=AjaxUpdateManagedResult.as_view('_updatemanagedresult'),methods=['POST'])
 #----------------------------------------------------------------------
 

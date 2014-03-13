@@ -307,12 +307,12 @@ class AjaxImportRaces(MethodView):
             if not thisfile:
                 db.session.rollback()
                 cause = 'Unexpected Error: Missing file'
-                print cause
+                app.logger.error(cause)
                 return failure_response(cause=cause)
             if not allowed_file(thisfile.filename):
                 db.session.rollback()
                 cause = 'Invalid file type "{}"'.format(thisfileext)
-                print cause
+                app.logger.warning(cause)
                 return failure_response(cause=cause)
             
             # get all the races currently in the database for the indicated club,year
@@ -333,7 +333,7 @@ class AjaxImportRaces(MethodView):
                     if int(row['year']) != flask.session['year']:
                         db.session.rollback()
                         cause = 'File year {} does not match session year {}'.format(row['year'],flask.session['year'])
-                        print cause
+                        app.logger.warning(cause)
                         return failure_response(cause=cause)
                     fileraces.append(row)
                     
@@ -348,7 +348,7 @@ class AjaxImportRaces(MethodView):
             else:
                 db.session.rollback()
                 cause = 'Unexpected Error: Invalid file extention encountered "{}"'.format(thisfileext)
-                print cause
+                app.logger.error(cause)
                 return failure_response(cause=cause)
             
             # prepare to invalidate any races which are currently there, but not in the file
