@@ -141,6 +141,10 @@ class ManageResults(MethodView):
                     # this shouldn't happen
                     else:
                         pass    # TODO: this is a bug -- that to do?
+                    
+                # for no match and excluded entries, change choice
+                elif thisdisposition in [DISP_NOTUSED,DISP_EXCLUDED]:
+                    thismemberchoice = [(None,'n/a')]
                 
                 # include all the metadata for this result
                 times.append(thistime)
@@ -389,7 +393,6 @@ class AjaxImportResults(MethodView):
                 return failure_response(cause=cause)
             
             # get race and list of active members
-            # TODO: use members who were active on the day of the race, plus a few days
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
             active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
 
@@ -416,7 +419,6 @@ class AjaxImportResults(MethodView):
                             dbresult.initialdisposition = DISP_MATCH
                             dbresult.confirmed = True
                         else:
-                            # TODO: should this be looping, looking for the next possible, not excluded runner?
                             exclusion = Exclusion.query.filter_by(foundname=dbresult.name,runnerid=member.id).first()
                             if not exclusion:
                                 dbresult.initialdisposition = DISP_CLOSE

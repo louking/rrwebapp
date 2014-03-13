@@ -51,7 +51,7 @@ fieldxform = {
     'city':['city'],
     'state':['state','st'],
     'hometown':['hometown'],
-    'club':['club'],
+    'club':['club','team'],
 }
 
 # exceptions for this module.  See __init__.py for package exceptions

@@ -43,7 +43,28 @@
 
             });
     }
-    
+
+    // getvalue tested for checkbox and select - sel is standard DOM selector (not jQuery)    
+    function getvalue(sel) {
+        var fieldtype = $( sel ).attr('type');
+        if (fieldtype && (fieldtype.toLowerCase() == 'checkbox' || fieldtype.toLowerCase() == 'radio')) {
+            var value = $( sel ).prop('checked')
+        } else {
+            var value = $( sel ).val();
+        }
+        return value
+    }
+        
+    // setvalue tested for checkbox and select - sel is standard DOM selector (not jQuery)    
+    function setvalue(sel,value) {
+        var fieldtype = $( sel ).attr('type');
+        if (fieldtype && (fieldtype.toLowerCase() == 'checkbox' || fieldtype.toLowerCase() == 'radio')) {
+            $( sel ).prop('checked',value)
+        } else {
+            $( sel ).val(value);
+        }
+    }
+        
     // decorate buttons
     $("._rrwebapp-actionbutton").button();
     $("._rrwebapp-simplebutton").button()
@@ -250,9 +271,18 @@
         toolbutton.close();
     };
         
-    function ajaxupdatedbnoformresp(url,addparms,data) {
+    function ajaxupdatedbnoformresp(url,addparms,data,sel) {
         console.log(data);
-        if (!data.success) {
+        if (data.success) {
+            if (typeof $( sel ).data('revert') != 'undefined') {
+                $( sel ).data('revert', getvalue(sel));
+                console.log('updated revert to '+$( sel ).data('revert'))
+            }
+        } else {
+            if (typeof $( sel ).data('revert') != 'undefined') {
+                setvalue(sel,$( sel ).data('revert'));
+                console.log('reverted to '+$( sel ).data('revert'))
+            }
             console.log('FAILURE: ' + data.cause);
             // if overwrite requested, force the overwrite
             if (data.confirm) {
@@ -267,7 +297,7 @@
                             }
                         },{ text:  'Overwrite',
                             click: function(){
-                                ajaxupdatedbnoform(url,addparms,true);
+                                ajaxupdatedbnoform(url,addparms,sel,true);
                                 $( this ).dialog('destroy');
                             }
                         }
@@ -289,7 +319,7 @@
         };
     };
     
-    function ajaxupdatedbnoform(urlpath,addparms,force) {
+    function ajaxupdatedbnoform(urlpath,addparms,sel,force) {
         // force = true means to overwrite existing data, not necessarily used by target page
         addparms.force = force
         
@@ -305,7 +335,7 @@
             cache: false,
             async: false,
             success: function(data) {
-                ajaxupdatedbnoformresp(urlpath,addparms,data);
+                ajaxupdatedbnoformresp(urlpath,addparms,data,sel);
             },
         });
     };
@@ -511,19 +541,18 @@
                     setchecked(this);
                 });
         
+        $('._rrwebapp-editresults-select-runner, ._rrwebapp-editresults-checkbox-confirmed').each(function() {
+            $( this ).data('revert', getvalue(this));
+        });
+        
         $('._rrwebapp-editresults-select-runner, ._rrwebapp-editresults-checkbox-confirmed')
             .on('change',
                 function ( event ) {
                     var apiurl = $( this ).attr('_rrwebapp-apiurl');
                     var field = $( this ).attr('_rrwebapp-field');
-                    var fieldtype = $( this ).attr('type');
-                    if (field == 'checkbox') {
-                        var value = $( this ).is(':checked')
-                    } else {
-                        var value = $( this ).val();
-                    }
-                    
-                    ajaxupdatedbnoform(apiurl,{field:field,value:value},true)
+                    value = getvalue(this)
+
+                    ajaxupdatedbnoform(apiurl,{field:field,value:value},this,true)
                 });
     
     };  // editresults
