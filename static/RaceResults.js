@@ -197,7 +197,7 @@
         }
     };
     
-    function ajaxupdatedbformresp(url,form,data) {
+    function ajax_update_db_form_resp(url,form,data) {
         console.log(data);
         if (data.success) {
             location.reload(true);
@@ -216,7 +216,7 @@
                             }
                         },{ text:  'Overwrite',
                             click: function(){
-                                ajaxupdatedbform(url,form,true);
+                                ajax_update_db_form(url,form,true);
                                 $( this ).dialog('destroy');
                             }
                         }
@@ -238,7 +238,7 @@
         };
     };
     
-    function ajaxupdatedbform(urlpath,form,force) {
+    function ajax_update_db_form(urlpath,form,force) {
         //var form_data = new FormData($(this).parent()[0]);
         //var form_data = new FormData($(this).closest('form')[0]);
         //var form_data = new FormData($('#copy-series')[0]); // not used
@@ -264,14 +264,14 @@
             cache: false,
             async: false,
             success: function(data) {
-                ajaxupdatedbformresp(urlpath,form,data);
+                ajax_update_db_form_resp(urlpath,form,data);
             },
         });
         
         toolbutton.close();
     };
         
-    function ajaxupdatedbnoformresp(url,addparms,data,sel) {
+    function ajax_update_db_noform_resp(url,addparms,data,sel) {
         console.log(data);
         if (data.success) {
             if (typeof $( sel ).data('revert') != 'undefined') {
@@ -297,7 +297,7 @@
                             }
                         },{ text:  'Overwrite',
                             click: function(){
-                                ajaxupdatedbnoform(url,addparms,sel,true);
+                                ajax_update_db_noform(url,addparms,sel,true);
                                 $( this ).dialog('destroy');
                             }
                         }
@@ -319,7 +319,7 @@
         };
     };
     
-    function ajaxupdatedbnoform(urlpath,addparms,sel,force) {
+    function ajax_update_db_noform(urlpath,addparms,sel,force) {
         // force = true means to overwrite existing data, not necessarily used by target page
         addparms.force = force
         
@@ -335,12 +335,12 @@
             cache: false,
             async: false,
             success: function(data) {
-                ajaxupdatedbnoformresp(urlpath,addparms,data,sel);
+                ajax_update_db_noform_resp(urlpath,addparms,data,sel);
             },
         });
     };
         
-    function ajaximportfileresp(urlpath,formsel,data) {
+    function ajax_import_file_resp(urlpath,formsel,data) {
         console.log(data);
         if (data.success) {
             location.reload(true);
@@ -359,7 +359,7 @@
                             }
                         },{ text:  'Overwrite',
                             click: function(){
-                                ajaximportfile(urlpath,formsel,true);
+                                ajax_import_file(urlpath,formsel,true);
                                 $( this ).dialog('destroy');
                             }
                         }
@@ -381,7 +381,7 @@
         };
     };
     
-    function ajaximportfile(urlpath,formsel,force) {
+    function ajax_import_file(urlpath,formsel,force) {
         var form_data = new FormData($(formsel)[0]);
         
         // force = true means to overwrite existing data for this year
@@ -395,7 +395,7 @@
             cache: false,
             processData: false,
             async: false,
-            success: function(data) {ajaximportfileresp(urlpath,formsel,data)},
+            success: function(data) {ajax_import_file_resp(urlpath,formsel,data)},
         });
         
         //closetoolbutton();
@@ -419,7 +419,7 @@
             var $importmembers = $('#managemembersImport');
             $importmembers.click( function( event ) {
                 event.preventDefault();
-                ajaximportfile('/_importmembers','#import-members',false);
+                ajax_import_file('/_importmembers','#import-members',false);
             });
         }
     };  // managemembers
@@ -442,8 +442,8 @@
             $importraces.click( function( event ) {
                 event.preventDefault();
                 //var form = $(this).parent()
-                //ajaxupdatedbform('_importraces',form,false);
-                ajaximportfile('/_importraces','#import-races',false);
+                //ajax_update_db_form('_importraces',form,false);
+                ajax_import_file('/_importraces','#import-races',false);
             });
             
             $("._rrwebapp-importResultsButton").each(function(){
@@ -487,7 +487,7 @@
                     $('#'+buttonid)
                         .click( function( event ) {
                             event.preventDefault();
-                            ajaximportfile(formaction,'#'+formid,false);
+                            ajax_import_file(formaction,'#'+formid,false);
                         });
                 }
                 popupbutton.click(this, popupcontent, popupaction)
@@ -503,7 +503,7 @@
         $copyseries.click( function( event ) {
             event.preventDefault();
             var form = $(this).closest('form')
-            ajaxupdatedbform('_copyseries',form,false);
+            ajax_update_db_form('_copyseries',form,false);
         });
     
     };  // manageseries
@@ -515,15 +515,13 @@
         $copydivisions.click( function( event ) {
             event.preventDefault();
             var form = $(this).parent()
-            ajaxupdatedbform('_copydivisions',form,false);
+            ajax_update_db_form('_copydivisions',form,false);
         });
     
     };  // managedivisions
 
     // editresults
     function editresults(writeallowed) {
-        
-        $('#_rrwebapp-table-editresults').scrollTableBody({rowsToDisplay:15});
         
         // make button for checkbox
         $('._rrwebapp-editresults-checkbox-confirmed').button({text:false});
@@ -541,6 +539,7 @@
                     setchecked(this);
                 });
         
+        // initial revert values -- see ajax_update_db_noform_resp for use of 'revert' data field
         $('._rrwebapp-editresults-select-runner, ._rrwebapp-editresults-checkbox-confirmed').each(function() {
             $( this ).data('revert', getvalue(this));
         });
@@ -552,7 +551,9 @@
                     var field = $( this ).attr('_rrwebapp-field');
                     value = getvalue(this)
 
-                    ajaxupdatedbnoform(apiurl,{field:field,value:value},this,true)
+                    ajax_update_db_noform(apiurl,{field:field,value:value},this,true)
                 });
     
+        $('#_rrwebapp-table-editresults').scrollTableBody({rowsToDisplay:15});
+        
     };  // editresults

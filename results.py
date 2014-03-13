@@ -94,7 +94,7 @@ class ManageResults(MethodView):
     
             # get all the results, and the race record
             results = []
-            results = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).order_by('place').all()
+            results = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).order_by('time').all()
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
             racedatedt = dbdate.asc2dt(race.date)
             
