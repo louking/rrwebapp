@@ -1,0 +1,26 @@
+table#_rrwebapp-table-editresults tr._rrwebapp-row-disposition-,
+table#_rrwebapp-table-editresults tr._rrwebapp-row-disposition-excluded
+{
+    background-color: #E6E6E6;  /*gray*/
+}
+table#_rrwebapp-table-editresults tr._rrwebapp-row-disposition-missed
+{
+    background-color: #FFFF33;  /*yellow*/
+}
+table#_rrwebapp-table-editresults tr._rrwebapp-row-disposition-similar
+{
+    background-color: #FFAD33;  /*orange*/
+}
+table#_rrwebapp-table-editresults tr._rrwebapp-row-disposition-definite,
+table#_rrwebapp-table-editresults tr._rrwebapp-row-disposition-similar._rrwebapp-row-confirmed-True,
+table#_rrwebapp-table-editresults tr._rrwebapp-row-disposition-missed._rrwebapp-row-confirmed-True
+{
+    background-color: #99FF99;  /*green*/
+}
+
+/*table#_rrwebapp-table-editresults tr._rrwebapp-row-disposition-excluded
+{
+    background-color: #80B2FF; (blue)
+}
+*/
+

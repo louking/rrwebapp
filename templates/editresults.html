@@ -3,6 +3,9 @@
 {% block pagename %}
     Edit Results
 {% endblock %}
+{% block css %}
+  <link rel=stylesheet type=text/css href="{{ url_for('static', filename='resulttable.css') }}">
+{% endblock %}
 {% block scripts %}
   <script type="text/javascript">
     $( document ).ready( function() {
@@ -13,9 +16,9 @@
                         "\
             <h3>Import Results</h3>\
             <div>\
-              <form id='import-races' method='post' enctype='multipart/form-data'>\
+              <form id='_rrwebapp-import-results' _rrwebapp-import-url='{{ url_for("_importresults",raceid=race.id) }}' method='post' enctype='multipart/form-data'>\
                 <input id='choosefileImport' type='file' name='file' />\
-                <button id='manageracesImport'>Import</button>\
+                <button id='_rrwebapp-button-import'>Import</button>\
               </form>\
             </div>");
         {% endif %}
@@ -33,24 +36,26 @@
 {% endblock %}
 {% block body %}
     <center><b>{{race.name}} - {{race.date}}</b></center>
+    <center>Series: {% for ss in race.series %}{{ ss.series.name }} {% endfor %} -
+            {% if race.series[0].series.membersonly %}members only{% else %}nonmembers included{% endif %}</center>
       <table class="DataList" id="_rrwebapp-table-editresults" cellpadding=0 cellspace=0>
         <thead>
           <tr>
-            <th>{{ form.place.label }}</th>
-            <th>{{ form.name.label }}</th>
-            <th>{{ form.gender.label }}</th>
-            <th>{{ form.age.label }}</th>
-            <th>{{ form.disposition.label }}</th>
-            <th>{{ form.confirmed.label }}</th>
-            <th>{{ form.runnerid.label }}</th>
-            <th>{{ form.hometown.label }}</th>
-            <th>{{ form.club.label }}</th>
-            <th>{{ form.time.label }}</th>
+            <th class="_rrwebapp-col-_unordered">{{ form.place.label }}</th>
+            <th class="_rrwebapp-col-_unordered">{{ form.name.label }}</th>
+            <th class="_rrwebapp-col-_unordered">{{ form.gender.label }}</th>
+            <th class="_rrwebapp-col-_unordered">{{ form.age.label }}</th>
+            <th class="_rrwebapp-col-_unordered">{{ form.disposition.label }}</th>
+            <th class="_rrwebapp-col-_unordered _rrwebapp-col-confirmed">{{ form.confirmed.label }}</th>
+            <th class="_rrwebapp-col-_unordered">{{ form.runnerid.label }}</th>
+            <th class="_rrwebapp-col-_unordered">{{ form.hometown.label }}</th>
+            <th class="_rrwebapp-col-_unordered">{{ form.club.label }}</th>
+            <th class="_rrwebapp-col-time">{{ form.time.label }}</th>
           </tr>
         </thead>
         <tbody>
           {% for result,thistime,thisdisposition, thismemberchoice, thismembervalue in resultsdata %}
-            <tr>
+            <tr class="_rrwebapp-row-disposition-{{thisdisposition}} _rrwebapp-row-confirmed-{{result.confirmed}}">
               <td align=center>{{ num(result.place,0) }}</td>
               <td>{{ result.name }}</td>
               <td align=center>{{ result.gender }}</td>
@@ -64,7 +69,7 @@
                 <label for="_rrwebapp-editresults-checkbox-confirmed-{{ result.id }}"></label>
               </td>
               <td>
-                {% if thisdisposition == 'missed' or thisdisposition == 'similar' %}
+                {% if writeallowed and (thisdisposition == 'missed' or thisdisposition == 'similar') %}
                   <select class="_rrwebapp-editresults-select-runner" 
                           _rrwebapp-field='runnerid'
                           _rrwebapp-apiurl={{url_for('_updatemanagedresult',resultid=result.id)}}>

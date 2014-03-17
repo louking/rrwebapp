@@ -133,4 +133,4 @@ class ManagedResultForm(Form):
     # metadata
     disposition = StringField('Match',[validators.Optional()])      # initial disposition
     runnerid = SelectField('Standings Name',[validators.Optional()])# set when runnerid has positive value; can be used to select member or exclusion
-    confirmed = BooleanField('OK',[validators.Optional()])          # set True by system for definite match or definite non-match, or by user in other cases
+    confirmed = BooleanField('Confirm',[validators.Optional()])          # set True by system for definite match or definite non-match, or by user in other cases

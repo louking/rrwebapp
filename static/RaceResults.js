@@ -55,6 +55,15 @@
         return value
     }
         
+    // getchoicevalues tested for select
+    // from http://stackoverflow.com/questions/4964456/make-javascript-do-list-comprehension
+    function getchoicevalues(sel) {
+        var choiceslist = jQuery.map($(sel).children('option'), function (element) {
+            return jQuery(element).val();
+        });
+        return choiceslist;
+    }
+    
     // setvalue tested for checkbox and select - sel is standard DOM selector (not jQuery)    
     function setvalue(sel,value) {
         var fieldtype = $( sel ).attr('type');
@@ -271,17 +280,18 @@
         toolbutton.close();
     };
         
-    function ajax_update_db_noform_resp(url,addparms,data,sel) {
+    function ajax_update_db_noform_resp(url,addparms,data,sel,callback) {
         console.log(data);
         if (data.success) {
             if (typeof $( sel ).data('revert') != 'undefined') {
                 $( sel ).data('revert', getvalue(sel));
-                console.log('updated revert to '+$( sel ).data('revert'))
+                if (callback) {
+                    callback(sel)
+                }
             }
         } else {
             if (typeof $( sel ).data('revert') != 'undefined') {
                 setvalue(sel,$( sel ).data('revert'));
-                console.log('reverted to '+$( sel ).data('revert'))
             }
             console.log('FAILURE: ' + data.cause);
             // if overwrite requested, force the overwrite
@@ -319,7 +329,7 @@
         };
     };
     
-    function ajax_update_db_noform(urlpath,addparms,sel,force) {
+    function ajax_update_db_noform(urlpath,addparms,sel,force,callback) {
         // force = true means to overwrite existing data, not necessarily used by target page
         addparms.force = force
         
@@ -335,7 +345,7 @@
             cache: false,
             async: false,
             success: function(data) {
-                ajax_update_db_noform_resp(urlpath,addparms,data,sel);
+                ajax_update_db_noform_resp(urlpath,addparms,data,sel,callback);
             },
         });
     };
@@ -523,8 +533,6 @@
     // editresults
     function editresults(writeallowed) {
         
-        // make button for checkbox
-        $('._rrwebapp-editresults-checkbox-confirmed').button({text:false});
         function setchecked(sel) {
             if (sel.checked) {
                 $(sel).button({icons:{ primary: 'ui-icon-check' }});
@@ -532,12 +540,25 @@
                 $(sel).button({icons:{ primary: null }});         
             }
         };
+
+        // make button for checkbox
+        $('._rrwebapp-editresults-checkbox-confirmed').button({text:false});
         $('._rrwebapp-editresults-checkbox-confirmed').each(function(){setchecked(this);});
-        $('._rrwebapp-editresults-checkbox-confirmed')
-            .on('click',
-                function(){
-                    setchecked(this);
-                });
+        if (writeallowed) {
+            // set up toolbox button
+            $('#_rrwebapp-button-import').click( function( event ) {
+                event.preventDefault();
+                url = $('#_rrwebapp-import-results').attr('_rrwebapp-import-url')
+                ajax_import_file(url,'#_rrwebapp-import-results',false);
+            });
+
+            // handle checkbox update
+            $('._rrwebapp-editresults-checkbox-confirmed')
+                .on('click',
+                    function(){
+                        setchecked(this);
+                    });
+        }
         
         // initial revert values -- see ajax_update_db_noform_resp for use of 'revert' data field
         $('._rrwebapp-editresults-select-runner, ._rrwebapp-editresults-checkbox-confirmed').each(function() {
@@ -551,9 +572,47 @@
                     var field = $( this ).attr('_rrwebapp-field');
                     value = getvalue(this)
 
-                    ajax_update_db_noform(apiurl,{field:field,value:value},this,true)
-                });
-    
-        $('#_rrwebapp-table-editresults').scrollTableBody({rowsToDisplay:15});
+                    // ajax parameter setup
+                    ajaxparams = {field:field,value:value}
+                    
+                    // control exclusion table
+                    selectelement = $(this).parent().parent().find('select._rrwebapp-editresults-select-runner')
+                    selectvalue = $( selectelement ).val()
+                    choicevalues = getchoicevalues(selectelement);
+                    // remove value from choicevalues (if it exists -- it should exist, though)
+                    if ($.inArray(selectvalue, choicevalues) != -1) {
+                        choicevalues.splice( $.inArray(selectvalue, choicevalues), 1 );
+                    }
+                    // why doesn't ajax call stringify choicevalues?
+                    addlfields = {include:selectvalue,exclude:JSON.stringify(choicevalues)} 
+                    $.extend(ajaxparams,addlfields)
+
+                    ajax_update_db_noform(apiurl,ajaxparams,this,true,
+                        // this function is called in ajax_update_db_noform_resp if successful
+                        function(sel){
+                            // change row class if confirmed changes
+                            var field = $( sel ).attr('_rrwebapp-field');
+                            value = getvalue(sel)
+                            if (field=='confirmed'){
+                                if (value) {
+                                    $(sel).closest('tr').removeClass('_rrwebapp-row-confirmed-False');
+                                    $(sel).closest('tr').addClass('_rrwebapp-row-confirmed-True');
+                                } else {
+                                    $(sel).closest('tr').removeClass('_rrwebapp-row-confirmed-True');
+                                    $(sel).closest('tr').addClass('_rrwebapp-row-confirmed-False');
+                                }
+                            }
+                        });
+        });
+
+        _rrwa_resultstable = $('#_rrwebapp-table-editresults').DataTable({
+            //paging: false,
+            //scrollY: 450, // when scrolling, scroll jumps after updating column value
+            ordering: false,
+            //drawCallback: setuppage,
+            //columnDefs: [{target:'._rrwebapp-col-time',type:'date',orderable:true},
+            //             {target:'._rrwebapp-col-_unordered',orderable:false},
+            //             ]
+        });
         
     };  // editresults

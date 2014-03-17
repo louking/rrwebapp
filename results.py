@@ -28,6 +28,7 @@ import os.path
 import time
 import tempfile
 import os
+from datetime import timedelta
 
 # pypi
 import flask
@@ -47,7 +48,7 @@ from apicommon import failure_response, success_response
 # module specific needs
 import raceresults
 import clubmember
-from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion
+from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, dbdate
 from forms import ManagedResultForm 
 from loutilities.namesplitter import split_full_name
 from loutilities.renderrun import rendertime
@@ -55,7 +56,8 @@ from loutilities import timeu
 
 # control behavior of import
 DIFF_CUTOFF = 0.7   # ratio of matching characters for cutoff handled by 'clubmember'
-AGE_DELTA = 3       # +/- num years to be included in DISP_MISSED
+AGE_DELTAMAX = 3    # +/- num years to be included in DISP_MISSED
+JOIN_GRACEPERIOD = timedelta(7) # allow runner to join 1 week beyond race date
 
 # initialdisposition values
 # * match - exact name match found in runner table, with age consistent with dateofbirth
@@ -70,6 +72,39 @@ DISP_EXCLUDED = 'excluded'      # DISP_CLOSE match, but found in exclusions tabl
 DISP_NOTUSED = ''               # not used for results
 
 class BooleanError(Exception): pass
+
+#----------------------------------------------------------------------
+def filtermissed(missed,racedate,resultage):
+#----------------------------------------------------------------------
+    '''
+    filter missed matches which are greater than a configured max age delta
+    also filter missed matches which were in the exclusions table
+    
+    :param missed: list of missed matches, as returned from clubmember.xxx().getmissedmatches()
+    :param racedate: race date in dbdate format
+    :param age: resultage from race result
+    
+    :rtype: missed list, including only elements within the allowed age range
+    '''
+    # make a local copy in case the caller wants to preserve the original list
+    localmissed = missed[:]
+    
+    racedatedt = dbdate.asc2dt(racedate)
+    for thismissed in missed:
+        # don't consider 'missed matches' where age difference from result is too large
+        dobdt = dbdate.asc2dt(thismissed['dob'])
+        if abs(timeu.age(racedatedt,dobdt) - resultage) > AGE_DELTAMAX:
+            localmissed.remove(thismissed)
+        else:
+            resultname = thismissed['name']
+            runnername = thismissed['dbname']
+            ascdob = thismissed['dob']
+            runner = Runner.query.filter_by(name=runnername,dateofbirth=ascdob).first()
+            exclusion = Exclusion.query.filter_by(foundname=resultname,runnerid=runner.id).first()
+            if exclusion:
+                localmissed.remove(thismissed)
+
+    return localmissed
 
 #######################################################################
 class ManageResults(MethodView):
@@ -95,12 +130,17 @@ class ManageResults(MethodView):
             # get all the results, and the race record
             results = []
             results = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).order_by('time').all()
+
+            # get race and list of runners who should be included in this race, based on membersonly
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
             racedatedt = dbdate.asc2dt(race.date)
-            
-            # get list of active members
-            # TODO: use members who were active on the day of the race, plus a few days
-            active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
+            if len(race.series) == 0:
+                db.session.rollback()
+                cause =  'Race is not included in any series'
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+            membersonly = race.series[0].series.membersonly
+            active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=membersonly,active=True)
             
             # fix up the following:
             #   * time gets converted from seconds
@@ -108,35 +148,36 @@ class ManageResults(MethodView):
             #   * based on matching, set disposition
             times = []
             dispositions = []
-            memberchoices = []
-            membervalues = []
+            runnerchoices = []
+            runnervalues = []
             for result in results:
                 thistime = rendertime(result.time,0)
                 thisdisposition = result.initialdisposition # set in AjaxImportResults.post()
-                thismembervalue = result.runnerid           # set in AjaxImportResults.post()
-                thismemberchoice = [(None,'<not included>')]
-                foundmember = active.findmember(result.name,result.age,race.date)
+                thisrunnervalue = result.runnerid           # set in AjaxImportResults.post()
+                thisrunnerchoice = [(None,'<not included>')]
+                foundrunner = active.findmember(result.name,result.age,race.date)
                 if thisdisposition in [DISP_MATCH,DISP_CLOSE]:
-                    # found a possible member
-                    if foundmember:
-                        membername,ascdob = foundmember
-                        member = Runner.query.filter_by(name=membername,dateofbirth=ascdob).first()
-                        thismemberchoice.append([member.id,member.name])
-                        thismembervalue = member.id
+                    # found a possible runner
+                    if foundrunner:
+                        runnername,ascdob = foundrunner
+                        runner = Runner.query.filter_by(name=runnername,dateofbirth=ascdob).first()
+                        thisrunnerchoice.append([runner.id,runner.name])
                     
                     # this shouldn't happen
                     else:
                         pass    # TODO: this is a bug -- that to do?
 
-                # didn't find member, what were other possibilities?
+                # didn't find runner, what were other possibilities?
                 elif thisdisposition == DISP_MISSED:
                     missed = active.getmissedmatches()
+                    # remove runners who were not within the age window, or who were excluded
+                    missed = filtermissed(missed,race.date,result.age)
                     if len(missed)>0:
                         for thismissed in missed:
-                            missedmember = Runner.query.filter_by(name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
+                            missedrunner = Runner.query.filter_by(name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
                             dobdt = dbdate.asc2dt(thismissed['dob'])
-                            nameage = '{} ({})'.format(missedmember.name,timeu.age(racedatedt,dobdt))
-                            thismemberchoice.append((missedmember.id,nameage))
+                            nameage = '{} ({})'.format(missedrunner.name,timeu.age(racedatedt,dobdt))
+                            thisrunnerchoice.append((missedrunner.id,nameage))
                     
                     # this shouldn't happen
                     else:
@@ -144,15 +185,15 @@ class ManageResults(MethodView):
                     
                 # for no match and excluded entries, change choice
                 elif thisdisposition in [DISP_NOTUSED,DISP_EXCLUDED]:
-                    thismemberchoice = [(None,'n/a')]
+                    thisrunnerchoice = [(None,'n/a')]
                 
                 # include all the metadata for this result
                 times.append(thistime)
                 dispositions.append(thisdisposition)
-                memberchoices.append(thismemberchoice)
-                membervalues.append(thismembervalue)
+                runnerchoices.append(thisrunnerchoice)
+                runnervalues.append(thisrunnervalue)
 
-            resultsdata = zip(results,times,dispositions,memberchoices,membervalues)
+            resultsdata = zip(results,times,dispositions,runnerchoices,runnervalues)
             
             # commit database updates and close transaction
             db.session.commit()
@@ -392,9 +433,16 @@ class AjaxImportResults(MethodView):
                 app.logger.error(cause)
                 return failure_response(cause=cause)
             
-            # get race and list of active members
+            # get race and list of runners who should be included in this race, based on membersonly
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
-            active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
+            racedatedt = dbdate.asc2dt(race.date)
+            if len(race.series) == 0:
+                db.session.rollback()
+                cause =  'Race needs to be included in at least one series to import results'
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+            membersonly = race.series[0].series.membersonly
+            active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=membersonly,active=True)
 
             # collect results from resultsfile
             numentries = 0
@@ -409,28 +457,40 @@ class AjaxImportResults(MethodView):
                     cleanresult(dbresult)
                     
                     # create initial disposition
-                    foundmember = active.findmember(dbresult.name,dbresult.age,race.date)
-                    if foundmember:
-                        membername,ascdob = foundmember
-                        member = Runner.query.filter_by(name=membername,dateofbirth=ascdob).first()
-                        dbresult.runnerid = member.id
+                    foundrunner = active.findmember(dbresult.name,dbresult.age,race.date)
+                    if foundrunner:
+                        runnername,ascdob = foundrunner
+                        runner = Runner.query.filter_by(name=runnername,dateofbirth=ascdob).first()
+                        dbresult.runnerid = runner.id
+                        # did runner not join in time for the race?
+                        if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(race.date)+JOIN_GRACEPERIOD:
+                                dbresult.initialdisposition = DISP_NOTUSED
+                                dbresult.runnerid = None
+                                dbresult.confirmed = True
                         # exact match?
-                        if membername.lower() == dbresult.name.lower():
+                        elif runnername.lower() == dbresult.name.lower():
                             dbresult.initialdisposition = DISP_MATCH
                             dbresult.confirmed = True
                         else:
-                            exclusion = Exclusion.query.filter_by(foundname=dbresult.name,runnerid=member.id).first()
+                            exclusion = Exclusion.query.filter_by(foundname=dbresult.name,runnerid=runner.id).first()
                             if not exclusion:
                                 dbresult.initialdisposition = DISP_CLOSE
                                 dbresult.confirmed = False
                             else:
-                                dbresult.initialdisposition = DISP_EXCLUDED
+                                dbresult.initialdisposition = DISP_NOTUSED  # was DISP_EXCLUDED
+                                dbresult.runnerid = None
                                 dbresult.confirmed = True
+                    
+                    # didn't find runner on initial search
                     else:
                         missed = active.getmissedmatches()
+                        # don't consider 'missed matches' where age difference from result is too large, or excluded
+                        missed = filtermissed(missed,race.date,dbresult.age)
+                        # if there remain are any missed results
                         if len(missed) > 0:
                             dbresult.initialdisposition = DISP_MISSED
                             dbresult.confirmed = False
+                        # otherwise
                         else:
                             dbresult.initialdisposition = DISP_NOTUSED
                             dbresult.confirmed = True
@@ -508,6 +568,7 @@ class AjaxUpdateManagedResult(MethodView):
             
             # try to make update, handle exception
             try:
+                #app.logger.debug("field='{}', value='{}'".format(field,value))
                 if field == 'runnerid':
                     if value != 'None':
                         result.runnerid = int(value)
@@ -520,6 +581,39 @@ class AjaxUpdateManagedResult(MethodView):
                         raise BooleanError, "invalid literal for boolean: '{}'".format(value)
                 else:
                     pass    # this was handled above
+                
+                # handle exclusions
+                # if user is confirming, items get *added* to exclusions table
+                # however, if user is removing confirmation, items get *removed* from exclusions table
+                exclude = flask.request.args.get('exclude')
+                include = flask.request.args.get('include')
+                # remove included entry from exclusions, add excluded entries
+                if include:
+                    #app.logger.debug("include='{}'".format(include))
+                    if include != 'None':
+                        incl = Exclusion.query.filter_by(club_id=club_id,foundname=result.name,runnerid=int(include)).first()
+                        if incl:
+                            # not excluded from future results any more
+                            db.session.delete(incl)
+                # exclude contains a list of runnerids which should be excluded
+                if exclude:
+                    #app.logger.debug("exclude='{}'".format(exclude))
+                    exclude = eval(exclude) 
+                    for thisexcludeid in exclude:
+                        # None might get passed in as well as runnerids, so skip that item
+                        if thisexcludeid == 'None': continue
+                        thisexcludeid = int(thisexcludeid)
+                        excl = Exclusion.query.filter_by(club_id=club_id,foundname=result.name,runnerid=thisexcludeid).first()
+                        # user is confirming entry -- if not already in table, add exclusion
+                        if result.confirmed and not excl:
+                            # now excluded from future results
+                            newexclusion = Exclusion(club_id,result.name,thisexcludeid)
+                            db.session.add(newexclusion)
+                        # user is removing confirmation -- if exclusion exists, remove it
+                        elif not result.confirmed and excl:
+                            db.session.delete(excl)
+                        
+
                     
             except Exception,e:
                 db.session.rollback()
