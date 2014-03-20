@@ -64,22 +64,23 @@
                 {{ tabeditlink(url_for('racesettings',raceid=race.id)) }}
               {% endif %}
     
-              {# TODO: substitute appropriate url_for for "#" #}
               {% if rawresults %}
                 <td align=center>
                   <button class='_rrwebapp-importResultsButton' _rrwebapp-raceid='{{race.id}}'
-                           _rrwebapp-formaction='{{url_for("_importresults",raceid=race.id)}}' _rrwebapp-formid='_rrwebapp-form-results-{{race.id}}'
-                           _rrwebapp-editaction='{{url_for("editresults",raceid=race.id)}}' 
-                          _rrwebapp-imported='true' />
+                    _rrwebapp-formaction='{{url_for("_importresults",raceid=race.id)}}' _rrwebapp-formid='_rrwebapp-form-results-{{race.id}}'
+                    _rrwebapp-editaction='{{url_for("editresults",raceid=race.id)}}' 
+                    _rrwebapp-seriesresultsaction='{{url_for("seriesresults",raceid=race.id)}}' 
+                    _rrwebapp-imported='true'>
+                  </button>
                 </td>
               {% else %}
                 {% if writeallowed %}
                   <td align=center>
                     <button class='_rrwebapp-importResultsButton' _rrwebapp-raceid='{{race.id}}'
                             _rrwebapp-formaction='{{url_for("_importresults",raceid=race.id)}}' _rrwebapp-formid='_rrwebapp-form-results-{{race.id}}'
-                            _rrwebapp-editaction='{{url_for("editresults",raceid=race.id)}}' 
-                            />
-                  </button></td>
+                            >
+                    </button>
+                  </td>
                 {% else %}
                   <td />
                 {% endif %}

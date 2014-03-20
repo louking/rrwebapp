@@ -76,7 +76,7 @@
         
     // decorate buttons
     $("._rrwebapp-actionbutton").button();
-    $("._rrwebapp-simplebutton").button()
+    $("._rrwebapp-simplebutton").button();
     
     // get confirmation for any deletes
     $("._rrwebapp-deletebutton").on('click', function(event){getconfirmation(event,'Delete','Please confirm item deletion')});
@@ -209,7 +209,11 @@
     function ajax_update_db_form_resp(url,form,data) {
         console.log(data);
         if (data.success) {
-            location.reload(true);
+            if (data.redirect){
+                window.location.replace(data.redirect);
+            } else {
+                location.reload(true);
+            };
         } else {
             console.log('FAILURE: ' + data.cause);
             // if overwrite requested, force the overwrite
@@ -288,7 +292,11 @@
                 if (callback) {
                     callback(sel)
                 }
-            }
+            };
+            if (data.redirect){
+                window.location.replace(data.redirect);
+            };
+
         } else {
             if (typeof $( sel ).data('revert') != 'undefined') {
                 setvalue(sel,$( sel ).data('revert'));
@@ -353,7 +361,11 @@
     function ajax_import_file_resp(urlpath,formsel,data) {
         console.log(data);
         if (data.success) {
-            location.reload(true);
+            if (data.redirect){
+                window.location.replace(data.redirect);
+            } else {
+                location.reload(true);
+            };
         } else {
             console.log('FAILURE: ' + data.cause);
             // if overwrite requested, force the overwrite
@@ -483,16 +495,28 @@
                 var buttonid = formid+'-import'
                 var formaction = $(this).attr('_rrwebapp-formaction');
                 var editaction = $(this).attr('_rrwebapp-editaction');
+                var seriesresultsaction = $(this).attr('_rrwebapp-seriesresultsaction');
                 
                 var popupcontent = "\
-                    <form method='link' action='"+editaction+"'>\
-                        <input type='submit' value='Edit' />\
-                    </form>\
                     <form action='"+action+"', id='"+formid+"' method='post' enctype='multipart/form-data'> \
                         <input type='file' name=file /> <button id='"+buttonid+"'>Import</button> \
                     </form>\
-                "
-                
+                ";
+                if (editaction) {
+                    popupcontent = popupcontent + "\
+                    <form method='link' action='"+editaction+"'>\
+                        <input type='submit' value='Edit Participants' />\
+                    </form>\
+                    "
+                };
+                if (seriesresultsaction) {
+                    popupcontent = popupcontent + "\
+                    <form method='link' action='"+seriesresultsaction+"'>\
+                        <input type='submit' value='View Series Results' />\
+                    </form>\
+                    "
+                };
+
                 var popupaction = function() {
                     $('#'+buttonid)
                         .click( function( event ) {
@@ -545,12 +569,21 @@
         $('._rrwebapp-editresults-checkbox-confirmed').button({text:false});
         $('._rrwebapp-editresults-checkbox-confirmed').each(function(){setchecked(this);});
         if (writeallowed) {
-            // set up toolbox button
-            $('#_rrwebapp-button-import').click( function( event ) {
-                event.preventDefault();
-                url = $('#_rrwebapp-import-results').attr('_rrwebapp-import-url')
-                ajax_import_file(url,'#_rrwebapp-import-results',false);
-            });
+            // set up import button
+            $('#_rrwebapp-button-import').button()
+                .click( function( event ) {
+                    event.preventDefault();
+                    url = $('#_rrwebapp-import-results').attr('_rrwebapp-import-url')
+                    ajax_import_file(url,'#_rrwebapp-import-results',false);
+                });
+            
+            // set up tabulate button
+            $('#_rrwebapp-button-tabulate').button()
+                .click( function( event ) {
+                    event.preventDefault();
+                    url = $('#_rrwebapp-button-tabulate').attr('_rrwebapp-tabulate-url')
+                    ajax_update_db_noform(url,{},'#_rrwebapp-button-tabulate',false)
+                });
 
             // handle checkbox update
             $('._rrwebapp-editresults-checkbox-confirmed')
@@ -616,3 +649,13 @@
         });
         
     };  // editresults
+
+    function seriesresults(writeallowed) {
+        
+        _rrwa_resultstable = $('#_rrwebapp-table-seriesresults').DataTable({
+            paging: false,
+            scrollY: 450, // when scrolling, scroll jumps after updating column value
+            //ordering: false,
+        });
+        
+    };  // seriesresults

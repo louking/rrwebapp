@@ -61,3 +61,8 @@
     <td align=center><a href="{{ link }}">{{ editimg() }}</a></td>
 {% endmacro %}
 
+{% macro nonecheck(val) %}
+  {% if val %}
+    {{ val }}
+  {% endif %}
+{% endmacro %}

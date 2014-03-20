@@ -29,6 +29,7 @@ import time
 import tempfile
 import os
 from datetime import timedelta
+import traceback
 
 # pypi
 import flask
@@ -48,16 +49,19 @@ from apicommon import failure_response, success_response
 # module specific needs
 import raceresults
 import clubmember
-from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, dbdate
-from forms import ManagedResultForm 
+from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, Series, dbdate
+from forms import ManagedResultForm, SeriesResultForm
 from loutilities.namesplitter import split_full_name
-from loutilities.renderrun import rendertime
-from loutilities import timeu
+import loutilities.renderrun as render
+from loutilities import timeu, agegrade
 
 # control behavior of import
 DIFF_CUTOFF = 0.7   # ratio of matching characters for cutoff handled by 'clubmember'
 AGE_DELTAMAX = 3    # +/- num years to be included in DISP_MISSED
 JOIN_GRACEPERIOD = timedelta(7) # allow runner to join 1 week beyond race date
+
+# support age grade
+ag = agegrade.AgeGrade()
 
 # initialdisposition values
 # * match - exact name match found in runner table, with age consistent with dateofbirth
@@ -107,7 +111,7 @@ def filtermissed(missed,racedate,resultage):
     return localmissed
 
 #######################################################################
-class ManageResults(MethodView):
+class EditResults(MethodView):
 #######################################################################
     decorators = [login_required]
     #----------------------------------------------------------------------
@@ -136,9 +140,10 @@ class ManageResults(MethodView):
             racedatedt = dbdate.asc2dt(race.date)
             if len(race.series) == 0:
                 db.session.rollback()
-                cause =  'Race is not included in any series'
+                cause =  "Race '{}' is not included in any series".format(race.name)
                 app.logger.error(cause)
-                return failure_response(cause=cause)
+                flask.flash(cause)
+                return flask.redirect(flask.url_for('manageraces'))
             membersonly = race.series[0].series.membersonly
             active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=membersonly,active=True)
             
@@ -151,7 +156,7 @@ class ManageResults(MethodView):
             runnerchoices = []
             runnervalues = []
             for result in results:
-                thistime = rendertime(result.time,0)
+                thistime = render.rendertime(result.time,0)
                 thisdisposition = result.initialdisposition # set in AjaxImportResults.post()
                 thisrunnervalue = result.runnerid           # set in AjaxImportResults.post()
                 thisrunnerchoice = [(None,'<not included>')]
@@ -204,7 +209,93 @@ class ManageResults(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/editresults/<int:raceid>',view_func=ManageResults.as_view('editresults'),methods=['GET'])
+app.add_url_rule('/editresults/<int:raceid>',view_func=EditResults.as_view('editresults'),methods=['GET'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class SeriesResults(MethodView):
+#######################################################################
+    decorators = [login_required]
+    #----------------------------------------------------------------------
+    def get(self,raceid):
+    #----------------------------------------------------------------------
+        try:
+            club_id = flask.session['club_id']
+            thisyear = flask.session['year']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can at least read the data, otherwise abort
+            if not readcheck.can():
+                db.session.rollback()
+                flask.abort(403)
+                
+            form = SeriesResultForm()
+    
+            # get all the results, and the race record
+            results = []
+            results = RaceResult.query.filter_by(club_id=club_id,raceid=raceid).all()
+            
+            # get race and list of runners who should be included in this race, based on membersonly
+            race = Race.query.filter_by(club_id=club_id,id=raceid).first()
+            racedatedt = dbdate.asc2dt(race.date)
+            if len(race.series) == 0:
+                db.session.rollback()
+                cause =  "Race '{}' is not included in any series".format(race.name)
+                app.logger.error(cause)
+                flask.flash(cause)
+                return flask.redirect(flask.url_for('manageraces'))
+            membersonly = race.series[0].series.membersonly
+            active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=membersonly,active=True)
+            
+            # fix up the following:
+            #   * time gets converted from seconds
+            #   * determine member matching, set runnerid choices and initially selected choice
+            #   * based on matching, set disposition
+            annotatedresults = []
+            doonce = True
+            for result in results:
+                runner = Runner.query.filter_by(club_id=club_id,id=result.runnerid).first()
+                thisname = runner.name
+                series = Series.query.filter_by(club_id=club_id,id=result.seriesid).first()
+                thisseries = series.name
+                thistime = render.rendertime(result.time,0)
+                thisagtime = render.rendertime(result.time,0)
+                if doonce:
+                    doonce = False
+                    app.logger.debug('overallplace={},agtimeplace={}'.format(result.overallplace,result.agtimeplace))
+                if result.overallplace:
+                    thisplace = result.overallplace
+                elif result.agtimeplace:
+                    thisplace = result.agtimeplace
+                else:
+                    thisplace = None
+
+                annotatedresults.append((thisseries,thisplace,thisname,thistime,thisagtime,result))
+            
+            # sort results by series, overallplace
+            annotatedresults.sort()
+            
+            theseseries = [rr[0] for rr in annotatedresults]
+            theseplaces = [rr[1] for rr in annotatedresults]
+            thesenames = [rr[2] for rr in annotatedresults]
+            thesetimes = [rr[3] for rr in annotatedresults]
+            theseagtimes = [rr[4] for rr in annotatedresults]
+            theseresults = [rr[5] for rr in annotatedresults]
+            
+            resultsdata = zip(theseresults,theseseries,theseplaces,thesenames,thesetimes,theseagtimes)
+            
+            # commit database updates and close transaction
+            db.session.commit()
+            return flask.render_template('seriesresults.html',form=form,race=race,resultsdata=resultsdata,writeallowed=writecheck.can())
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/seriesresults/<int:raceid>',view_func=SeriesResults.as_view('seriesresults'),methods=['GET'])
 #----------------------------------------------------------------------
 
 # NOTE: THIS HAS NOT BEEN TESTED AND IS NOT CURRENTLY USED
@@ -512,12 +603,14 @@ class AjaxImportResults(MethodView):
 
             # commit database updates and close transaction
             db.session.commit()
-            return success_response()
+            return success_response(redirect=flask.url_for('editresults',raceid=raceid))
         
-        except:
+        except Exception,e:
             # roll back database updates and close transaction
             db.session.rollback()
-            raise
+            cause = 'Unexpected Error: {}'.format(e)
+            app.logger.error(cause)
+            return failure_response(cause=cause)
 #----------------------------------------------------------------------
 app.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_view('_importresults'),methods=['POST'])
 #----------------------------------------------------------------------
@@ -629,8 +722,298 @@ class AjaxUpdateManagedResult(MethodView):
         except Exception,e:
             # roll back database updates and close transaction
             db.session.rollback()
-            raise
+            cause = 'Unexpected Error: {}'.format(e)
+            app.logger.error(cause)
+            return failure_response(cause=cause)
 #----------------------------------------------------------------------
 app.add_url_rule('/_updatemanagedresult/<int:resultid>',view_func=AjaxUpdateManagedResult.as_view('_updatemanagedresult'),methods=['POST'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class AjaxTabulateResults(MethodView):
+#######################################################################
+    decorators = [login_required]
+    #----------------------------------------------------------------------
+    def post(self,raceid):
+    #----------------------------------------------------------------------
+        try:
+            club_id = flask.session['club_id']
+            thisyear = flask.session['year']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can at least read the data, otherwise abort
+            if not readcheck.can():
+                db.session.rollback()
+                flask.abort(403)
+                
+            # do we have any series results yet?  If so, make sure it is ok to overwrite them
+            dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=raceid).all()
+
+            # if some results exist, verify user wants to overwrite
+            if dbresults:
+                # verify overwrite
+                if not request.args.get('force')=='true':
+                    db.session.rollback()
+                    return failure_response(cause='Overwrite results?',confirm=True)
+                # force is true.  delete all the current results for this race
+                else:
+                    numdeleted = RaceResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
+    
+            # get all the results, and the race record
+            results = []
+            results = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).order_by('time').all()
+
+            # get race and list of runners who should be included in this race, based on membersonly
+            race = Race.query.filter_by(club_id=club_id,id=raceid).first()
+            if len(race.series) == 0:
+                db.session.rollback()
+                cause =  "Race '{}' is not included in any series".format(race.name)
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+            
+            # need race date division date later for age calculation
+            # "date" for division's age calculation is Jan 1 of date race was run
+            racedate = dbdate.asc2dt(race.date)
+            divdate = racedate.replace(month=1,day=1)
+
+            # get precision for time rendering
+            timeprecision,agtimeprecision = render.getprecision(race.distance)
+
+            # for each series for this race - 'series' describes how to tabulate the results
+            theseseries = [s.series for s in race.series]
+            for series in theseseries:
+                # get divisions for this series, if appropriate
+                if series.divisions:
+                    alldivs = Divisions.query.filter_by(seriesid=series.id,active=True).all()
+                    
+                    if len(alldivs) == 0:
+                        cause = "Series '{0}' indicates divisions to be calculated, but no divisions found".format(series.name)
+                        db.session.rollback()
+                        app.logger.error(cause)
+                        return failure_response(cause=cause)
+                    
+                    divisions = []
+                    for div in alldivs:
+                        divisions.append((div.divisionlow,div.divisionhigh))
+
+                # collect results from database
+                results = ManagedResult.query.filter(ManagedResult.club_id==club_id, ManagedResult.raceid==race.id, ManagedResult.runnerid!=None).order_by('time').all()
+                
+                # loop through result entries, collecting overall, bygender, division and agegrade results
+                for thisresult in results:
+                    # get runner information
+                    runner = Runner.query.filter_by(id=thisresult.runnerid).first()
+                    runnerid = runner.id
+                    gender = runner.gender
+            
+                    # we don't have dateofbirth for non-members
+                    if runner.dateofbirth:
+                        try:
+                            dob = dbdate.asc2dt(runner.dateofbirth)
+                        except ValueError:
+                            dob = None      # should not really happen, but this runner does not get division placement
+                    else:
+                        dob = None
+            
+                    # for members, set agegrade age (race date based)
+                    # NOTE: the code below assumes that races by divisions are only for members
+                    # this is because we need to know the runner's age as of Jan 1 for division standings
+                    if dob:
+                        agegradeage = timeu.age(racedate,dob)
+                        divage = timeu.age(divdate,dob)
+                    else:
+                        try:
+                            agegradeage = int(thisresult.age)
+                        except:
+                            agegradeage = None
+                        divage = None
+            
+                    # at this point, there should always be a runnerid in the database, even if non-member
+                    # create RaceResult entry
+                    resulttime = thisresult.time
+                    raceresult = RaceResult(club_id,runnerid,race.id,series.id,resulttime,gender,agegradeage)
+            
+                    # always add age grade to result if we know the age
+                    # we will decide whether to render, later based on series.calcagegrade, in another script
+                    if agegradeage:
+                        timeprecision,agtimeprecision = render.getprecision(race.distance)
+                        adjtime = render.adjusttime(resulttime,timeprecision)    # ceiling for adjtime
+                        raceresult.agpercent,raceresult.agtime,raceresult.agfactor = ag.agegrade(agegradeage,gender,race.distance,adjtime)
+            
+                    if series.divisions:
+                        # member's age to determine division is the member's age on Jan 1
+                        # if member doesn't give date of birth for membership list, member is not eligible for division awards
+                        # if non-member, also no division awards, because age as of Jan 1 is not known
+                        age = divage    # None if not available
+                        if age:
+                            # linear search for correct division
+                            for thisdiv in divisions:
+                                divlow = thisdiv[0]
+                                divhigh = thisdiv[1]
+                                if age in range(divlow,divhigh+1):
+                                    raceresult.divisionlow = divlow
+                                    raceresult.divisionhigh = divhigh
+                                    break
+            
+                    # make result persistent
+                    db.session.add(raceresult)
+                
+                # flush the results so they show up below
+                db.session.flush()
+                
+                # process overall and bygender results, sorted by time
+                # TODO: is series.overall vs. series.orderby=='time' redundant?  same question for series.agegrade vs. series.orderby=='agtime'
+                if series.orderby == 'time':
+                    # get all the results which have been stored in the database for this race/series
+                    ### TODO: use series.orderby, series.hightolow
+                    dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id).order_by(RaceResult.time).all()
+                    numresults = len(dbresults)
+                    for rrndx in range(numresults):
+                        raceresult = dbresults[rrndx]
+                        
+                        # set place if it has not been set before
+                        # place may have been determined at previous iteration, if a tie was detected
+                        if not raceresult.overallplace:
+                            thisplace = rrndx+1
+                            tieindeces = [rrndx]
+                            
+                            # detect tie in subsequent results based on rendering,
+                            # which rounds to a specific precision based on distance
+                            time = render.rendertime(raceresult.time,timeprecision)
+                            for tiendx in range(rrndx+1,numresults):
+                                if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
+                                    break
+                                tieindeces.append(tiendx)
+                            lasttie = tieindeces[-1] + 1
+                            for tiendx in tieindeces:
+                                numsametime = len(tieindeces)
+                                if numsametime > 1 and series.averagetie:
+                                    dbresults[tiendx].overallplace = (thisplace+lasttie) / 2.0
+                                else:
+                                    dbresults[tiendx].overallplace = thisplace
+            
+                    for gender in ['F','M']:
+                        dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(RaceResult.time).all()
+            
+                        numresults = len(dbresults)
+                        for rrndx in range(numresults):
+                            raceresult = dbresults[rrndx]
+                        
+                            # set place if it has not been set before
+                            # place may have been determined at previous iteration, if a tie was detected
+                            if not raceresult.genderplace:
+                                thisplace = rrndx+1
+                                tieindeces = [rrndx]
+                                
+                                # detect tie in subsequent results based on rendering,
+                                # which rounds to a specific precision based on distance
+                                time = render.rendertime(raceresult.time,timeprecision)
+                                for tiendx in range(rrndx+1,numresults):
+                                    if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
+                                        break
+                                    tieindeces.append(tiendx)
+                                lasttie = tieindeces[-1] + 1
+                                for tiendx in tieindeces:
+                                    numsametime = len(tieindeces)
+                                    if numsametime > 1 and series.averagetie:
+                                        dbresults[tiendx].genderplace = (thisplace+lasttie) / 2.0
+                                    else:
+                                        dbresults[tiendx].genderplace = thisplace
+            
+                    if series.divisions:
+                        for gender in ['F','M']:
+                            
+                            # linear search for correct division
+                            for thisdiv in divisions:
+                                divlow = thisdiv[0]
+                                divhigh = thisdiv[1]
+            
+                                dbresults = RaceResult.query  \
+                                              .filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender,divisionlow=divlow,divisionhigh=divhigh) \
+                                              .order_by(racedb.RaceResult.time).all()
+                    
+                                numresults = len(dbresults)
+                                for rrndx in range(numresults):
+                                    raceresult = dbresults[rrndx]
+            
+                                    # set place if it has not been set before
+                                    # place may have been determined at previous iteration, if a tie was detected
+                                    if not raceresult.divisionplace:
+                                        thisplace = rrndx+1
+                                        tieindeces = [rrndx]
+                                        
+                                        # detect tie in subsequent results based on rendering,
+                                        # which rounds to a specific precision based on distance
+                                        time = render.rendertime(raceresult.time,timeprecision)
+                                        for tiendx in range(rrndx+1,numresults):
+                                            if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
+                                                break
+                                            tieindeces.append(tiendx)
+                                        lasttie = tieindeces[-1] + 1
+                                        for tiendx in tieindeces:
+                                            numsametime = len(tieindeces)
+                                            if numsametime > 1 and series.averagetie:
+                                                dbresults[tiendx].divisionplace = (thisplace+lasttie) / 2.0
+                                            else:
+                                                dbresults[tiendx].divisionplace = thisplace
+            
+                # process age grade results, ordered by agtime
+                elif series.orderby == 'agtime':
+                    for gender in ['F','M']:
+                        dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(RaceResult.agtime).all()
+            
+                        numresults = len(dbresults)
+                        for rrndx in range(numresults):
+                            raceresult = dbresults[rrndx]
+                        
+                            # set place if it has not been set before
+                            # place may have been determined at previous iteration, if a tie was detected
+                            if not raceresult.agtimeplace:
+                                thisplace = rrndx+1
+                                tieindeces = [rrndx]
+                                
+                                # detect tie in subsequent results based on rendering,
+                                # which rounds to a specific precision based on distance
+                                time = render.rendertime(raceresult.agtime,agtimeprecision)
+                                for tiendx in range(rrndx+1,numresults):
+                                    if render.rendertime(dbresults[tiendx].agtime,agtimeprecision) != time:
+                                        break
+                                    tieindeces.append(tiendx)
+                                lasttie = tieindeces[-1] + 1
+                                for tiendx in tieindeces:
+                                    numsametime = len(tieindeces)
+                                    if numsametime > 1 and series.averagetie:
+                                        dbresults[tiendx].agtimeplace = (thisplace+lasttie) / 2.0
+                                        #if dbresults[tiendx].agtimeplace == (thisplace+lasttie) / 2:
+                                        #    dbresults[tiendx].agtimeplace = int(dbresults[tiendx].agtimeplace)
+                                    else:
+                                        dbresults[tiendx].agtimeplace = thisplace
+
+                # process age grade results, ordered by agtime
+                elif series.orderby == 'agpercent':
+                    for gender in ['F','M']:
+                        dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(RaceResult.agpercent.desc()).all()
+            
+                        numresults = len(dbresults)
+                        #app.logger.debug('orderby=agpercent, club_id={}, race.id={}, series.id={}, gender={}, numresults={}'.format(club_id,race.id,series.id,gender,numresults))
+                        for rrndx in range(numresults):
+                            raceresult = dbresults[rrndx]
+                            thisplace = rrndx+1                                
+                            dbresults[rrndx].agtimeplace = thisplace
+
+            # commit database updates and close transaction
+            db.session.commit()
+            return success_response(redirect=flask.url_for('seriesresults',raceid=raceid))
+        
+        except Exception,e:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            cause = 'Unexpected Error: {}'.format(e)
+            app.logger.error(traceback.format_exc())
+            return failure_response(cause=cause)
+#----------------------------------------------------------------------
+app.add_url_rule('/_tabulateresults/<int:raceid>',view_func=AjaxTabulateResults.as_view('_tabulateresults'),methods=['POST'])
 #----------------------------------------------------------------------
 

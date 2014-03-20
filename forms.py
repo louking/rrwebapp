@@ -25,7 +25,7 @@ forms - forms for rrwebapp
 ===============================
 '''
 from flask.ext.wtf import Form
-from wtforms import HiddenField, SelectField, StringField, IntegerField, BooleanField, validators
+from wtforms import HiddenField, SelectField, StringField, IntegerField, FloatField, BooleanField, validators
 from wtforms import SelectMultipleField, widgets
 
 ########################################################################
@@ -134,3 +134,34 @@ class ManagedResultForm(Form):
     disposition = StringField('Match',[validators.Optional()])      # initial disposition
     runnerid = SelectField('Standings Name',[validators.Optional()])# set when runnerid has positive value; can be used to select member or exclusion
     confirmed = BooleanField('Confirm',[validators.Optional()])          # set True by system for definite match or definite non-match, or by user in other cases
+
+########################################################################
+class SeriesResultForm(Form):
+########################################################################
+    series = StringField('Series',[validators.Optional()])
+    place = IntegerField('Place',[validators.Optional()])
+    name = StringField('Name',[validators.Optional()])
+    gender = StringField('Gender',[validators.Optional()])
+    agage = IntegerField('Age',[validators.Optional()])
+    divisionlow = IntegerField('Div Lo',[validators.Optional()])
+    divisionhigh = IntegerField('Div Hi',[validators.Optional()])
+    divisionplace = IntegerField('Div Place',[validators.Optional()])
+    time = StringField('Time',[validators.Optional()])
+    agtime = StringField('AG Time',[validators.Optional()])
+    agpercent = FloatField('AG %age',[validators.Optional()])
+
+########################################################################
+class StandingsForm(Form):
+########################################################################
+    filterseries = SelectField('Series',coerce=str)
+    filtergender = SelectField('Gender',coerce=str)
+    filterdivision = SelectField('Division',coerce=str)
+    racenum = IntegerField('Race Num')
+    racename = StringField('Race Name')
+    runner = StringField('Name')
+    gender = StringField('Gender')
+    age = IntegerField('Age')
+    points = FloatField('Points')
+    total = FloatField('Total')
+    
+

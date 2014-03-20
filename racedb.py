@@ -618,11 +618,12 @@ class RaceResult(Base):
     instandings = Column(Boolean)   # *** always True
 
     #----------------------------------------------------------------------
-    def __init__(self, runnerid, raceid, seriesid, time, gender, agage, divisionlow=None, divisionhigh=None,
+    def __init__(self, club_id, runnerid, raceid, seriesid, time, gender, agage, divisionlow=None, divisionhigh=None,
                  overallplace=None, genderplace=None, runnername=None, divisionplace=None,
                  agtimeplace=None, agfactor=None, agtime=None, agpercent=None, instandings=False):
     #----------------------------------------------------------------------
         
+        self.club_id = club_id
         self.runnerid = runnerid
         self.raceid = raceid
         self.seriesid = seriesid
