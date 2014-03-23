@@ -143,6 +143,7 @@ class SeriesResultForm(Form):
     name = StringField('Name',[validators.Optional()])
     gender = StringField('Gender',[validators.Optional()])
     agage = IntegerField('Age',[validators.Optional()])
+    division = StringField('Division',[validators.Optional()])
     divisionlow = IntegerField('Div Lo',[validators.Optional()])
     divisionhigh = IntegerField('Div Hi',[validators.Optional()])
     divisionplace = IntegerField('Div Place',[validators.Optional()])

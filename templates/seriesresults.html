@@ -35,26 +35,26 @@
     <thead>
       <tr>
         <th class="">{{ form.series.label }}</th>
-        <th class="">{{ form.place.label }}</th>
+        <th class="" align=center>{{ form.place.label }}</th>
         <th class="">{{ form.name.label }}</th>
-        <th class="">{{ form.gender.label }}</th>
-        <th class="">{{ form.agage.label }}</th>
-        <th class="">{{ form.divisionlow.label }}</th>
-        <th class="">{{ form.divisionplace.label }}</th>
-        <th class="">{{ form.time.label }}</th>
-        <th class="">{{ form.agtime.label }}</th>
-        <th class="">{{ form.agpercent.label }}</th>
+        <th class="" align=center>{{ form.gender.label }}</th>
+        <th class="" align=center>{{ form.agage.label }}</th>
+        <th class="" align=center>{{ form.division.label }}</th>
+        <th class="" align=center>{{ form.divisionplace.label }}</th>
+        <th class="" align=center>{{ form.time.label }}</th>
+        <th class="" align=center>{{ form.agtime.label }}</th>
+        <th class="" align=center>{{ form.agpercent.label }}</th>
       </tr>
     </thead>
     <tbody>
-      {% for result,thisseries,thisplace,thisname,thistime,thisagtime in resultsdata %}
+      {% for result,thisseries,thisplace,thisname,thistime,thisdiv,thisagtime in resultsdata %}
         <tr class="">
           <td>{{ thisseries }}</td>
           <td align=center>{{ num(thisplace,0) }}</td>
           <td>{{ thisname }}</td>
           <td align=center>{{ result.gender }}</td>
           <td align=center>{{ num(result.agage,0) }}</td>
-          <td align=center>{{ num(result.divisionlow,0) }}</td>
+          <td align=center>{{ thisdiv }}</td>
           <td align=center>{{ num(result.divisionplace,0) }}</td>
           <td align=center>{{ thistime }}</td>
           <td align=center>{{ thisagtime }}</td>

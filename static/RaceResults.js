@@ -693,7 +693,10 @@
         console.log('sScrollY='+($(window).height()-$('.heading').height()-$('#_rrwebapp-heading-elements').height()))-$('thead').height()-130
         _rrwebapp_table = $('#_rrwebapp-table-seriesresults').dataTable({
                 bPaginate: false,
-                sScrollY: gettableheight(), 
+                sScrollY: gettableheight(),
+                aoColumnDefs: [
+                    {aTargets:[0],bVisible:false},
+                            ],
             })
             .yadcf([{
                     column_number:0,

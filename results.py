@@ -262,6 +262,16 @@ class SeriesResults(MethodView):
                 thisseries = series.name
                 thistime = render.rendertime(result.time,0)
                 thisagtime = render.rendertime(result.time,0)
+                if result.divisionlow:
+                    if result.divisionlow == 0:
+                        thisdiv = 'up to {}'.format(result.divisionhigh)
+                    elif result.divisionhigh == 99:
+                        thisdiv = '{} and up'.format(result.divisionlow)
+                    else:
+                        thisdiv = '{} - {}'.format(result.divisionlow,result.divisionhigh)
+                else:
+                    thisdiv = ''
+
                 if doonce:
                     doonce = False
                     app.logger.debug('overallplace={},agtimeplace={}'.format(result.overallplace,result.agtimeplace))
@@ -272,7 +282,7 @@ class SeriesResults(MethodView):
                 else:
                     thisplace = None
 
-                annotatedresults.append((thisseries,thisplace,thisname,thistime,thisagtime,result))
+                annotatedresults.append((thisseries,thisplace,thisname,thistime,thisdiv,thisagtime,result))
             
             # sort results by series, overallplace
             annotatedresults.sort()
@@ -281,10 +291,11 @@ class SeriesResults(MethodView):
             theseplaces = [rr[1] for rr in annotatedresults]
             thesenames = [rr[2] for rr in annotatedresults]
             thesetimes = [rr[3] for rr in annotatedresults]
-            theseagtimes = [rr[4] for rr in annotatedresults]
-            theseresults = [rr[5] for rr in annotatedresults]
+            thesedivs =  [rr[4] for rr in annotatedresults]
+            theseagtimes = [rr[5] for rr in annotatedresults]
+            theseresults = [rr[6] for rr in annotatedresults]
             
-            resultsdata = zip(theseresults,theseseries,theseplaces,thesenames,thesetimes,theseagtimes)
+            resultsdata = zip(theseresults,theseseries,theseplaces,thesenames,thesetimes,thesedivs,theseagtimes)
             
             # commit database updates and close transaction
             db.session.commit()
