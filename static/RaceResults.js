@@ -42,7 +42,7 @@
             close: function(event,ui) {$(this).remove()},
 
             });
-    }
+    };
 
     // getvalue tested for checkbox and select - sel is standard DOM selector (not jQuery)    
     function getvalue(sel) {
@@ -53,7 +53,7 @@
             var value = $( sel ).val();
         }
         return value
-    }
+    };
         
     // getchoicevalues tested for select
     // from http://stackoverflow.com/questions/4964456/make-javascript-do-list-comprehension
@@ -62,7 +62,7 @@
             return jQuery(element).val();
         });
         return choiceslist;
-    }
+    };
     
     // setvalue tested for checkbox and select - sel is standard DOM selector (not jQuery)    
     function setvalue(sel,value) {
@@ -72,8 +72,25 @@
         } else {
             $( sel ).val(value);
         }
-    }
-        
+    };
+    
+    // gettableheight - assumes some elements exist on the page
+    function gettableheight() {
+        // TODO: not sure why 112 works -- what's missing?
+        var height=$(window).height()
+            - $('.heading').height()
+            - $('#_rrwebapp-heading-elements').height()
+            - $('.dataTables_filter').height()
+            - $('thead').height()
+            - 112;
+        // error return
+        if (height<150){
+            return 430;
+        }
+        //normal return
+        return height;
+    };
+
     // decorate buttons
     $("._rrwebapp-actionbutton").button();
     $("._rrwebapp-simplebutton").button();
@@ -527,7 +544,19 @@
                 popupbutton.click(this, popupcontent, popupaction)
                 
             });
-        }
+        };
+
+        $('#_rrwebapp-table-manage-races').dataTable({
+            bPaginate: false,
+            sScrollY: 450, 
+            bSort: false,
+        });
+        //_rrwa_racestable = $('#_rrwebapp-table-manage-races').DataTable({
+        //    paging: false,
+        //    scrollY: 450, // when scrolling, scroll jumps after updating column value
+        //    ordering: false,
+        //});
+
     };  // manageraces
     
     // manageseries
@@ -638,24 +667,58 @@
                         });
         });
 
-        _rrwa_resultstable = $('#_rrwebapp-table-editresults').DataTable({
-            //paging: false,
-            //scrollY: 450, // when scrolling, scroll jumps after updating column value
-            ordering: false,
-            //drawCallback: setuppage,
-            //columnDefs: [{target:'._rrwebapp-col-time',type:'date',orderable:true},
-            //             {target:'._rrwebapp-col-_unordered',orderable:false},
-            //             ]
+        $('#_rrwebapp-table-editresults').dataTable({
+            //bPaginate: false,
+            //sScrollY: 450,  // when scrolling, scroll jumps after updating column value
+            bSort: false,
         });
+        //_rrwa_resultstable = $('#_rrwebapp-table-editresults').DataTable({
+        //    //paging: false,
+        //    //scrollY: 450, // when scrolling, scroll jumps after updating column value
+        //    ordering: false,
+        //    //drawCallback: setuppage,
+        //    //columnDefs: [{target:'._rrwebapp-col-time',type:'date',orderable:true},
+        //    //             {target:'._rrwebapp-col-_unordered',orderable:false},
+        //    //             ]
+        //});
         
     };  // editresults
 
     function seriesresults(writeallowed) {
         
-        _rrwa_resultstable = $('#_rrwebapp-table-seriesresults').DataTable({
-            paging: false,
-            scrollY: 450, // when scrolling, scroll jumps after updating column value
-            //ordering: false,
-        });
+        console.log('$(window).height()='+$(window).height())
+        console.log("$('.heading').height()="+$('.heading').height())
+        console.log("$('#_rrwebapp-heading-elements').height()="+$('#_rrwebapp-heading-elements').height())
+        console.log("$('thead').height()="+$('thead').height())
+        console.log('sScrollY='+($(window).height()-$('.heading').height()-$('#_rrwebapp-heading-elements').height()))-$('thead').height()-130
+        _rrwebapp_table = $('#_rrwebapp-table-seriesresults').dataTable({
+                bPaginate: false,
+                sScrollY: gettableheight(), 
+            })
+            .yadcf([{
+                    column_number:0,
+                    filter_container_id:"_rrwebapp_filterseries",
+                    filter_reset_button_text: false,    // no filter reset button
+                },{
+                    column_number:3,
+                    filter_container_id:"_rrwebapp_filtergender",
+                },{
+                    column_number:5,
+                    filter_container_id:"_rrwebapp_filterdivision",
+                },]);
+        //_rrwa_resultstable = $('#_rrwebapp-table-seriesresults').DataTable({
+        //    paging: false,
+        //    scrollY: 450, // when scrolling, scroll jumps after updating column value
+        //    //ordering: false,
+        //});
+        
+        selectfilter = '#_rrwebapp_filterseries select';
+        $(selectfilter+" option[value='-1']").remove();
+        var serieschoices = getchoicevalues(selectfilter);
+        yadcf.exFilterColumn(_rrwebapp_table, 0, serieschoices[0])
+        
         
     };  // seriesresults
+
+    function viewstandings() {
+    };  // viewstandings

@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% from '_formhelpers.html' import num,tabbool,tabboollink,tabeditlink,nonecheck %}
 {% block pagename %}
-    Series Results
+    Series Race Results
 {% endblock %}
 {% block css %}
 {% endblock %}
@@ -20,39 +20,47 @@
   </script>
 {% endblock %}
 {% block body %}
+  <div id="_rrwebapp-heading-elements">
+    <div class="TextLeft W7emLabel">
+      <div><label class="Label">Series:</label><span id="_rrwebapp_filterseries"></span></div>
+      <div><label class="Label">Gender:</label><span id="_rrwebapp_filtergender"></span></div>
+      <div><label class="Label">Division:</label><span id="_rrwebapp_filterdivision"></span></div>
+    </div>
+
     <center><b>{{race.name}} - {{race.date}}</b></center>
     <center>Series: {% for ss in race.series %}{{ ss.series.name }} {% endfor %} -
             {% if race.series[0].series.membersonly %}members only{% else %}nonmembers included{% endif %}</center>
-      <table class="DataList" id="_rrwebapp-table-seriesresults" cellpadding=0 cellspace=0>
-        <thead>
-          <tr>
-            <th class="">{{ form.series.label }}</th>
-            <th class="">{{ form.place.label }}</th>
-            <th class="">{{ form.name.label }}</th>
-            <th class="">{{ form.gender.label }}</th>
-            <th class="">{{ form.agage.label }}</th>
-            <th class="">{{ form.divisionlow.label }}</th>
-            <th class="">{{ form.divisionplace.label }}</th>
-            <th class="">{{ form.time.label }}</th>
-            <th class="">{{ form.agtime.label }}</th>
-            <th class="">{{ form.agpercent.label }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for result,thisseries,thisplace,thisname,thistime,thisagtime in resultsdata %}
-            <tr class="">
-              <td>{{ thisseries }}</td>
-              <td align=center>{{ num(thisplace,0) }}</td>
-              <td>{{ thisname }}</td>
-              <td align=center>{{ result.gender }}</td>
-              <td align=center>{{ num(result.agage,0) }}</td>
-              <td align=center>{{ num(result.divisionlow,0) }}</td>
-              <td align=center>{{ num(result.divisionplace,0) }}</td>
-              <td align=center>{{ thistime }}</td>
-              <td align=center>{{ thisagtime }}</td>
-              <td align=center>{{ num(result.agpercent,1) }}%</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  </div>
+  <table class="DataList" id="_rrwebapp-table-seriesresults" cellpadding=0 cellspace=0>
+    <thead>
+      <tr>
+        <th class="">{{ form.series.label }}</th>
+        <th class="">{{ form.place.label }}</th>
+        <th class="">{{ form.name.label }}</th>
+        <th class="">{{ form.gender.label }}</th>
+        <th class="">{{ form.agage.label }}</th>
+        <th class="">{{ form.divisionlow.label }}</th>
+        <th class="">{{ form.divisionplace.label }}</th>
+        <th class="">{{ form.time.label }}</th>
+        <th class="">{{ form.agtime.label }}</th>
+        <th class="">{{ form.agpercent.label }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for result,thisseries,thisplace,thisname,thistime,thisagtime in resultsdata %}
+        <tr class="">
+          <td>{{ thisseries }}</td>
+          <td align=center>{{ num(thisplace,0) }}</td>
+          <td>{{ thisname }}</td>
+          <td align=center>{{ result.gender }}</td>
+          <td align=center>{{ num(result.agage,0) }}</td>
+          <td align=center>{{ num(result.divisionlow,0) }}</td>
+          <td align=center>{{ num(result.divisionplace,0) }}</td>
+          <td align=center>{{ thistime }}</td>
+          <td align=center>{{ thisagtime }}</td>
+          <td align=center>{{ num(result.agpercent,1) }}%</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endblock %}

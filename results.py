@@ -49,7 +49,7 @@ from apicommon import failure_response, success_response
 # module specific needs
 import raceresults
 import clubmember
-from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, Series, dbdate
+from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, Series, Divisions, dbdate
 from forms import ManagedResultForm, SeriesResultForm
 from loutilities.namesplitter import split_full_name
 import loutilities.renderrun as render

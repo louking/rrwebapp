@@ -41,9 +41,8 @@ import xlwt
 
 # home grown
 from config import parameterError,dbConsistencyError
-import version
 import racedb
-import render
+from loutilities import renderrun as render
 
 ########################################################################
 class BaseStandingsHandler():
@@ -54,9 +53,8 @@ class BaseStandingsHandler():
     
     '''
     #----------------------------------------------------------------------
-    def __init__(self,session):
+    def __init__(self):
     #----------------------------------------------------------------------
-        self.session = session
 
         self.style = {
             'majorhdr': None,
@@ -87,13 +85,27 @@ class BaseStandingsHandler():
         numraces has number of races
         
         :param gen: gender M or F
-        :param series: racedb.Series
+        :param series: Series
         :param year: year of races
         :rtype: numraces
         '''
 
         pass
     
+    #----------------------------------------------------------------------
+    def setheader(self,gen,header):
+    #----------------------------------------------------------------------
+        '''
+        enable / disable header processing
+        
+        this is used to determine if header processing is over
+        once header processing is over, when rendering, new headers are ignored
+        
+        :param gen: gender M or F
+        :param header: True or False
+        '''
+        pass
+        
     #----------------------------------------------------------------------
     def clearline(self,gen):
     #----------------------------------------------------------------------
@@ -116,6 +128,19 @@ class BaseStandingsHandler():
         :param stylename: name of style for field display
         '''
 
+        pass
+    
+    #----------------------------------------------------------------------
+    def setdivision(self,gen,division,styledivision='division'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'division' column for output (this should be rendered in 2nd column)
+
+        :param gen: gender M or F
+        :param division: value for division column
+        :param styledivision: name of style for field display
+        '''
+        
         pass
     
     #----------------------------------------------------------------------
@@ -230,7 +255,7 @@ class ListStandingsHandler():
         numraces has number of races
         
         :param gen: gender M or F
-        :param series: racedb.Series
+        :param series: Series
         :param year: year of races
         :rtype: numraces
         '''
@@ -356,9 +381,9 @@ class TxtStandingsHandler(BaseStandingsHandler):
     :param session: database session
     '''
     #----------------------------------------------------------------------
-    def __init__(self,session):
+    def __init__(self):
     #----------------------------------------------------------------------
-        BaseStandingsHandler.__init__(self,session)
+        BaseStandingsHandler.__init__(self)
         self.TXT = {}
         self.pline = {'F':{},'M':{}}
     
@@ -376,7 +401,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         numraces has number of races
         
         :param gen: gender M or F
-        :param series: racedb.Series
+        :param series: Series
         :param year: year of races
         :rtype: numraces
         '''
@@ -391,7 +416,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         self.TXT[gen].write('\n')                
         numraces = 0
         self.racelist = []
-        for race in self.session.query(racedb.Race).join("series").filter_by(seriesid=series.id,active=True).order_by(racedb.Race.racenum).all():
+        for race in Race.query.join("series").filter_by(club_id=self.club_id,seriesid=series.id,active=True).order_by(Race.date).all():
             self.racelist.append(race.racenum)
             self.TXT[gen].write('\tRace {0}: {1}: {2}\n'.format(race.racenum,race.name,render.renderdate(race.date)))
             numraces += 1
@@ -519,6 +544,200 @@ class TxtStandingsHandler(BaseStandingsHandler):
             self.TXT[gen].close()
     
 ########################################################################
+class HtmlStandingsHandler(BaseStandingsHandler):
+########################################################################
+    '''
+    StandingsHandler for .html files
+    
+    :param racelist: list of race numbers in series
+    '''
+    #----------------------------------------------------------------------
+    def __init__(self,racelist):
+    #----------------------------------------------------------------------
+        BaseStandingsHandler.__init__(self)
+        self.HTML = {}
+        self.pline = {'F':{},'M':{}}
+        self.racelist = racelist
+    
+    #----------------------------------------------------------------------
+    def prepare(self,gen,series,year):
+    #----------------------------------------------------------------------
+        '''
+        prepare output file for output, including as appropriate
+        
+        * open
+        * print header information
+        * collect format for output
+        * collect print line dict for output
+        
+        numraces has number of races
+        
+        :param gen: gender M or F
+        :param series: Series
+        :param year: year of races
+        :rtype: numraces
+        '''
+        
+        # open output file
+        self.HTML[gen] = [] # "file" will be a list of plines
+        
+        # generate the header
+        self.setheader(gen,True)
+        self.setplace(gen,'Place')
+        self.setname(gen,'Name')
+        self.setdivision(gen,'Division')
+        self.settotal(gen,'Total Pts.')
+        
+        for racenum in self.racelist:
+            self.setrace(gen,racenum,racenum)
+            
+        self.render(gen)
+        self.setheader(gen,False)
+        
+        return len(self.racelist)
+    
+    #----------------------------------------------------------------------
+    def clearline(self,gen):
+    #----------------------------------------------------------------------
+        '''
+        prepare rendering line for output by clearing all entries
+
+        :param gen: gender M or F
+        '''
+        
+        for k in self.pline[gen]:
+            if k in ['header','division']: continue  # header indication and division text are persistent
+            self.pline[gen][k] = ''
+    
+    #----------------------------------------------------------------------
+    def setheader(self,gen,header):
+    #----------------------------------------------------------------------
+        '''
+        enable / disable header processing
+        
+        this is used to determine if header processing is over
+        once header processing is over, when rendering, new headers are ignored
+        
+        :param gen: gender M or F
+        :param header: True or False
+        '''
+        set.pline[gen]['header'] = header
+        
+    #----------------------------------------------------------------------
+    def setplace(self,gen,place,stylename='place'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'place' column for output (this should be rendered in 1st column)
+
+        :param gen: gender M or F
+        :param place: value for place column
+        :param stylename: name of style for field display
+        '''
+        
+        self.pline[gen]['place'] = str(place)
+    
+    #----------------------------------------------------------------------
+    def setname(self,gen,name,stylename='name'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'name' column for output (this should be rendered in 2nd column)
+
+        :param gen: gender M or F
+        :param name: value for name column
+        :param stylename: name of style for field display
+        '''
+        
+        self.pline[gen]['name'] = str(name)
+    
+    #----------------------------------------------------------------------
+    def setdivision(self,gen,division,styledivision='division'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'division' column for output (this should be rendered in 2nd column)
+
+        :param gen: gender M or F
+        :param division: value for division column
+        :param styledivision: name of style for field display
+        '''
+        
+        self.pline[gen]['division'] = str(division)
+    
+    #----------------------------------------------------------------------
+    def setrace(self,gen,racenum,result,stylename='race'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'race{n}' column for output, for race n
+        should be '' for empty race
+
+        :param gen: gender M or F
+        :param racenum: number of race
+        :param result: value for race column
+        :param stylename: name of style for field display
+        '''
+        
+        self.pline[gen]['race{0}'.format(racenum)] = str(result)
+    
+    #----------------------------------------------------------------------
+    def settotal(self,gen,total,stylename='total'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'race{n}' column for output, for race n
+        should be '' for empty race
+
+        :param gen: gender M or F
+        :param value: value for total column
+        :param stylename: name of style for field display
+        '''
+        
+        self.pline[gen]['total'] = str(total)
+    
+    #----------------------------------------------------------------------
+    def render(self,gen):
+    #----------------------------------------------------------------------
+        '''
+        output current line to gender file
+
+        :param gen: gender M or F
+        '''
+
+        self.HTML[gen].append(self.pline[gen])
+    
+    #----------------------------------------------------------------------
+    def skipline(self,gen):
+    #----------------------------------------------------------------------
+        '''
+        output blank line to gender file
+
+        :param gen: gender M or F
+        '''
+
+        # this is NOOP for HTML
+        pass
+    
+    #----------------------------------------------------------------------
+    def close(self):
+    #----------------------------------------------------------------------
+        '''
+        output blank line to gender file
+
+        :param gen: gender M or F
+        '''
+        
+        #this is NOOP for HTML
+        pass
+    
+    #----------------------------------------------------------------------
+    def iter(self,gen):
+    #----------------------------------------------------------------------
+        '''
+        return iterable for gender
+
+        :param gen: gender M or F
+        '''
+        
+        return iter(self.HTML[gen])
+    
+########################################################################
 class XlStandingsHandler(BaseStandingsHandler):
 ########################################################################
     '''
@@ -527,9 +746,9 @@ class XlStandingsHandler(BaseStandingsHandler):
     :param session: database session
     '''
     #----------------------------------------------------------------------
-    def __init__(self,session):
+    def __init__(self):
     #----------------------------------------------------------------------
-        BaseStandingsHandler.__init__(self,session)
+        BaseStandingsHandler.__init__(self)
         self.wb = xlwt.Workbook()
         self.ws = {}
         
@@ -565,7 +784,7 @@ class XlStandingsHandler(BaseStandingsHandler):
         numraces has number of races
         
         :param gen: gender M or F
-        :param series: racedb.Series
+        :param series: Series
         :param year: year of races
         :rtype: numraces
         '''
@@ -594,7 +813,7 @@ class XlStandingsHandler(BaseStandingsHandler):
         self.rownum[gen] += 1
 
         self.racelist = []
-        self.races = self.session.query(racedb.Race).join("series").filter_by(seriesid=series.id,active=True).order_by(racedb.Race.racenum).all()
+        self.races = Race.query.join("series").filter_by(club_id=self.club_id,seriesid=series.id,active=True).order_by(Race.date).all()
         numraces = len(self.races)
         nracerows = int(math.ceil(numraces/2.0))
         thiscol = 1
@@ -756,32 +975,29 @@ class StandingsRenderer():
     '''
     StandingsRenderer collects standings and provides rendering methods, for a single series
     
-    :param session: database session
-    :param series: racedb.Series
-    :param orderby: database field by which standings should be ordered (e.g., racedb.RaceResult.time)
-    :param hightolow: True if ordering is high value to low value
-    :param bydiv: True if standings are to be tallied by division, in addition to by gender
-    :param avgtie: True if tie points are averaged, else max points is used for both
-    :param multiplier: race points are multiplied by this value
-    :param maxgenpoints: maximum number of points by gender for first place result.  If None, standings are tallied directly
-    :param maxdivpoints: maximum number of points by division for first place result
-    :param maxraces: maximum number of races run by a runner to be included in total points
-    :param maxbynumrunners: True if maximum points is based on the number of runners for the race
+    :param club_id: club.id
+    :param year: year for standings
+    :param series: Series
+    :param races: list of Races
+    :param racenums: list of race numbers for standings 
     '''
     #----------------------------------------------------------------------
-    def __init__(self,session,series,orderby,hightolow,bydiv,avgtie,multiplier=1,maxgenpoints=None,maxdivpoints=None,maxraces=None,maxbynumrunners=False):
+    def __init__(self,club_id,year,series,races,racenums):
     #----------------------------------------------------------------------
-        self.session = session
+        self.club_id = club_id
         self.series = series
-        self.orderby = orderby
-        self.hightolow = hightolow
-        self.bydiv = bydiv
-        self.avgtie = avgtie
-        self.multiplier = multiplier
-        self.maxgenpoints = maxgenpoints
-        self.maxdivpoints = maxdivpoints
-        self.maxraces = maxraces
-        self.maxbynumrunners = maxbynumrunners
+        self.orderby = series.orderby
+        self.hightolow = series.hightolow
+        self.bydiv = series.divisions
+        self.avgtie = series.averagetie
+        self.multiplier = series.multiplier
+        self.maxgenpoints = series.maxgenpoints
+        self.maxdivpoints = series.maxdivpoints
+        self.maxraces = series.maxraces
+        self.maxbynumrunners = series.maxbynumrunners
+        self.year = year
+        self.races = races
+        self.racenums = racenums
         
     #----------------------------------------------------------------------
     def collectstandings(self,racesprocessed,gen,raceid,byrunner,divrunner): 
@@ -802,7 +1018,7 @@ class StandingsRenderer():
     
         # get all the results currently in the database
         # byrunner = {name:{'bygender':[points,points,...],'bydivision':[points,points,...]}, ...}
-        allresults = self.session.query(racedb.RaceResult).order_by(self.orderby).filter_by(raceid=raceid,seriesid=self.series.id,gender=gen).all()
+        allresults = RaceResult.query.order_by(self.orderby).filter_by(club_id=self.club_id,raceid=raceid,seriesid=self.series.id,gender=gen).all()
         if self.hightolow: allresults.sort(reverse=True)
         
         for resultndx in range(len(allresults)):
@@ -827,7 +1043,7 @@ class StandingsRenderer():
                     
             # accumulate points for this result
             # if result is ordered by time, genderplace and divisionplace may be used
-            if self.orderby == racedb.RaceResult.time:
+            if self.orderby == RaceResult.time:
                 # if result points depend on the number of runners, update maxgenpoints
                 if self.maxbynumrunners:
                     self.maxgenpoints = len(allresults)
@@ -846,7 +1062,7 @@ class StandingsRenderer():
                     byrunner[name]['bydivision'].append(max(divpoints,0))
             
             # if result was ordered by agpercent, agpercent is used -- assume no divisions
-            elif self.orderby == racedb.RaceResult.agpercent:
+            elif self.orderby == RaceResult.agpercent:
                 # some combinations don't make sense, and have been commented out
                 # TODO: verify combinations in updaterace.py
                 
@@ -868,7 +1084,7 @@ class StandingsRenderer():
                 #    byrunner[name]['bydivision'].append(max(divpoints,0))
             
             # if result is ordered by agtime, agtimeplace may be used -- assume no divisions
-            elif self.orderby == racedb.RaceResult.agtime:
+            elif self.orderby == RaceResult.agtime:
                 # if result points depend on the number of runners, update maxgenpoints
                 if byrunner:
                     self.maxgenpoints = len(allresults)
@@ -905,19 +1121,15 @@ class StandingsRenderer():
         # collect divisions, if necessary
         if self.bydiv:
             divisions = []
-            for div in self.session.query(racedb.Divisions).filter_by(seriesid=self.series.id,active=True).order_by(racedb.Divisions.divisionlow).all():
+            for div in Divisions.query.filter_by(club_id=self.club_id,seriesid=self.series.id,active=True).order_by(Divisions.divisionlow).all():
                 divisions.append((div.divisionlow,div.divisionhigh))
             if len(divisions) == 0:
                 raise dbConsistencyError, 'series {0} indicates divisions to be calculated, but no divisions found'.format(self.series.name)
 
-        # Get first race for filename year -- assume all active races are within the same year
-        firstrace = self.session.query(racedb.Race).filter_by(active=True).order_by(racedb.Race.racenum).first()
-        year = firstrace.year
-        
         # process each gender
         for gen in ['F','M']:
             # open file, prepare header, etc
-            fh.prepare(gen,self.series,year)
+            fh.prepare(gen,self.series,self.year)
                     
             # collect data for each race, within byrunner dict
             # also track names of runners within each division
@@ -928,32 +1140,35 @@ class StandingsRenderer():
                 for div in divisions:
                     divrunner[div] = []
                 
-            # pick up active races for this series, in racenum order
+            # pick up active races as supplied by caller
             racesprocessed = 0
-            racenums = []
-            for race in self.session.query(racedb.Race).filter_by(active=True).join("series").filter_by(seriesid=self.series.id,active=True).order_by(racedb.Race.racenum):
+            for race in self.races:
                 # skip races not included in this series (note race.series points at raceseries table)
                 #if self.series.id not in [s.seriesid for s in race.series]: continue
                 self.collectstandings(racesprocessed,gen,race.id,byrunner,divrunner)
                 racesprocessed += 1
-                racenums.append(race.racenum)
                 
             # render standings
             # first by division
             if self.bydiv:
+                fh.setheader(gen,True)
                 fh.clearline(gen)
                 fh.setplace(gen,'Place','racehdr')
                 fh.setname(gen,'Age Group','divhdr')
                 fh.render(gen)
+                fh.setheader(gen,False)
                 
                 for div in divisions:
+                    fh.setheader(gen,True)
                     fh.clearline(gen)
                     divlow,divhigh = div
                     if divlow == 0:     divtext = '{0} & Under'.format(divhigh)
                     elif divhigh == 99: divtext = '{0} & Over'.format(divlow)
                     else:               divtext = '{0} to {1}'.format(divlow,divhigh)
                     fh.setname(gen,divtext,'divhdr')
+                    fh.setdivision(gen,divtext)
                     fh.render(gen)
+                    fh.setheader(gen,False)
                     
                     # calculate runner total points
                     bypoints = []
@@ -992,7 +1207,7 @@ class StandingsRenderer():
                         lastpoints = totpoints
                         
                         # render race results
-                        iracenums = iter(racenums)
+                        iracenums = iter(self.racenums)
                         for pts in byrunner[name]['bydivision']:
                             racenum = next(iracenums)
                             if pts in byrunner[name]['racesused']:
@@ -1006,10 +1221,13 @@ class StandingsRenderer():
                     fh.skipline(gen)
                         
             # then overall
+            fh.setheader(gen,True)
             fh.clearline(gen)
             fh.setplace(gen,'Place','racehdr')
             fh.setname(gen,'Overall','divhdr')
+            fh.setdivision(gen,'Overall')
             fh.render(gen)
+            fh.setheader(gen,False)
             
             # calculate runner total points
             bypoints = []
@@ -1047,7 +1265,7 @@ class StandingsRenderer():
                 lastpoints = totpoints
                 
                 # render race results
-                iracenums = iter(racenums)
+                iracenums = iter(self.racenums)
                 for pts in byrunner[name]['bygender']:
                     racenum = next(iracenums)
                     if pts in byrunner[name]['racesused']:
@@ -1078,21 +1296,15 @@ def main():
     
     # get filtered series, which have any results
     sfilter = {'active':True}
-    theseseries = session.query(racedb.Series).filter_by(**sfilter).join("results").all()
+    theseseries = session.query(Series).filter_by(club_id=self.club_id,**sfilter).join("results").all()
     
     fh = ListStandingsHandler()
     fh.addhandler(TxtStandingsHandler(session))
     fh.addhandler(XlStandingsHandler(session))
     
     for series in theseseries:
-        # orderby parameter is specified by the series
-        orderby = getattr(racedb.RaceResult,series.orderby)
-        
         # render the standings, according to series specifications
-        # TODO: now that we are passing series object, can remove many of the parameters
-        rr = StandingsRenderer(session,series,orderby,series.hightolow,series.divisions,
-                               series.averagetie,multiplier=series.multiplier,maxgenpoints=series.maxgenpoints,
-                               maxdivpoints=series.maxdivpoints,maxraces=series.maxraces,maxbynumrunners=series.maxbynumrunners)
+        rr = StandingsRenderer(session,series)
         rr.renderseries(fh)
 
     session.close()

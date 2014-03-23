@@ -5,6 +5,7 @@ fsrcresult-old.py
 underdevelopment.txt
 static/css/*
 static/js/*
+static/images/*
 
 #################
 ## Eclipse

@@ -231,6 +231,7 @@ label.Label
 .TextBottom { vertical-align: text-bottom; }
 .TextCenter { text-align: center; }
 .TextRight  { text-align: right; }
+.TextLeft  { text-align: left; }
 
 table.DataList
 {

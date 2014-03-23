@@ -6,40 +6,30 @@
 {% block scripts %}
   <script type="text/javascript">
     $( document ).ready( function() {
-      {% if writeallowed %}
-        addbutton.init('add-race',
-                       '{{ url_for('racesettings',raceid=0) }}'
-                       );
-        toolbutton.init('tool-button',
-                        "\
-            <h3>Import Races</h3>\
-            <div>\
-              <form id='import-races' method='post' enctype='multipart/form-data'>\
-                <input id='choosefileImport' type='file' name='file' />\
-                <button id='manageracesImport'>Import</button>\
-              </form>\
-            </div>");
-        {% endif %}
-
-      manageraces( {% if writeallowed %}true{% else %}false{% endif %});    // need to do something here -- $widgets is undefined if not after toolbutton.init
-
-      {% if writeallowed %}
-        addbutton.position({my: "left center", at: "right+3 center", of: '#filterseries'});
-        toolbutton.position({my: "left center", at: "right+3 center", of: addbutton.selector});
-      {% endif %}
+      viewstandings(); 
     })
   </script>
   <script type="text/javascript">
   </script>
 {% endblock %}
 {% block body %}
+    <table class="DataList" cellpadding=0 cellspace=0>
+      {% for racerow in racerows %}
+        <tr>
+          <td align=center>{{ num(racerow.num,0) }}</td>
+          <td>{{racerow.race}}</td>
+        </tr>
+        
+      {% endfor %}
+    </table>
+    
     <div class=TextLeft>
-      <form _rrwebapp-formaction={{ url_for('manageraces') }}>
-        {{ form.filterseries() }}
-      </form>
+      {{ form.filterseries(id="_rrwebapp_filterseries") }}
+      {{ form.filtergender(id="_rrwebapp_filtergender") }}
+      {{ form.filterdivision(id="_rrwebapp_filterdivision") }}
     </div>
 
-    <table class=DataList id='_rrwebapp-table-manage-races' cellpadding=0 cellspace=0>
+    <table class="DataList" id="_rrwebapp-table-standings" cellpadding=0 cellspace=0>
       <thead>
         <tr>
           {% if writeallowed%}
