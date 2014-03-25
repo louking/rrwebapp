@@ -724,4 +724,56 @@
     };  // seriesresults
 
     function viewstandings() {
+        // not sure why fudge is needed, came after adding accordion above table
+        var scrollheightfudge = 50;
+        _rrwebapp_table = $('#_rrwebapp-table-standings').dataTable({
+                bPaginate: false,
+                sScrollY: gettableheight() + scrollheightfudge,
+                aoColumnDefs: [
+                    {aTargets:[0],bVisible:false},
+                    {aTargets:['_rrwebapp-class-col-place',
+                               '_rrwebapp-class-col-race',
+                               '_rrwebapp-class-col-total'
+                               ],sType:'num-html'},
+                    ],
+            })
+            .yadcf([{
+                    column_number:0,
+                    filter_container_id:"_rrwebapp_filterdivision",
+                    column_data_type: "html",
+                    html_data_type: "text",
+                    filter_reset_button_text: false,    // no filter reset button
+                },{
+                    column_number:3,
+                    column_data_type: "html",
+                    html_data_type: "text",
+                    filter_container_id:"_rrwebapp_filtergender",
+                },]);
+        
+        // force always to have some Division filter, hopefully Overall
+        selectfilter = '#_rrwebapp_filterdivision select';
+        $(selectfilter+" option[value='-1']").remove();
+        var serieschoices = getchoicevalues(selectfilter);
+        if ($.inArray('Overall', serieschoices) != -1) {
+            yadcf.exFilterColumn(_rrwebapp_table, 0, 'Overall');
+        } else {
+            yadcf.exFilterColumn(_rrwebapp_table, 0, serieschoices[0])            
+        }
+
+        // Race list is kept in accordion above table, for reference
+        // height gets changed as accordion changes -- see http://datatables.net/forums/discussion/10906/adjust-sscrolly-after-init/p1
+        $( "#_rrwebapp-accordion-standings-races" ).accordion({
+          collapsible: true,
+          activate: function(event,ui) {
+            var oSettings = _rrwebapp_table.fnSettings();
+            var newheight = gettableheight() + scrollheightfudge;
+            oSettings.oScroll.sY = newheight;
+            $('div.dataTables_scrollBody').height(newheight);
+          }
+        });
+        //$("#_rrwebapp-accordion-standings-races-header").click(function() {
+        //    var oSettings = _rrwebapp_table.fnSettings();
+        //    oSettings.oScroll.sY = gettableheight(); 
+        //    _rrwebapp_table.fnDraw();
+        //});
     };  // viewstandings

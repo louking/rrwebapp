@@ -1,7 +1,10 @@
 {% extends "layout.html" %}
 {% from '_formhelpers.html' import num,tabbool,tabboollink,tabeditlink %}
 {% block pagename %}
-    Races
+    Standings
+{% endblock %}
+{% block css %}
+  <link rel=stylesheet type=text/css href="{{ url_for('static', filename='standingstable.css') }}">
 {% endblock %}
 {% block scripts %}
   <script type="text/javascript">
@@ -13,79 +16,51 @@
   </script>
 {% endblock %}
 {% block body %}
-    <table class="DataList" cellpadding=0 cellspace=0>
-      {% for racerow in racerows %}
-        <tr>
-          <td align=center>{{ num(racerow.num,0) }}</td>
-          <td>{{racerow.race}}</td>
-        </tr>
-        
-      {% endfor %}
-    </table>
-    
-    <div class=TextLeft>
-      {{ form.filterseries(id="_rrwebapp_filterseries") }}
-      {{ form.filtergender(id="_rrwebapp_filtergender") }}
-      {{ form.filterdivision(id="_rrwebapp_filterdivision") }}
+  <div id="_rrwebapp-heading-elements">
+    <div class="TextLeft W7emLabel">
+      <div><label class="Label">Division:</label><span id="_rrwebapp_filterdivision"></span></div>
+      <div><label class="Label">Gender:</label><span id="_rrwebapp_filtergender"></span></div>
     </div>
-
-    <table class="DataList" id="_rrwebapp-table-standings" cellpadding=0 cellspace=0>
-      <thead>
+    <br>
+    <div id="_rrwebapp-accordion-standings-races">
+      <h3 id="_rrwebapp-accordion-standings-races-header"><a >Races</a></h3>
+      <div>
+        <table class="DataList" id="_rrwebapp-table-standings-races" cellpadding=0 cellspace=0>
+<!--          <thead>
+            <tr>
+              <th>Races</th><th></th><th></th><th></th><th></th></tr>
+          </thead>-->
+          <tbody>
+            {% for racerow in racerows %}
+              <tr>
+                {% for race in racerow %}
+                  <td align=center>{{ num(race.num,0) }}</td>
+                  <td>{{race.race}}</td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <br>
+  </div>
+  <table class="DataList" id="_rrwebapp-table-standings" cellpadding=0 cellspace=0>
+    <thead>
+      <tr>
+        {% for heading,cclass in headingdata %}
+          <th class="{{ cclass}}">{{ heading|safe }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for standing in standings %}
         <tr>
-          {% if writeallowed%}
-            <th>Edit</th>
-          {% endif %}
-          <th>Results</th>
-          <th>Race Num</td>
-          <th>Date</td>
-          <th>Race</td>
-          <th>Miles</th>
-          <th>Surface</th>
-          {% for ss in series %}
-            <th>{{ ss.name|title }}</th>
+          {% for field in standing %}
+            <td>{{ field|safe }}</td>
           {% endfor %}
         </tr>
-      </thead>
-      <tbody>
-        {% for race,rawresults,tabresults,raceseries in raceresultsseries %}
-          <tr>
-            {% if writeallowed %}
-              {{ tabeditlink(url_for('racesettings',raceid=race.id)) }}
-            {% endif %}
-  
-            {% if rawresults %}
-              <td align=center>
-                <button class='_rrwebapp-importResultsButton' _rrwebapp-raceid='{{race.id}}'
-                  _rrwebapp-formaction='{{url_for("_importresults",raceid=race.id)}}' _rrwebapp-formid='_rrwebapp-form-results-{{race.id}}'
-                  _rrwebapp-editaction='{{url_for("editresults",raceid=race.id)}}' 
-                  _rrwebapp-seriesresultsaction='{{url_for("seriesresults",raceid=race.id)}}' 
-                  _rrwebapp-imported='true'>
-                </button>
-              </td>
-            {% else %}
-              {% if writeallowed %}
-                <td align=center>
-                  <button class='_rrwebapp-importResultsButton' _rrwebapp-raceid='{{race.id}}'
-                          _rrwebapp-formaction='{{url_for("_importresults",raceid=race.id)}}' _rrwebapp-formid='_rrwebapp-form-results-{{race.id}}'
-                          >
-                  </button>
-                </td>
-              {% else %}
-                <td />
-              {% endif %}
-            {% endif %}
-  
-            <td align=center>{{ num(race.racenum,0) }}</td>
-            <td>{{ race.date }}</td>
-            <td>{{ race.name }}</td>
-            <td align=center>{{ num(race.distance,2) }}</td>
-            <td align=center>{{ race.surface }}</td>
-            {% for ss in series %}
-              {{ tabbool(ss.id in raceseries) }}
-            {% endfor %}
-                
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endblock %}

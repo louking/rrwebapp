@@ -57,6 +57,7 @@ import userrole
 import race
 import member
 import results
+import standings
 
 @app.before_request
 def before_request():

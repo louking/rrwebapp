@@ -31,6 +31,8 @@ renderstandings - render result information within database for standings
 import pdb
 import argparse
 import math
+import copy
+import xml.etree.ElementTree as ET
 
 # pypi
 import xlwt
@@ -40,10 +42,32 @@ import xlwt
 # other
 
 # home grown
-from config import parameterError,dbConsistencyError
 import racedb
 from loutilities import renderrun as render
 
+# module speicific needs
+from racedb import Divisions, Race, RaceResult
+
+class parameterError(Exception): pass
+class dbConsistencyError(Exception): pass
+
+#----------------------------------------------------------------------
+def addstyle(header,text,style):
+#----------------------------------------------------------------------
+    '''
+    add style class to table element
+
+    :param header: true if this is to be a header element
+    :param text: text for final element
+    :param style: name for style class
+    '''
+    el = ET.Element('div')
+    
+    el.text = text
+    el.set('class','_rrwebapp-class-standings-data-{}'.format(style))
+    
+    return ET.tostring(el)
+    
 ########################################################################
 class BaseStandingsHandler():
 ########################################################################
@@ -553,7 +577,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
     '''
     #----------------------------------------------------------------------
     def __init__(self,racelist):
-    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------        
         BaseStandingsHandler.__init__(self)
         self.HTML = {}
         self.pline = {'F':{},'M':{}}
@@ -605,10 +629,11 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         :param gen: gender M or F
         '''
         
+        # clear the line
         for k in self.pline[gen]:
             if k in ['header','division']: continue  # header indication and division text are persistent
             self.pline[gen][k] = ''
-    
+        
     #----------------------------------------------------------------------
     def setheader(self,gen,header):
     #----------------------------------------------------------------------
@@ -621,7 +646,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         :param gen: gender M or F
         :param header: True or False
         '''
-        set.pline[gen]['header'] = header
+        self.pline[gen]['header'] = header
         
     #----------------------------------------------------------------------
     def setplace(self,gen,place,stylename='place'):
@@ -634,7 +659,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         :param stylename: name of style for field display
         '''
         
-        self.pline[gen]['place'] = str(place)
+        self.pline[gen]['place'] = addstyle(self.pline[gen]['header'],str(place),stylename)
     
     #----------------------------------------------------------------------
     def setname(self,gen,name,stylename='name'):
@@ -647,10 +672,10 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         :param stylename: name of style for field display
         '''
         
-        self.pline[gen]['name'] = str(name)
+        self.pline[gen]['name'] = addstyle(self.pline[gen]['header'],str(name),stylename)
     
     #----------------------------------------------------------------------
-    def setdivision(self,gen,division,styledivision='division'):
+    def setdivision(self,gen,division,stylename='division'):
     #----------------------------------------------------------------------
         '''
         put value in 'division' column for output (this should be rendered in 2nd column)
@@ -660,7 +685,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         :param styledivision: name of style for field display
         '''
         
-        self.pline[gen]['division'] = str(division)
+        self.pline[gen]['division'] = addstyle(self.pline[gen]['header'],str(division),stylename)
     
     #----------------------------------------------------------------------
     def setrace(self,gen,racenum,result,stylename='race'):
@@ -675,7 +700,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         :param stylename: name of style for field display
         '''
         
-        self.pline[gen]['race{0}'.format(racenum)] = str(result)
+        self.pline[gen]['race{0}'.format(racenum)] = addstyle(self.pline[gen]['header'],str(result),stylename)
     
     #----------------------------------------------------------------------
     def settotal(self,gen,total,stylename='total'):
@@ -689,7 +714,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         :param stylename: name of style for field display
         '''
         
-        self.pline[gen]['total'] = str(total)
+        self.pline[gen]['total'] = addstyle(self.pline[gen]['header'],str(total),stylename)
     
     #----------------------------------------------------------------------
     def render(self,gen):
@@ -701,7 +726,11 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         '''
 
         self.HTML[gen].append(self.pline[gen])
+
+        # make sure we have a new instance after "rendering"
+        self.pline[gen] = copy.copy(self.pline[gen])
     
+
     #----------------------------------------------------------------------
     def skipline(self,gen):
     #----------------------------------------------------------------------
@@ -1043,7 +1072,7 @@ class StandingsRenderer():
                     
             # accumulate points for this result
             # if result is ordered by time, genderplace and divisionplace may be used
-            if self.orderby == RaceResult.time:
+            if self.orderby == 'time':
                 # if result points depend on the number of runners, update maxgenpoints
                 if self.maxbynumrunners:
                     self.maxgenpoints = len(allresults)
@@ -1062,7 +1091,7 @@ class StandingsRenderer():
                     byrunner[name]['bydivision'].append(max(divpoints,0))
             
             # if result was ordered by agpercent, agpercent is used -- assume no divisions
-            elif self.orderby == RaceResult.agpercent:
+            elif self.orderby == 'agpercent':
                 # some combinations don't make sense, and have been commented out
                 # TODO: verify combinations in updaterace.py
                 
@@ -1084,7 +1113,7 @@ class StandingsRenderer():
                 #    byrunner[name]['bydivision'].append(max(divpoints,0))
             
             # if result is ordered by agtime, agtimeplace may be used -- assume no divisions
-            elif self.orderby == RaceResult.agtime:
+            elif self.orderby == 'agtime':
                 # if result points depend on the number of runners, update maxgenpoints
                 if byrunner:
                     self.maxgenpoints = len(allresults)
@@ -1103,7 +1132,7 @@ class StandingsRenderer():
                 #    byrunner[name]['bydivision'].append(max(divpoints,0))
                 #
             else:
-                raise parameterError, 'results must be ordered by time, agtime or agpercent'
+                raise parameterError, "series '{}' results must be ordered by time, agtime or agpercent".format(self.series.name)
             
         return numresults            
     
@@ -1162,8 +1191,8 @@ class StandingsRenderer():
                     fh.setheader(gen,True)
                     fh.clearline(gen)
                     divlow,divhigh = div
-                    if divlow == 0:     divtext = '{0} & Under'.format(divhigh)
-                    elif divhigh == 99: divtext = '{0} & Over'.format(divlow)
+                    if divlow == 0:     divtext = 'up to {0}'.format(divhigh)
+                    elif divhigh == 99: divtext = '{0} and up'.format(divlow)
                     else:               divtext = '{0} to {1}'.format(divlow,divhigh)
                     fh.setname(gen,divtext,'divhdr')
                     fh.setdivision(gen,divtext)
@@ -1189,6 +1218,7 @@ class StandingsRenderer():
                     # sort runners within division by total points and render
                     bypoints.sort(reverse=True)
                     thisplace = 1
+                    lastplace = 0
                     lastpoints = -999
                     for runner in bypoints:
                         totpoints,name = runner
@@ -1197,7 +1227,7 @@ class StandingsRenderer():
                         # render place if it's different than last runner's place, else there was a tie
                         renderplace = thisplace
                         if totpoints == lastpoints:
-                            renderplace = ''
+                            renderplace = lastplace
                         fh.setplace(gen,renderplace)
                         thisplace += 1
                         
@@ -1205,6 +1235,7 @@ class StandingsRenderer():
                         fh.setname(gen,name)
                         fh.settotal(gen,totpoints)
                         lastpoints = totpoints
+                        lastplace = renderplace
                         
                         # render race results
                         iracenums = iter(self.racenums)
@@ -1247,6 +1278,7 @@ class StandingsRenderer():
             # sort runners by total points and render
             bypoints.sort(reverse=True)
             thisplace = 1
+            lastplace = 0
             lastpoints = -999
             for runner in bypoints:
                 totpoints,name = runner
@@ -1255,7 +1287,7 @@ class StandingsRenderer():
                 # render place if it's different than last runner's place, else there was a tie
                 renderplace = thisplace
                 if totpoints == lastpoints:
-                    renderplace = ''
+                    renderplace = lastplace
                 fh.setplace(gen,renderplace)
                 thisplace += 1
                 
@@ -1263,6 +1295,7 @@ class StandingsRenderer():
                 fh.setname(gen,name)
                 fh.settotal(gen,totpoints)
                 lastpoints = totpoints
+                lastplace = renderplace
                 
                 # render race results
                 iracenums = iter(self.racenums)
@@ -1279,38 +1312,3 @@ class StandingsRenderer():
                         
         # done with rendering
         fh.close()
-            
-#----------------------------------------------------------------------
-def main(): 
-#----------------------------------------------------------------------
-    '''
-    render result information
-    '''
-    parser = argparse.ArgumentParser(version='{0} {1}'.format('runningclub',version.__version__))
-    parser.add_argument('-s','--series',help='series to render',default=None)
-    parser.add_argument('-r','--racedb',help='filename of race database (default is as configured during rcuserconfig)',default=None)
-    args = parser.parse_args()
-    
-    racedb.setracedb(args.racedb)
-    session = racedb.Session()
-    
-    # get filtered series, which have any results
-    sfilter = {'active':True}
-    theseseries = session.query(Series).filter_by(club_id=self.club_id,**sfilter).join("results").all()
-    
-    fh = ListStandingsHandler()
-    fh.addhandler(TxtStandingsHandler(session))
-    fh.addhandler(XlStandingsHandler(session))
-    
-    for series in theseseries:
-        # render the standings, according to series specifications
-        rr = StandingsRenderer(session,series)
-        rr.renderseries(fh)
-
-    session.close()
-        
-# ##########################################################################################
-#	__main__
-# ##########################################################################################
-if __name__ == "__main__":
-    main()

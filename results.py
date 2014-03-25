@@ -254,7 +254,6 @@ class SeriesResults(MethodView):
             #   * determine member matching, set runnerid choices and initially selected choice
             #   * based on matching, set disposition
             annotatedresults = []
-            doonce = True
             for result in results:
                 runner = Runner.query.filter_by(club_id=club_id,id=result.runnerid).first()
                 thisname = runner.name
@@ -272,9 +271,6 @@ class SeriesResults(MethodView):
                 else:
                     thisdiv = ''
 
-                if doonce:
-                    doonce = False
-                    app.logger.debug('overallplace={},agtimeplace={}'.format(result.overallplace,result.agtimeplace))
                 if result.overallplace:
                     thisplace = result.overallplace
                 elif result.agtimeplace:
