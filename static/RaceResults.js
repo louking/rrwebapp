@@ -15,7 +15,10 @@
                         }
                 });
             });
-
+    
+    // common dataTables
+    var sDomValue = '<"H"Clpfr>t<"F"i>';
+    
     // common
     function getconfirmation(event,button,text) {
         event.preventDefault();
@@ -84,7 +87,7 @@
             - $('thead').height()
             - 112;
         // error return
-        if (height<150){
+        if (height<100){
             return 430;
         }
         //normal return
@@ -461,6 +464,14 @@
                 ajax_import_file('/_importmembers','#import-members',false);
             });
         }
+
+        $('#_rrwebapp-table-manage-members').dataTable({
+            sDom: sDomValue,
+            bJQueryUI: true,
+            bPaginate: false,
+            sScrollY: gettableheight()-10,      // -10 because sorting icons shown below headings
+            bScrollCollapse: true,
+        });
     };  // managemembers
     
     // manageraces
@@ -546,10 +557,13 @@
             });
         };
 
-        $('#_rrwebapp-table-manage-races').dataTable({
+        _rrwebapp_table = $('#_rrwebapp-table-manage-races').dataTable({
+            sDom: sDomValue,
+            bJQueryUI: true,
             bPaginate: false,
-            sScrollY: 450, 
+            sScrollY: gettableheight(), 
             bSort: false,
+            bScrollCollapse: true,
         });
         //_rrwa_racestable = $('#_rrwebapp-table-manage-races').DataTable({
         //    paging: false,
@@ -569,6 +583,14 @@
             ajax_update_db_form('_copyseries',form,false);
         });
     
+        _rrwebapp_table = $('#_rrwebapp-table-manage-series').dataTable({
+                sDom: sDomValue,
+                bJQueryUI: true,
+                bPaginate: false,
+                sScrollY: gettableheight(),
+                bSort: false,
+                bScrollCollapse: true,
+            })
     };  // manageseries
 
     // managedivisions
@@ -581,8 +603,21 @@
             ajax_update_db_form('_copydivisions',form,false);
         });
     
+        _rrwebapp_table = $('#_rrwebapp-table-manage-divisions').dataTable({
+                sDom: sDomValue,
+                bJQueryUI: true,
+                bPaginate: false,
+                sScrollY: gettableheight(),
+                bSort: false,
+                bScrollCollapse: true,
+            })
+        
+            setTimeout( function () {
+                console.log('adjusting column sizing');
+                _rrwebapp_table.fnAdjustColumnSizing();
+            }, 30 );
     };  // managedivisions
-
+        
     // editresults
     function editresults(writeallowed) {
         
@@ -670,7 +705,10 @@
         $('#_rrwebapp-table-editresults').dataTable({
             //bPaginate: false,
             //sScrollY: 450,  // when scrolling, scroll jumps after updating column value
+            sDom: sDomValue,
+            bJQueryUI: true,
             bSort: false,
+            bScrollCollapse: true,
         });
         //_rrwa_resultstable = $('#_rrwebapp-table-editresults').DataTable({
         //    //paging: false,
@@ -692,8 +730,11 @@
         console.log("$('thead').height()="+$('thead').height())
         console.log('sScrollY='+($(window).height()-$('.heading').height()-$('#_rrwebapp-heading-elements').height()))-$('thead').height()-130
         _rrwebapp_table = $('#_rrwebapp-table-seriesresults').dataTable({
+                sDom: sDomValue,
+                bJQueryUI: true,
                 bPaginate: false,
                 sScrollY: gettableheight(),
+                bScrollCollapse: true,
                 aoColumnDefs: [
                     {aTargets:[0],bVisible:false},
                             ],
@@ -725,10 +766,14 @@
 
     function viewstandings() {
         // not sure why fudge is needed, came after adding accordion above table
-        var scrollheightfudge = 50;
+        var scrollheightfudge = 0;
+        var redrawheightfudge = 50;
         _rrwebapp_table = $('#_rrwebapp-table-standings').dataTable({
+                sDom: sDomValue,
+                bJQueryUI: true,
                 bPaginate: false,
                 sScrollY: gettableheight() + scrollheightfudge,
+                bScrollCollapse: true,
                 aoColumnDefs: [
                     {aTargets:[0],bVisible:false},
                     {aTargets:['_rrwebapp-class-col-place',
@@ -766,11 +811,15 @@
           collapsible: true,
           activate: function(event,ui) {
             var oSettings = _rrwebapp_table.fnSettings();
-            var newheight = gettableheight() + scrollheightfudge;
+            var newheight = gettableheight() + redrawheightfudge;
             oSettings.oScroll.sY = newheight;
             $('div.dataTables_scrollBody').height(newheight);
+            console.log('newheight='+newheight)
           }
         });
+        
+        $( document ).tooltip();
+
         //$("#_rrwebapp-accordion-standings-races-header").click(function() {
         //    var oSettings = _rrwebapp_table.fnSettings();
         //    oSettings.oScroll.sY = gettableheight(); 

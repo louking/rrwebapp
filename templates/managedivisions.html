@@ -30,31 +30,30 @@
   </script>
 {% endblock %}
 {% block body %}
-
-    <div class="scrollarea">
-      <table class=DataList cellpadding=0 cellspace=0>
-        <thead>
-          <tr>
-            {% if writeallowed %}
-            <th>Edit</th>
-            {% endif %}
-            <th>Series</td>
-            <th>Low Age</th>
-            <th>High Age</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for dd in divisions %}
-            <tr>
-              {% if writeallowed %}
-                {{ tabeditlink(url_for('divisionsettings',divisionid=dd.id)) }}
-              {% endif %}
-              <td>{{ dd.series.name }}</td>
-              {{ tabnum(dd.divisionlow,0) }}
-              {{ tabnum(dd.divisionhigh,0) }}
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <div id="_rrwebapp-heading-elements">
+  </div>
+  <table class='' id='_rrwebapp-table-manage-divisions' cellpadding=0 cellspace=0>
+    <thead>
+      <tr>
+        {% if writeallowed %}
+        <th align=center>Edit</th>
+        {% endif %}
+        <th>Series</td>
+        <th align=center>Low Age</th>
+        <th align=center>High Age</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dd in divisions %}
+        <tr>
+          {% if writeallowed %}
+            {{ tabeditlink(url_for('divisionsettings',divisionid=dd.id)) }}
+          {% endif %}
+          <td>{{ dd.series.name }}</td>
+          {{ tabnum(dd.divisionlow,0) }}
+          {{ tabnum(dd.divisionhigh,0) }}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endblock %}

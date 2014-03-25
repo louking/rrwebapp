@@ -33,14 +33,9 @@
   </script>
 {% endblock %}
 {% block body %}
-<!--    <div class=TextLeft>
-      <form action={{ url_for('managemembers') }}>
-        {{ form.filtermember }}
-      </form>
-    </div>
--->
-    <div class="scrollarea">
-      <table class=DataList cellpadding=0 cellspace=0>
+  <div id="_rrwebapp-heading-elements">
+  </div>
+      <table class='' id='_rrwebapp-table-manage-members'>
         <thead>
           <tr>
 {#            {% if writeallowed %}
@@ -74,5 +69,4 @@
           {% endfor %}
         </tbody>
       </table>
-    </div>
 {% endblock %}

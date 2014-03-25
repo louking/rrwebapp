@@ -45,11 +45,11 @@
     </div>
     <br>
   </div>
-  <table class="DataList" id="_rrwebapp-table-standings" cellpadding=0 cellspace=0>
+  <table class="" id="_rrwebapp-table-standings" cellpadding=0 cellspace=0>
     <thead>
       <tr>
-        {% for heading,cclass in headingdata %}
-          <th class="{{ cclass}}">{{ heading|safe }}</th>
+        {% for heading,cclass,tooltip in headingdata %}
+          <th {% if tooltip%}title="{{tooltip}}"{% endif %} class="{{ cclass}}">{{ heading|safe }}</th>
         {% endfor %}
       </tr>
     </thead>

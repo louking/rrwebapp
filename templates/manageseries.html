@@ -4,7 +4,8 @@
     Series
 {% endblock %}
 {% block scripts %}
-  <script type="text/javascript">$( document ).ready( function() {
+  <script type="text/javascript">
+  $( document ).ready( function() {
     {% if writeallowed %}
       addbutton.init('add-series',
                      '{{ url_for('seriessettings',seriesid=0) }}'
@@ -26,55 +27,53 @@
     {% if writeallowed %}
       toolbutton.position({my: "left center", at: "right+3 center", of: addbutton.selector});
     {% endif %}
-    } )
+    })
   </script>
 {% endblock %}
 {% block body %}
 
-    <div class="scrollarea">
-      <table class=DataList cellpadding=0 cellspace=0>
-        <thead>
-          <tr>
-            {% if writeallowed %}
-            <th>Edit</th>
-            {% endif %}
-            <th>Name</td>
-            <th>Max Races</th>
-            <th>Multiplier</th>
-            <th>Max Gen Pts</th>
-            <th>Max Div Pts</th>
-            <th>Max by Num Rnrs</th>
-            <th>Order By</th>
-            <th>Order</th>
-            <th>Members Only</td>
-            <th>Avg Ties</th>
-            <th>Overall</th>
-            <th>Divisions</th>
-            <th>Age Grade</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ss in series %}
-            <tr>
-              {% if writeallowed %}
-                {{ tabeditlink(url_for('seriessettings',seriesid=ss.id)) }}
-              {% endif %}
-              <td>{{ ss.name }}</td>
-              {{ tabnum(ss.maxraces,0) }}
-              {{ tabnum(ss.multiplier,0) }}
-              {{ tabnum(ss.maxgenpoints,0) }}
-              {{ tabnum(ss.maxdivpoints,0) }}
-              {{ tabbool(ss.maxbynumrunners) }}
-              <td>{{ ss.orderby }}</td>
-              <td>{% if ss.hightolow %}descending{% else %}ascending{% endif %}</td>
-              {{ tabbool(ss.membersonly) }}
-              {{ tabbool(ss.averagetie) }}
-              {{ tabbool(ss.calcoverall) }}
-              {{ tabbool(ss.calcdivisions) }}
-              {{ tabbool(ss.calcagegrade) }}
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <table class='' id='_rrwebapp-table-manage-series' cellpadding=0 cellspace=0>
+    <thead>
+      <tr>
+        {% if writeallowed %}
+        <th>Edit</th>
+        {% endif %}
+        <th>Name</td>
+        <th>Max Races</th>
+        <th>Multiplier</th>
+        <th>Max Gen Pts</th>
+        <th>Max Div Pts</th>
+        <th>Max by Num Rnrs</th>
+        <th>Order By</th>
+        <th>Order</th>
+        <th>Members Only</td>
+        <th>Avg Ties</th>
+        <th>Overall</th>
+        <th>Divisions</th>
+        <th>Age Grade</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ss in series %}
+        <tr>
+          {% if writeallowed %}
+            {{ tabeditlink(url_for('seriessettings',seriesid=ss.id)) }}
+          {% endif %}
+          <td>{{ ss.name }}</td>
+          {{ tabnum(ss.maxraces,0) }}
+          {{ tabnum(ss.multiplier,0) }}
+          {{ tabnum(ss.maxgenpoints,0) }}
+          {{ tabnum(ss.maxdivpoints,0) }}
+          {{ tabbool(ss.maxbynumrunners) }}
+          <td>{{ ss.orderby }}</td>
+          <td>{% if ss.hightolow %}descending{% else %}ascending{% endif %}</td>
+          {{ tabbool(ss.membersonly) }}
+          {{ tabbool(ss.averagetie) }}
+          {{ tabbool(ss.calcoverall) }}
+          {{ tabbool(ss.calcdivisions) }}
+          {{ tabbool(ss.calcagegrade) }}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endblock %}

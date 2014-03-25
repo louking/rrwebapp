@@ -118,6 +118,9 @@ class ViewStandings(MethodView):
             headerclasses = (['_rrwebapp-class-col-{}'.format(h) for h in ['division','place','name','gender']]
                                 + ['_rrwebapp-class-col-race' for h in racenums]
                                 + ['_rrwebapp-class-col-total'])
+            tooltips = ([None,None,None,None]
+                        + [r.name for r in races]
+                        + [None])
             
             
             # collect standings
@@ -137,8 +140,8 @@ class ViewStandings(MethodView):
                     else:
                         standings.append([row[k] for k in roworder])
 
-            # headings and headerclasses are used together
-            headingdata = zip(headings,headerclasses)
+            # headings, headerclasses, tooltips are used together
+            headingdata = zip(headings,headerclasses,tooltips)
             
             # commit database updates and close transaction
             db.session.commit()
