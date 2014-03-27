@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import render_field %}
+{% block pagename %}
+    {{ thispagename }}
+{% endblock %}
+
+{% block body %}
+  <form action="{{ userurl }}" method=post>
+    {{ form.hidden_tag() }}
+    <div class="W9emLabel W25emTextBox FloatLeft">
+        {{ render_field(form.club,displayonly,id='_rrwebapp-choosestandings-select-club',_rrwebapp_apiurl=url_for('standings/_getyears')) }}
+        {{ render_field(form.year,displayonly,type="number",id='_rrwebapp-choosestandings-select-year',_rrwebapp_apiurl=url_for('standings/_getseries')) }}
+        {{ render_field(form.series,displayonly,id='_rrwebapp-choosestandings-select-series') }}
+
+        <center>
+          {% if action %}
+            <input class="_rrwebapp-actionbutton " type="submit" name="whichbutton" value="{{action}}" />
+          {% endif %}
+        </center>
+  </form>
+{% endblock %}
+
+{% block scripts %}
+  <script type="text/javascript">
+    $( document ).ready( function() {
+      choosestandings(); 
+    })
+  </script>
+{% endblock %}

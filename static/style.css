@@ -91,7 +91,12 @@ h2              { font-size: 1.2em; }
 }
 
 /* The #navigation is the full navigation which is an unordered list */
-#navigation {
+.ui-menu {
+    width: 150px;
+    float: left;
+  }
+
+#navigationxx {
     margin: 5px; 
     padding: 0; 
     list-style: none; 
@@ -104,25 +109,25 @@ h2              { font-size: 1.2em; }
 }
 
 /* The list items/links, removes the default styles for list items and makes them look like a menu by removing the bullets */
-#navigation  li {
+#navigationxx  li {
     margin: 0; 
     padding: 0; 
     list-style: none;
 }
 
-#navigation  li {
+#navigationxx  li {
     display: list-item;
     text-transform: uppercase; /* Converts all letters to capitals */
     color: #377ba8; /* Changes font colour */
 }
 
 /* When submenus are not supposed to show, this hides them */
-#navigation ul {
+#navigationxx ul {
     position: absolute; 
     left: -9999px;
 }
 
-#navigation  a {
+#navigationxx  a {
     display: block; /* Makes the entire link (not just the text, as there is padding on the anchor) clickable */
     font: bold 12px verdana,arial,sans-serif; 
     color: #377ba8;
@@ -132,26 +137,26 @@ h2              { font-size: 1.2em; }
 } 
 
 /* Styling for the optional in menu headings */
-#navigation h3 {
+#navigationxx h3 {
     margin: 0px;
     font-size: 0.9em;
     text-align: center; /* Note the American spelling used throughout css */
 }
 
 /* This styling happens when a mouse hovers over the link */
-#navigation li a:hover {
+#navigationxx li a:hover {
     background-color: #09c; 
     color: #fff;
 } 
 
 /* This styling happens to the submenu links when a top level link is hovered over  */
-#navigation  li:hover > a {
+#navigationxx  li:hover > a {
     background-color: #09c; 
     color: #fff;
 }
 
 /* This styling happens to the submenu ul when the top level list items are hovered over */
-#navigation li:hover > ul {
+#navigationxx li:hover > ul {
     min-width: 130px;
     padding: 5px;
     left: 131px; /* For the example I needed the submenu to the right of the main menu, you may need to change this if you change the width */

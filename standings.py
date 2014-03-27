@@ -39,7 +39,7 @@ from flask.views import MethodView
 from werkzeug.utils import secure_filename
 
 # home grown
-from . import app
+from app import app
 import racedb
 from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
@@ -48,11 +48,108 @@ from apicommon import failure_response, success_response
 
 # module specific needs
 import xml.etree.ElementTree as ET
+import urllib
 from racedb import dbdate, Runner, RaceResult, RaceSeries, Race, Series, Club
 from renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
-from forms import StandingsForm
+from forms import StandingsForm, ChooseStandingsForm
 import loutilities.renderrun as render
 from loutilities import timeu
+
+#######################################################################
+class ChooseStandings(MethodView):
+#######################################################################
+    CHOOSE = 'Choose Standings'
+    
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        try:
+            if 'club_id' in flask.session:
+                club_id = flask.session['club_id']
+                club = Club.query.filter_by(id=club_id).first()
+                thisclub = club.shname
+                thisyear = flask.session['year']
+            else:
+                thisclub = None
+                thisyear = None
+            
+            form = ChooseStandingsForm()
+            
+            # override club_id and thisyear if provided in url
+            thisclub = request.args.get('club',thisclub)
+            thisyear = request.args.get('year',thisyear)
+            
+            # initialize year and series choices
+            form.year.choices = [(0,'Select Year')]
+            form.series.choices = [('','Select Series')]
+            
+            # get clubs, years and series
+            allclubs = Club.query.order_by('name').all()
+            form.club.choices = [('','Select Club')] + [(c.shname,c.name) for c in allclubs if c.name != 'owner']
+            if thisclub:
+                for club in allclubs:
+                    if club.shname == thisclub:
+                        club_id = club.id
+                        break
+                form.club.data = thisclub
+                allseries = Series.query.filter_by(active=True,club_id=club_id).join("results").all()
+                
+                # for what years do we have results?
+                years = []
+                for thisseries in allseries:
+                    if thisseries.year not in years:
+                        years.append(thisseries.year)
+                years.sort()
+                form.year.choices += [(y,y) for y in years]
+                if thisyear:
+                    thisyear = int(thisyear)
+                    form.year.data = thisyear
+                    form.series.choices += [(s.name,s.name) for s in allseries if s.year == thisyear]
+
+            # commit database updates and close transaction
+            db.session.commit()
+            return flask.render_template('choosestandings.html',thispagename='Choose Standings',form=form,action=ChooseStandings.CHOOSE,
+                                         useurl=flask.url_for('choosestandings'))
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+
+    #----------------------------------------------------------------------
+    def post(self):
+    #----------------------------------------------------------------------
+        try:
+            form = ChooseStandingsForm()
+
+            # handle Cancel
+            if request.form['whichbutton'] == ChooseStandings.CHOOSE:
+                #if not form.validate_on_submit():
+                #    db.session.rollback()
+                #    cause =  "Unexpected Error: occured on form submit, did not validate"
+                #    app.logger.error(cause)
+                #    flask.flash(cause)
+                #    return flask.redirect(flask.url_for('choosestandings'))
+
+                # pull parameters out of form
+                params = {}
+                params['club'] = form.club.data
+                params['year'] = form.year.data
+                params['series'] = form.series.data
+                
+                # commit database updates and close transaction
+                db.session.commit()
+                url = '{url}?{params}'.format(url=flask.url_for('viewstandings'),params=urllib.urlencode(params))
+                return flask.redirect(url)
+            
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+
+#----------------------------------------------------------------------
+app.add_url_rule('/choosestandings/',view_func=ChooseStandings.as_view('choosestandings'),methods=['GET','POST'])
+#----------------------------------------------------------------------
 
 #######################################################################
 class ViewStandings(MethodView):
@@ -145,7 +242,8 @@ class ViewStandings(MethodView):
             
             # commit database updates and close transaction
             db.session.commit()
-            return flask.render_template('viewstandings.html',form=form,headingdata=headingdata,racerows=racerows,standings=standings)
+            return flask.render_template('viewstandings.html',form=form,headingdata=headingdata,racerows=racerows,standings=standings,
+                                         inhibityear=True,inhibitclub=True)
         
         except Exception,e:
             # roll back database updates and close transaction
@@ -157,5 +255,100 @@ class ViewStandings(MethodView):
             return flask.redirect(flask.url_for('manageraces'))  # TODO: maybe this isn't the best place to go
 #----------------------------------------------------------------------
 app.add_url_rule('/viewstandings/',view_func=ViewStandings.as_view('viewstandings'),methods=['GET'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class AjaxGetYears(MethodView):
+#######################################################################
+    
+    #----------------------------------------------------------------------
+    def post(self):
+    #----------------------------------------------------------------------
+        try:
+            clubsh = request.args.get('club',None)
+            
+            if not clubsh:
+                db.session.rollback()
+                cause = 'Unexpected Error: both club and year must be specified'
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+                
+            club = Club.query.filter_by(shname=clubsh).first()
+            if not club:
+                db.session.rollback()
+                cause = 'Unexpected Error: club {} does not exist'.format(clubsh)
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+            
+            club_id = club.id
+            
+            allseries = Series.query.filter_by(active=True,club_id=club_id).join("results").all()
+
+            years = []
+            for thisseries in allseries:
+                if thisseries.year not in years:
+                    years.append(thisseries.year)
+            years.sort()
+            theseyears = [(y,y) for y in years]
+
+            choices = [(0,'Select Year')] + theseyears
+
+            # commit database updates and close transaction
+            db.session.commit()
+            return success_response(choices=choices)
+        
+        except Exception,e:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())
+            app.logger.error(cause)
+            return failure_response(cause=cause)
+#----------------------------------------------------------------------
+app.add_url_rule('/standings/_getyears',view_func=AjaxGetYears.as_view('standings/_getyears'),methods=['POST'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class AjaxGetSeries(MethodView):
+#######################################################################
+    
+    #----------------------------------------------------------------------
+    def post(self):
+    #----------------------------------------------------------------------
+        try:
+            clubsh = request.args.get('club',None)
+            year = request.args.get('year',None)
+            
+            if not clubsh or not year:
+                db.session.rollback()
+                cause = 'Unexpected Error: both club and year must be specified'
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+                
+            club = Club.query.filter_by(shname=clubsh).first()
+            if not club:
+                db.session.rollback()
+                cause = 'Unexpected Error: club {} does not exist'.format(clubsh)
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+            
+            club_id = club.id
+            
+            allseries = Series.query.filter_by(active=True,club_id=club_id,year=year).join("results").all()
+            theseseries = [(s.name,s.name) for s in allseries]
+            theseseries.sort()
+            choices = [('','Select Series')] + theseseries
+
+            # commit database updates and close transaction
+            db.session.commit()
+            return success_response(choices=choices)
+        
+        except Exception,e:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())
+            app.logger.error(cause)
+            return failure_response(cause=cause)
+#----------------------------------------------------------------------
+app.add_url_rule('/standings/_getseries',view_func=AjaxGetSeries.as_view('standings/_getseries'),methods=['POST'])
 #----------------------------------------------------------------------
 

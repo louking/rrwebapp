@@ -4,7 +4,8 @@
     {{ thispagename }}
 {% endblock %}
 {% block body %}
-  <form action="{{ userurl }}" method=post>
+  {# leave out action to come back to the same form with args #}
+  <form action="" method=post>
     {{ form.hidden_tag() }}
     <div class="W9emLabel W25emTextBox FloatLeft">
         {{ render_field(form.name,displayonly,size=25) }}

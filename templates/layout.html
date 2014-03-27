@@ -18,7 +18,7 @@
       <a href="{{ url_for('login') }}">log in</a>
     {% else %}
       {{ session.user_name }}
-      {% if session.year %}
+      {% if not inhibityear and session.year %}
         |
         <select id="year_select" class=sessionoption sessionoptionapi="/_useryear">
           {% for year in session.year_choices %}
@@ -26,7 +26,7 @@
           {% endfor %}
         </select>
       {% endif %}
-      {% if session.club_name %}
+      {% if not inhibitclub and session.club_name %}
         | 
         <select id="club_select" class=sessionoption sessionoptionapi="/_userclub">
           {% for club in session.club_choices %}
@@ -35,6 +35,9 @@
         </select>
       {% endif %}
       | <a href="{{ url_for('logout') }}">log out</a>
+      | <a href="{{ url_for('usersettings')}}?next={{request.url}}">
+          <span class="ui-icon ui-icon-gear" style="display: inline-block"></span>
+        </a>
     {% endif %}
   </div>  
 </div>
@@ -68,7 +71,7 @@
 <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/jquery.dataTables.yadcf.css') }}">
 <script type="text/javascript" charset="utf8" src="{{ url_for('static',filename='js/jquery.dataTables.yadcf.js') }}"></script>
 
-<!-- dataTables num-html support -->
+<!-- dataTables num-html support [modified plugin from http://datatables.net/plug-ins/sorting#functions_type "Numbers with HTML"] -->
 <script type="text/javascript" charset="utf8">
   jQuery.extend( jQuery.fn.dataTableExt.oSort, {
     "num-html-pre": function ( a ) {

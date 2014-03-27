@@ -22,10 +22,13 @@
 ###########################################################################################
 
 # standard
+import traceback
 
 # pypi
 import flask
 import flask.ext.login as flasklogin
+from flask.ext.login import login_required
+from flask.views import MethodView
 import flask.ext.principal as principal
 import flask.ext.wtf as flaskwtf
 
@@ -204,34 +207,68 @@ def useraction(userid,action):
                                  cancancel=cancancel,
                                  thispagename=pagename, action=buttontext)
 
-#----------------------------------------------------------------------
-@app.route('/user/settings', methods=['GET','POST'])
-@flasklogin.login_required
-def usersettings():
-#----------------------------------------------------------------------
-    '''
-    update user settings
-    '''
-    try:
-        # get the user from the database
-        userid = session.user_id
-        thisuser = racedb.User.query.filter_by(id=userid).first()
+#######################################################################
+class UserSettings(MethodView):
+#######################################################################
+    decotrators = [login_required]
     
-        pagename = 'User Settings'
-        buttontext = 'Update'
-        successtext = '{} updated'.format(thisuser.name)
-        displayonly = False
-    
-        # create the form
-        form = UserSettingsForm(email=thisuser.email, name=thisuser.name)
-        form.hidden_userid.data = userid
-    
-        # define form for GET
-        if flask.request.method == "GET" and not displayonly:
-            pass
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        '''
+        update user settings
+        '''
+        try:
+            # get the user from the database
+            userid = flask.session['user_id']
+            thisuser = racedb.User.query.filter_by(id=userid).first()
         
-        # validate form input
-        elif flask.request.method == "POST":
+            pagename = 'User Settings'
+            buttontext = 'Update'
+            successtext = '{} updated'.format(thisuser.name)
+            displayonly = False
+        
+            # create the form
+            form = UserSettingsForm(email=thisuser.email, name=thisuser.name)
+            form.hidden_userid.data = userid
+        
+            # commit database updates and close transaction
+            db.session.commit()
+            return flask.render_template('usersettings.html', form=form,
+                                         userurl=flask.url_for('usersettings'),
+                                         displayonly=displayonly,
+                                         thispagename=pagename, action=buttontext)
+            
+        except Exception,e:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())
+            flask.flash(cause)
+            app.logger.error(traceback.format_exc())
+            raise
+    
+
+    #----------------------------------------------------------------------
+    def post(self):
+    #----------------------------------------------------------------------
+        '''
+        update user settings
+        '''
+        try:
+            # get the user from the database
+            userid = flask.session['user_id']
+            thisuser = racedb.User.query.filter_by(id=userid).first()
+        
+            pagename = 'User Settings'
+            buttontext = 'Update'
+            successtext = '{} updated'.format(thisuser.name)
+            displayonly = False
+        
+            # create the form
+            form = UserSettingsForm(email=thisuser.email, name=thisuser.name)
+            form.hidden_userid.data = userid
+        
+            # 
             if form.validate_on_submit():
                 flask.get_flashed_messages()    # clears flash queue
     
@@ -244,26 +281,28 @@ def usersettings():
 
                     # commit database updates and close transaction
                     db.session.commit()
-                    return flask.redirect(flask.request.args.get('next')) #or flask.url_for('userconsole'))
+                    return flask.redirect(flask.request.args.get('next') or flask.url_for('index'))
                 
                 # cancel requested - note changes may have been made in url_for('updatepermissions') which need to be rolled back
                 # TODO: get rid of this???  It should not work
                 elif flask.request.form['whichbutton'] == 'Cancel':
-                    #db.session.expunge_all() # throw out any changes which have been made
-                    return flask.redirect(flask.request.args.get('next')) #or flask.url_for('userconsole'))
-    
-        # commit database updates and close transaction
-        db.session.commit()
+                    db.session.rollback() # throw out any changes which have been made
+                    return flask.redirect(flask.request.args.get('next') or flask.url_for('index'))
         
-    except:
-        # roll back database updates and close transaction
-        db.session.rollback()
-        raise
-
-    return flask.render_template('usersettings.html', form=form,
-                                 userurl=flask.url_for('usersettings'),
-                                 displayonly=displayonly,
-                                 thispagename=pagename, action=buttontext)
+            # commit database updates and close transaction
+            db.session.commit()
+            return (flask.redirect(flask.request.args.get('next')) or flask.url_for('index'))
+            
+        except Exception,e:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())
+            flask.flash(cause)
+            app.logger.error(traceback.format_exc())
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/usersettings/',view_func=UserSettings.as_view('usersettings'),methods=['GET','POST'])
+#----------------------------------------------------------------------
 
 #----------------------------------------------------------------------
 def _setpermission(club,user,rolename,setrole):

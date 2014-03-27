@@ -154,6 +154,7 @@ class SeriesResultForm(Form):
 ########################################################################
 class StandingsForm(Form):
 ########################################################################
+    # TODO: is this even used?
     filterseries = SelectField('Series',coerce=str)
     filtergender = SelectField('Gender',coerce=str)
     filterdivision = SelectField('Division',coerce=str)
@@ -164,5 +165,12 @@ class StandingsForm(Form):
     age = IntegerField('Age')
     points = FloatField('Points')
     total = FloatField('Total')
+    
+########################################################################
+class ChooseStandingsForm(Form):
+########################################################################
+    club = SelectField('Club',[validators.Optional()])
+    year = SelectField('Year',[validators.Optional()],coerce=int)
+    series = SelectField('Series',[validators.Optional()])
     
 

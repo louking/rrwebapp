@@ -295,7 +295,8 @@ class SeriesResults(MethodView):
             
             # commit database updates and close transaction
             db.session.commit()
-            return flask.render_template('seriesresults.html',form=form,race=race,resultsdata=resultsdata,writeallowed=writecheck.can())
+            return flask.render_template('seriesresults.html',form=form,race=race,resultsdata=resultsdata,
+                                         inhibityear=True,inhibitclub=True,writeallowed=writecheck.can())
         
         except:
             # roll back database updates and close transaction

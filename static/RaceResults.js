@@ -15,6 +15,7 @@
                         }
                 });
             });
+    $( "#navigation" ).menu();
     
     // common dataTables
     var sDomValue = '<"H"Clpfr>t<"F"i>';
@@ -309,10 +310,10 @@
         if (data.success) {
             if (typeof $( sel ).data('revert') != 'undefined') {
                 $( sel ).data('revert', getvalue(sel));
-                if (callback) {
-                    callback(sel)
-                }
             };
+            if (callback) {
+                callback(sel,data)
+            }
             if (data.redirect){
                 window.location.replace(data.redirect);
             };
@@ -495,37 +496,41 @@
                 //ajax_update_db_form('_importraces',form,false);
                 ajax_import_file('/_importraces','#import-races',false);
             });
+        };
             
-            $("._rrwebapp-importResultsButton").each(function(){
-                raceid = $(this).attr('_rrwebapp-raceid');
-                imported = $(this).attr('_rrwebapp-imported');
-                action = $(this).attr('_rrwebapp-formaction');
-                formid = $(this).attr('_rrwebapp-formid');
-                buttonid = formid+'-import';
+        $("._rrwebapp-importResultsButton").each(function(){
+            raceid = $(this).attr('_rrwebapp-raceid');
+            imported = $(this).attr('_rrwebapp-imported');
+            action = $(this).attr('_rrwebapp-formaction');
+            formid = $(this).attr('_rrwebapp-formid');
+            buttonid = formid+'-import';
 
-                if (imported) {
-                    icons = {secondary:'ui-icon-check'};
-                    text = false;
-                    label = null;
-                } else {
-                    icons = {};
-                    label = 'import';
-                    text = true;
-                };
-                
-                popupbutton.init(this, text, label, icons);
-            });
+            if (imported) {
+                icons = {secondary:'ui-icon-check'};
+                text = false;
+                label = null;
+            } else {
+                icons = {};
+                label = 'import';
+                text = true;
+            };
             
-            $("._rrwebapp-importResultsButton").click(function(){
-                var raceid = $(this).attr('_rrwebapp-raceid');
-                var imported = $(this).attr('_rrwebapp-imported');
-                var formid = $(this).attr('_rrwebapp-formid');
-                var buttonid = formid+'-import'
-                var formaction = $(this).attr('_rrwebapp-formaction');
-                var editaction = $(this).attr('_rrwebapp-editaction');
-                var seriesresultsaction = $(this).attr('_rrwebapp-seriesresultsaction');
-                
-                var popupcontent = "\
+            popupbutton.init(this, text, label, icons);
+        });
+        
+        $("._rrwebapp-importResultsButton").click(function(){
+            var raceid = $(this).attr('_rrwebapp-raceid');
+            var imported = $(this).attr('_rrwebapp-imported');
+            var formid = $(this).attr('_rrwebapp-formid');
+            var buttonid = formid+'-import'
+            var formaction = $(this).attr('_rrwebapp-formaction');
+            var editaction = $(this).attr('_rrwebapp-editaction');
+            var seriesresultsaction = $(this).attr('_rrwebapp-seriesresultsaction');
+            
+            var popupcontent = ""
+            
+            if (writeallowed) {
+                popupcontent = popupcontent + "\
                     <form action='"+action+"', id='"+formid+"' method='post' enctype='multipart/form-data'> \
                         <input type='file' name=file /> <button id='"+buttonid+"'>Import</button> \
                     </form>\
@@ -537,25 +542,26 @@
                     </form>\
                     "
                 };
-                if (seriesresultsaction) {
-                    popupcontent = popupcontent + "\
-                    <form method='link' action='"+seriesresultsaction+"'>\
-                        <input type='submit' value='View Series Results' />\
-                    </form>\
-                    "
-                };
+            };
 
-                var popupaction = function() {
-                    $('#'+buttonid)
-                        .click( function( event ) {
-                            event.preventDefault();
-                            ajax_import_file(formaction,'#'+formid,false);
-                        });
-                }
-                popupbutton.click(this, popupcontent, popupaction)
-                
-            });
-        };
+            if (seriesresultsaction) {
+                popupcontent = popupcontent + "\
+                <form method='link' action='"+seriesresultsaction+"'>\
+                    <input type='submit' value='View Series Results' />\
+                </form>\
+                "
+            };
+
+            var popupaction = function() {
+                $('#'+buttonid)
+                    .click( function( event ) {
+                        event.preventDefault();
+                        ajax_import_file(formaction,'#'+formid,false);
+                    });
+            }
+            popupbutton.click(this, popupcontent, popupaction)
+            
+        });
 
         _rrwebapp_table = $('#_rrwebapp-table-manage-races').dataTable({
             sDom: sDomValue,
@@ -733,7 +739,7 @@
                 sDom: sDomValue,
                 bJQueryUI: true,
                 bPaginate: false,
-                sScrollY: gettableheight(),
+                sScrollY: gettableheight()-15,  // -15 due to sort arrows, I think 
                 bScrollCollapse: true,
                 aoColumnDefs: [
                     {aTargets:[0],bVisible:false},
@@ -765,14 +771,30 @@
     };  // seriesresults
 
     function viewstandings() {
-        // not sure why fudge is needed, came after adding accordion above table
-        var scrollheightfudge = 0;
+        // not sure why fudge is needed, needed after adding accordion above table
+        var initialheightfudge = 35;
         var redrawheightfudge = 50;
+        
+        // Race list is kept in accordion above table, for reference
+        // height gets changed as accordion changes -- see http://datatables.net/forums/discussion/10906/adjust-sscrolly-after-init/p1
+        $( "#_rrwebapp-accordion-standings-races" ).accordion({
+          collapsible: true,
+          active: 'none',   // see http://stackoverflow.com/questions/2675263/collapse-all-sections-in-accordian-on-page-load-in-jquery-accordian
+          activate: function(event,ui) {
+            var oSettings = _rrwebapp_table.fnSettings();
+            var newheight = gettableheight() + redrawheightfudge;   // hmm, why +
+            oSettings.oScroll.sY = newheight;
+            $('div.dataTables_scrollBody').height(newheight);
+            console.log('newheight='+newheight)
+          }
+        });
+
+        // table needs to be after accordion declaration so size is set right
         _rrwebapp_table = $('#_rrwebapp-table-standings').dataTable({
                 sDom: sDomValue,
                 bJQueryUI: true,
                 bPaginate: false,
-                sScrollY: gettableheight() + scrollheightfudge,
+                sScrollY: gettableheight() - initialheightfudge,
                 bScrollCollapse: true,
                 aoColumnDefs: [
                     {aTargets:[0],bVisible:false},
@@ -805,24 +827,60 @@
             yadcf.exFilterColumn(_rrwebapp_table, 0, serieschoices[0])            
         }
 
-        // Race list is kept in accordion above table, for reference
-        // height gets changed as accordion changes -- see http://datatables.net/forums/discussion/10906/adjust-sscrolly-after-init/p1
-        $( "#_rrwebapp-accordion-standings-races" ).accordion({
-          collapsible: true,
-          activate: function(event,ui) {
-            var oSettings = _rrwebapp_table.fnSettings();
-            var newheight = gettableheight() + redrawheightfudge;
-            oSettings.oScroll.sY = newheight;
-            $('div.dataTables_scrollBody').height(newheight);
-            console.log('newheight='+newheight)
-          }
-        });
-        
+        // mouseover races shows race name
         $( document ).tooltip();
-
-        //$("#_rrwebapp-accordion-standings-races-header").click(function() {
-        //    var oSettings = _rrwebapp_table.fnSettings();
-        //    oSettings.oScroll.sY = gettableheight(); 
-        //    _rrwebapp_table.fnDraw();
-        //});
     };  // viewstandings
+
+    function updateselect(sel,apiurl,ajaxparams) {
+        ajax_update_db_noform(apiurl,ajaxparams,sel,true,
+            // this function is called in ajax_update_db_noform_resp if successful
+            function(sel,data){
+                // remove current options
+                $(sel+' option').each(function(){
+                   $(this).remove() 
+                });
+                // add options from response
+                $.each(data.choices,function(ndx,choice){
+                   $(sel).append($('<option>').val(choice[0]).text(choice[1]));
+                });
+            });
+        
+    };
+    
+    function choosestandings() {
+        $('#_rrwebapp-choosestandings-select-club')
+            .on('change',
+                function ( event ) {
+                    var apiurl = $( this ).attr('_rrwebapp_apiurl');
+                    club = getvalue('#_rrwebapp-choosestandings-select-club')
+
+                    // club needs to be set
+                    if (!club ) {
+                        return
+                    }
+                    
+                    // ajax parameter setup
+                    ajaxparams = {club:club}
+                    
+                    updateselect('#_rrwebapp-choosestandings-select-year',apiurl,ajaxparams);
+        });
+
+        $('#_rrwebapp-choosestandings-select-club, #_rrwebapp-choosestandings-select-year')
+            .on('change',
+                function ( event ) {
+                    var apiurl = $( this ).attr('_rrwebapp_apiurl');
+                    club = getvalue('#_rrwebapp-choosestandings-select-club')
+                    year = getvalue('#_rrwebapp-choosestandings-select-year')
+
+                    // both need to be set
+                    if (!club || !year) {
+                        return
+                    }
+                    
+                    // ajax parameter setup
+                    ajaxparams = {club:club,year:year}
+                    
+                    updateselect('#_rrwebapp-choosestandings-select-series',apiurl,ajaxparams);
+        });
+
+    };  // choosestandings
