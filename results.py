@@ -215,30 +215,18 @@ app.add_url_rule('/editresults/<int:raceid>',view_func=EditResults.as_view('edit
 #######################################################################
 class SeriesResults(MethodView):
 #######################################################################
-    decorators = [login_required]
     #----------------------------------------------------------------------
     def get(self,raceid):
     #----------------------------------------------------------------------
         try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-            
-            readcheck = ViewClubDataPermission(club_id)
-            writecheck = UpdateClubDataPermission(club_id)
-            
-            # verify user can at least read the data, otherwise abort
-            if not readcheck.can():
-                db.session.rollback()
-                flask.abort(403)
-                
             form = SeriesResultForm()
     
             # get all the results, and the race record
             results = []
-            results = RaceResult.query.filter_by(club_id=club_id,raceid=raceid).all()
+            results = RaceResult.query.filter_by(raceid=raceid).all()
             
-            # get race and list of runners who should be included in this race, based on membersonly
-            race = Race.query.filter_by(club_id=club_id,id=raceid).first()
+            # get race 
+            race = Race.query.filter_by(id=raceid).first()
             racedatedt = dbdate.asc2dt(race.date)
             if len(race.series) == 0:
                 db.session.rollback()
@@ -246,8 +234,8 @@ class SeriesResults(MethodView):
                 app.logger.error(cause)
                 flask.flash(cause)
                 return flask.redirect(flask.url_for('manageraces'))
-            membersonly = race.series[0].series.membersonly
-            active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=membersonly,active=True)
+            #membersonly = race.series[0].series.membersonly
+            #active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=membersonly,active=True)
             
             # fix up the following:
             #   * time gets converted from seconds
@@ -255,9 +243,9 @@ class SeriesResults(MethodView):
             #   * based on matching, set disposition
             annotatedresults = []
             for result in results:
-                runner = Runner.query.filter_by(club_id=club_id,id=result.runnerid).first()
+                runner = Runner.query.filter_by(id=result.runnerid).first()
                 thisname = runner.name
-                series = Series.query.filter_by(club_id=club_id,id=result.seriesid).first()
+                series = Series.query.filter_by(id=result.seriesid).first()
                 thisseries = series.name
                 thistime = render.rendertime(result.time,0)
                 thisagtime = render.rendertime(result.time,0)
@@ -296,7 +284,7 @@ class SeriesResults(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('seriesresults.html',form=form,race=race,resultsdata=resultsdata,
-                                         inhibityear=True,inhibitclub=True,writeallowed=writecheck.can())
+                                         inhibityear=True,inhibitclub=True)
         
         except:
             # roll back database updates and close transaction

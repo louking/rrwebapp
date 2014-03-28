@@ -58,7 +58,7 @@ from loutilities import timeu
 #######################################################################
 class ChooseStandings(MethodView):
 #######################################################################
-    CHOOSE = 'Choose Standings'
+    CHOOSE = 'Show Standings'
     
     #----------------------------------------------------------------------
     def get(self):
@@ -187,6 +187,8 @@ class ViewStandings(MethodView):
             # get races for this series, in date order
             races = Race.query.join("series").filter_by(seriesid=seriesid,active=True).order_by(Race.date).all()
             racenums = range(1,len(races)+1)
+            resulturls = [flask.url_for('seriesresults',raceid=r.id) for r in races]
+            
             # number of rows is set based on whether len(races) is even or odd
             numcols = 2
             even = len(races) / numcols == len(races) / (numcols*1.0)
@@ -199,10 +201,13 @@ class ViewStandings(MethodView):
                 for col in range(numcols):
                     racenum[col] = rownum + numrows*col + 1
                     if racenum[col] in racenums:
-                        thisrow.append({'num':racenum[col],'race':'{} ({})'.format(races[racenum[col]-1].name,races[racenum[col]-1].date)})
+                        rndx = racenum[col]-1
+                        thisrow.append({'num':racenum[col],
+                                        'resultsurl':resulturls[rndx],
+                                        'race':'{} ({})'.format(races[rndx].name,races[rndx].date)})
                     else:
                         racenum[col] = None
-                        thisrow.append({'num':None,'race':''})
+                        thisrow.append({'num':None,'resultsurl':'','race':''})
                 racerows.append(thisrow)
                 
             # prepare to collect all the results for this series which have any results

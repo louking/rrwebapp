@@ -87,6 +87,11 @@
             - $('.dataTables_filter').height()
             - $('thead').height()
             - 112;
+        
+        // height = window's height subtracting the vertical position of the dataTable
+        // TODO: this can only be done after table is created
+        //var height = $(window).height() - $('._rrwebapp-table').position().top;
+        
         // error return
         if (height<100){
             return 430;

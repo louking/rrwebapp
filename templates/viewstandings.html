@@ -33,7 +33,11 @@
               <tr>
                 {% for race in racerow %}
                   <td align=center>{{ num(race.num,0) }}</td>
-                  <td>{{race.race}}</td>
+                  {% if race.resultsurl %}
+                    <td><a href="{{ race.resultsurl}}">{{race.race}}</a></td>
+                  {% else %}
+                    <td>{{race.race}}</td>
+                  {% endif %}
                 {% endfor %}
               </tr>
             {% endfor %}
