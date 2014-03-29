@@ -124,13 +124,15 @@ class ChooseStandings(MethodView):
 
             # handle Cancel
             if request.form['whichbutton'] == ChooseStandings.CHOOSE:
-                #if not form.validate_on_submit():
-                #    db.session.rollback()
-                #    cause =  "Unexpected Error: occured on form submit, did not validate"
-                #    app.logger.error(cause)
-                #    flask.flash(cause)
-                #    return flask.redirect(flask.url_for('choosestandings'))
+                # there must be input on all fields
+                if not (form.club.data and form.year.data and form.series.data):
+                    db.session.rollback()
+                    cause =  "you must specify club, year and series"
+                    app.logger.debug(cause)
+                    flask.flash(cause)
+                    return flask.redirect(flask.url_for('choosestandings'))
 
+                
                 # pull parameters out of form
                 params = {}
                 params['club'] = form.club.data

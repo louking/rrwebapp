@@ -23,6 +23,7 @@
 
 # standard
 import os
+import os.path
 
 # pypi
 import flask
@@ -37,6 +38,7 @@ import database_flask # this is ok because this subpackage only runs under flask
 from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
 from nav import setnavigation
+from loutilities import apikey
 
 # configure app
 DEBUG = True
@@ -50,6 +52,34 @@ app.config.from_object(__name__)
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
 
+# set up logging
+ADMINS = ['lking@pobox.com']
+if not app.debug:
+    import logging
+    from logging.handlers import SMTPHandler
+    from logging import FileHandler, Formatter
+    mail_handler = SMTPHandler('smtp.secureserver.net',
+                               'server-error@steeplechasers.org',
+                               ADMINS, 'Hello Failed')
+    mail_handler.setLevel(logging.ERROR)
+    app.logger.addHandler(mail_handler)
+    
+    # need better way to control environment
+    ak = apikey.ApiKey('Lou King','raceresultswebapp')
+    try:
+        logdir = ak.getkey('logdirectory')
+    except apikey.unknownKey:
+        logdir = None
+    if logdir:
+        file_handler = FileHandler(os.path.join(logdir,'rrwebapp.log'),delay=True)
+        file_handler.setLevel(logging.WARNING)
+        app.logger.addHandler(file_handler)
+    
+        file_handler.setFormatter(Formatter(
+            '%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]'
+        ))
+    
 # import all views
 import login
 import club

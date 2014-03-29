@@ -1,0 +1,11 @@
+
+AddHandler fcgid-script .py
+Options +FollowSymLinks
+RewriteEngine On
+RewriteBase /rrwebapp/
+
+# everything else sent to flask
+RewriteRule ^(rrwebappdispatch\.py/.*)$ - [L]
+RewriteRule ^(.*)$ rrwebappdispatch.py/$1 [L]
+
+
