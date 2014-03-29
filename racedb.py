@@ -787,7 +787,7 @@ def main():
             OUT.write('found id={0}, runner={1}\n'.format(runner.id,runner))
         
     if args.racefile:
-        print 'needs update due to Race initializer change'
+        app.logger.warning('needs update due to Race initializer change')
         return
         import racefile
         races = racefile.RaceFile(args.racefile)

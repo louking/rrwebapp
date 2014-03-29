@@ -319,7 +319,6 @@ class AjaxImportRaces(MethodView):
             allraces = Race.query.filter_by(club_id=club_id,active=True,year=thisyear).all()
             
             # if some races exist, verify user wants to overwrite
-            #print 'force = ' + request.args.get('force')
             if allraces and not request.args.get('force')=='true':
                 db.session.rollback()
                 return failure_response(cause='Overwrite races for this year?',confirm=True)
@@ -566,7 +565,7 @@ class SeriesSettings(MethodView):
                 form.races.choices = races  # this has to be before form validation
 
                 if not form.validate():
-                    print form.errors
+                    app.logger.warning(form.errors)
                     return 'error occurred on form submit -- update error message and display form again'
                     
                 readcheck = ViewClubDataPermission(club_id)
@@ -835,7 +834,7 @@ class DivisionSettings(MethodView):
                 form.seriesid.choices = series  # this has to be before form validation
 
                 if not form.validate():
-                    print form.errors
+                    app.logger.warning(form.errors)
                     return 'error occurred on form submit -- update error message and display form again'
                     
                 readcheck = ViewClubDataPermission(club_id)

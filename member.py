@@ -248,12 +248,12 @@ class AjaxImportMembers(MethodView):
             if not memberfile:
                 db.session.rollback()
                 cause = 'Unexpected Error: Missing file'
-                print cause
+                app.logger.error(cause)
                 return failure_response(cause=cause)
             if not allowed_file(memberfile.filename):
                 db.session.rollback()
                 cause = 'Invalid file type {} for file {}'.format(ext,memberfile.filename)
-                print cause
+                app.logger.error(cause)
                 return failure_response(cause=cause)
 
             # get all the member runners currently in the database
@@ -264,7 +264,6 @@ class AjaxImportMembers(MethodView):
                 inactiverunners[thisrunner.name,thisrunner.dateofbirth] = thisrunner
 
             # if some members exist, verify user wants to overwrite
-            #print 'force = ' + request.args.get('force')
             if allrunners and not request.args.get('force')=='true':
                 db.session.rollback()
                 return failure_response(cause='Overwrite members?',confirm=True)
@@ -285,7 +284,7 @@ class AjaxImportMembers(MethodView):
             else:
                 db.session.rollback()
                 cause =  'Program Error: Invalid file type {} for file {} path {} (unexpected)'.format(ext,memberfile.filename,memberpathname)
-                print cause
+                app.logger.error(cause)
                 return failure_response(cause=cause)
             
             # remove file and temporary directory
@@ -294,7 +293,7 @@ class AjaxImportMembers(MethodView):
                 os.rmdir(tempdir)
             # no idea why this can happen; hopefully doesn't happen on linux
             except WindowsError,e:
-                print 'exception ignored: {}'.format(e)
+                app.logger.debug('WindowsError exception ignored: {}'.format(e))
 
             # get old clubmembers from database
             dbmembers = clubmember.DbClubMember()   # use default database
@@ -384,7 +383,7 @@ class AjaxImportMembers(MethodView):
                             added = racedb.update(db.session,Runner,dbnonmember,thisrunner,skipcolumns=['id'])
                             found = True
                         else:
-                            print '{} found in database, wrong age, expected {} found {} in {}'.format(thisname,expectedage,resultage,result)
+                            app.logger.warning('{} found in database, wrong age, expected {} found {} in {}'.format(thisname,expectedage,resultage,result))
                             # TODO: need to make file for these, also need way to force update, because maybe bad date in database for result
                             # currently this will cause a new runner entry
                     
