@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import num,tabbool,tabboollink,tabeditlink %}
+{% block pagename %}
+    System Information
+{% endblock %}
+{% block body %}
+  <table class="DataList" id="_rrwebapp-table-sysinfo" cellpadding=0 cellspace=0>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>VERSION</td>
+        <td>{{ version }}</td>
+      </tr>
+      {% for item in appconfig %}
+        <tr>
+          <td>{{ item.label }}</td>
+          <td>{{ item.value }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -75,6 +75,7 @@ def getnavigation():
             navigation.append({'display':'Divisions','url':flask.url_for('managedivisions')})
     
     navigation.append({'display':'Standings','url':flask.url_for('choosestandings')})
+    navigation.append({'display':'About','url':flask.url_for('sysinfo')})
     
     return navigation
 

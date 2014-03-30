@@ -2,7 +2,7 @@
 AddHandler fcgid-script .py
 Options +FollowSymLinks
 RewriteEngine On
-RewriteBase /rrwebapp/
+RewriteBase /standings/
 
 # everything else sent to flask
 RewriteRule ^(rrwebappdispatch\.py/.*)$ - [L]

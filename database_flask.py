@@ -51,12 +51,6 @@ dbserver = ak.getkey('dbserver')
 dbname = ak.getkey('dbname')
 app.logger.debug('using mysql://{uname}:*******@{server}/{dbname}'.format(uname=dbuser,server=dbserver,dbname=dbname))
 
-# temp test code
-#dbuser = 'testuser'
-#password = 'testuserpw'
-#dbserver = '127.0.0.1'
-#dbname = 'testdemo'
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://{uname}:{pw}@{server}/{dbname}'.format(uname=dbuser,pw=password,server=dbserver,dbname=dbname)
 #app.config['SQLALCHEMY_POOL_RECYCLE'] = 3200  # try to fix "MySQL server has gone away" error
 
@@ -80,6 +74,14 @@ metadata = db.metadata
 
 Session = None
 setracedb = None
+
+# db remove session is done whenever app tears down
+# TODO: was lack of this causing Operation Error on godaddy.com?
+@app.teardown_appcontext
+#----------------------------------------------------------------------
+def shutdown_session(exception=None):
+#----------------------------------------------------------------------
+    db.session.remove()    
 
 #----------------------------------------------------------------------
 def setracedb(dbfilename=None):

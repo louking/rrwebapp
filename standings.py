@@ -170,16 +170,17 @@ class ViewStandings(MethodView):
                 cause = "Error: club '{}' does not exist".format(club)
                 flask.flash(cause)
                 app.logger.error(cause)
-                flask.redirect(url_for('manageraces'))  # TODO: maybe this isn't the best place to go
+                return flask.redirect(flask.url_for('choosestandings'))  
             
             club_id = thisclub.id
+            clubname = thisclub.name
             thisseries = Series.query.filter_by(club_id=club_id,name=series,year=year).first()
             if not thisseries:
                 db.session.rollback()
-                cause = "Error: series '{}' does not exist for club '{}' does not exist".format(series,club)
+                cause = "Error: series '{}' does not exist for '{}' club".format(series,clubname)
                 flask.flash(cause)
                 app.logger.error(cause)
-                flask.redirect(url_for('manageraces'))  # TODO: maybe this isn't the best place to go
+                return flask.redirect(flask.url_for('choosestandings'))  
             
             seriesid = thisseries.id
             thisyear = year
@@ -259,7 +260,7 @@ class ViewStandings(MethodView):
             flask.flash(cause)
             app.logger.error(traceback.format_exc())
             raise
-            return flask.redirect(flask.url_for('manageraces'))  # TODO: maybe this isn't the best place to go
+            return flask.redirect(flask.url_for('choosestandings'))  
 #----------------------------------------------------------------------
 app.add_url_rule('/viewstandings/',view_func=ViewStandings.as_view('viewstandings'),methods=['GET'])
 #----------------------------------------------------------------------

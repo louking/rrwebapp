@@ -40,8 +40,23 @@ from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, Vi
 from nav import setnavigation
 from loutilities import apikey
 
+ak = apikey.ApiKey('Lou King','raceresultswebapp')
+
+def getapikey(key):
+    try:
+        keyval = ak.getkey(key)
+        return eval(keyval)
+    except apikey.unknownKey:
+        return None
+    except:     # NameError, SyntaxError, what else?
+        return keyval
+    
+# get api keys
+logdir = getapikey('logdirectory')
+debug = True if getapikey('debug') else False
+
 # configure app
-DEBUG = True
+DEBUG = debug
 if DEBUG:
     SECRET_KEY = 'flask development key'
 else:
@@ -59,17 +74,11 @@ if not app.debug:
     from logging.handlers import SMTPHandler
     from logging import FileHandler, Formatter
     mail_handler = SMTPHandler('smtp.secureserver.net',
-                               'server-error@steeplechasers.org',
-                               ADMINS, 'Hello Failed')
+                               'noreply@steeplechasers.org',
+                               ADMINS, 'rrwebapp error')
     mail_handler.setLevel(logging.ERROR)
     app.logger.addHandler(mail_handler)
     
-    # need better way to control environment
-    ak = apikey.ApiKey('Lou King','raceresultswebapp')
-    try:
-        logdir = ak.getkey('logdirectory')
-    except apikey.unknownKey:
-        logdir = None
     if logdir:
         file_handler = FileHandler(os.path.join(logdir,'rrwebapp.log'),delay=True)
         file_handler.setLevel(logging.WARNING)
@@ -88,15 +97,11 @@ import race
 import member
 import results
 import standings
+import sysinfo
 
 @app.before_request
 def before_request():
     setnavigation()
-
-# db commit is done in each request handler
-#@app.teardown_request
-#def teardown_request(exception):
-#    db.session.commit()
 
 ########################################################################
 ########################################################################
