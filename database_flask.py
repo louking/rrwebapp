@@ -72,9 +72,6 @@ object_mapper = db.object_mapper
 Base = db.Model
 metadata = db.metadata
 
-Session = None
-setracedb = None
-
 ## db close session is done whenever app tears down
 ## TODO: was lack of this causing Operation Error on godaddy.com?
 #@app.teardown_appcontext
@@ -83,13 +80,3 @@ setracedb = None
 ##----------------------------------------------------------------------
 #    db.session.close()    
 
-#----------------------------------------------------------------------
-def setracedb(dbfilename=None):
-#----------------------------------------------------------------------
-# for compatibility with database_script module
-    '''
-    initialize race database
-    
-    :params dbfilename: filename for race database, if None get from configuration
-    '''
-    pass
