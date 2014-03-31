@@ -54,15 +54,24 @@ def getapikey(key):
 # get api keys
 logdir = getapikey('logdirectory')
 debug = True if getapikey('debug') else False
+secretkey = getapikey('secretkey')
+configdir = getapikey('configdir')
+#if not secretkey:
+#    secretkey = os.urandom(24)
+#    ak.updatekey('secretkey',keyvalue)
 
 # configure app
 DEBUG = debug
 if DEBUG:
     SECRET_KEY = 'flask development key'
 else:
-    SECRET_KEY = os.urandom(24)
+    SECRET_KEY = secretkey
 app.config.from_object(__name__)
 
+if configdir and os.path.exists(os.path.join(configdir,'rrwebapp.cfg')):
+    app.logger.info('configuring from rrwebapp.cfg')
+    app.config.from_pyfile(os.path.join(configdir,'rrwebapp.cfg'))
+    
 # tell jinja to remove linebreaks
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True

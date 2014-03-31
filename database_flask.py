@@ -75,13 +75,13 @@ metadata = db.metadata
 Session = None
 setracedb = None
 
-# db remove session is done whenever app tears down
-# TODO: was lack of this causing Operation Error on godaddy.com?
-@app.teardown_appcontext
-#----------------------------------------------------------------------
-def shutdown_session(exception=None):
-#----------------------------------------------------------------------
-    db.session.remove()    
+## db close session is done whenever app tears down
+## TODO: was lack of this causing Operation Error on godaddy.com?
+#@app.teardown_appcontext
+##----------------------------------------------------------------------
+#def shutdown_session(exception=None):
+##----------------------------------------------------------------------
+#    db.session.close()    
 
 #----------------------------------------------------------------------
 def setracedb(dbfilename=None):

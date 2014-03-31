@@ -1,12 +1,16 @@
 #!/var/chroot/home/content/89/11476389/devhome/venv/bin/python
 from flup.server.fcgi import WSGIServer
 from rrwebapp.app import app
-import traceback
+
+class ScriptNameStripper(object):
+   def __init__(self, app):
+       self.app = app
+
+   def __call__(self, environ, start_response):
+       environ['SCRIPT_NAME'] = '/standings'
+       return self.app(environ, start_response)
+
+app = ScriptNameStripper(app)
 
 if __name__ == '__main__':
-    while True:
-        try:
-            WSGIServer(app).run()
-            break
-        except Exception,e:
-            app.logger.error(traceback.format_exc())
+    WSGIServer(app).run()
