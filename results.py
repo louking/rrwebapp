@@ -231,7 +231,6 @@ class SeriesResults(MethodView):
             
             # get race 
             race = Race.query.filter_by(id=raceid).first()
-            racedatedt = dbdate.asc2dt(race.date)
             if len(race.series) == 0:
                 db.session.rollback()
                 cause =  "Race '{}' is not included in any series".format(race.name)
