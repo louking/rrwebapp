@@ -107,6 +107,10 @@ def filtermissed(missed,racedate,resultage):
             exclusion = Exclusion.query.filter_by(foundname=resultname,runnerid=runner.id).first()
             if exclusion:
                 localmissed.remove(thismissed)
+                
+            # TODO: also need to skip runners who were not members at the time of the race
+            #if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(racedate)+JOIN_GRACEPERIOD:
+            #    localmissed.remove(thismissed)
 
     return localmissed
 

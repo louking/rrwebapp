@@ -1,6 +1,6 @@
 <!doctype html>
 <head>
-  <title>Race Results</title>
+  <title>RapidRace Results</title>
 </head>
 <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/sm-f0-8em-theme/jquery-ui-1.10.4.custom.min.css') }}">
@@ -11,7 +11,7 @@
 {# set requestpath = request.path.split("/") #}
 <!--<div id="rr-page-{# requestpath[1] #}"></div>-->
 <div class=heading>
-  <h1>Race Results</h1>
+  <h1>RapidRace Results</h1>
   <div class=pagename>{% block pagename %}{% endblock %}</div>
   <div class=metanav>
     {% if not session.logged_in %}

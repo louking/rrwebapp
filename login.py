@@ -117,7 +117,7 @@ def login():
             
             # commit database updates and close transaction
             db.session.commit()
-            return flask.redirect(flask.request.args.get('next') or flask.url_for('ownerconsole'))
+            return flask.redirect(flask.request.args.get('next') or flask.url_for('index'))
         
         except:
            # roll back database updates and close transaction
@@ -227,9 +227,7 @@ def setclub():
             
             # commit database updates and close transaction
             db.session.commit()
-
-            # TODO: need to change this to clubconsole
-            return flask.redirect(flask.request.args.get('next') or flask.url_for('ownerconsole'))
+            return flask.redirect(flask.request.args.get('next') or flask.url_for('index'))
         
         # commit database updates and close transaction
         db.session.commit()
@@ -269,9 +267,7 @@ def setyear():
             
             # commit database updates and close transaction
             db.session.commit()
-
-            # TODO: need to change this to clubconsole
-            return flask.redirect(flask.request.args.get('next') or flask.url_for('ownerconsole'))
+            return flask.redirect(flask.request.args.get('next') or flask.url_for('index'))
         
         # commit database updates and close transaction
         db.session.commit()

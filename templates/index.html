@@ -1,7 +1,36 @@
 {% extends "layout.html" %}
 {% block pagename %}
-    Race Results
+    Home
 {% endblock %}
 {% block body %}
-  Welcome to Race Results
+  <h1>Welcome to RapidRace Results</h1>
+  <br>
+  <em>RapidRace Results</em> gives a running club the ability to define various race series, which races are in each series, and to collect and tabulate
+  results for races run.  When results are tabulated, standings are made available showing the current scores for all the runners included
+  in that series.
+  <br><br>
+  <h2>Features</h2>
+  <ul>
+    <li>update club membership via spreadsheet import</li>
+    <li>update races via spreadsheet import or add races individually</li>
+    <li>set up divisions</li>
+    <li>set up race series</li>
+    <li>set up which races are in which series</li>
+    <li>import race results from a spreadsheet or text file</li>
+    <ul>
+      <li>smart import tries to match each name in the results file with a club member name, and
+      makes suggestions for slight mismatches, e.g., Jenny Jones on race result, Jennifer Jones in the membership</li>
+    </ul>
+    <li>administrator can adjust and confirm guesses which were made by the smart race results import</li>
+    <ul>
+      <li>once confirmed, the decision made is remembered so the same guess is not made for a later results import.
+      E.g., the smart import might suggest a result for John Smith matches John Smothers -- when the administrator
+      indicates this is not correct, this association will not be suggested for future race results imports</li>
+    </ul>
+    <li>tabulate results into race series results</li>
+    <li>view standings and race series results</li>
+    <li>different club's information is kept separate, i.e., separate membership, races, division, series, results, standings, by club</li>
+  </ul>
+  
+  
 {% endblock %}

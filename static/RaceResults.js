@@ -757,9 +757,11 @@
                 },{
                     column_number:3,
                     filter_container_id:"_rrwebapp_filtergender",
+                    filter_reset_button_text: 'all',
                 },{
                     column_number:5,
                     filter_container_id:"_rrwebapp_filterdivision",
+                    filter_reset_button_text: 'all',
                 },]);
         //_rrwa_resultstable = $('#_rrwebapp-table-seriesresults').DataTable({
         //    paging: false,
@@ -820,6 +822,7 @@
                     column_data_type: "html",
                     html_data_type: "text",
                     filter_container_id:"_rrwebapp_filtergender",
+                    filter_reset_button_text: 'all',
                 },]);
         
         // force always to have some Division filter, hopefully Overall
