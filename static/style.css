@@ -1,6 +1,11 @@
-/* overwrite some JQuery theme information */
+/* overwrite some JQuery theme information (prevents titlebar on dialog) */
 .no-titlebar .ui-dialog-titlebar {
   display: none;
+}
+
+/* overwrite JQuery.dataTables.yadcf class (prevents background on selected column filter) */
+.inuse {
+  background: none;
 }
 
 /*body            { font-family: sans-serif; background: #eee; } */

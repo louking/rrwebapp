@@ -24,6 +24,7 @@
 # standard
 import os
 import os.path
+import logging
 
 # pypi
 import flask
@@ -72,7 +73,6 @@ else:
 app.config.from_object(__name__)
 
 if configdir and os.path.exists(os.path.join(configdir,'rrwebapp.cfg')):
-    app.logger.info('configuring from rrwebapp.cfg')
     app.config.from_pyfile(os.path.join(configdir,'rrwebapp.cfg'))
     
 # tell jinja to remove linebreaks
@@ -82,7 +82,6 @@ app.jinja_env.lstrip_blocks = True
 # set up logging
 ADMINS = ['lking@pobox.com']
 if not app.debug:
-    import logging
     from logging.handlers import SMTPHandler
     from logging import FileHandler, Formatter
     mail_handler = SMTPHandler('localhost',

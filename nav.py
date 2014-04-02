@@ -61,7 +61,7 @@ def getnavigation():
 
     navigation = []
     
-    navigation.append({'display':'Home','url':flask.url_for('index')})
+    navigation.append({'display':'scoreit Home','url':flask.url_for('index')})
     
     if thisuser.is_authenticated():
         if owner_permission.can():

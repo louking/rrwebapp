@@ -2,11 +2,6 @@
 <head>
   <title>scoreit</title>
 </head>
-<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
-<link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/sm-f0-8em-theme/jquery-ui-1.10.4.custom.min.css') }}">
-<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>-->
-{% block css %}
-{% endblock %}
 <body>
 {# set requestpath = request.path.split("/") #}
 <!--<div id="rr-page-{# requestpath[1] #}"></div>-->
@@ -64,6 +59,7 @@
 </script>
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.11.0.min.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery-ui-1.10.4.custom.min.js') }}"></script>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/sm-f0-8em-theme/jquery-ui-1.10.4.custom.min.css') }}">
 
 <!-- DataTables -->
 <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/jquery.dataTables.css') }}">
@@ -94,6 +90,11 @@
 </script>
 
 <script type="text/javascript" src="{{ url_for('static', filename='RaceResults.js') }}"></script>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>-->
+{% block css %}
+{% endblock %}
+
 {% block scripts %}
 {% endblock %}
 </body>
