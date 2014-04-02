@@ -56,11 +56,14 @@ logdir = getapikey('logdirectory')
 debug = True if getapikey('debug') else False
 secretkey = getapikey('secretkey')
 configdir = getapikey('configdir')
+fileloglevel = getapikey('fileloglevel')
+mailloglevel = getapikey('emailloglevel')
 #if not secretkey:
 #    secretkey = os.urandom(24)
 #    ak.updatekey('secretkey',keyvalue)
 
 # configure app
+# TODO: these should come from rrwebapp.cfg
 DEBUG = debug
 if DEBUG:
     SECRET_KEY = 'flask development key'
@@ -82,15 +85,19 @@ if not app.debug:
     import logging
     from logging.handlers import SMTPHandler
     from logging import FileHandler, Formatter
-    mail_handler = SMTPHandler('smtp.secureserver.net',
+    mail_handler = SMTPHandler('localhost',
                                'noreply@steeplechasers.org',
-                               ADMINS, 'rrwebapp error')
-    mail_handler.setLevel(logging.ERROR)
+                               ADMINS, '[RRWEBAPP] exception encountered')
+    if not mailloglevel:
+        mailloglevel = logging.ERROR
+    mail_handler.setLevel(mailloglevel)
     app.logger.addHandler(mail_handler)
     
     if logdir:
         file_handler = FileHandler(os.path.join(logdir,'rrwebapp.log'),delay=True)
-        file_handler.setLevel(logging.WARNING)
+        if not fileloglevel:
+            fileloglevel = logging.WARNING
+        file_handler.setLevel(fileloglevel)
         app.logger.addHandler(file_handler)
     
         file_handler.setFormatter(Formatter(

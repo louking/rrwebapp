@@ -70,7 +70,7 @@ class ViewSysinfo(MethodView):
             
             # commit database updates and close transaction
             db.session.commit()
-            return flask.render_template('sysinfo.html',version=thisversion,appconfig=appconfig,
+            return flask.render_template('sysinfo.html',pagename='About',version=thisversion,
                                          inhibityear=True,inhibitclub=True)
         
         except:
@@ -79,5 +79,52 @@ class ViewSysinfo(MethodView):
             raise
 #----------------------------------------------------------------------
 app.add_url_rule('/sysinfo',view_func=ViewSysinfo.as_view('sysinfo'),methods=['GET'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class ViewDebug(MethodView):
+#######################################################################
+    
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        try:
+            thisversion = version.__version__
+
+            # collect groups of system variables                        
+            sysvars = []
+            
+            # collect app.config variables
+            configkeys = app.config.keys()
+            configkeys.sort()
+            appconfig = []
+            for key in configkeys:
+                value = app.config[key]
+                if not owner_permission.can():
+                    if key in ['SQLALCHEMY_DATABASE_URI','SECRET_KEY']:
+                        value = '<obscured>'
+                appconfig.append({'label':key, 'value':value})
+            sysvars.append(['app.config',appconfig])
+            
+            # collect flask.session variables
+            sessionkeys = flask.session.keys()
+            sessionkeys.sort()
+            sessionconfig = []
+            for key in sessionkeys:
+                value = flask.session[key]
+                sessionconfig.append({'label':key, 'value':value})
+            sysvars.append(['flask.session',sessionconfig])
+            
+            # commit database updates and close transaction
+            db.session.commit()
+            return flask.render_template('sysinfo.html',pagename='Debug',version=thisversion,sysvars=sysvars,
+                                         inhibityear=True,inhibitclub=True)
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/_debuginfo',view_func=ViewDebug.as_view('debug'),methods=['GET'])
 #----------------------------------------------------------------------
 

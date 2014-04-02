@@ -46,6 +46,8 @@ from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, Vi
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+class dbConsistencyError(Exception): pass
+
 ########################################################################
 ########################################################################
 #----------------------------------------------------------------------
@@ -104,7 +106,8 @@ def login():
             
             # zero clubs is an internal error in the databse
             if not(userclubs):
-                abort(500)  # Internal Server Error
+                db.session.rollback()
+                raise dbConsistencyError,'no clubs found in database'
                 
             # give user access to the first club in the list
             club = Club.query.filter_by(id=userclubs[0][0]).first()
@@ -114,6 +117,9 @@ def login():
             # set default year to be current year
             today = timeu.epoch2dt(time.time())
             flask.session['year'] = today.year
+            
+            # log login
+            app.logger.debug("logged in user '{}'".format(flask.session['user_name']))
             
             # commit database updates and close transaction
             db.session.commit()
@@ -132,7 +138,9 @@ def login():
 def set_logged_out():
 #----------------------------------------------------------------------
     logout_user()
-    for key in ('logged_in','user_name','club_id','club_name'):
+    
+    flask.session.permanent = False
+    for key in ('logged_in','user_name','club_id','club_name','club_choices','year','year_choices'):
         flask.session.pop(key, None)
         
     for key in ('identity.name', 'identity.auth_type'):
@@ -143,15 +151,18 @@ def set_logged_out():
 def logout():
 #----------------------------------------------------------------------
     try:
+        # log logout attempt
+        if 'user_name' in flask.session:
+            app.logger.debug("logging out user '{}'".format(flask.session['user_name']))
+        else:
+            app.logger.debug("logging out user '<unknown>'".format(flask.session['user_name']))
+
         # Remove the user information from the session, if not already logged out
-        if 'user_id' in flask.session:
-            user = racedb.find_user(flask.session['user_id'])
-            #user.authenticated = False
-            set_logged_out()
-        
-            # Tell Flask-Principal the user is anonymous
-            identity_changed.send(flask.current_app._get_current_object(),
-                                  identity=AnonymousIdentity())
+        set_logged_out()
+    
+        # Tell Flask-Principal the user is anonymous
+        identity_changed.send(flask.current_app._get_current_object(),
+                              identity=AnonymousIdentity())
     
         # commit database updates and close transaction
         db.session.commit()

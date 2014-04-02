@@ -74,8 +74,12 @@ def getnavigation():
             navigation.append({'display':'Series','url':flask.url_for('manageseries')})
             navigation.append({'display':'Divisions','url':flask.url_for('managedivisions')})
     
+    # anonymous access
     navigation.append({'display':'Standings','url':flask.url_for('choosestandings')})
     navigation.append({'display':'About','url':flask.url_for('sysinfo')})
+    
+    if thisuser.is_authenticated() and owner_permission.can():
+        navigation.append({'display':'Debug','url':flask.url_for('debug')})
     
     return navigation
 
