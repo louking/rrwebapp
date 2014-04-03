@@ -17,16 +17,48 @@
             });
     $( "#navigation" ).menu();
     
+    // from http://stackoverflow.com/questions/1480133/how-can-i-get-an-objects-absolute-position-on-the-page-in-javascript
+    var cumulativeOffset = function(element) {
+        var top = 0, left = 0;
+        do {
+            top += element.offsetTop  || 0;
+            left += element.offsetLeft || 0;
+            element = element.offsetParent;
+        } while(element);
+    
+        return {
+            top: top,
+            left: left
+        };
+    };
     // common dataTables
     // gettableheight - assumes some elements exist on the page
     function gettableheight() {
-        // TODO: not sure why 112 works -- what's missing?
-        var height=$(window).height()
-            - $('.heading').height()
-            - $('#_rrwebapp-heading-elements').height()
-            - $('.dataTables_filter').height()
-            - $('thead').height()
-            - 112;
+        var height;
+        // dataTable has been drawn
+        if (typeof _rrwebapp_table != 'undefined') {
+            // there should be only one of these
+            $('.dataTables_scrollBody').each( function () {
+                height = $(window).height() - cumulativeOffset(this).top;
+                console.log('.dataTables_scrollBody top='+cumulativeOffset(this).top)
+            });
+            // subtract off height of info field -- assumes this is the only
+            // field at bottom of table.  See sDomValue definition
+            var footerheight = 0
+            $('.dataTables_info').each(function(){
+                footerheight = this.offsetHeight;
+            });
+            height = height - (footerheight + 5); // 5 for some padding
+        
+        // dataTable hasn't been drawn yet
+        } else {
+            height=$(window).height()
+                - $('.heading').height()
+                - $('#_rrwebapp-heading-elements').height()
+                - $('.dataTables_filter').height()
+                - $('thead').height()
+                - 112;
+        }
         
         // height = window's height subtracting the vertical position of the dataTable
         // TODO: this can only be done after table is created
@@ -50,7 +82,6 @@
                 bScrollCollapse: true,
                 fnInfoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                     var info = "Showing ";
-                    // TODO: this is not working -- why not?
                     if (oSettings.oFeatures.bPaginate) {
                         info = info + iStart +" to ";                        
                     }
@@ -63,9 +94,13 @@
         return params
     };
 
-    // note this expects all tables be called _rrwebapp_table, and this be global variable
+    // note this expects all dataTable tables be called _rrwebapp_table, and this be global variable
+    // see https://datatables.net/forums/discussion/10437/fixedheader-column-headers-not-changing-on-window-resize/p1
     $(window).on('resize', function () {
-        _rrwebapp_table.fnAdjustColumnSizing();
+        if (typeof _rrwebapp_table != 'undefined') {
+            _rrwebapp_table.fnAdjustColumnSizing();
+            $('div.dataTables_scrollBody').height(gettableheight());
+        }
       } );
 
     // dataTables num-html support [modified plugin from http://datatables.net/plug-ins/sorting#functions_type "Numbers with HTML"]
@@ -797,8 +832,7 @@
 
     function viewstandings() {
         // not sure why fudge is needed, needed after adding accordion above table
-        var initialheightfudge = 35;
-        var redrawheightfudge = 50;
+        var initialheightfudge = 5;
         
         // Legend
         legend = '<table>\
@@ -818,7 +852,7 @@
           active: 'none',   // see http://stackoverflow.com/questions/2675263/collapse-all-sections-in-accordian-on-page-load-in-jquery-accordian
           activate: function(event,ui) {
             var oSettings = _rrwebapp_table.fnSettings();
-            var newheight = gettableheight() + redrawheightfudge;   // hmm, why +
+            var newheight = gettableheight();
             oSettings.oScroll.sY = newheight;
             $('div.dataTables_scrollBody').height(newheight);
             console.log('newheight='+newheight)
