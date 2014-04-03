@@ -40,7 +40,6 @@
             // there should be only one of these
             $('.dataTables_scrollBody').each( function () {
                 height = $(window).height() - cumulativeOffset(this).top;
-                console.log('.dataTables_scrollBody top='+cumulativeOffset(this).top)
             });
             // subtract off height of info field -- assumes this is the only
             // field at bottom of table.  See sDomValue definition
@@ -855,7 +854,6 @@
             var newheight = gettableheight();
             oSettings.oScroll.sY = newheight;
             $('div.dataTables_scrollBody').height(newheight);
-            console.log('newheight='+newheight)
           }
         });
 
