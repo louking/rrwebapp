@@ -49,6 +49,8 @@ from apicommon import failure_response, success_response
 # module specific needs
 import version
 
+class testException(Exception): pass
+
 #######################################################################
 class ViewSysinfo(MethodView):
 #######################################################################
@@ -118,6 +120,7 @@ class ViewDebug(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('sysinfo.html',pagename='Debug',version=thisversion,sysvars=sysvars,
+                                         owner=owner_permission.can(),
                                          inhibityear=True,inhibitclub=True)
         
         except:
@@ -126,5 +129,23 @@ class ViewDebug(MethodView):
             raise
 #----------------------------------------------------------------------
 app.add_url_rule('/_debuginfo',view_func=ViewDebug.as_view('debug'),methods=['GET'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class TestException(MethodView):
+#######################################################################
+    
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        try:
+            raise testException
+                    
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/xcauseexception',view_func=TestException.as_view('testexception'),methods=['GET'])
 #----------------------------------------------------------------------
 

@@ -90,6 +90,17 @@ if not app.debug:
     if not mailloglevel:
         mailloglevel = logging.ERROR
     mail_handler.setLevel(mailloglevel)
+    mail_handler.setFormatter(Formatter('''
+    Message type:       %(levelname)s
+    Location:           %(pathname)s:%(lineno)d
+    Module:             %(module)s
+    Function:           %(funcName)s
+    Time:               %(asctime)s
+    
+    Message:
+    
+    %(message)s
+    '''))
     app.logger.addHandler(mail_handler)
     
     if logdir:
