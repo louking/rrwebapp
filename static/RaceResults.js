@@ -782,6 +782,17 @@
         var initialheightfudge = 35;
         var redrawheightfudge = 50;
         
+        // Legend
+        legend = '<table>\
+                    <tr><td>red</td><td>points are dropped</td></tr>\
+                    <tr><td>blue</td><td>runner won overall award, not eligible for age group award</td></tr>\
+                    <tr><td>green</td><td>runner won age group award</td></tr>\
+                 </table>';
+        popupbutton.init('#_rrwebapp-button-standings-legend', true, 'Legend', {});
+        $('#_rrwebapp-button-standings-legend').on(
+            'click', function() { popupbutton.click('#_rrwebapp-button-standings-legend',legend) }
+        );
+            
         // Race list is kept in accordion above table, for reference
         // height gets changed as accordion changes -- see http://datatables.net/forums/discussion/10906/adjust-sscrolly-after-init/p1
         $( "#_rrwebapp-accordion-standings-races" ).accordion({
