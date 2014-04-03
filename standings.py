@@ -224,7 +224,7 @@ class ViewStandings(MethodView):
             fh = HtmlStandingsHandler(racenums)
             rr.renderseries(fh)
             # division has to be beyond name, because place and name are fixed, and division has visibility turned off
-            roworder = ['place','name','division','gender'] + ['race{}'.format(r) for r in racenums] + ['total']
+            roworder = ['division','place','name','gender'] + ['race{}'.format(r) for r in racenums] + ['total']
             headerclasses = (['_rrwebapp-class-col-{}'.format(h) for h in ['division','place','name','gender']]
                                 + ['_rrwebapp-class-col-race' for h in racenums]
                                 + ['_rrwebapp-class-col-total'])

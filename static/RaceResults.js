@@ -79,6 +79,8 @@
                 bPaginate: false,
                 sScrollY: gettableheight(),
                 bScrollCollapse: true,
+                sScrollX: "100%",
+                //sScrollXInner: "110%",
                 fnInfoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                     var info = "Showing ";
                     if (oSettings.oFeatures.bPaginate) {
@@ -95,10 +97,13 @@
 
     // note this expects all dataTable tables be called _rrwebapp_table, and this be global variable
     // see https://datatables.net/forums/discussion/10437/fixedheader-column-headers-not-changing-on-window-resize/p1
+    function resetDataTableHW() {
+        _rrwebapp_table.fnAdjustColumnSizing();
+        $('div.dataTables_scrollBody').height(gettableheight());
+    };
     $(window).on('resize', function () {
         if (typeof _rrwebapp_table != 'undefined') {
-            _rrwebapp_table.fnAdjustColumnSizing();
-            $('div.dataTables_scrollBody').height(gettableheight());
+            resetDataTableHW();
         }
       } );
 
@@ -553,6 +558,7 @@
         $('#_rrwebapp-table-manage-members')
             .dataTable(getDataTableParams({sScrollY: gettableheight()-10}));
                 // -10 because sorting icons shown below headings
+        resetDataTableHW();
         
     };  // managemembers
     
@@ -646,6 +652,8 @@
 
         _rrwebapp_table = $('#_rrwebapp-table-manage-races')
             .dataTable(getDataTableParams({bSort: false}));
+        resetDataTableHW();
+
         //_rrwa_racestable = $('#_rrwebapp-table-manage-races').DataTable({
         //    paging: false,
         //    scrollY: 450, // when scrolling, scroll jumps after updating column value
@@ -666,6 +674,8 @@
     
         _rrwebapp_table = $('#_rrwebapp-table-manage-series')
             .dataTable(getDataTableParams({bSort: false}));
+        resetDataTableHW();
+
     };  // manageseries
 
     // managedivisions
@@ -680,11 +690,8 @@
     
         _rrwebapp_table = $('#_rrwebapp-table-manage-divisions')
             .dataTable(getDataTableParams({bSort:false}))
+        setTimeout(function () {resetDataTableHW()},30);
         
-            setTimeout( function () {
-                console.log('adjusting column sizing');
-                _rrwebapp_table.fnAdjustColumnSizing();
-            }, 30 );
     };  // managedivisions
         
     // editresults
@@ -776,6 +783,8 @@
                 bPaginate: true,
                 bSort: false,
             }));
+        resetDataTableHW();
+
         //_rrwa_resultstable = $('#_rrwebapp-table-editresults').DataTable({
         //    //paging: false,
         //    //scrollY: 450, // when scrolling, scroll jumps after updating column value
@@ -815,6 +824,8 @@
                     filter_container_id:"_rrwebapp_filterdivision",
                     filter_reset_button_text: 'all',
                 },]);
+        resetDataTableHW();
+
         //_rrwa_resultstable = $('#_rrwebapp-table-seriesresults').DataTable({
         //    paging: false,
         //    scrollY: 450, // when scrolling, scroll jumps after updating column value
@@ -858,7 +869,7 @@
         });
 
         // table needs to be after accordion declaration so size is set right
-        var divisionCol = 2;
+        var divisionCol = 0;
         var genderCol = 3;
         _rrwebapp_table = $('#_rrwebapp-table-standings')
             .dataTable(getDataTableParams({
@@ -886,6 +897,7 @@
                     filter_container_id:"_rrwebapp_filtergender",
                     filter_reset_button_text: 'all',
                 },]);
+        resetDataTableHW();
         
         //new FixedColumns(_rrwebapp_table, {
         //            iLeftColumns: 2,
