@@ -62,6 +62,31 @@
         $.extend(params,updates)
         return params
     };
+
+    // note this expects all tables be called _rrwebapp_table, and this be global variable
+    $(window).on('resize', function () {
+        _rrwebapp_table.fnAdjustColumnSizing();
+      } );
+
+    // dataTables num-html support [modified plugin from http://datatables.net/plug-ins/sorting#functions_type "Numbers with HTML"]
+    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
+      "num-html-pre": function ( a ) {
+          var x = String(a).replace( /<[\s\S]*?>/g, "" );
+          return parseFloat( x );
+      },
+   
+      "num-html-asc": function ( a, b ) {
+          if (!a || a == '') {a = 0};
+          if (!b || b == '') {b = 0};
+          return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+      },
+   
+      "num-html-desc": function ( a, b ) {
+          if (!a || a == '') {a = 0};
+          if (!b || b == '') {b = 0};
+          return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+      }
+    } );
     
     // common
     function getconfirmation(event,button,text) {
@@ -128,7 +153,6 @@
     // get confirmation for any deletes
     $("._rrwebapp-deletebutton").on('click', function(event){getconfirmation(event,'Delete','Please confirm item deletion')});
 
-    
     // toolbutton feature
     var toolbutton = {
         // toolcontent needs to be formatted as expected by JQuery accordian widget
@@ -802,11 +826,15 @@
         });
 
         // table needs to be after accordion declaration so size is set right
+        var divisionCol = 2;
+        var genderCol = 3;
         _rrwebapp_table = $('#_rrwebapp-table-standings')
             .dataTable(getDataTableParams({
                 sScrollY: gettableheight() - initialheightfudge,
+                sScrollX: "100%",
+                sScrollXInner: "150%",
                 aoColumnDefs: [
-                    {aTargets:[0],bVisible:false},
+                    {aTargets:[divisionCol],bVisible:false},
                     {aTargets:['_rrwebapp-class-col-place',
                                '_rrwebapp-class-col-race',
                                '_rrwebapp-class-col-total'
@@ -814,18 +842,23 @@
                     ],
                 }))
             .yadcf([{
-                    column_number:0,
+                    column_number:divisionCol,
                     filter_container_id:"_rrwebapp_filterdivision",
                     column_data_type: "html",
                     html_data_type: "text",
                     filter_reset_button_text: false,    // no filter reset button
                 },{
-                    column_number:3,
+                    column_number:genderCol,
                     column_data_type: "html",
                     html_data_type: "text",
                     filter_container_id:"_rrwebapp_filtergender",
                     filter_reset_button_text: 'all',
                 },]);
+        
+        //new FixedColumns(_rrwebapp_table, {
+        //            iLeftColumns: 2,
+        //            sHeightMatch: 'auto',
+        //        });
         
         // force always to have some Division filter, hopefully Overall
         selectfilter = '#_rrwebapp_filterdivision select';
