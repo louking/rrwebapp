@@ -18,7 +18,50 @@
     $( "#navigation" ).menu();
     
     // common dataTables
+    // gettableheight - assumes some elements exist on the page
+    function gettableheight() {
+        // TODO: not sure why 112 works -- what's missing?
+        var height=$(window).height()
+            - $('.heading').height()
+            - $('#_rrwebapp-heading-elements').height()
+            - $('.dataTables_filter').height()
+            - $('thead').height()
+            - 112;
+        
+        // height = window's height subtracting the vertical position of the dataTable
+        // TODO: this can only be done after table is created
+        //var height = $(window).height() - $('._rrwebapp-table').position().top;
+        
+        // error return
+        if (height<100){
+            return 430;
+        }
+        //normal return
+        return height;
+    };
+
     var sDomValue = '<"H"Clpfr>t<"F"i>';
+    function getDataTableParams(updates) {
+        var params = {
+                sDom: sDomValue,
+                bJQueryUI: true,
+                bPaginate: false,
+                sScrollY: gettableheight(),
+                bScrollCollapse: true,
+                fnInfoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
+                    var info = "Showing ";
+                    // TODO: this is not working -- why not?
+                    if (oSettings.oFeatures.bPaginate) {
+                        info = info + iStart +" to ";                        
+                    }
+                    info = info + iEnd +" of "+ iMax +" entries";
+
+                    return info
+                  }
+            }
+        $.extend(params,updates)
+        return params
+    };
     
     // common
     function getconfirmation(event,button,text) {
@@ -78,28 +121,6 @@
         }
     };
     
-    // gettableheight - assumes some elements exist on the page
-    function gettableheight() {
-        // TODO: not sure why 112 works -- what's missing?
-        var height=$(window).height()
-            - $('.heading').height()
-            - $('#_rrwebapp-heading-elements').height()
-            - $('.dataTables_filter').height()
-            - $('thead').height()
-            - 112;
-        
-        // height = window's height subtracting the vertical position of the dataTable
-        // TODO: this can only be done after table is created
-        //var height = $(window).height() - $('._rrwebapp-table').position().top;
-        
-        // error return
-        if (height<100){
-            return 430;
-        }
-        //normal return
-        return height;
-    };
-
     // decorate buttons
     $("._rrwebapp-actionbutton").button();
     $("._rrwebapp-simplebutton").button();
@@ -471,13 +492,10 @@
             });
         }
 
-        $('#_rrwebapp-table-manage-members').dataTable({
-            sDom: sDomValue,
-            bJQueryUI: true,
-            bPaginate: false,
-            sScrollY: gettableheight()-10,      // -10 because sorting icons shown below headings
-            bScrollCollapse: true,
-        });
+        $('#_rrwebapp-table-manage-members')
+            .dataTable(getDataTableParams({sScrollY: gettableheight()-10}));
+                // -10 because sorting icons shown below headings
+        
     };  // managemembers
     
     // manageraces
@@ -568,14 +586,8 @@
             
         });
 
-        _rrwebapp_table = $('#_rrwebapp-table-manage-races').dataTable({
-            sDom: sDomValue,
-            bJQueryUI: true,
-            bPaginate: false,
-            sScrollY: gettableheight(), 
-            bSort: false,
-            bScrollCollapse: true,
-        });
+        _rrwebapp_table = $('#_rrwebapp-table-manage-races')
+            .dataTable(getDataTableParams({bSort: false}));
         //_rrwa_racestable = $('#_rrwebapp-table-manage-races').DataTable({
         //    paging: false,
         //    scrollY: 450, // when scrolling, scroll jumps after updating column value
@@ -594,14 +606,8 @@
             ajax_update_db_form('_copyseries',form,false);
         });
     
-        _rrwebapp_table = $('#_rrwebapp-table-manage-series').dataTable({
-                sDom: sDomValue,
-                bJQueryUI: true,
-                bPaginate: false,
-                sScrollY: gettableheight(),
-                bSort: false,
-                bScrollCollapse: true,
-            })
+        _rrwebapp_table = $('#_rrwebapp-table-manage-series')
+            .dataTable(getDataTableParams({bSort: false}));
     };  // manageseries
 
     // managedivisions
@@ -614,14 +620,8 @@
             ajax_update_db_form('_copydivisions',form,false);
         });
     
-        _rrwebapp_table = $('#_rrwebapp-table-manage-divisions').dataTable({
-                sDom: sDomValue,
-                bJQueryUI: true,
-                bPaginate: false,
-                sScrollY: gettableheight(),
-                bSort: false,
-                bScrollCollapse: true,
-            })
+        _rrwebapp_table = $('#_rrwebapp-table-manage-divisions')
+            .dataTable(getDataTableParams({bSort:false}))
         
             setTimeout( function () {
                 console.log('adjusting column sizing');
@@ -713,14 +713,11 @@
                         });
         });
 
-        $('#_rrwebapp-table-editresults').dataTable({
-            //bPaginate: false,
-            //sScrollY: 450,  // when scrolling, scroll jumps after updating column value
-            sDom: sDomValue,
-            bJQueryUI: true,
-            bSort: false,
-            bScrollCollapse: true,
-        });
+        $('#_rrwebapp-table-editresults')
+            .dataTable(getDataTableParams({
+                bPaginate: true,
+                bSort: false,
+            }));
         //_rrwa_resultstable = $('#_rrwebapp-table-editresults').DataTable({
         //    //paging: false,
         //    //scrollY: 450, // when scrolling, scroll jumps after updating column value
@@ -740,16 +737,13 @@
         console.log("$('#_rrwebapp-heading-elements').height()="+$('#_rrwebapp-heading-elements').height())
         console.log("$('thead').height()="+$('thead').height())
         console.log('sScrollY='+($(window).height()-$('.heading').height()-$('#_rrwebapp-heading-elements').height()))-$('thead').height()-130
-        _rrwebapp_table = $('#_rrwebapp-table-seriesresults').dataTable({
-                sDom: sDomValue,
-                bJQueryUI: true,
-                bPaginate: false,
-                sScrollY: gettableheight()-15,  // -15 due to sort arrows, I think 
-                bScrollCollapse: true,
-                aoColumnDefs: [
-                    {aTargets:[0],bVisible:false},
-                            ],
-            })
+        _rrwebapp_table = $('#_rrwebapp-table-seriesresults')
+            .dataTable(getDataTableParams({
+                    sScrollY: gettableheight()-15,  // -15 due to sort arrows, I think 
+                    aoColumnDefs: [
+                        {aTargets:[0],bVisible:false},
+                                ],
+                }))
             .yadcf([{
                     column_number:0,
                     filter_container_id:"_rrwebapp_filterseries",
@@ -808,12 +802,9 @@
         });
 
         // table needs to be after accordion declaration so size is set right
-        _rrwebapp_table = $('#_rrwebapp-table-standings').dataTable({
-                sDom: sDomValue,
-                bJQueryUI: true,
-                bPaginate: false,
+        _rrwebapp_table = $('#_rrwebapp-table-standings')
+            .dataTable(getDataTableParams({
                 sScrollY: gettableheight() - initialheightfudge,
-                bScrollCollapse: true,
                 aoColumnDefs: [
                     {aTargets:[0],bVisible:false},
                     {aTargets:['_rrwebapp-class-col-place',
@@ -821,7 +812,7 @@
                                '_rrwebapp-class-col-total'
                                ],sType:'num-html'},
                     ],
-            })
+                }))
             .yadcf([{
                     column_number:0,
                     filter_container_id:"_rrwebapp_filterdivision",

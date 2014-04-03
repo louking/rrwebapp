@@ -16,12 +16,13 @@
 {% block body %}
   <div id="_rrwebapp-heading-elements">
     <div class="TextLeft W7emLabel">
-      <div><label class="Label">Division:</label><span id="_rrwebapp_filterdivision"></span></div>
+      <div><label class="Label">Division:</label><span id="_rrwebapp_filterdivision"></span>
+        <span style="float: right"><button id="_rrwebapp-button-standings-legend">Legend</button></span></div>
       <div><label class="Label">Gender:</label><span id="_rrwebapp_filtergender"></span></div>
     </div>
     <br>
     <div class="_rrwebapp-table-header" id="_rrwebapp-standings-header">
-      {{ description }} - <button id="_rrwebapp-button-standings-legend">Legend</button>
+      {{ description }}
     </div>
     <div id="_rrwebapp-accordion-standings-races">
       <h3 id="_rrwebapp-accordion-standings-races-header"><a >Races</a></h3>
