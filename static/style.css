@@ -287,3 +287,10 @@ table.DataList tr:hover td
     background-color: #ECF0FF;
     cursor: pointer;
 }
+
+._rrwebapp-table-header
+{
+   text-align: center;
+   font-weight: bold;
+   font-size: large;
+}

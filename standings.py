@@ -138,6 +138,9 @@ class ChooseStandings(MethodView):
                 params['club'] = form.club.data
                 params['year'] = form.year.data
                 params['series'] = form.series.data
+                thisclub = Club.query.filter_by(shname=form.club.data).first()
+                clubname = thisclub.name
+                params['desc'] = '{} - {} {}'.format(clubname,form.year.data,form.series.data)
                 
                 # commit database updates and close transaction
                 db.session.commit()
@@ -163,6 +166,7 @@ class ViewStandings(MethodView):
             club = request.args.get('club')
             year = request.args.get('year')
             series = request.args.get('series')
+            description = request.args.get('desc')
 
             thisclub = Club.query.filter_by(shname=club).first()
             if not thisclub:
@@ -250,7 +254,8 @@ class ViewStandings(MethodView):
             
             # commit database updates and close transaction
             db.session.commit()
-            return flask.render_template('viewstandings.html',form=form,headingdata=headingdata,racerows=racerows,standings=standings,
+            return flask.render_template('viewstandings.html',form=form,headingdata=headingdata,
+                                         racerows=racerows,standings=standings,description=description,
                                          inhibityear=True,inhibitclub=True)
         
         except Exception,e:
