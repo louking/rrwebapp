@@ -48,6 +48,7 @@
     float: left;
   }
 
+/*
 p
 {
     line-height: 0em;
@@ -57,6 +58,29 @@ p
 p:last-child
 {
     margin: 0;
+}
+*/
+
+div.wrapper div.Footer
+{
+    border-top: 1px solid #336699;
+    clear: both;
+    height: 2em;
+    margin-top: 2em;
+    padding: 1em 0;
+    vertical-align: top;
+}
+div.wrapper div.Footer div
+{
+    float: right;
+}
+div.wrapper div.Footer span
+{
+    margin: 0 1em;
+}
+div.wrapper div.Footer a
+{
+    margin: 0 1em;
 }
 
 a, h1, h2       { color: #377ba8; }

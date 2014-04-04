@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block pagename %}
+    Features
+{% endblock %}
+{% block body %}
+  <h2><i>scoreit</i> Administration</h2>
+  <p>
+    <i>scoreit</i> will will allow administrators to
+  </p>
+  <ul>
+    <li>update club membership via spreadsheet import</li>
+    <li>update races via spreadsheet import or add races individually</li>
+    <li>set up divisions</li>
+    <li>set up race series</li>
+    <li>set up which races are in which series</li>
+    <li>import race results from a spreadsheet or text file</li>
+    <ul>
+      <li>smart import tries to match each name in the results file with a club member name, and
+      makes suggestions for slight mismatches</li>
+      <li>e.g., if Jenny Jones is seen on race result, and Jennifer Jones is in the membership, Jennifer Jones will be suggested</li>
+    </ul>
+    <li>adjust and confirm guesses which were made by the smart race results import</li>
+    <ul>
+      <li>once confirmed, the decision made is remembered so the same guess is not made for a later results import</li>
+      <li>e.g., the smart import might suggest a result for John Smith matches John Smothers -- when the administrator
+      indicates this is not correct, this association will not be suggested for future race results imports</li>
+    </ul>
+    <li>tabulate results into race series results</li>
+  </ul>
+  <h2><i>scoreit</i> For Everyone</h2>
+  <p>
+    <i>scoreit</i> will allow club members (and everyone else who knows the link) to
+  </p>
+  <ul>
+    <li>view club standings</li>
+    <li>view club race series results</li>
+  </ul>
+  
+  <h2><i>scoreit</i> For Your Club</h2>
+  <ul>
+    <li><i>scoreit</i> keeps different clubs' information separate, i.e., separate membership, races, division, series, results, standings, by club</li>
+  </ul>
+  
+{% endblock %}

@@ -875,7 +875,7 @@
             .dataTable(getDataTableParams({
                 sScrollY: gettableheight() - initialheightfudge,
                 sScrollX: "100%",
-                sScrollXInner: "150%",
+                //sScrollXInner: "150%",
                 aoColumnDefs: [
                     {aTargets:[divisionCol],bVisible:false},
                     {aTargets:['_rrwebapp-class-col-place',
