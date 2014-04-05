@@ -22,7 +22,7 @@
 ###########################################################################################
 
 # standard
-import traceback
+import smtplib
 
 # pypi
 import flask
@@ -34,6 +34,7 @@ from . import app
 from database_flask import db   # this is ok because this module only runs under flask
 
 # module specific needs
+from forms import FeedbackForm
 
 #######################################################################
 class ViewIndex(MethodView):
@@ -92,5 +93,58 @@ class ViewTerms(MethodView):
             raise
 #----------------------------------------------------------------------
 app.add_url_rule('/termsofservice',view_func=ViewTerms.as_view('terms'),methods=['GET'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class GetFeedback(MethodView):
+#######################################################################
+    SUBMIT = 'Send Feedback'
+    
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        try:
+            form = FeedbackForm()
+            
+            # commit database updates and close transaction
+            db.session.commit()
+            return flask.render_template('feedback.html',thispagename='Send Feedback',form=form,action=GetFeedback.SUBMIT,
+                                         addfooter=True)
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+
+    #----------------------------------------------------------------------
+    def post(self):
+    #----------------------------------------------------------------------
+        try:
+            form = FeedbackForm()
+
+            # handle Cancel
+            if request.form['whichbutton'] == GetFeedback.SUBMIT:
+                
+                fromaddr = form.fromemail.data
+                toaddrs = ['scoreit@foobox.com']
+                subject = '[scoreit feedback] ' + form.subject.data
+                msg = 'From: {}\nTo: {}\nSubject: {}\n\n{}'.format(fromaddr, ', '.join(toaddrs), subject, form.message.data)
+                
+                mailer = smtplib.SMTP('localhost')
+                mailer.set_debuglevel(1)
+                mailer.sendmail(fromaddr,toaddrs,msg)
+                mailer.quit()
+                
+            # commit database updates and close transaction
+            db.session.commit()
+            return (flask.redirect(flask.request.args.get('next')) or flask.url_for('index'))
+            
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+
+#----------------------------------------------------------------------
+app.add_url_rule('/feedback/',view_func=GetFeedback.as_view('feedback'),methods=['GET','POST'])
 #----------------------------------------------------------------------
 

@@ -86,7 +86,7 @@ if not app.debug:
     from logging import FileHandler, Formatter
     mail_handler = SMTPHandler('localhost',
                                'noreply@steeplechasers.org',
-                               ADMINS, '[RRWEBAPP] exception encountered')
+                               ADMINS, '[scoreit] exception encountered')
     if not mailloglevel:
         mailloglevel = logging.ERROR
     mail_handler.setLevel(mailloglevel)
@@ -126,3 +126,6 @@ import member
 import results
 import standings
 import sysinfo
+
+# initialize versions for scripts
+request.setscripts()

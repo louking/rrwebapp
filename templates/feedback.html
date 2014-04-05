@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import render_field %}
+{% block pagename %}
+    {{ thispagename }}
+{% endblock %}
+
+{% block body %}
+  <form action="{{ url_for('feedback') }}" method=post>
+    {{ form.hidden_tag() }}
+    <div class="W9emLabel W25emTextBox FloatLeft">
+        {{ render_field(form.fromemail) }}
+        {{ render_field(form.subject) }}
+        {{ render_field(form.message, rows=10, cols=50) }}
+
+        <center>
+          {% if action %}
+            <input class="_rrwebapp-actionbutton " type="submit" name="whichbutton" value="{{action}}" />
+          {% endif %}
+        </center>
+  </form>
+{% endblock %}
+
+{% block scripts %}
+  <script type="text/javascript">
+    $( document ).ready( function() {
+      choosestandings(); 
+    })
+  </script>
+{% endblock %}

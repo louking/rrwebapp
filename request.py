@@ -61,6 +61,14 @@ SCRIPTS_CSS = [
 #----------------------------------------------------------------------
 def setscripts():
 #----------------------------------------------------------------------
+    '''
+    setscripts caches the versions for js and css scripts, identified in
+    request.SCRIPTS_JS and SCRIPTS_CSS, respectively.
+    
+    This can be called before_request, or at initialization.  If called
+    at initialization, the application must be restarted for these to take
+    effect.
+    '''
     cssfiles = []
     for thisfile in SCRIPTS_CSS:
         version = os.stat(os.path.join(app.static_folder,thisfile))[stat.ST_MTIME]
@@ -82,6 +90,5 @@ def setscripts():
 def before_request():
 #----------------------------------------------------------------------
     setnavigation()
-    setscripts()
 
 

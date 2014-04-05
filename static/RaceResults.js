@@ -59,12 +59,8 @@
                 - 112;
         }
         
-        // height = window's height subtracting the vertical position of the dataTable
-        // TODO: this can only be done after table is created
-        //var height = $(window).height() - $('._rrwebapp-table').position().top;
-        
         // error return
-        if (height<100){
+        if (height<50){
             return 430;
         }
         //normal return
@@ -555,7 +551,7 @@
             });
         }
 
-        $('#_rrwebapp-table-manage-members')
+        _rrwebapp_table = $('#_rrwebapp-table-manage-members')
             .dataTable(getDataTableParams({sScrollY: gettableheight()-10}));
                 // -10 because sorting icons shown below headings
         resetDataTableHW();
@@ -778,7 +774,7 @@
                         });
         });
 
-        $('#_rrwebapp-table-editresults')
+        _rrwebapp_table = $('#_rrwebapp-table-editresults')
             .dataTable(getDataTableParams({
                 bPaginate: true,
                 bSort: false,

@@ -25,7 +25,8 @@ forms - forms for rrwebapp
 ===============================
 '''
 from flask.ext.wtf import Form
-from wtforms import HiddenField, SelectField, StringField, IntegerField, FloatField, BooleanField, validators
+from wtforms import HiddenField, SelectField, StringField, IntegerField
+from wtforms import FloatField, BooleanField, TextField, TextAreaField, validators
 from wtforms import SelectMultipleField, widgets
 
 ########################################################################
@@ -172,5 +173,12 @@ class ChooseStandingsForm(Form):
     club = SelectField('Club',[validators.Optional()])
     year = SelectField('Year',[validators.Optional()],coerce=int)
     series = SelectField('Series',[validators.Optional()])
+    
+########################################################################
+class FeedbackForm(Form):
+########################################################################
+    fromemail = StringField('From (email)',[validators.Email()])
+    subject = StringField('Subject',[validators.Required()])
+    message = TextAreaField('Message',[validators.Required()])
     
 
