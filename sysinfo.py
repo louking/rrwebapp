@@ -73,7 +73,7 @@ class ViewSysinfo(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('sysinfo.html',pagename='About',version=thisversion,
-                                         inhibityear=True,inhibitclub=True)
+                                         inhibityear=True,inhibitclub=True,addfooter=True)
         
         except:
             # roll back database updates and close transaction

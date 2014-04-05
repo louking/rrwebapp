@@ -38,7 +38,6 @@ from app import app
 import database_flask # this is ok because this subpackage only runs under flask
 from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from nav import setnavigation
 from loutilities import apikey
 
 ak = apikey.ApiKey('Lou King','raceresultswebapp')
@@ -79,6 +78,7 @@ if configdir and os.path.exists(os.path.join(configdir,'rrwebapp.cfg')):
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
 
+# TODO: move this to new module logging
 # set up logging
 ADMINS = ['lking@pobox.com']
 if not app.debug:
@@ -116,6 +116,7 @@ if not app.debug:
         ))
     
 # import all views
+import request
 import index
 import login
 import club
@@ -125,13 +126,3 @@ import member
 import results
 import standings
 import sysinfo
-
-@app.before_request
-def before_request():
-    setnavigation()
-
-#----------------------------------------------------------------------
-# main processing - run application
-#----------------------------------------------------------------------
-if __name__ == '__main__':
-    app.run()

@@ -3,9 +3,6 @@
 {% block pagename %}
     Standings
 {% endblock %}
-{% block css %}
-  <link rel=stylesheet type=text/css href="{{ url_for('static', filename='standingstable.css') }}">
-{% endblock %}
 {% block scripts %}
   <script type="text/javascript">
     $( document ).ready( function() {
@@ -28,10 +25,6 @@
       <h3 id="_rrwebapp-accordion-standings-races-header"><a >Races</a></h3>
       <div>
         <table class="DataList" id="_rrwebapp-table-standings-races" cellpadding=0 cellspace=0>
-<!--          <thead>
-            <tr>
-              <th>Races</th><th></th><th></th><th></th><th></th></tr>
-          </thead>-->
           <tbody>
             {% for racerow in racerows %}
               <tr>

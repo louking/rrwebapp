@@ -841,8 +841,8 @@
     };  // seriesresults
 
     function viewstandings() {
-        // not sure why fudge is needed, needed after adding accordion above table
-        var initialheightfudge = 5;
+        // not sure why fudge is needed
+        var initialheightfudge = 22;
         
         // Legend
         legend = '<table>\

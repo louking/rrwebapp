@@ -108,93 +108,29 @@ h2              { font-size: 1.2em; }
                   border: 1px solid #aacbe2; }
 .error          { background: #f0d6d6; padding: 0.5em; }
 
-
-#wrapper {
-  width:1000px;
+._rrwebapp-class-standings-data-division,
+._rrwebapp-class-standings-data-place,
+._rrwebapp-class-standings-data-race,
+._rrwebapp-class-standings-data-gender,
+._rrwebapp-class-standings-data-total
+{
+    text-align: center;
+}
+._rrwebapp-class-standings-data-race-dropped
+{
+    text-align: center;
+    color: red;
+}
+._rrwebapp-class-standings-data-name
+{
+    text-align: left;
 }
 
-#rightside {
-  width:150px;
-  float:left;
-}
-#smallDiv2 {
-  padding-top:20px;
-  text-align:right;
-}
-#smallDiv3 {
-  padding-top:5px;
-  text-align:right;
-}
-
-#navigationxx {
-    margin: 5px; 
-    padding: 0; 
-    list-style: none; 
-    white-space: nowrap; /* This is optional but prevents from line wrapping */
-    text-align: left; 
-    width: 150px; /* Width of the top level items */
-    background: #EFFBF5;
-    border: 1px solid #377ba8;
-    float: left; /* Floats navigation to the left */
-}
-
-/* The list items/links, removes the default styles for list items and makes them look like a menu by removing the bullets */
-#navigationxx  li {
-    margin: 0; 
-    padding: 0; 
-    list-style: none;
-}
-
-#navigationxx  li {
-    display: list-item;
-    text-transform: uppercase; /* Converts all letters to capitals */
-    color: #377ba8; /* Changes font colour */
-}
-
-/* When submenus are not supposed to show, this hides them */
-#navigationxx ul {
-    position: absolute; 
-    left: -9999px;
-}
-
-#navigationxx  a {
-    display: block; /* Makes the entire link (not just the text, as there is padding on the anchor) clickable */
-    font: bold 12px verdana,arial,sans-serif; 
-    color: #377ba8;
-    line-height: 25px; /* Sets the height of the line (adds padding to the font until it reaches right height) */
-    text-decoration: none; /* Gets rid of underlines in the link */
-    padding: 0 20px 0 10px; /* Padding to the link */
-} 
-
-/* Styling for the optional in menu headings */
-#navigationxx h3 {
-    margin: 0px;
-    font-size: 0.9em;
-    text-align: center; /* Note the American spelling used throughout css */
-}
-
-/* This styling happens when a mouse hovers over the link */
-#navigationxx li a:hover {
-    background-color: #09c; 
-    color: #fff;
-} 
-
-/* This styling happens to the submenu links when a top level link is hovered over  */
-#navigationxx  li:hover > a {
-    background-color: #09c; 
-    color: #fff;
-}
-
-/* This styling happens to the submenu ul when the top level list items are hovered over */
-#navigationxx li:hover > ul {
-    min-width: 130px;
-    padding: 5px;
-    left: 131px; /* For the example I needed the submenu to the right of the main menu, you may need to change this if you change the width */
-    margin-top: -22px; /* Also for the example I used this to align the submenu with the link in the top level menu */
-    border: 1px solid #09C;
-    background-color: white;
-    z-index: 999;
-    position: absolute; /* This makes the position set by css rather than where it thinks it should go */
+._rrwebapp-table-header
+{
+   text-align: center;
+   font-weight: bold;
+   font-size: large;
 }
 
 label
@@ -313,9 +249,3 @@ table.DataList tr:hover td
     cursor: pointer;
 }
 
-._rrwebapp-table-header
-{
-   text-align: center;
-   font-weight: bold;
-   font-size: large;
-}
