@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block body %}
-  <form action="{{ url_for('feedback') }}" method=post>
+  <form action="{{ actionurl }}" method=post>
     {{ form.hidden_tag() }}
     <div class="W9emLabel W25emTextBox FloatLeft">
         {{ render_field(form.fromemail) }}

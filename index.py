@@ -23,6 +23,7 @@
 
 # standard
 import smtplib
+import urllib
 
 # pypi
 import flask
@@ -106,10 +107,18 @@ class GetFeedback(MethodView):
         try:
             form = FeedbackForm()
             
+            frompage = flask.request.args.get('next',None)
+            if frompage:
+                params = {'next':frompage}
+                actionurl = '{}?{}'.format(flask.url_for('feedback'),urllib.urlencode(params))
+            else:
+                actionurl = flask.url_for('feedback')
+                
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('feedback.html',thispagename='Send Feedback',form=form,action=GetFeedback.SUBMIT,
-                                         addfooter=True)
+                                         actionurl=actionurl,
+                                         inhibitseries=True,inhibityear=True,addfooter=True)
         
         except:
             # roll back database updates and close transaction
@@ -130,10 +139,12 @@ class GetFeedback(MethodView):
                 subject = '[scoretility feedback] ' + form.subject.data
                 msg = 'From: {}\nTo: {}\nSubject: {}\n\n{}'.format(fromaddr, ', '.join(toaddrs), subject, form.message.data)
                 
-                mailer = smtplib.SMTP('localhost')
-                mailer.set_debuglevel(1)
-                mailer.sendmail(fromaddr,toaddrs,msg)
-                mailer.quit()
+                # this doesn't work in development environment
+                if not app.debug:
+                    mailer = smtplib.SMTP('localhost')
+                    mailer.sendmail(fromaddr,toaddrs,msg)
+                    mailer.quit()
+                flask.flash('feedback sent successfully')
                 
             # commit database updates and close transaction
             db.session.commit()

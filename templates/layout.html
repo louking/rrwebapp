@@ -55,7 +55,7 @@
       <div class="Footer">
         <div>
           <a href="{{url_for('terms') }}">Terms of Service</a>
-          <a href="{{url_for('feedback')}}">Questions/Feedback</a>
+          <a href="{{url_for('feedback')}}?next={{request.url}}">Questions/Feedback</a>
         </div>
         <span>&copy; 2014 Lou King.   All rights reserved.</span>
       </div>
