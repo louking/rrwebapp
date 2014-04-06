@@ -86,7 +86,7 @@ if not app.debug:
     from logging import FileHandler, Formatter
     mail_handler = SMTPHandler('localhost',
                                'noreply@steeplechasers.org',
-                               ADMINS, '[scoreit] exception encountered')
+                               ADMINS, '[scoretility] exception encountered')
     if not mailloglevel:
         mailloglevel = logging.ERROR
     mail_handler.setLevel(mailloglevel)

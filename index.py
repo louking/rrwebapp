@@ -126,8 +126,8 @@ class GetFeedback(MethodView):
             if request.form['whichbutton'] == GetFeedback.SUBMIT:
                 
                 fromaddr = form.fromemail.data
-                toaddrs = ['scoreit@foobox.com']
-                subject = '[scoreit feedback] ' + form.subject.data
+                toaddrs = ['scoretility@pobox.com']
+                subject = '[scoretility feedback] ' + form.subject.data
                 msg = 'From: {}\nTo: {}\nSubject: {}\n\n{}'.format(fromaddr, ', '.join(toaddrs), subject, form.message.data)
                 
                 mailer = smtplib.SMTP('localhost')
