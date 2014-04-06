@@ -140,9 +140,9 @@ class ManagedResultForm(Form):
 class SeriesResultForm(Form):
 ########################################################################
     series = StringField('Series',[validators.Optional()])
-    place = IntegerField('Gen Place',[validators.Optional()])
+    place = IntegerField('Gender Place',[validators.Optional()])
     name = StringField('Name',[validators.Optional()])
-    gender = StringField('Gen',[validators.Optional()])
+    gender = StringField('Gender',[validators.Optional()])
     agage = IntegerField('Age',[validators.Optional()])
     division = StringField('Division',[validators.Optional()])
     divisionlow = IntegerField('Div Lo',[validators.Optional()])
