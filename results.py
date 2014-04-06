@@ -251,7 +251,7 @@ class SeriesResults(MethodView):
                 series = Series.query.filter_by(id=result.seriesid).first()
                 thisseries = series.name
                 thistime = render.rendertime(result.time,0)
-                thisagtime = render.rendertime(result.time,0)
+                thisagtime = render.rendertime(result.agtime,0)
                 if result.divisionlow:
                     if result.divisionlow == 0:
                         thisdiv = 'up to {}'.format(result.divisionhigh)
@@ -262,25 +262,26 @@ class SeriesResults(MethodView):
                 else:
                     thisdiv = ''
 
-                if result.overallplace:
-                    thisplace = result.overallplace
+                if result.genderplace:
+                    thisplace = result.genderplace
                 elif result.agtimeplace:
                     thisplace = result.agtimeplace
                 else:
                     thisplace = None
 
-                annotatedresults.append((thisseries,thisplace,thisname,thistime,thisdiv,thisagtime,result))
+                annotatedresults.append((result.time,(thisseries,thisplace,thisname,thistime,thisdiv,thisagtime,result)))
             
             # sort results by series, overallplace
             annotatedresults.sort()
+            displayresults = [ar[1] for ar in annotatedresults]
             
-            theseseries = [rr[0] for rr in annotatedresults]
-            theseplaces = [rr[1] for rr in annotatedresults]
-            thesenames = [rr[2] for rr in annotatedresults]
-            thesetimes = [rr[3] for rr in annotatedresults]
-            thesedivs =  [rr[4] for rr in annotatedresults]
-            theseagtimes = [rr[5] for rr in annotatedresults]
-            theseresults = [rr[6] for rr in annotatedresults]
+            theseseries = [rr[0] for rr in displayresults]
+            theseplaces = [rr[1] for rr in displayresults]
+            thesenames = [rr[2] for rr in displayresults]
+            thesetimes = [rr[3] for rr in displayresults]
+            thesedivs =  [rr[4] for rr in displayresults]
+            theseagtimes = [rr[5] for rr in displayresults]
+            theseresults = [rr[6] for rr in displayresults]
             
             resultsdata = zip(theseresults,theseseries,theseplaces,thesenames,thesetimes,thesedivs,theseagtimes)
             
