@@ -81,8 +81,10 @@
                     var info = "Showing ";
                     if (oSettings.oFeatures.bPaginate) {
                         info = info + iStart +" to ";                        
+                        info = info + iEnd +" of "+ iMax +" entries";
+                    } else {
+                        info = info + iEnd +" entries";
                     }
-                    info = info + iEnd +" of "+ iMax +" entries";
 
                     return info
                   }
