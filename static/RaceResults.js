@@ -840,7 +840,7 @@
 
     function viewstandings() {
         // not sure why fudge is needed
-        var initialheightfudge = 22;
+        var initialheightfudge = -12;
         
         // Legend
         legend = '<table>\
