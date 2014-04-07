@@ -1,11 +1,16 @@
-/* overwrite some JQuery theme information (prevents titlebar on dialog) */
+/* override some JQuery theme information (prevents titlebar on dialog) */
 .no-titlebar .ui-dialog-titlebar {
   display: none;
 }
 
-/* overwrite JQuery.dataTables.yadcf class (prevents background on selected column filter) */
+/* override JQuery.dataTables.yadcf class (prevents background on selected column filter) */
 .inuse {
   background: none;
+}
+
+/* override JQuery.dataTables header padding */
+table.dataTable thead th {
+  padding: 0px;
 }
 
 /*body            { font-family: sans-serif; background: #eee; } */
@@ -211,6 +216,11 @@ table.DataList
 
 table.DataList td,
 table.DataList th
+{
+    padding: 1px;
+}
+table.PaddedDataList td,
+table.PaddedDataList th
 {
     padding: 0.5em;
 }

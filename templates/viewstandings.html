@@ -14,8 +14,8 @@
   <div id="_rrwebapp-heading-elements">
     <div class="TextLeft W7emLabel">
       <div><label class="Label">Division:</label><span id="_rrwebapp_filterdivision"></span>
-        <span style="float: right"><button id="_rrwebapp-button-standings-legend">Legend</button></span></div>
-      <div><label class="Label">Gender:</label><span id="_rrwebapp_filtergender"></span></div>
+        <span style="float: right"><button id="_rrwebapp-button-standings-legend">Legend</button></span>
+      <label class="Label">Gender:</label><span id="_rrwebapp_filtergender"></span></div>
     </div>
     <br>
     <div class="_rrwebapp-table-header" id="_rrwebapp-standings-header">
@@ -24,7 +24,7 @@
     <div id="_rrwebapp-accordion-standings-races">
       <h3 id="_rrwebapp-accordion-standings-races-header"><a >Races</a></h3>
       <div>
-        <table class="DataList" id="_rrwebapp-table-standings-races" cellpadding=0 cellspace=0>
+        <table class="DataList PaddedDataList" id="_rrwebapp-table-standings-races" cellpadding=0 cellspace=0>
           <tbody>
             {% for racerow in racerows %}
               <tr>
