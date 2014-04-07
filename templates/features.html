@@ -3,9 +3,9 @@
     Features
 {% endblock %}
 {% block body %}
-  <h2><i>scoretility</i> Administration</h2>
+  <h2>{{_rrwebapp_productname|safe}} Administration</h2>
   <p>
-    <i>scoretility</i> will will allow administrators to
+    {{_rrwebapp_productname|safe}} will will allow administrators to
   </p>
   <ul>
     <li>update club membership via spreadsheet import</li>
@@ -27,18 +27,18 @@
     </ul>
     <li>tabulate results into race series results</li>
   </ul>
-  <h2><i>scoretility</i> For Everyone</h2>
+  <h2>{{_rrwebapp_productname|safe}} For Everyone</h2>
   <p>
-    <i>scoretility</i> will allow club members (and everyone else who knows the link) to
+    {{_rrwebapp_productname|safe}} will allow club members (and everyone else who knows the link) to
   </p>
   <ul>
     <li>view club standings</li>
     <li>view club race series results</li>
   </ul>
   
-  <h2><i>scoretility</i> For Your Club</h2>
+  <h2>{{_rrwebapp_productname|safe}} For Your Club</h2>
   <ul>
-    <li><i>scoretility</i> keeps different clubs' information separate, i.e., separate membership, races, division, series, results, standings, by club</li>
+    <li>{{_rrwebapp_productname|safe}} keeps different clubs' information separate, i.e., separate membership, races, division, series, results, standings, by club</li>
   </ul>
   
 {% endblock %}

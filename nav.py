@@ -42,6 +42,26 @@ from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, Vi
                                     UpdateClubDataPermission, ViewClubDataPermission
 from database_flask import db   # this is ok because this module only runs under flask
 
+from HTMLParser import HTMLParser
+
+# from http://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.fed = []
+    def handle_data(self, d):
+        self.fed.append(d)
+    def get_data(self):
+        return ''.join(self.fed)
+
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
+
+# get product name
+productname = strip_tags(app.jinja_env.globals['_rrwebapp_productname'])
+
 #----------------------------------------------------------------------
 def getnavigation():
 #----------------------------------------------------------------------
@@ -61,7 +81,7 @@ def getnavigation():
 
     navigation = []
     
-    navigation.append({'display':'scoretility Home','url':flask.url_for('index')})
+    navigation.append({'display':'{} Home'.format(productname),'url':flask.url_for('index')})
     
     if thisuser.is_authenticated():
         if owner_permission.can():

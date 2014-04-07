@@ -73,7 +73,10 @@ app.config.from_object(__name__)
 
 if configdir and os.path.exists(os.path.join(configdir,'rrwebapp.cfg')):
     app.config.from_pyfile(os.path.join(configdir,'rrwebapp.cfg'))
-    
+
+# define product name
+app.jinja_env.globals['_rrwebapp_productname'] = '<i>scoreTILITY</i>'
+
 # tell jinja to remove linebreaks
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
