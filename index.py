@@ -36,6 +36,7 @@ from database_flask import db   # this is ok because this module only runs under
 
 # module specific needs
 from forms import FeedbackForm
+import version
 
 #######################################################################
 class ViewIndex(MethodView):
@@ -136,7 +137,7 @@ class GetFeedback(MethodView):
                 
                 fromaddr = form.fromemail.data
                 toaddrs = ['scoretility@pobox.com']
-                subject = '[scoretility feedback] ' + form.subject.data
+                subject = '[scoretility feedback] v={}: {}'.format(version.__version__,form.subject.data)
                 msg = 'From: {}\nTo: {}\nSubject: {}\n\n{}'.format(fromaddr, ', '.join(toaddrs), subject, form.message.data)
                 
                 # this doesn't work in development environment
@@ -144,7 +145,9 @@ class GetFeedback(MethodView):
                     mailer = smtplib.SMTP('localhost')
                     mailer.sendmail(fromaddr,toaddrs,msg)
                     mailer.quit()
-                flask.flash('feedback sent successfully')
+                    flask.flash('feedback sent successfully')
+                else:
+                    flask.flash('feedback sent successfully, message = \n{}'.format(msg))
                 
             # commit database updates and close transaction
             db.session.commit()
