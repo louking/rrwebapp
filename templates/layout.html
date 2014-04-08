@@ -16,7 +16,7 @@
 </head>
 <body>
 <div class=heading>
-  <h1><img src="{{url_for('static',filename='scoretility-logo-small.jpg')}}" height=30px> {{_rrwebapp_productname|safe}}</h1>
+  <h1>{{_rrwebapp_productname|safe}}</h1>
   <div class=pagename>{{self.pagename()}}</div>
   <div class=metanav>
     {% if not session.logged_in %}

@@ -91,4 +91,11 @@ def before_request():
 #----------------------------------------------------------------------
     setnavigation()
 
+#----------------------------------------------------------------------
+@app.after_request
+def after_request(response):
+#----------------------------------------------------------------------
+    app.logger.info('{} {} {}'.format(request.method, request.path, response.status_code))
+    return response
+
 

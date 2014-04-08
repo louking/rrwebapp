@@ -40,6 +40,10 @@ from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, Vi
                                     UpdateClubDataPermission, ViewClubDataPermission
 from loutilities import apikey
 
+# define product name (don't import nav until after app.jinja_env.globals['_rrwebapp_productname'] set)
+app.jinja_env.globals['_rrwebapp_productname'] = '<span style="font-family: Impact, Charcoal, sans-serif"><span style="color:#009999; font-weight: lighter">score</span><span style="color:#990033; font-weight:bold">tility</span></span>'
+#from nav import productname
+
 ak = apikey.ApiKey('Lou King','raceresultswebapp')
 
 def getapikey(key):
@@ -74,9 +78,6 @@ app.config.from_object(__name__)
 if configdir and os.path.exists(os.path.join(configdir,'rrwebapp.cfg')):
     app.config.from_pyfile(os.path.join(configdir,'rrwebapp.cfg'))
 
-# define product name
-app.jinja_env.globals['_rrwebapp_productname'] = '<i>scoreTILITY</i>'
-
 # tell jinja to remove linebreaks
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
@@ -89,8 +90,10 @@ if not app.debug:
     from logging import FileHandler, Formatter
     mail_handler = SMTPHandler('localhost',
                                'noreply@steeplechasers.org',
-                               ADMINS, '[scoretility] exception encountered')
-    if not mailloglevel:
+                               ADMINS, '[scoreTILITY] exception encountered')
+    if 'LOGGING_LEVEL_MAIL' in app.config:
+        mailloglevel = app.config['LOGGING_LEVEL_MAIL']
+    else:
         mailloglevel = logging.ERROR
     mail_handler.setLevel(mailloglevel)
     mail_handler.setFormatter(Formatter('''
@@ -108,7 +111,9 @@ if not app.debug:
     
     if logdir:
         file_handler = FileHandler(os.path.join(logdir,'rrwebapp.log'),delay=True)
-        if not fileloglevel:
+        if 'LOGGING_LEVEL_FILE' in app.config:
+            fileloglevel = app.config['LOGGING_LEVEL_FILE']
+        else:
             fileloglevel = logging.WARNING
         file_handler.setLevel(fileloglevel)
         app.logger.addHandler(file_handler)
