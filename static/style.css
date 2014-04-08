@@ -39,9 +39,6 @@ table.dataTable thead th {
   text-align: left;
   margin: 0px;
   padding: 0;
-/*  padding-left:1%;
-  padding-right:1%;
-*/
   width:100%;
   float:top;
   font-size: 1em;
@@ -53,18 +50,20 @@ table.dataTable thead th {
     float: left;
   }
 
-/*
-p
-{
-    line-height: 0em;
-    margin: 0 0 1em 0;
-    padding: 0;
+/* branding */
+.brand-all {
+  font-family: Impact, Charcoal, sans-serif;
 }
-p:last-child
-{
-    margin: 0;
+
+.brand-left {
+  color:#009999;
+  font-weight: lighter;
 }
-*/
+
+.brand-right {
+  color:#990033;
+  font-weight:bold;
+}
 
 div.wrapper div.Footer
 {

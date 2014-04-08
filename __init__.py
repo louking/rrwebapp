@@ -41,7 +41,7 @@ from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, Vi
 from loutilities import apikey
 
 # define product name (don't import nav until after app.jinja_env.globals['_rrwebapp_productname'] set)
-app.jinja_env.globals['_rrwebapp_productname'] = '<span style="font-family: Impact, Charcoal, sans-serif"><span style="color:#009999; font-weight: lighter">score</span><span style="color:#990033; font-weight:bold">tility</span></span>'
+app.jinja_env.globals['_rrwebapp_productname'] = '<span class="brand-all"><span class="brand-left">score</span><span class="brand-right">tility</span></span>'
 #from nav import productname
 
 ak = apikey.ApiKey('Lou King','raceresultswebapp')
