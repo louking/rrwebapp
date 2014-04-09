@@ -64,20 +64,23 @@ class ChooseStandings(MethodView):
     def get(self):
     #----------------------------------------------------------------------
         try:
-            if 'club_id' in flask.session:
-                club_id = flask.session['club_id']
-                club = Club.query.filter_by(id=club_id).first()
-                thisclub = club.shname
-                thisyear = flask.session['year']
-            else:
-                thisclub = None
-                thisyear = None
+            thisclub = None
+            thisyear = None
+            thisseries = None
+            
+            if 'last_standings_club' in flask.session:
+                thisclub = flask.session['last_standings_club']
+            if 'last_standings_year' in flask.session:
+                thisyear = flask.session['last_standings_year']
+            if 'last_standings_series' in flask.session:
+                thisseries = flask.session['last_standings_series']
             
             form = ChooseStandingsForm()
             
             # override club_id and thisyear if provided in url
             thisclub = request.args.get('club',thisclub)
             thisyear = request.args.get('year',thisyear)
+            thisseries = request.args.get('series',thisseries)
             
             # initialize year and series choices
             form.year.choices = [(0,'Select Year')]
@@ -96,16 +99,18 @@ class ChooseStandings(MethodView):
                 
                 # for what years do we have results?
                 years = []
-                for thisseries in allseries:
-                    if thisseries.year not in years:
-                        years.append(thisseries.year)
+                for sseries in allseries:
+                    if sseries.year not in years:
+                        years.append(sseries.year)
                 years.sort()
                 form.year.choices += [(y,y) for y in years]
                 if thisyear:
                     thisyear = int(thisyear)
                     form.year.data = thisyear
                     form.series.choices += [(s.name,s.name) for s in allseries if s.year == thisyear]
-
+                    if thisseries:
+                        form.series.data = thisseries
+            
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('choosestandings.html',thispagename='Choose Standings',form=form,action=ChooseStandings.CHOOSE,
@@ -141,6 +146,11 @@ class ChooseStandings(MethodView):
                 thisclub = Club.query.filter_by(shname=form.club.data).first()
                 clubname = thisclub.name
                 params['desc'] = '{} - {} {}'.format(clubname,form.year.data,form.series.data)
+                
+                # remember for next time
+                flask.session['last_standings_club'] = form.club.data
+                flask.session['last_standings_year'] = form.year.data
+                flask.session['last_standings_series'] = form.series.data
                 
                 # commit database updates and close transaction
                 db.session.commit()

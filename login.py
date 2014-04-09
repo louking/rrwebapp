@@ -139,7 +139,6 @@ def set_logged_out():
 #----------------------------------------------------------------------
     logout_user()
     
-    flask.session.permanent = False
     for key in ('logged_in','user_name','club_id','club_name','club_choices','year','year_choices'):
         flask.session.pop(key, None)
         

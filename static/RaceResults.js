@@ -942,10 +942,19 @@
                 return
             }
             
+            // save last value
+            var selectvalue = getvalue('#_rrwebapp-choosestandings-select-year')
+            
             // ajax parameter setup
             ajaxparams = {club:club}
             
             updateselect('#_rrwebapp-choosestandings-select-year',apiurl,ajaxparams);
+            
+            // reset last value if possible
+            choicevalues = getchoicevalues('#_rrwebapp-choosestandings-select-year')
+            if ($.inArray(selectvalue, choicevalues) != -1) {
+                setvalue('#_rrwebapp-choosestandings-select-year',selectvalue)
+            }
         };
         
         function setseriesselect( sel ) {
@@ -958,10 +967,19 @@
                 return
             }
             
+            // save last value
+            var selectvalue = getvalue('#_rrwebapp-choosestandings-select-series')
+            
             // ajax parameter setup
             ajaxparams = {club:club,year:year}
             
             updateselect('#_rrwebapp-choosestandings-select-series',apiurl,ajaxparams);
+
+            // reset last value if possible
+            choicevalues = getchoicevalues('#_rrwebapp-choosestandings-select-series')
+            if ($.inArray(selectvalue, choicevalues) != -1) {
+                setvalue('#_rrwebapp-choosestandings-select-series',selectvalue)
+            }
         };
         
         $('#_rrwebapp-choosestandings-select-club')
@@ -973,9 +991,9 @@
         $('#_rrwebapp-choosestandings-select-club, #_rrwebapp-choosestandings-select-year')
             .on('change',
                 function ( event ) {
-                    setseriesselect( this );
+                    setseriesselect( '#_rrwebapp-choosestandings-select-year' );
         });
 
         setyearselect('#_rrwebapp-choosestandings-select-club');
-        setseriesselect('#_rrwebapp-choosestandings-select-club');
+        setseriesselect('#_rrwebapp-choosestandings-select-year');
     };  // choosestandings
