@@ -933,39 +933,49 @@
     };
     
     function choosestandings() {
+        function setyearselect( sel ) {
+            var apiurl = $( sel ).attr('_rrwebapp_apiurl');
+            club = getvalue('#_rrwebapp-choosestandings-select-club')
+
+            // club needs to be set
+            if (!club ) {
+                return
+            }
+            
+            // ajax parameter setup
+            ajaxparams = {club:club}
+            
+            updateselect('#_rrwebapp-choosestandings-select-year',apiurl,ajaxparams);
+        };
+        
+        function setseriesselect( sel ) {
+            var apiurl = $( sel ).attr('_rrwebapp_apiurl');
+            club = getvalue('#_rrwebapp-choosestandings-select-club')
+            year = getvalue('#_rrwebapp-choosestandings-select-year')
+
+            // both need to be set
+            if (!club || !year) {
+                return
+            }
+            
+            // ajax parameter setup
+            ajaxparams = {club:club,year:year}
+            
+            updateselect('#_rrwebapp-choosestandings-select-series',apiurl,ajaxparams);
+        };
+        
         $('#_rrwebapp-choosestandings-select-club')
             .on('change',
                 function ( event ) {
-                    var apiurl = $( this ).attr('_rrwebapp_apiurl');
-                    club = getvalue('#_rrwebapp-choosestandings-select-club')
-
-                    // club needs to be set
-                    if (!club ) {
-                        return
-                    }
-                    
-                    // ajax parameter setup
-                    ajaxparams = {club:club}
-                    
-                    updateselect('#_rrwebapp-choosestandings-select-year',apiurl,ajaxparams);
+                    setyearselect( this );
         });
 
         $('#_rrwebapp-choosestandings-select-club, #_rrwebapp-choosestandings-select-year')
             .on('change',
                 function ( event ) {
-                    var apiurl = $( this ).attr('_rrwebapp_apiurl');
-                    club = getvalue('#_rrwebapp-choosestandings-select-club')
-                    year = getvalue('#_rrwebapp-choosestandings-select-year')
-
-                    // both need to be set
-                    if (!club || !year) {
-                        return
-                    }
-                    
-                    // ajax parameter setup
-                    ajaxparams = {club:club,year:year}
-                    
-                    updateselect('#_rrwebapp-choosestandings-select-series',apiurl,ajaxparams);
+                    setseriesselect( this );
         });
 
+        setyearselect('#_rrwebapp-choosestandings-select-club');
+        setseriesselect('#_rrwebapp-choosestandings-select-club');
     };  // choosestandings
