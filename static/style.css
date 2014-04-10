@@ -44,7 +44,7 @@ table.dataTable thead th {
   font-size: 1em;
 }
 
-/* The #navigation is the full navigation which is an unordered list */
+/* put navigation to the left (jquery ui) */
 .ui-menu {
     width: 10%;
     float: left;
@@ -124,6 +124,18 @@ h2              { font-size: 1.2em; }
 {
     text-align: center;
     color: red;
+}
+._rrwebapp-class-standings-data-overall-award
+{
+    text-align: center;
+    font-weight: bold;
+    color: blue;
+}
+._rrwebapp-class-standings-data-division-award
+{
+    text-align: center;
+    font-weight: bold;
+    color: green;
 }
 ._rrwebapp-class-standings-data-name
 {

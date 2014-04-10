@@ -844,9 +844,9 @@
         
         // Legend
         legend = '<table>\
-                    <tr><td>red</td><td>points are dropped</td></tr>\
-                    <tr><td>blue</td><td>runner won overall award, not eligible for age group award</td></tr>\
-                    <tr><td>green</td><td>runner won age group award</td></tr>\
+                    <tr><td><div class="_rrwebapp-class-standings-data-race-dropped">red</div></td><td>points are dropped</td></tr>\
+                    <tr><td><div class="_rrwebapp-class-standings-data-overall-award">blue</div></td><td>runner won overall award, not eligible for age group award</td></tr>\
+                    <tr><td><div class="_rrwebapp-class-standings-data-division-award">green</div></td><td>runner won age group award</td></tr>\
                  </table>';
         popupbutton.init('#_rrwebapp-button-standings-legend', true, 'Legend', {});
         $('#_rrwebapp-button-standings-legend').on(
