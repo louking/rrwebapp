@@ -46,8 +46,10 @@ SCRIPTS_JS = [
     'js/jquery-ui-1.10.4.custom.min.js',
     'js/jquery.dataTables.min.js',
     'js/jquery.dataTables.yadcf.js',
+    'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
     #'js/jquery.browser.js',         # browser removed from JQueryUI 1.9, needed by FixedColumns
     #'js/FixedColumns.js',
+    
     'RaceResults.js',
 ]
 SCRIPTS_CSS = [

@@ -281,6 +281,11 @@
                                 at: "right bottom",
                                 of: $( buttonsel ),
                                 },
+                        clickOutside: true, // see https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
+                        clickOutsideTrigger: buttonsel,
+                        close: function () {
+                            popupbutton.popupstatus = 0;
+                        },
                         });
     
                 popupbutton.popupstatus = 1;
