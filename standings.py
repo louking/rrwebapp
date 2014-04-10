@@ -95,7 +95,7 @@ class ChooseStandings(MethodView):
                         club_id = club.id
                         break
                 form.club.data = thisclub
-                allseries = Series.query.filter_by(active=True,club_id=club_id).join("results").all()
+                allseries = Series.query.filter_by(active=True,club_id=club_id).all()
                 
                 # for what years do we have results?
                 years = []
@@ -306,7 +306,7 @@ class AjaxGetYears(MethodView):
             
             club_id = club.id
             
-            allseries = Series.query.filter_by(active=True,club_id=club_id).join("results").all()
+            allseries = Series.query.filter_by(active=True,club_id=club_id).all()
 
             years = []
             for thisseries in allseries:
@@ -357,7 +357,7 @@ class AjaxGetSeries(MethodView):
             
             club_id = club.id
             
-            allseries = Series.query.filter_by(active=True,club_id=club_id,year=year).join("results").all()
+            allseries = Series.query.filter_by(active=True,club_id=club_id,year=year).all()
             theseseries = [(s.name,s.name) for s in allseries]
             theseseries.sort()
             choices = [('','Select Series')] + theseseries
