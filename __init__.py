@@ -59,9 +59,9 @@ def getapikey(key):
 logdir = getapikey('logdirectory')
 debug = True if getapikey('debug') else False
 secretkey = getapikey('secretkey')
-configdir = getapikey('configdir')
-fileloglevel = getapikey('fileloglevel')
-mailloglevel = getapikey('emailloglevel')
+#configdir = getapikey('configdir')
+#fileloglevel = getapikey('fileloglevel')
+#mailloglevel = getapikey('emailloglevel')
 #if not secretkey:
 #    secretkey = os.urandom(24)
 #    ak.updatekey('secretkey',keyvalue)
@@ -75,14 +75,11 @@ else:
     SECRET_KEY = secretkey
 app.config.from_object(__name__)
 
-if configdir and os.path.exists(os.path.join(configdir,'rrwebapp.cfg')):
-    app.config.from_pyfile(os.path.join(configdir,'rrwebapp.cfg'))
-
 # tell jinja to remove linebreaks
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
 
-# TODO: move this to new module logging
+# TODO: move this to new module logging, bring in from dispatcher
 # set up logging
 ADMINS = ['lking@pobox.com']
 if not app.debug:

@@ -60,16 +60,6 @@ class ViewSysinfo(MethodView):
         try:
             thisversion = version.__version__
             
-            configkeys = app.config.keys()
-            configkeys.sort()
-            
-            appconfig = []
-            for key in configkeys:
-                value = app.config[key]
-                if key in ['SQLALCHEMY_DATABASE_URI','SECRET_KEY']:
-                    value = '<obscured>'
-                appconfig.append({'label':key, 'value':value})
-            
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('sysinfo.html',pagename='About',version=thisversion,
@@ -92,6 +82,8 @@ class ViewDebug(MethodView):
     #----------------------------------------------------------------------
         try:
             thisversion = version.__version__
+            appconfigpath = getattr(app,'configpath','<not set>')
+            appconfigtime = getattr(app,'configtime','<not set>')
 
             # collect groups of system variables                        
             sysvars = []
@@ -119,7 +111,11 @@ class ViewDebug(MethodView):
             
             # commit database updates and close transaction
             db.session.commit()
-            return flask.render_template('sysinfo.html',pagename='Debug',version=thisversion,sysvars=sysvars,
+            return flask.render_template('sysinfo.html',pagename='Debug',
+                                         version=thisversion,
+                                         configpath=appconfigpath,
+                                         configtime=appconfigtime,
+                                         sysvars=sysvars,
                                          owner=owner_permission.can(),
                                          inhibityear=True,inhibitclub=True)
         

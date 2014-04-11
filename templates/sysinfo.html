@@ -10,10 +10,22 @@
       <tr>
         <td>VERSION</td>
         <td>{{ version }}</td>
+        {% if configpath %}
+          <tr>
+            <td>app.configpath</td>
+            <td>{{ configpath }} </td>
+          </tr>
+        {% endif %}
+        {% if configtime %}
+          <tr>
+            <td>app.configtime</td>
+            <td>{{ configtime }} </td>
+          </tr>
+        {% endif %}
       </tr>
     </tbody>
   </table>
-  
+  <br>
   {% for tablename,items in sysvars %}
     <h2>{{ tablename }}</h2>
     <br>
