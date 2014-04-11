@@ -19,11 +19,16 @@ app.config.from_envvar('RRWEBAPP_SETTINGS')
 app.configtime = tu.epoch2asc(time.time())
 app.configpath = os.environ['RRWEBAPP_SETTINGS']
 
+# must set up logging after setting configuration
+from rrwebapp import applogging
+applogging.setlogging()
+
+# must be after setting app.config
 app = ScriptNameStripper(app)
 
 if __name__ == '__main__':
     # create the server
     server = WSGIServer(app)
     
-    # go to it
+    # and run it
     server.run()

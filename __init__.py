@@ -24,7 +24,6 @@
 # standard
 import os
 import os.path
-import logging
 
 # pypi
 import flask
@@ -56,7 +55,6 @@ def getapikey(key):
         return keyval
     
 # get api keys
-logdir = getapikey('logdirectory')
 debug = True if getapikey('debug') else False
 secretkey = getapikey('secretkey')
 #configdir = getapikey('configdir')
@@ -79,47 +77,6 @@ app.config.from_object(__name__)
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
 
-# TODO: move this to new module logging, bring in from dispatcher
-# set up logging
-ADMINS = ['lking@pobox.com']
-if not app.debug:
-    from logging.handlers import SMTPHandler
-    from logging import FileHandler, Formatter
-    mail_handler = SMTPHandler('localhost',
-                               'noreply@steeplechasers.org',
-                               ADMINS, '[scoreTILITY] exception encountered')
-    if 'LOGGING_LEVEL_MAIL' in app.config:
-        mailloglevel = app.config['LOGGING_LEVEL_MAIL']
-    else:
-        mailloglevel = logging.ERROR
-    mail_handler.setLevel(mailloglevel)
-    mail_handler.setFormatter(Formatter('''
-    Message type:       %(levelname)s
-    Location:           %(pathname)s:%(lineno)d
-    Module:             %(module)s
-    Function:           %(funcName)s
-    Time:               %(asctime)s
-    
-    Message:
-    
-    %(message)s
-    '''))
-    app.logger.addHandler(mail_handler)
-    
-    if logdir:
-        file_handler = FileHandler(os.path.join(logdir,'rrwebapp.log'),delay=True)
-        if 'LOGGING_LEVEL_FILE' in app.config:
-            fileloglevel = app.config['LOGGING_LEVEL_FILE']
-        else:
-            fileloglevel = logging.WARNING
-        file_handler.setLevel(fileloglevel)
-        app.logger.addHandler(file_handler)
-    
-        file_handler.setFormatter(Formatter(
-            '%(asctime)s %(levelname)s: %(message)s '
-            '[in %(pathname)s:%(lineno)d]'
-        ))
-    
 # import all views
 import request
 import index
