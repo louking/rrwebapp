@@ -554,7 +554,8 @@
             var $importmembers = $('#managemembersImport');
             $importmembers.click( function( event ) {
                 event.preventDefault();
-                ajax_import_file('/_importmembers','#import-members',false);
+                url = $(this).attr('_rrwebapp-formaction')
+                ajax_import_file(url,'#import-members',false);
             });
         }
 
@@ -582,9 +583,8 @@
             var $importraces = $('#manageracesImport');
             $importraces.click( function( event ) {
                 event.preventDefault();
-                //var form = $(this).parent()
-                //ajax_update_db_form('_importraces',form,false);
-                ajax_import_file('/_importraces','#import-races',false);
+                url = $(this).attr('_rrwebapp-formaction')
+                ajax_import_file(url,'#import-races',false);
             });
         };
             

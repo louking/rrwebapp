@@ -16,7 +16,7 @@
             <div>\
               <form id='import-members' method='post' enctype='multipart/form-data'>\
                 <input id='choosefileImport' type=file name='file'>\
-                <button id='managemembersImport'>Import</button>\
+                <button id='managemembersImport'  _rrwebapp-formaction='{{url_for("_importmembers")}}'>Import</button>\
               </form>\
             </div>");
         {% endif %}
