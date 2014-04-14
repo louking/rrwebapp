@@ -68,21 +68,21 @@ class ChooseStandings(MethodView):
             thisyear = None
             thisseries = None
             
+            # take club, year, series from the session, if they are there
             if 'last_standings_club' in flask.session:
                 thisclub = flask.session['last_standings_club']
             if 'last_standings_year' in flask.session:
                 thisyear = flask.session['last_standings_year']
             if 'last_standings_series' in flask.session:
                 thisseries = flask.session['last_standings_series']
-            
-            form = ChooseStandingsForm()
-            
-            # override club_id and thisyear if provided in url
+                        
+            # override club, year, series if provided in url
             thisclub = request.args.get('club',thisclub)
             thisyear = request.args.get('year',thisyear)
             thisseries = request.args.get('series',thisseries)
             
             # initialize year and series choices
+            form = ChooseStandingsForm()
             form.year.choices = [(0,'Select Year')]
             form.series.choices = [('','Select Series')]
             

@@ -8,7 +8,7 @@ class ScriptNameStripper(object):
        self.app = app
 
    def __call__(self, environ, start_response):
-       environ['SCRIPT_NAME'] = '/standings'    # edit here for non-standard location
+       environ['SCRIPT_NAME'] = '/scoretility'    # edit here for non-standard location
        return self.app(environ, start_response)
 
 import time
