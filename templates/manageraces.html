@@ -44,7 +44,7 @@
             <th>Edit</th>
           {% endif %}
           <th>Results</th>
-          <th>Race Num</td>
+          {#<th>Race Num</td>#}
           <th>Date</td>
           <th>Race</td>
           <th>Miles</th>
@@ -83,7 +83,7 @@
               {% endif %}
             {% endif %}
   
-            <td align=center>{{ num(race.racenum,0) }}</td>
+            {#<td align=center>{{ num(race.racenum,0) }}</td>#}
             <td>{{ race.date }}</td>
             <td>{{ race.name }}</td>
             <td align=center>{{ num(race.distance,2) }}</td>
