@@ -97,7 +97,7 @@ def before_request():
 @app.after_request
 def after_request(response):
 #----------------------------------------------------------------------
-    app.logger.info('{} {} {}'.format(request.method, request.path, response.status_code))
+    app.logger.info('{} {} {}'.format(request.method, request.url, response.status_code))
     return response
 
 
