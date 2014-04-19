@@ -206,14 +206,14 @@ class EditResults(MethodView):
             
             # commit database updates and close transaction
             db.session.commit()
-            return flask.render_template('editresults.html',form=form,race=race,resultsdata=resultsdata,writeallowed=writecheck.can())
+            return flask.render_template('editparticipants.html',form=form,race=race,resultsdata=resultsdata,writeallowed=writecheck.can())
         
         except:
             # roll back database updates and close transaction
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/editresults/<int:raceid>',view_func=EditResults.as_view('editresults'),methods=['GET'])
+app.add_url_rule('/editparticipants/<int:raceid>',view_func=EditResults.as_view('editparticipants'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -603,7 +603,7 @@ class AjaxImportResults(MethodView):
 
             # commit database updates and close transaction
             db.session.commit()
-            return success_response(redirect=flask.url_for('editresults',raceid=raceid))
+            return success_response(redirect=flask.url_for('editparticipants',raceid=raceid))
         
         except Exception,e:
             # roll back database updates and close transaction

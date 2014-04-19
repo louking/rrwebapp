@@ -697,8 +697,8 @@
         
     };  // managedivisions
         
-    // editresults
-    function editresults(writeallowed) {
+    // editparticipants
+    function editparticipants(writeallowed) {
         
         function setchecked(sel) {
             if (sel.checked) {
@@ -709,8 +709,9 @@
         };
 
         // make button for checkbox
-        $('._rrwebapp-editresults-checkbox-confirmed').button({text:false});
-        $('._rrwebapp-editresults-checkbox-confirmed').each(function(){setchecked(this);});
+        $('._rrwebapp-editparticipants-checkbox-confirmed').button({text:false});
+        $('._rrwebapp-editparticipants-checkbox-confirmed').each(function(){setchecked(this);});
+        
         if (writeallowed) {
             // set up import button
             $('#_rrwebapp-button-import').button()
@@ -729,7 +730,7 @@
                 });
 
             // handle checkbox update
-            $('._rrwebapp-editresults-checkbox-confirmed')
+            $('._rrwebapp-editparticipants-checkbox-confirmed')
                 .on('click',
                     function(){
                         setchecked(this);
@@ -737,11 +738,11 @@
         }
         
         // initial revert values -- see ajax_update_db_noform_resp for use of 'revert' data field
-        $('._rrwebapp-editresults-select-runner, ._rrwebapp-editresults-checkbox-confirmed').each(function() {
+        $('._rrwebapp-editparticipants-select-runner, ._rrwebapp-editparticipants-checkbox-confirmed').each(function() {
             $( this ).data('revert', getvalue(this));
         });
         
-        $('._rrwebapp-editresults-select-runner, ._rrwebapp-editresults-checkbox-confirmed')
+        $('._rrwebapp-editparticipants-select-runner, ._rrwebapp-editparticipants-checkbox-confirmed')
             .on('change',
                 function ( event ) {
                     var apiurl = $( this ).attr('_rrwebapp-apiurl');
@@ -752,7 +753,7 @@
                     ajaxparams = {field:field,value:value}
                     
                     // control exclusion table
-                    selectelement = $(this).parent().parent().find('select._rrwebapp-editresults-select-runner')
+                    selectelement = $(this).parent().parent().find('select._rrwebapp-editparticipants-select-runner')
                     selectvalue = $( selectelement ).val()
                     choicevalues = getchoicevalues(selectelement);
                     // remove value from choicevalues (if it exists -- it should exist, though)
@@ -781,14 +782,26 @@
                         });
         });
 
-        _rrwebapp_table = $('#_rrwebapp-table-editresults')
+        var matchCol = 4;
+        _rrwebapp_table = $('#_rrwebapp-table-editparticipants')
             .dataTable(getDataTableParams({
                 bPaginate: true,
                 bSort: false,
-            }));
+            }))
+            .yadcf([{
+                    column_number:matchCol,
+                    filter_container_id:"_rrwebapp_filtermatch",
+                    column_data_type: "text",
+                    //html_data_type: "text",
+                    filter_reset_button_text: 'all',    // no filter reset button
+                },]);
         resetDataTableHW();
 
-        //_rrwa_resultstable = $('#_rrwebapp-table-editresults').DataTable({
+        if (writeallowed) {
+            toolbutton.position({my: "left center", at: "right+3 center", of: '#_rrwebapp_filtermatch'});
+            toolbutton.$widgets.css({height:"0px"});   // no more widgets in container            
+        }
+        //_rrwa_resultstable = $('#_rrwebapp-table-editparticipants').DataTable({
         //    //paging: false,
         //    //scrollY: 450, // when scrolling, scroll jumps after updating column value
         //    ordering: false,
@@ -798,7 +811,7 @@
         //    //             ]
         //});
         
-    };  // editresults
+    };  // editparticipants
 
     function seriesresults(writeallowed) {
         

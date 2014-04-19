@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% from '_formhelpers.html' import num,tabbool,tabboollink,tabeditlink %}
 {% block pagename %}
-    Edit Results
+    Edit Participants
 {% endblock %}
 {% block css %}
   <link rel=stylesheet type=text/css href="{{ url_for('static', filename='resulttable.css') }}">
@@ -11,7 +11,7 @@
     $( document ).ready( function() {
       {% if writeallowed %}
         // TODO: need export to standard format, as well as update of import
-        // TODO: need inport form here to be the same as within RaceResults.manageraces()
+        // TODO: need import form here to be the same as within RaceResults.manageraces()
         toolbutton.init('tool-button',
                         "\
             <h3>Import Results</h3>\
@@ -28,11 +28,11 @@
             ");
         {% endif %}
 
-      editresults( {% if writeallowed %}true{% else %}false{% endif %});    
+      editparticipants( {% if writeallowed %}true{% else %}false{% endif %});    
 
       {% if writeallowed %}
         //addbutton.position({my: "left center", at: "right+3 center", of: '#filterseries'});
-        //toolbutton.position({my: "left center", at: "right+3 center", of: addbutton.selector});
+        toolbutton.position({my: "left center", at: "right+3 center", of: '#_rrwebapp_filtermatch'});
       {% endif %}
     })
   </script>
@@ -40,17 +40,24 @@
   </script>
 {% endblock %}
 {% block body %}
+  <div id="_rrwebapp-heading-elements">
+    <div class="TextLeft ">
+      <div>
+        <label class="Label">Match:</label><span id="_rrwebapp_filtermatch"></span>
+      </div>
+    </div>
+  </div>
     <center><b>{{race.name}} - {{race.date}}</b></center>
     <center>Series: {% for ss in race.series %}{{ ss.series.name }} {% endfor %} -
             {% if race.series[0].series.membersonly %}members only{% else %}nonmembers included{% endif %}</center>
-      <table class="" id="_rrwebapp-table-editresults" >
+      <table class="" id="_rrwebapp-table-editparticipants" >
         <thead>
           <tr>
             <th class="_rrwebapp-col-_unordered">{{ form.place.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.name.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.gender.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.age.label }}</th>
-            <th class="_rrwebapp-col-_unordered">{{ form.disposition.label }}</th>
+            <th class="_rrwebapp-col-_unordered _rrwebapp-col-match">{{ form.disposition.label }}</th>
             <th class="_rrwebapp-col-_unordered _rrwebapp-col-confirmed">{{ form.confirmed.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.runnerid.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.hometown.label }}</th>
@@ -67,15 +74,15 @@
               <td align=center>{{ num(result.age,0) }}</td>
               <td align=center>{{ thisdisposition }}</td>
               <td align=center>
-                <input class="_rrwebapp-editresults-checkbox-confirmed" type="checkbox" {% if result.confirmed %}checked{%endif%}
-                          id="_rrwebapp-editresults-checkbox-confirmed-{{ result.id }}" 
+                <input class="_rrwebapp-editparticipants-checkbox-confirmed" type="checkbox" {% if result.confirmed %}checked{%endif%}
+                          id="_rrwebapp-editparticipants-checkbox-confirmed-{{ result.id }}" 
                           _rrwebapp-field='confirmed'
                           _rrwebapp-apiurl={{url_for('_updatemanagedresult',resultid=result.id)}}>
-                <label for="_rrwebapp-editresults-checkbox-confirmed-{{ result.id }}"></label>
+                <label for="_rrwebapp-editparticipants-checkbox-confirmed-{{ result.id }}"></label>
               </td>
               <td>
                 {% if writeallowed and (thisdisposition == 'missed' or thisdisposition == 'similar') %}
-                  <select class="_rrwebapp-editresults-select-runner" 
+                  <select class="_rrwebapp-editparticipants-select-runner" 
                           _rrwebapp-field='runnerid'
                           _rrwebapp-apiurl={{url_for('_updatemanagedresult',resultid=result.id)}}>
                     {% for value,choice in thismemberchoice %}
