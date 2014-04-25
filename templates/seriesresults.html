@@ -42,12 +42,13 @@
         <th class="" align=center>{{ form.division.label }}</th>
         <th class="" align=center>{{ form.divisionplace.label }}</th>
         <th class="" align=center>{{ form.time.label }}</th>
+        <th class="" align=center>{{ form.pace.label }}</th>
         <th class="" align=center>{{ form.agtime.label }}</th>
         <th class="" align=center>{{ form.agpercent.label }}</th>
       </tr>
     </thead>
     <tbody>
-      {% for result,thisseries,thisplace,thisname,thistime,thisdiv,thisagtime in resultsdata %}
+      {% for result,thisseries,thisplace,thisname,thistime,thisdiv,thisagtime,thispace in resultsdata %}
         <tr class="">
           <td>{{ thisseries }}</td>
           <td align=center>{{ num(thisplace,0) }}</td>
@@ -57,6 +58,7 @@
           <td align=center>{{ thisdiv }}</td>
           <td align=center>{{ num(result.divisionplace,0) }}</td>
           <td align=center>{{ thistime }}</td>
+          <td align=center>{{ thispace }}</td>
           <td align=center>{{ thisagtime }}</td>
           <td align=center>{{ num(result.agpercent,1) }}%</td>
         </tr>

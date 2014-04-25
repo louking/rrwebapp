@@ -256,6 +256,7 @@ class SeriesResults(MethodView):
                 thisseries = series.name
                 thistime = render.rendertime(result.time,0)
                 thisagtime = render.rendertime(result.agtime,0)
+                thispace = render.rendertime(result.time / race.distance, 0, useceiling=False)
                 if result.divisionlow:
                     if result.divisionlow == 0:
                         thisdiv = 'up to {}'.format(result.divisionhigh)
@@ -274,7 +275,7 @@ class SeriesResults(MethodView):
                     thisplace = None
 
                 # order must match that which is expected within seriesresults.html
-                displayresults.append((result,thisseries,thisplace,thisname,thistime,thisdiv,thisagtime))
+                displayresults.append((result,thisseries,thisplace,thisname,thistime,thisdiv,thisagtime,thispace))
             
             # commit database updates and close transaction
             db.session.commit()
