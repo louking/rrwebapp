@@ -225,11 +225,7 @@ class SeriesResults(MethodView):
         try:
             form = SeriesResultForm()
     
-            # get all the results, and the race record
-            results = []
-            results = RaceResult.query.filter_by(raceid=raceid).all()
-            
-            # get race 
+            # get race record
             race = Race.query.filter_by(id=raceid).first()
             if len(race.series) == 0:
                 db.session.rollback()
@@ -237,14 +233,22 @@ class SeriesResults(MethodView):
                 app.logger.error(cause)
                 flask.flash(cause)
                 return flask.redirect(flask.url_for('manageraces'))
-            #membersonly = race.series[0].series.membersonly
-            #active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=membersonly,active=True)
+            
+            # get all the results, and the race record
+            results = []
+            for series in race.series:
+                seriesid = series.series.id
+                seriesresults = RaceResult.query.filter_by(raceid=raceid,seriesid=seriesid).order_by(series.series.orderby).all()
+                # this is easier, code-wise, than using sqlalchemy desc() function
+                if series.series.hightolow:
+                    seriesresults.reverse()
+                results += seriesresults
             
             # fix up the following:
             #   * time gets converted from seconds
             #   * determine member matching, set runnerid choices and initially selected choice
             #   * based on matching, set disposition
-            annotatedresults = []
+            displayresults = []
             for result in results:
                 runner = Runner.query.filter_by(id=result.runnerid).first()
                 thisname = runner.name
@@ -269,25 +273,12 @@ class SeriesResults(MethodView):
                 else:
                     thisplace = None
 
-                annotatedresults.append((result.time,(thisseries,thisplace,thisname,thistime,thisdiv,thisagtime,result)))
-            
-            # sort results by series, overallplace
-            annotatedresults.sort()
-            displayresults = [ar[1] for ar in annotatedresults]
-            
-            theseseries = [rr[0] for rr in displayresults]
-            theseplaces = [rr[1] for rr in displayresults]
-            thesenames = [rr[2] for rr in displayresults]
-            thesetimes = [rr[3] for rr in displayresults]
-            thesedivs =  [rr[4] for rr in displayresults]
-            theseagtimes = [rr[5] for rr in displayresults]
-            theseresults = [rr[6] for rr in displayresults]
-            
-            resultsdata = zip(theseresults,theseseries,theseplaces,thesenames,thesetimes,thesedivs,theseagtimes)
+                # order must match that which is expected within seriesresults.html
+                displayresults.append((result,thisseries,thisplace,thisname,thistime,thisdiv,thisagtime))
             
             # commit database updates and close transaction
             db.session.commit()
-            return flask.render_template('seriesresults.html',form=form,race=race,resultsdata=resultsdata,
+            return flask.render_template('seriesresults.html',form=form,race=race,resultsdata=displayresults,
                                          inhibityear=True,inhibitclub=True)
         
         except:
