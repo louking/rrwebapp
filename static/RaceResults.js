@@ -125,6 +125,29 @@
       }
     } );
     
+    // sort extension for 'racetime' ([[h:]mm:]ss)
+    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
+      "racetime-pre": function ( a ) {
+            if (!a || a == '') {return 0};
+            var parts = a.split(':');
+            var len = parts.length;
+            var numsecs = 0;
+            for (var i = 0; i < len; i++) {
+              numsecs = numsecs*60 + parseFloat( parts[i] );
+            }
+            traceonce = 0;
+            return numsecs;
+      },
+   
+      "racetime-asc": function ( a, b ) {
+          return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+      },
+   
+      "racetime-desc": function ( a, b ) {
+          return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+      }
+    } );
+    
     // common
     function getconfirmation(event,button,text) {
         event.preventDefault();
@@ -825,6 +848,7 @@
                     sScrollY: gettableheight()-15,  // -15 due to sort arrows, I think 
                     aoColumnDefs: [
                         {aTargets:[0],bVisible:false},
+                        {aTargets:[7,8,9],sType:'racetime'},
                                 ],
                 }))
             .yadcf([{

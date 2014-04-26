@@ -102,7 +102,7 @@ class ManageRaces(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('manageraces.html',form=form,raceresultsseries=raceresultsseries,series=theseseries,
-                                         inhibityear=True,writeallowed=writecheck.can())
+                                         writeallowed=writecheck.can())
         
         except:
             # roll back database updates and close transaction
