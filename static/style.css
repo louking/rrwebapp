@@ -149,6 +149,38 @@ h2              { font-size: 1.2em; }
    font-size: large;
 }
 
+table._rrwebapp-class-importspec
+{
+  border-collapse: collapse;
+}
+
+table._rrwebapp-class-importspec thead th
+{
+  padding: 3px 4px;
+}
+
+table._rrwebapp-class-importspec tbody td
+{
+  vertical-align: text-top;
+  padding: 3px 4px;
+}
+
+table._rrwebapp-class-importspec p:first-child
+{
+  margin-top: 0;
+}
+
+table._rrwebapp-class-importspec p:last-child
+{
+  margin-bottom: 0;
+}
+
+table._rrwebapp-class-importspec thead p
+{
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 label
 {
     margin-right: 0.5em;

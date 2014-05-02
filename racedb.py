@@ -7,19 +7,7 @@
 #       01/23/13        Lou King        Create
 #       04/26/13        Lou King        temp fix for issue #20 - allow mysql+gaerdbms
 #
-#   Copyright 2013 Lou King
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
+#   Copyright 2013,2014 Lou King.  All rights reserved
 #
 ###########################################################################################
 '''
@@ -390,7 +378,7 @@ class Race(Base):
     :param club_id: club.id
     :param name: race name
     :param year: year of race
-    :param racenum: number of race within the year
+    :param racenum: number of race within the year # deprecated, ignored
     :param date: yyyy-mm-dd date of race
     :param starttime: hh:mm start of race
     :param distance: race distance in miles
@@ -402,7 +390,7 @@ class Race(Base):
     club_id = Column(Integer, ForeignKey('club.id'))
     name = Column(String(50))
     year = Column(Integer)
-    racenum = Column(Integer)
+    racenum = Column(Integer)   # deprecated, ignored
     date = Column(String(10))
     starttime = Column(String(5))
     distance = Column(Float)
@@ -418,7 +406,7 @@ class Race(Base):
         self.club_id = club_id
         self.name = name
         self.year = year
-        self.racenum = racenum
+        self.racenum = racenum  # deprecated, ignored
         self.date = date
         self.starttime = starttime
         self.distance = distance

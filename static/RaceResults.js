@@ -59,9 +59,9 @@
                 - 112;
         }
         
-        // error return
+        // override if too small
         if (height<50){
-            return 430;
+            height = 430;
         }
         //normal return
         return height;
@@ -76,7 +76,7 @@
                 sScrollY: gettableheight(),
                 bScrollCollapse: true,
                 sScrollX: "100%",
-                //sScrollXInner: "110%",
+                //sScrollXInner: "100%",
                 fnInfoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                     var info = "Showing ";
                     if (oSettings.oFeatures.bPaginate) {
@@ -88,6 +88,19 @@
 
                     return info
                   }
+            }
+        $.extend(params,updates)
+        return params
+    };
+    var sSpecDomValue = '<"H"Clpr>t';
+    function getSpecTableParams(updates) {
+        var params = {
+                sDom: sSpecDomValue,
+                bJQueryUI: true,
+                bPaginate: false,
+                bSort: false,
+                bScrollCollapse: true,
+                //sScrollXInner: "100%",
             }
         $.extend(params,updates)
         return params
@@ -637,6 +650,7 @@
             var formid = $(this).attr('_rrwebapp-formid');
             var buttonid = formid+'-import'
             var formaction = $(this).attr('_rrwebapp-formaction');
+            var importdoc = $(this).attr('_rrwebapp-importdoc');
             var editaction = $(this).attr('_rrwebapp-editaction');
             var seriesresultsaction = $(this).attr('_rrwebapp-seriesresultsaction');
             
@@ -644,6 +658,7 @@
             
             if (writeallowed) {
                 popupcontent = popupcontent + "\
+                    <p>Import the selected races's results as a CSV file. Please read the <a href='"+importdoc+"' target='_blank'>Import Guide</a> for information on the column headers and data format.</p>\
                     <form action='"+action+"', id='"+formid+"' method='post' enctype='multipart/form-data'> \
                         <input type='file' name=file /> <button id='"+buttonid+"'>Import</button> \
                     </form>\
@@ -838,11 +853,6 @@
 
     function seriesresults(writeallowed) {
         
-        console.log('$(window).height()='+$(window).height())
-        console.log("$('.heading').height()="+$('.heading').height())
-        console.log("$('#_rrwebapp-heading-elements').height()="+$('#_rrwebapp-heading-elements').height())
-        console.log("$('thead').height()="+$('thead').height())
-        console.log('sScrollY='+($(window).height()-$('.heading').height()-$('#_rrwebapp-heading-elements').height()))-$('thead').height()-130
         _rrwebapp_table = $('#_rrwebapp-table-seriesresults')
             .dataTable(getDataTableParams({
                     sScrollY: gettableheight()-15,  // -15 due to sort arrows, I think 
@@ -1039,3 +1049,11 @@
         setyearselect('#_rrwebapp-choosestandings-select-club');
         setseriesselect('#_rrwebapp-choosestandings-select-year');
     };  // choosestandings
+
+    function importspec() {
+        
+        _rrwebapp_spec_table = $('#_rrwebapp-table-importspec')
+            .dataTable(getSpecTableParams());
+
+    };  // importspec
+

@@ -1,0 +1,31 @@
+This is a test table for the IcdView class within rrwebapp.docs.py.,,,,,
+,,,,,
+Text can be rendered using reStructuredText markup language.,,,,,
+,,,,,
+"E.g.,::",,,,,
+,,,,,
+    there could be a block of code,,,,,
+,,,,,
+Or,,,,,
+,,,,,
+* there might be,,,,,
+* some list elements,,,,,
+,,,,,
+Below this will be a table ,,,,,
+table,,,,,
+thead,"headclass1,headclass2",th,Head1,Head2,Head3
+tbody,"bodyclass1,bodyclass2",td,"cellr1c1 which contains
+
+* a list",cellr1c2,cellr1c3
+tbody,"bodyclass1,bodyclass2",td,"cellr2c1 which contains
+
+* a list",cellr2c2,cellr2c3
+tbody,"headclass1,headclass2",td,single,single,single
+tbody,,td,"multiple
+
+paragraph
+
+cell",,
+/table,,,,,
+,,,,,
+Text after the table,,,,,

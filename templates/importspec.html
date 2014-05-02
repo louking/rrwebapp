@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block pagename %}
+    {{ pagename }}
+{% endblock %}
+{% block css %}
+{% endblock %}
+{% block scripts %}
+  <script type="text/javascript">
+    $( document ).ready( function() {
+      importspec( );    
+    })
+  </script>
+{% endblock %}
+{% block body %}
+  {{ intro|safe }}
+  <table class="_rrwebapp-class-importspec" id="_rrwebapp-table-importspec" cellpadding=0 cellspace=0>
+    {% for group in groups %}
+      <{{group}}>
+        {% for row in table[group].rows %}
+          <tr class="{{ row.class }}">
+            {% for cell in row.cells %}
+              <{{row.type}}>
+                {{ cell|safe }}
+              </{{row.type}}>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </{{group}}>
+    {% endfor %}
+  </table>
+  {{ summary|safe }}
+{% endblock %}

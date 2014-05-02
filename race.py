@@ -5,19 +5,7 @@
 #       ----            ------          ------
 #       01/15/14        Lou King        Create
 #
-#   Copyright 2014 Lou King
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
+#   Copyright 2014 Lou King.  All rights reserved
 #
 ###########################################################################################
 
@@ -81,6 +69,8 @@ class ManageRaces(MethodView):
             
             if seriesid and int(seriesid) not in supportedseries:
                 return flask.redirect(flask.url_for('manageraces'))    # without any form info
+            
+            # select is set to what url indicated
             form.filterseries.data = seriesid if seriesid else ''
             
             races = []
@@ -358,7 +348,7 @@ class AjaxImportRaces(MethodView):
             # process each name in race list
             for thisrace in fileraces:
                 # add or update race in database
-                race = Race(club_id,thisrace['year'],thisrace['race'],thisrace['racenum'],thisrace['date'],thisrace['time'],thisrace['distance'],thisrace['surface'])
+                race = Race(club_id,thisrace['year'],thisrace['race'],None,thisrace['date'],thisrace['time'],thisrace['distance'],thisrace['surface'])
                 added = racedb.insert_or_update(db.session,Race,race,skipcolumns=['id'],name=race.name,year=race.year)
                 
                 # remove this race from collection of races which should be deleted in database

@@ -14,6 +14,7 @@
                         "\
             <h3>Import Races</h3>\
             <div>\
+              <p>Import the selected year's race list as a CSV file. Please read the <a href='{{url_for("doc_importraces")}}' target='_blank'>Import Guide</a> for information on the column headers and data format.</p>\
               <form id='import-races' method='post' enctype='multipart/form-data'>\
                 <input id='choosefileImport' type='file' name='file' />\
                 <button id='manageracesImport' _rrwebapp-formaction='{{url_for("_importraces")}}'>Import</button>\
@@ -64,7 +65,7 @@
             {% if rawresults %}
               <td align=center>
                 <button class='_rrwebapp-importResultsButton' _rrwebapp-raceid='{{race.id}}'
-                  _rrwebapp-formaction='{{url_for("_importresults",raceid=race.id)}}' _rrwebapp-formid='_rrwebapp-form-results-{{race.id}}'
+                  _rrwebapp-formaction='{{url_for("_importresults",raceid=race.id)}}' _rrwebapp-importdoc='{{url_for("doc_importresults")}}' _rrwebapp-formid='_rrwebapp-form-results-{{race.id}}'
                   _rrwebapp-editaction='{{url_for("editparticipants",raceid=race.id)}}' 
                   _rrwebapp-seriesresultsaction='{{url_for("seriesresults",raceid=race.id)}}' 
                   _rrwebapp-imported='true'>
