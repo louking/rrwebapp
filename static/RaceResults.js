@@ -414,7 +414,7 @@
     };
     
     function ajax_update_db_form_resp(url,form,data) {
-        console.log(data);
+        window.console && console.log(data);
         if (data.success) {
             if (data.redirect){
                 window.location.replace(data.redirect);
@@ -422,7 +422,7 @@
                 location.reload(true);
             };
         } else {
-            console.log('FAILURE: ' + data.cause);
+            window.console && console.log('FAILURE: ' + data.cause);
             // if overwrite requested, force the overwrite
             if (data.confirm) {
                 $("<div>" + data.cause + "</div>").dialog({
@@ -462,7 +462,7 @@
         //var form_data = new FormData($(this).parent()[0]);
         //var form_data = new FormData($(this).closest('form')[0]);
         //var form_data = new FormData($('#copy-series')[0]); // not used
-        //console.log(form_data)
+        //window.console && console.log(form_data)
         
         // force = true means to overwrite existing data for this year
         params = [{name:"force",value:force}]
@@ -492,7 +492,7 @@
     };
         
     function ajax_update_db_noform_resp(url,addparms,data,sel,callback) {
-        console.log(data);
+        window.console && console.log(data);
         if (data.success) {
             if (typeof $( sel ).data('revert') != 'undefined') {
                 $( sel ).data('revert', getvalue(sel));
@@ -508,7 +508,7 @@
             if (typeof $( sel ).data('revert') != 'undefined') {
                 setvalue(sel,$( sel ).data('revert'));
             }
-            console.log('FAILURE: ' + data.cause);
+            window.console && console.log('FAILURE: ' + data.cause);
             // if overwrite requested, force the overwrite
             if (data.confirm) {
                 $("<div>" + data.cause + "</div>").dialog({
@@ -566,7 +566,7 @@
     };
         
     function ajax_import_file_resp(urlpath,formsel,data) {
-        console.log(data);
+        window.console && console.log(data);
         if (data.success) {
             if (data.redirect){
                 window.location.replace(data.redirect);
@@ -574,7 +574,7 @@
                 location.reload(true);
             };
         } else {
-            console.log('FAILURE: ' + data.cause);
+            window.console && console.log('FAILURE: ' + data.cause);
             // if overwrite requested, force the overwrite
             if (data.confirm) {
                 $("<div>"+data.cause+"</div>").dialog({
