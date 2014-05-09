@@ -28,6 +28,24 @@ table.dataTable thead th {
   font-size: 0.8em;
 }
 
+.body-printerfriendly {
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: left;
+  margin: 5px;
+  padding: 0;
+  position: absolute;
+/*  left: 10%; */
+  padding-left:15px;
+  padding-right:15px;
+/*  width:85%;  */
+  float:left;
+  font-size: 0.8em;
+}
+
+.noPrint {
+  display: none;
+}
+
 .scrollarea {
   height:550px;
   width: 90%;
@@ -267,6 +285,11 @@ table.PaddedDataList th
 {
     padding: 0.5em;
 }
+table.SlightlyPaddedDataList td,
+table.SlightlyPaddedDataList th
+{
+    padding: 3px;
+}
 table.DataList th
 {
     background: linear-gradient(#F4F6F8, #E3E7ED) repeat scroll 0 0 transparent;
@@ -302,3 +325,6 @@ table.DataList tr:hover td
     cursor: pointer;
 }
 
+._rrwebapp-class-pfriendly-races a {
+  color: black;
+}

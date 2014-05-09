@@ -6,26 +6,35 @@
 {% block scripts %}
   <script type="text/javascript">
     $( document ).ready( function() {
-      viewstandings(); 
+      viewstandings('{{division}}','{{gender}}',{% if printerfriendly %}true{% else %}false{% endif%}); 
     })
   </script>
 {% endblock %}
 
 {% block body %}
   <div id="_rrwebapp-heading-elements">
-    <div class="TextLeft W7emLabel">
-      <div><label class="Label">Division:</label><span id="_rrwebapp_filterdivision"></span>
-      <label class="Label">Gender:</label><span id="_rrwebapp_filtergender"></span></div>
-    </div>
-    <br>
-    <span style="float: left"><button id="_rrwebapp-button-standings-legend">Legend</button></span>
+    {% if not printerfriendly %}
+      <span style="float: left"><button id="_rrwebapp-button-standings-legend">Legend</button></span>
+      <span style="float: right"><button id="_rrwebapp-button-printerfriendly" title="Printer Friendly" _rrwebapp_action="{{request.url+'&printerfriendly=true'}}">printerfriendly</button></span>
+    {% endif %}
     <div class="_rrwebapp-table-header" id="_rrwebapp-standings-header">
       {{ description }}
+      <br>
+    </div>
+    <div class="TextLeft W7emLabel">
+      <div>
+        <label class="Label">Gender:</label><span id="_rrwebapp_filtergender"></span>
+        <label class="Label">Division:</label><span id="_rrwebapp_filterdivision"></span>
+      </div>
     </div>
     <div id="_rrwebapp-accordion-standings-races">
-      <h3 id="_rrwebapp-accordion-standings-races-header"><a >Races</a></h3>
+      <h3 id="_rrwebapp-accordion-standings-races-header">Races</h3>
       <div>
-        <table class="DataList PaddedDataList" id="_rrwebapp-table-standings-races" cellpadding=0 cellspace=0>
+        {% if not printerfriendly %}
+          <table class="DataList PaddedDataList" id="_rrwebapp-table-standings-races" cellpadding=0 cellspace=0>
+        {% else %}
+          <table class="DataList SlightlyPaddedDataList _rrwebapp-class-pfriendly-races" id="_rrwebapp-table-standings-races" cellpadding=0 cellspace=0>
+        {% endif %}
           <tbody>
             {% for racerow in racerows %}
               <tr>

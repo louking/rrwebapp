@@ -8,7 +8,9 @@
 {% block scripts %}
   <script type="text/javascript">
     $( document ).ready( function() {
-      seriesresults( {% if writeallowed %}true{% else %}false{% endif %});    
+      seriesresults( {% if writeallowed %}true{% else %}false{% endif %},
+                     '{{series}}','{{division}}','{{gender}}',
+                     {% if printerfriendly %}true{% else %}false{% endif%});    
 
       {% if writeallowed %}
         //addbutton.position({my: "left center", at: "right+3 center", of: '#filterseries'});
@@ -21,15 +23,23 @@
 {% endblock %}
 {% block body %}
   <div id="_rrwebapp-heading-elements">
-    <div class="TextLeft W7emLabel">
-      <div><label class="Label">Series:</label><span id="_rrwebapp_filterseries"></span></div>
-      <div><label class="Label">Gender:</label><span id="_rrwebapp_filtergender"></span></div>
-      <div><label class="Label">Division:</label><span id="_rrwebapp_filterdivision"></span></div>
-    </div>
+    {% if not printerfriendly %}
+      <span style="float: right"><button id="_rrwebapp-button-printerfriendly" title="Printer Friendly" _rrwebapp_action="{{request.url+'&printerfriendly=true'}}">printerfriendly</button></span>
+    {% endif %}
 
-    <center><b>{{race.name}} - {{race.date}}</b></center>
+    <div class="_rrwebapp-table-header" >
+      {{race.name}} - {{race.date}}
+    </div>
     <center>Series: {% for ss in race.series %}{{ ss.series.name }} {% endfor %} -
             {% if race.series[0].series.membersonly %}members only{% else %}nonmembers included{% endif %}</center>
+    <div class="TextLeft W7emLabel">
+      <div>
+        <label class="Label">Series:</label><span id="_rrwebapp_filterseries"></span>
+        <label class="Label">Gender:</label><span id="_rrwebapp_filtergender"></span>
+        <label class="Label">Division:</label><span id="_rrwebapp_filterdivision"></span>
+      </div>
+    </div>
+
   </div>
   <table class="DataList" id="_rrwebapp-table-seriesresults" cellpadding=0 cellspace=0>
     <thead>

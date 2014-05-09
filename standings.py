@@ -165,6 +165,10 @@ class ViewStandings(MethodView):
             year = request.args.get('year')
             series = request.args.get('series')
             description = request.args.get('desc')
+            division = request.args.get('div','Overall')
+            gender = request.args.get('gen','')
+            printerarg = request.args.get('printerfriendly','false')
+            printerfriendly = (printerarg == 'true')
 
             thisclub = Club.query.filter_by(shname=club).first()
             if not thisclub:
@@ -255,6 +259,7 @@ class ViewStandings(MethodView):
             db.session.commit()
             return flask.render_template('viewstandings.html',form=form,headingdata=headingdata,
                                          racerows=racerows,standings=standings,description=description,
+                                         division=division,gender=gender,printerfriendly=printerfriendly,
                                          inhibityear=True,inhibitclub=True)
         
         except Exception,e:

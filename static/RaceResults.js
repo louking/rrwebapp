@@ -31,6 +31,7 @@
             left: left
         };
     };
+    
     // common dataTables
     // gettableheight - assumes some elements exist on the page
     function gettableheight() {
@@ -68,27 +69,42 @@
     };
 
     var sDomValue = '<"H"Clpfr>t<"F"i>';
-    function getDataTableParams(updates) {
-        var params = {
-                sDom: sDomValue,
-                bJQueryUI: true,
-                bPaginate: false,
-                sScrollY: gettableheight(),
-                bScrollCollapse: true,
-                sScrollX: "100%",
-                //sScrollXInner: "100%",
-                fnInfoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
-                    var info = "Showing ";
-                    if (oSettings.oFeatures.bPaginate) {
-                        info = info + iStart +" to ";                        
-                        info = info + iEnd +" of "+ iMax +" entries";
-                    } else {
-                        info = info + iEnd +" entries";
-                    }
-
-                    return info
-                  }
-            }
+    var sPrinterFriendlyDomValue = '<"H"Clpr>t<"F">';
+    function getDataTableParams(updates,printerfriendly) {
+        if (arguments.length == 1) {
+            printerfriendly = false;
+        };
+        if (!printerfriendly){
+            var params = {
+                    sDom: sDomValue,
+                    bJQueryUI: true,
+                    bPaginate: false,
+                    sScrollY: gettableheight(),
+                    bScrollCollapse: true,
+                    sScrollX: "100%",
+                    //sScrollXInner: "100%",
+                    fnInfoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
+                        var info = "Showing ";
+                        if (oSettings.oFeatures.bPaginate) {
+                            info = info + iStart +" to ";                        
+                            info = info + iEnd +" of "+ iMax +" entries";
+                        } else {
+                            info = info + iEnd +" entries";
+                        }
+    
+                        return info
+                      }
+                }
+        }
+        else {
+            var params = {
+                    sDom: sPrinterFriendlyDomValue,
+                    bJQueryUI: true,
+                    bPaginate: false,
+                    bSort: false,
+                    bScrollCollapse: true,
+                }
+        };
         $.extend(params,updates)
         return params
     };
@@ -161,7 +177,49 @@
       }
     } );
     
-    // common
+    // extend yadcf to support getting value of filter
+    // remove if https://github.com/vedmack/yadcf/issues/45 gets accepted
+    $.extend(yadcf,{
+        exFilterValue:function(table_arg, column_number){
+            var table_selector_jq_friendly;
+            table_selector_jq_friendly = yadcf.generateTableSelectorJQFriendly(table_arg.selector);
+            return $("#yadcf-filter-" + table_selector_jq_friendly + "-" + column_number).val();
+        }
+    });
+    
+    // common functions
+    
+    // this opens url in new window or tab, depending on browser settings
+    function newtab(url) {
+        // from http://stackoverflow.com/questions/19851782/how-to-open-a-url-in-a-new-tab-using-javascript-or-jquery
+        var win = window.open(url, '_blank');
+        if(win){
+            //Browser has allowed it to be opened
+            win.focus();
+        }else{
+            //Browser has blocked it
+            alert('Please allow popups for this site');
+        }
+    }
+
+    function geturl () {
+        return document.URL.split('?')[0];
+    }
+    
+    function geturlargs() {
+        var vars = new Object({}), hash;
+        var q = document.URL.split('?')[1];
+        if(q !== undefined){
+            q = q.split('&');
+            for(var i = 0; i < q.length; i++){
+                hash = q[i].split('=');
+                // decode the URI, but have to replace '+' with ' ' - from http://stackoverflow.com/questions/3431512/javascript-equivalent-to-phps-urldecode 
+                vars[hash[0]] = decodeURIComponent(hash[1].replace(/\+/g, ' '));
+            }
+        }
+        return vars;
+    }
+    
     function getconfirmation(event,button,text) {
         event.preventDefault();
         $('<div>').append(text).dialog({
@@ -186,8 +244,8 @@
                 
             close: function(event,ui) {$(this).remove()},
 
-            });
-    };
+        });
+    }
 
     // getvalue tested for checkbox and select - sel is standard DOM selector (not jQuery)    
     function getvalue(sel) {
@@ -851,89 +909,157 @@
         
     };  // editparticipants
 
-    function seriesresults(writeallowed) {
+    function seriesresults(writeallowed,series,division,gender,printerfriendly) {
         
+        var seriesCol = 0;
+        var genderCol = 3;
+        var divisionCol = 5;
+        var timeCol = 7;
+        var paceCol = 8;
+        var agtimeCol = 9;
+        var columndefs = [
+                        {aTargets:[seriesCol],bVisible:false},
+                        {aTargets:[timeCol,paceCol,agtimeCol],sType:'racetime'},
+                                ];
+        
+        if (!printerfriendly){
+            var tableparamupdates = {
+                    sScrollY: gettableheight()+13, 
+                    sScrollXInner: "100%",
+                    aoColumnDefs: columndefs,
+                };
+        }
+        else {
+            var tableparamupdates = {
+                aoColumnDefs: columndefs,
+            }
+        }
+
         _rrwebapp_table = $('#_rrwebapp-table-seriesresults')
-            .dataTable(getDataTableParams({
-                    sScrollY: gettableheight()-15,  // -15 due to sort arrows, I think 
-                    aoColumnDefs: [
-                        {aTargets:[0],bVisible:false},
-                        {aTargets:[7,8,9],sType:'racetime'},
-                                ],
-                }))
+            .dataTable(getDataTableParams(tableparamupdates,printerfriendly))
             .yadcf([{
-                    column_number:0,
+                    column_number:seriesCol,
                     filter_container_id:"_rrwebapp_filterseries",
                     filter_reset_button_text: false,    // no filter reset button
                 },{
-                    column_number:3,
+                    column_number:genderCol,
                     filter_container_id:"_rrwebapp_filtergender",
                     filter_reset_button_text: 'all',
                 },{
-                    column_number:5,
+                    column_number:divisionCol,
                     filter_container_id:"_rrwebapp_filterdivision",
                     filter_reset_button_text: 'all',
                 },]);
-        resetDataTableHW();
+        if (!printerfriendly) {
+            resetDataTableHW();
+        }
 
-        //_rrwa_resultstable = $('#_rrwebapp-table-seriesresults').DataTable({
-        //    paging: false,
-        //    scrollY: 450, // when scrolling, scroll jumps after updating column value
-        //    //ordering: false,
-        //});
-        
-        selectfilter = '#_rrwebapp_filterseries select';
+        // force always to have some Series filter
+        var selectfilter = '#_rrwebapp_filterseries select';
         $(selectfilter+" option[value='-1']").remove();
+
+        // set series based on caller's preference
         var serieschoices = getchoicevalues(selectfilter);
-        yadcf.exFilterColumn(_rrwebapp_table, 0, serieschoices[0])
+        if ($.inArray(series, serieschoices) != -1) {
+            yadcf.exFilterColumn(_rrwebapp_table, seriesCol, series);
+        } else {
+            yadcf.exFilterColumn(_rrwebapp_table, seriesCol, serieschoices[0])            
+        }
+
+        // set division based on caller's preference
+        var selectfilter = '#_rrwebapp_filterdivision select';
+        var divchoices = getchoicevalues(selectfilter);
+        if ($.inArray(division, divchoices) != -1) {
+            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, division);
+        } else {
+            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, divchoices[0])            
+        }
         
+        // set gender based on caller's preference
+        selectfilter = '#_rrwebapp_filtergender select';
+        var genchoices = getchoicevalues(selectfilter);
+        if ($.inArray(gender, genchoices) != -1) {
+            yadcf.exFilterColumn(_rrwebapp_table, genderCol, gender);
+        } else {
+            yadcf.exFilterColumn(_rrwebapp_table, genderCol, genchoices[0])            
+        }
+        
+        // printerfriendly
+        $('#_rrwebapp-button-printerfriendly').button({
+            text: false,
+            icons: {primary: "ui-icon-print"},
+        }).on('click',
+              function() {
+                var fullurl = $( this ).attr('_rrwebapp_action');
+                var selected = new Object({});
+                selected['series'] = yadcf.exFilterValue(_rrwebapp_table,seriesCol);
+                selected['gen'] = yadcf.exFilterValue(_rrwebapp_table,genderCol);
+                selected['div'] = yadcf.exFilterValue(_rrwebapp_table,divisionCol);
+                var url = geturl(fullurl);
+                var args = geturlargs(fullurl);
+                $.extend(args,selected,{'printerfriendly':true});
+                newurl = url + '?' + $.param(args);
+                newtab(newurl);
+        });
+            
         
     };  // seriesresults
 
-    function viewstandings() {
+    function viewstandings(division,gender,printerfriendly) {
         // not sure why fudge is needed
         var initialheightfudge = -12;
         
         // Legend
-        legend = '<table>\
-                    <tr><td><div class="_rrwebapp-class-standings-data-race-dropped">red</div></td><td>points are dropped</td></tr>\
-                    <tr><td><div class="_rrwebapp-class-standings-data-overall-award">blue</div></td><td>runner won overall award, not eligible for age group award</td></tr>\
-                    <tr><td><div class="_rrwebapp-class-standings-data-division-award">green</div></td><td>runner won age group award</td></tr>\
-                 </table>';
-        popupbutton.init('#_rrwebapp-button-standings-legend', true, 'Legend', {});
-        $('#_rrwebapp-button-standings-legend').on(
-            'click', function() { popupbutton.click('#_rrwebapp-button-standings-legend',legend) }
-        );
+        if (!printerfriendly){
+            legend = '<table>\
+                        <tr><td><div class="_rrwebapp-class-standings-data-race-dropped">red</div></td><td>points are dropped</td></tr>\
+                        <tr><td><div class="_rrwebapp-class-standings-data-overall-award">blue</div></td><td>runner won overall award, not eligible for age group award</td></tr>\
+                        <tr><td><div class="_rrwebapp-class-standings-data-division-award">green</div></td><td>runner won age group award</td></tr>\
+                     </table>';
+            popupbutton.init('#_rrwebapp-button-standings-legend', true, 'Legend', {});
+            $('#_rrwebapp-button-standings-legend').on(
+                'click', function() { popupbutton.click('#_rrwebapp-button-standings-legend',legend) }
+            );
             
-        // Race list is kept in accordion above table, for reference
-        // height gets changed as accordion changes -- see http://datatables.net/forums/discussion/10906/adjust-sscrolly-after-init/p1
-        $( "#_rrwebapp-accordion-standings-races" ).accordion({
-          collapsible: true,
-          active: 'none',   // see http://stackoverflow.com/questions/2675263/collapse-all-sections-in-accordian-on-page-load-in-jquery-accordian
-          activate: function(event,ui) {
-            var oSettings = _rrwebapp_table.fnSettings();
-            var newheight = gettableheight();
-            oSettings.oScroll.sY = newheight;
-            $('div.dataTables_scrollBody').height(newheight);
-          }
-        });
+            // Race list is kept in accordion above table, for reference
+            // height gets changed as accordion changes -- see http://datatables.net/forums/discussion/10906/adjust-sscrolly-after-init/p1
+            $( "#_rrwebapp-accordion-standings-races" ).accordion({
+              collapsible: true,
+              active: 'none',   // see http://stackoverflow.com/questions/2675263/collapse-all-sections-in-accordian-on-page-load-in-jquery-accordian
+              activate: function(event,ui) {
+                var oSettings = _rrwebapp_table.fnSettings();
+                var newheight = gettableheight();
+                oSettings.oScroll.sY = newheight;
+                $('div.dataTables_scrollBody').height(newheight);
+              }
+            });
+        }
 
         // table needs to be after accordion declaration so size is set right
         var divisionCol = 0;
         var genderCol = 3;
-        _rrwebapp_table = $('#_rrwebapp-table-standings')
-            .dataTable(getDataTableParams({
-                sScrollY: gettableheight() - initialheightfudge,
-                sScrollX: "100%",
-                //sScrollXInner: "150%",
-                aoColumnDefs: [
+        var columndefs = [
                     {aTargets:[divisionCol],bVisible:false},
                     {aTargets:['_rrwebapp-class-col-place',
                                '_rrwebapp-class-col-race',
                                '_rrwebapp-class-col-total'
                                ],sType:'num-html'},
-                    ],
-                }))
+                    ];
+        if (!printerfriendly){
+            var tableparamupdates = {
+                sScrollY: gettableheight() - initialheightfudge,
+                sScrollX: "100%",
+                //sScrollXInner: "150%",
+                aoColumnDefs: columndefs,
+                };
+        }
+        else {
+            var tableparamupdates = {
+                aoColumnDefs: columndefs,
+            }
+        }
+        _rrwebapp_table = $('#_rrwebapp-table-standings')
+            .dataTable(getDataTableParams(tableparamupdates,printerfriendly))
             .yadcf([{
                     column_number:divisionCol,
                     filter_container_id:"_rrwebapp_filterdivision",
@@ -947,21 +1073,51 @@
                     filter_container_id:"_rrwebapp_filtergender",
                     filter_reset_button_text: 'all',
                 },]);
-        resetDataTableHW();
+        if (!printerfriendly) {
+            resetDataTableHW();
+        }
         
+        // printerfriendly
+        $('#_rrwebapp-button-printerfriendly').button({
+            text: false,
+            icons: {primary: "ui-icon-print"},
+        }).on('click',
+              function() {
+                var fullurl = $( this ).attr('_rrwebapp_action');
+                var selected = new Object({});
+                selected['gen'] = yadcf.exFilterValue(_rrwebapp_table,genderCol);     //getvalue('#_rrwebapp_filtergender');
+                selected['div'] = yadcf.exFilterValue(_rrwebapp_table,divisionCol);   //getvalue('#_rrwebapp_filterdivision');
+                var url = geturl(fullurl);
+                var args = geturlargs(fullurl);
+                $.extend(args,selected,{'printerfriendly':true});
+                newurl = url + '?' + $.param(args);
+                newtab(newurl);
+        });
+            
         //new FixedColumns(_rrwebapp_table, {
         //            iLeftColumns: 2,
         //            sHeightMatch: 'auto',
         //        });
         
         // force always to have some Division filter, hopefully Overall
-        selectfilter = '#_rrwebapp_filterdivision select';
+        var selectfilter = '#_rrwebapp_filterdivision select';
         $(selectfilter+" option[value='-1']").remove();
-        var serieschoices = getchoicevalues(selectfilter);
-        if ($.inArray('Overall', serieschoices) != -1) {
-            yadcf.exFilterColumn(_rrwebapp_table, 0, 'Overall');
+        
+        // set division based on caller's preference
+        var divchoices = getchoicevalues(selectfilter);
+        if ($.inArray(division, divchoices) != -1) {
+            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, division);
         } else {
-            yadcf.exFilterColumn(_rrwebapp_table, 0, serieschoices[0])            
+            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, divchoices[0])            
+        }
+        
+        // set gender based on caller's preference
+        selectfilter = '#_rrwebapp_filtergender select';
+        var genchoices = getchoicevalues(selectfilter);
+        if ($.inArray(gender, genchoices) != -1) {
+            yadcf.exFilterColumn(_rrwebapp_table, genderCol, gender);
+        } else {
+            yadcf.exFilterColumn(_rrwebapp_table, genderCol, genchoices[0])            
         }
 
         // mouseover races shows race name

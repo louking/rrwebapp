@@ -211,6 +211,12 @@ class SeriesResults(MethodView):
     def get(self,raceid):
     #----------------------------------------------------------------------
         try:
+            seriesarg = request.args.get('series','')
+            division = request.args.get('div','')
+            gender = request.args.get('gen','')
+            printerarg = request.args.get('printerfriendly','false')
+            printerfriendly = (printerarg == 'true')
+
             form = SeriesResultForm()
     
             # get race record
@@ -268,6 +274,7 @@ class SeriesResults(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('seriesresults.html',form=form,race=race,resultsdata=displayresults,
+                                         series=seriesarg,division=division,gender=gender,printerfriendly=printerfriendly,
                                          inhibityear=True,inhibitclub=True)
         
         except:
