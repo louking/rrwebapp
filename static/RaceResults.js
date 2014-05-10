@@ -177,15 +177,10 @@
       }
     } );
     
-    // extend yadcf to support getting value of filter
-    // remove if https://github.com/vedmack/yadcf/issues/45 gets accepted
-    $.extend(yadcf,{
-        exFilterValue:function(table_arg, column_number){
-            var table_selector_jq_friendly;
-            table_selector_jq_friendly = yadcf.generateTableSelectorJQFriendly(table_arg.selector);
-            return $("#yadcf-filter-" + table_selector_jq_friendly + "-" + column_number).val();
-        }
-    });
+    // retrieve filter used for table at indicated column (per https://groups.google.com/forum/#!topic/daniels_code/j6xFhWin38U)
+    function getFilterValue(table_arg, column_number){
+        return table_arg.fnSettings().aoPreSearchCols[column_number].sSearch;
+    }
     
     // common functions
     
@@ -992,9 +987,9 @@
               function() {
                 var fullurl = $( this ).attr('_rrwebapp_action');
                 var selected = new Object({});
-                selected['series'] = yadcf.exFilterValue(_rrwebapp_table,seriesCol);
-                selected['gen'] = yadcf.exFilterValue(_rrwebapp_table,genderCol);
-                selected['div'] = yadcf.exFilterValue(_rrwebapp_table,divisionCol);
+                selected['series'] = getFilterValue(_rrwebapp_table,seriesCol);
+                selected['gen'] = getFilterValue(_rrwebapp_table,genderCol);
+                selected['div'] = getFilterValue(_rrwebapp_table,divisionCol);
                 var url = geturl(fullurl);
                 var args = geturlargs(fullurl);
                 $.extend(args,selected,{'printerfriendly':true});
@@ -1085,8 +1080,8 @@
               function() {
                 var fullurl = $( this ).attr('_rrwebapp_action');
                 var selected = new Object({});
-                selected['gen'] = yadcf.exFilterValue(_rrwebapp_table,genderCol);     //getvalue('#_rrwebapp_filtergender');
-                selected['div'] = yadcf.exFilterValue(_rrwebapp_table,divisionCol);   //getvalue('#_rrwebapp_filterdivision');
+                selected['gen'] = getFilterValue(_rrwebapp_table,genderCol);     //getvalue('#_rrwebapp_filtergender');
+                selected['div'] = getFilterValue(_rrwebapp_table,divisionCol);   //getvalue('#_rrwebapp_filterdivision');
                 var url = geturl(fullurl);
                 var args = geturlargs(fullurl);
                 $.extend(args,selected,{'printerfriendly':true});
