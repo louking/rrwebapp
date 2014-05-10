@@ -343,13 +343,17 @@
     // popupbutton feature
     var popupbutton = {
 
-        init: function ( buttonsel, text, label, icons ) {
+        init: function ( buttonsel, text, label, icons, clickoutside ) {
+            if (arguments.length < 5) {
+                popupbutton.clickoutside = false;
+            }
             $( buttonsel )
                 .button({
                             icons: icons,
                             label: label,
                             text: text,
-                        })
+                        });
+            popupbutton.clickoutside = clickoutside;
         },
         
         click: function ( buttonsel, popupcontent, popupaction ) {
@@ -358,7 +362,7 @@
                 popupbutton.popupstatus = 0;
             } else {
                 popupbutton.$popupdialog = $('<div>').append(popupcontent);
-                popupbutton.$popupdialog
+                popupbutton.dialogwidget = popupbutton.$popupdialog
                     .dialog({
                         dialogClass: "no-titlebar",
                         draggable: false,
@@ -370,20 +374,22 @@
                                 at: "right bottom",
                                 of: $( buttonsel ),
                                 },
-                        clickOutside: true, // see https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
+                        clickOutside: popupbutton.clickoutside, // see https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
                         clickOutsideTrigger: buttonsel,
                         close: function () {
                             popupbutton.popupstatus = 0;
                         },
+                        open: function () {
+                            popupbutton.popupstatus = 1;
+                            
+                            if (popupaction) {
+                                popupaction();
+                            };
+                        },
                         });
-    
-                popupbutton.popupstatus = 1;
-                
-                if (popupaction) {
-                    popupaction();
-                };
             };
         },
+        
     };
     
     // addbutton feature
@@ -1011,7 +1017,7 @@
                         <tr><td><div class="_rrwebapp-class-standings-data-overall-award">blue</div></td><td>runner won overall award, not eligible for age group award</td></tr>\
                         <tr><td><div class="_rrwebapp-class-standings-data-division-award">green</div></td><td>runner won age group award</td></tr>\
                      </table>';
-            popupbutton.init('#_rrwebapp-button-standings-legend', true, 'Legend', {});
+            popupbutton.init('#_rrwebapp-button-standings-legend', true, 'Legend', {}, true);
             $('#_rrwebapp-button-standings-legend').on(
                 'click', function() { popupbutton.click('#_rrwebapp-button-standings-legend',legend) }
             );
