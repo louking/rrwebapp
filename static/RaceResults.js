@@ -184,6 +184,17 @@
     
     // common functions
     
+    // for slow loading links
+    $("a").click(function(){
+        var img = $(this).attr('_rrwebapp-loadingimg');
+        if (img) {
+            $(this).after("&nbsp;&nbsp;&nbsploading...");
+            //for some reason the image was broken
+            //window.console && console.log("<img src='"+img+"' alt='&nbsp;&nbsp;&nbsploading...'>");
+            //$(this).after("<img src='"+img+"' alt='&nbsp;&nbsp;&nbsploading...' />").fadeIn();
+        }
+    });
+    
     // this opens url in new window or tab, depending on browser settings
     function newtab(url) {
         // from http://stackoverflow.com/questions/19851782/how-to-open-a-url-in-a-new-tab-using-javascript-or-jquery
@@ -649,7 +660,7 @@
             var $importmembers = $('#managemembersImport');
             $importmembers.click( function( event ) {
                 event.preventDefault();
-                url = $(this).attr('_rrwebapp-formaction')
+                var url = $(this).attr('_rrwebapp-formaction')
                 ajax_import_file(url,'#import-members',false);
             });
         }

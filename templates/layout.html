@@ -51,7 +51,7 @@
     {% if session.nav %}
       <ul id="navigation">
       {% for thisnav in session.nav %}
-         <li><a href={{ thisnav.url }}>{{ thisnav.display }}</a></li>
+         <li><a href={{ thisnav.url }}{%for a in thisnav.attr%} {{a.name}}="{{a.value}}"{%endfor%}>{{ thisnav.display }}</a></li>
       {% endfor %}
       </ul>
     {% endif %}
