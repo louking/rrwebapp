@@ -128,18 +128,36 @@ class ManagedResultForm(Form):
 class SeriesResultForm(Form):
 ########################################################################
     series = StringField('Series',[validators.Optional()])
-    place = IntegerField('Gender Place',[validators.Optional()])
+    place = IntegerField('Gen Place',[validators.Optional()])
     name = StringField('Name',[validators.Optional()])
-    gender = StringField('Gender',[validators.Optional()])
+    gender = StringField('Gen',[validators.Optional()])
     agage = IntegerField('Age',[validators.Optional()])
-    division = StringField('Division',[validators.Optional()])
+    division = StringField('Div',[validators.Optional()])
     divisionlow = IntegerField('Div Lo',[validators.Optional()])
     divisionhigh = IntegerField('Div Hi',[validators.Optional()])
     divisionplace = IntegerField('Div Place',[validators.Optional()])
     time = StringField('Time',[validators.Optional()])
     pace = StringField('Pace',[validators.Optional()])
-    agtime = StringField('Age Grade Time',[validators.Optional()])
-    agpercent = FloatField('Age Grade %age',[validators.Optional()])
+    agtime = StringField('AG Time',[validators.Optional()])
+    agpercent = FloatField('AG %age',[validators.Optional()])
+
+########################################################################
+class RunnerResultForm(Form):
+########################################################################
+    name = StringField('Name',[validators.Optional()])
+    series = StringField('Series',[validators.Optional()])
+    date = StringField('Date',[validators.Optional()])
+    distance = FloatField('Miles',[validators.Optional()])
+    race = StringField('Race',[validators.Optional()])
+    place = IntegerField('Gen Place',[validators.Optional()])
+    gender = StringField('Gen',[validators.Optional()])
+    agage = IntegerField('Age',[validators.Optional()])
+    division = StringField('Div',[validators.Optional()])
+    divisionplace = IntegerField('Div Place',[validators.Optional()])
+    time = StringField('Time',[validators.Optional()])
+    pace = StringField('Pace',[validators.Optional()])
+    agtime = StringField('AG Time',[validators.Optional()])
+    agpercent = FloatField('AG %age',[validators.Optional()])
 
 ########################################################################
 class StandingsForm(Form):

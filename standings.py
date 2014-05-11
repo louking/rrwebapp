@@ -242,6 +242,7 @@ class ViewStandings(MethodView):
                 rows = fh.iter(gen)
                 for row in rows:
                     row['gender'] = addstyle(row['header'],gen,'gender')
+                    #row['name'] = '<a href="{}?{}">{}</a>'.format(flask.url_for('runnerresults'),urllib.urlencode({'name':row['name'],'series':thisseries.name}),row['name'])
                     if row['header']:
                         row['gender'] = addstyle(row['header'],'Gen','gender')
                         if firstheader:

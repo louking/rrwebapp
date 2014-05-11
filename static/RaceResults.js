@@ -1006,6 +1006,129 @@
         
     };  // seriesresults
 
+    function runnerresults(name,series) {
+        
+        // for future use
+        var printerfriendly = false;
+        var division = null;
+        var gender = null;
+        
+        // column definitions
+        var nameCol = 0;
+        var seriesCol = 1;
+        var genderCol = 5;
+        var divisionCol = 8;
+        var timeCol = 10;
+        var paceCol = 11;
+        var agtimeCol = 12;
+        var columndefs = [
+                        {aTargets:[timeCol,paceCol,agtimeCol],sType:'racetime'},
+                                ];
+        
+        if (!printerfriendly){
+            var tableparamupdates = {
+                    //sScrollY: gettableheight()+3, 
+                    //sScrollXInner: "100%",
+                    bPaginate: true,
+                    iDisplayLength: 25,
+                    aLengthMenu: [[25, 50, 100, -1], [25, 50, 100, "All"]],
+                    //bSortClasses: false,
+                    bDeferRender: true,
+                    aoColumnDefs: columndefs,
+                };
+            if (name !== 'None') {
+                tableparamupdates['aaSorting'] = [];
+            }
+        }
+        else {
+            var tableparamupdates = {
+                    aoColumnDefs: columndefs,
+                    bSortClasses: false,
+            }
+        }
+
+        _rrwebapp_table = $('#_rrwebapp-table-runnerresults')
+            .dataTable(getDataTableParams(tableparamupdates,printerfriendly))
+            .yadcf([
+                {
+                    column_number:nameCol,
+                    filter_container_id:"_rrwebapp_filtername",
+                    //filter_type:"auto_complete",
+                    filter_reset_button_text: 'all',
+                },{
+                    column_number:seriesCol,
+                    filter_container_id:"_rrwebapp_filterseries",
+                    filter_reset_button_text: 'all',
+                },{
+                    column_number:genderCol,
+                    filter_container_id:"_rrwebapp_filtergender",
+                    filter_reset_button_text: 'all',
+                },{
+                    column_number:divisionCol,
+                    filter_container_id:"_rrwebapp_filterdivision",
+                    filter_reset_button_text: 'all',
+                },]);
+        if (!printerfriendly) {
+            resetDataTableHW();
+        }
+
+        // set name based on caller's preference
+        var selectfilter = '#_rrwebapp_filtername select';
+        var namechoices = getchoicevalues(selectfilter);
+        if ($.inArray(name, namechoices) != -1) {
+            yadcf.exFilterColumn(_rrwebapp_table, nameCol, name);
+        } else {
+            yadcf.exFilterColumn(_rrwebapp_table, nameCol, namechoices[0])            
+        }
+
+        // set series based on caller's preference
+        var selectfilter = '#_rrwebapp_filterseries select';
+        var serieschoices = getchoicevalues(selectfilter);
+        if ($.inArray(series, serieschoices) != -1) {
+            yadcf.exFilterColumn(_rrwebapp_table, seriesCol, series);
+        } else {
+            yadcf.exFilterColumn(_rrwebapp_table, seriesCol, serieschoices[0])            
+        }
+
+        // set division based on caller's preference
+        var selectfilter = '#_rrwebapp_filterdivision select';
+        var divchoices = getchoicevalues(selectfilter);
+        if ($.inArray(division, divchoices) != -1) {
+            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, division);
+        } else {
+            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, divchoices[0])            
+        }
+        
+        // set gender based on caller's preference
+        selectfilter = '#_rrwebapp_filtergender select';
+        var genchoices = getchoicevalues(selectfilter);
+        if ($.inArray(gender, genchoices) != -1) {
+            yadcf.exFilterColumn(_rrwebapp_table, genderCol, gender);
+        } else {
+            yadcf.exFilterColumn(_rrwebapp_table, genderCol, genchoices[0])            
+        }
+        
+        // printerfriendly
+        $('#_rrwebapp-button-printerfriendly').button({
+            text: false,
+            icons: {primary: "ui-icon-print"},
+        }).on('click',
+              function() {
+                var fullurl = $( this ).attr('_rrwebapp_action');
+                var selected = new Object({});
+                selected['series'] = getFilterValue(_rrwebapp_table,seriesCol);
+                selected['gen'] = getFilterValue(_rrwebapp_table,genderCol);
+                selected['div'] = getFilterValue(_rrwebapp_table,divisionCol);
+                var url = geturl(fullurl);
+                var args = geturlargs(fullurl);
+                $.extend(args,selected,{'printerfriendly':true});
+                newurl = url + '?' + $.param(args);
+                newtab(newurl);
+        });
+            
+        
+    };  // runnerresults
+
     function viewstandings(division,gender,printerfriendly) {
         // not sure why fudge is needed
         var initialheightfudge = -12;

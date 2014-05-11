@@ -38,7 +38,7 @@ from apicommon import failure_response, success_response
 import raceresults
 import clubmember
 from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, Series, Divisions, dbdate
-from forms import ManagedResultForm, SeriesResultForm
+from forms import ManagedResultForm, SeriesResultForm, RunnerResultForm
 from loutilities.namesplitter import split_full_name
 import loutilities.renderrun as render
 from loutilities import timeu, agegrade
@@ -283,6 +283,108 @@ class SeriesResults(MethodView):
             raise
 #----------------------------------------------------------------------
 app.add_url_rule('/seriesresults/<int:raceid>',view_func=SeriesResults.as_view('seriesresults'),methods=['GET'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class RunnerResults(MethodView):
+#######################################################################
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        try:
+            starttime = time.time()
+            runnerid = request.args.get('runner',None)
+            seriesarg = request.args.get('series',None)
+                
+            form = RunnerResultForm()
+
+            # filter on valid runnerid, if present
+            resultfilter = {}
+            name = None
+            pagename = 'Runner Results'
+            if runnerid:
+                runner = Runner.query.filter_by(id=runnerid).first()
+                if runner:
+                    resultfilter['runnerid'] = runnerid
+                    name = runner.name
+                    pagename = '{} Results'.format(name)
+
+            # get all the results
+            results = []
+            for series in Series.query.all():
+                seriesid = series.id
+                resultfilter['seriesid'] = seriesid
+                seriesresults = RaceResult.query.filter_by(**resultfilter).order_by(series.orderby).all()
+                # this is easier, code-wise, than using sqlalchemy desc() function
+                if series.hightolow:
+                    seriesresults.reverse()
+                # remove results for inactive races
+                results += [s for s in seriesresults if s.race.active]
+            
+            # kludge alert!  filter out results when raceseries is inactive
+            allraceseries = RaceSeries.query.all()
+            raceseries = {}
+            for rs in allraceseries:
+                raceseries[rs.raceid,rs.seriesid] = rs.active
+            filteredresults = []
+            for result in results[:]:
+                if raceseries[result.raceid,result.seriesid]:
+                    filteredresults.append(result)
+            results = filteredresults
+            
+            # sort results by date
+            dateresults = [(r.race.date,r) for r in results]
+            dateresults.sort()
+            results = [dr[1] for dr in dateresults]
+            
+            # fix up the following:
+            #   * time gets converted from seconds
+            #   * determine member matching, set runnerid choices and initially selected choice
+            #   * based on matching, set disposition
+            displayresults = []
+            for result in results:
+                thisname = result.runner.name
+                thisseries = result.series.name
+                thisrace = result.race.name
+                thisdate = result.race.date
+                thisdistance = result.race.distance
+                thistime = render.rendertime(result.time,0)
+                thisagtime = render.rendertime(result.agtime,0)
+                thispace = render.rendertime(result.time / result.race.distance, 0, useceiling=False)
+                if result.divisionlow:
+                    if result.divisionlow == 0:
+                        thisdiv = 'up to {}'.format(result.divisionhigh)
+                    elif result.divisionhigh == 99:
+                        thisdiv = '{} and up'.format(result.divisionlow)
+                    else:
+                        thisdiv = '{} - {}'.format(result.divisionlow,result.divisionhigh)
+                else:
+                    thisdiv = ''
+
+                if result.genderplace:
+                    thisplace = result.genderplace
+                elif result.agtimeplace:
+                    thisplace = result.agtimeplace
+                else:
+                    thisplace = None
+
+                # order must match that which is expected within runnerresults.html
+                displayresults.append((result,thisseries,thisrace,thisdate,thisdistance,thisplace,thisname,thistime,thisdiv,thisagtime,thispace))
+            
+            # commit database updates and close transaction
+            db.session.commit()
+            finishtime = time.time()
+            app.logger.debug('RunnerResults elapsed time = {} seconds'.format(finishtime-starttime))
+            return flask.render_template('runnerresults.html',form=form,pagename=pagename,resultsdata=displayresults,
+                                         name=name,series=seriesarg,
+                                         inhibityear=True,inhibitclub=True)
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/runnerresults',view_func=RunnerResults.as_view('runnerresults'),methods=['GET'])
 #----------------------------------------------------------------------
 
 # NOTE: THIS HAS NOT BEEN TESTED AND IS NOT CURRENTLY USED

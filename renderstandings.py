@@ -21,9 +21,11 @@ import argparse
 import math
 import copy
 import xml.etree.ElementTree as ET
+import urllib
 
 # pypi
 import xlwt
+import flask
 
 # github
 
@@ -41,7 +43,7 @@ class parameterError(Exception): pass
 class dbConsistencyError(Exception): pass
 
 #----------------------------------------------------------------------
-def addstyle(header,text,style):
+def addstyle(header,contents,style):
 #----------------------------------------------------------------------
     '''
     add style class to table element
@@ -52,10 +54,34 @@ def addstyle(header,text,style):
     '''
     el = ET.Element('div')
     
-    el.text = text
+    # embed ET Elements
+    if type(contents) == ET.Element:
+        el.append(contents)
+    
+    # otherwise assume string
+    else:
+        el.text = contents
     el.set('class','_rrwebapp-class-standings-data-{}'.format(style))
     
     return ET.tostring(el)
+    
+#----------------------------------------------------------------------
+def makelink(href,text):
+#----------------------------------------------------------------------
+    '''
+    add style class to table element
+
+    :param header: true if this is to be a header element
+    :param text: text for final element
+    :param style: name for style class
+    :rtype: etree.Element
+    '''
+    el = ET.Element('a')
+    
+    el.text = text
+    el.set('href',href)
+    
+    return el
     
 ########################################################################
 class BaseStandingsHandler():
@@ -157,7 +183,7 @@ class BaseStandingsHandler():
         pass
     
     #----------------------------------------------------------------------
-    def setname(self,gen,name,stylename='name'):
+    def setname(self,gen,name,stylename='name',runnerid=None):
     #----------------------------------------------------------------------
         '''
         put value in 'name' column for output (this should be rendered in 2nd column)
@@ -165,6 +191,7 @@ class BaseStandingsHandler():
         :param gen: gender M or F
         :param name: value for name column
         :param stylename: name of style for field display
+        :param runnerid: runner's id from runner table
         '''
 
         pass
@@ -307,7 +334,7 @@ class ListStandingsHandler():
             fh.setplace(gen,place,stylename)
     
     #----------------------------------------------------------------------
-    def setname(self,gen,name,stylename='name'):
+    def setname(self,gen,name,stylename='name',runnerid=None):
     #----------------------------------------------------------------------
         '''
         put value in 'name' column for output (this should be rendered in 2nd column)
@@ -315,6 +342,7 @@ class ListStandingsHandler():
         :param gen: gender M or F
         :param name: value for name column
         :param stylename: name of style for field display
+        :param runnerid: runner's id from runner table
         '''
 
         for fh in self.fhlist:
@@ -481,7 +509,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         self.pline[gen]['place'] = str(place)
     
     #----------------------------------------------------------------------
-    def setname(self,gen,name,stylename='name'):
+    def setname(self,gen,name,stylename='name',runnerid=None):
     #----------------------------------------------------------------------
         '''
         put value in 'name' column for output (this should be rendered in 2nd column)
@@ -489,6 +517,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         :param gen: gender M or F
         :param name: value for name column
         :param stylename: name of style for field display
+        :param runnerid: runner's id from runner table
         '''
         
         self.pline[gen]['name'] = str(name)
@@ -591,6 +620,9 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         :rtype: numraces
         '''
         
+        # remember the series name -- this is used from the url generated in setname
+        self.seriesname = series.name
+        
         # open output file
         self.HTML[gen] = [] # "file" will be a list of plines
         
@@ -651,7 +683,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         self.pline[gen]['place'] = addstyle(self.pline[gen]['header'],str(place),stylename)
     
     #----------------------------------------------------------------------
-    def setname(self,gen,name,stylename='name'):
+    def setname(self,gen,name,stylename='name',runnerid=None):
     #----------------------------------------------------------------------
         '''
         put value in 'name' column for output (this should be rendered in 2nd column)
@@ -659,9 +691,14 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         :param gen: gender M or F
         :param name: value for name column
         :param stylename: name of style for field display
+        :param runnerid: runner's id from runner table
         '''
-        
-        self.pline[gen]['name'] = addstyle(self.pline[gen]['header'],str(name),stylename)
+        name = str(name)
+        if runnerid:
+            nameurl = makelink('{}?{}'.format(flask.url_for('runnerresults'),urllib.urlencode({'runner':runnerid,'series':self.seriesname})),name)
+        else:
+            nameurl = name
+        self.pline[gen]['name'] = addstyle(self.pline[gen]['header'],nameurl,stylename)
     
     #----------------------------------------------------------------------
     def setdivision(self,gen,division,stylename='division'):
@@ -905,14 +942,15 @@ class XlStandingsHandler(BaseStandingsHandler):
         self.ws[gen].write(self.rownum[gen],self.colnum['place'],place,self.style[stylename])
     
     #----------------------------------------------------------------------
-    def setname(self,gen,name,stylename='name'):
+    def setname(self,gen,name,stylename='name',runnerid=None):
     #----------------------------------------------------------------------
         '''
         put value in 'name' column for output (this should be rendered in 2nd column)
 
         :param gen: gender M or F
         :param name: value for name column
-        :param stylename: key into self.style
+        :param stylename: name of style for field display
+        :param runnerid: runner's id from runner table
         '''
         
         self.ws[gen].write(self.rownum[gen],self.colnum['name'],name,self.style[stylename])
@@ -1222,7 +1260,7 @@ class StandingsRenderer():
                         thisplace += 1
                         
                         # render name and total points, remember last total points
-                        fh.setname(gen,name)
+                        fh.setname(gen,name,runnerid=runnerid)
                         fh.settotal(gen,totpoints)
                         lastpoints = totpoints
                         lastplace = renderplace
@@ -1281,7 +1319,7 @@ class StandingsRenderer():
                 thisplace += 1
                 
                 # render name and total points, remember last total points
-                fh.setname(gen,name)
+                fh.setname(gen,name,runnerid=runnerid)
                 fh.settotal(gen,totpoints)
                 lastpoints = totpoints
                 lastplace = renderplace

@@ -143,21 +143,25 @@ h2              { font-size: 1.2em; }
     text-align: center;
     color: red;
 }
-._rrwebapp-class-standings-data-overall-award
+._rrwebapp-class-standings-data-overall-award,
+._rrwebapp-class-standings-data-overall-award a
 {
     text-align: center;
     font-weight: bold;
     color: blue;
 }
-._rrwebapp-class-standings-data-division-award
+._rrwebapp-class-standings-data-division-award,
+._rrwebapp-class-standings-data-division-award a
 {
     text-align: center;
     font-weight: bold;
     color: green;
 }
-._rrwebapp-class-standings-data-name
+._rrwebapp-class-standings-data-name,
+._rrwebapp-class-standings-data-name a
 {
     text-align: left;
+    color: black;
 }
 
 ._rrwebapp-table-header
