@@ -1039,9 +1039,10 @@
         if (!printerfriendly) {
             if (document.referrer.search('viewstandings') != -1) {
                 $('#_rrwebapp-button-back').button()
-                    .on('click',function(){
+                    .on('click',
+                        function(){
                             window.location.href = document.referrer;
-                    });
+                        });
             } else {
                 $('#_rrwebapp-button-back').hide();
             }

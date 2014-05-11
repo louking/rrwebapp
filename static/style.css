@@ -8,10 +8,15 @@
   background: none;
 }
 
-/* override JQuery.dataTables header padding */
+/* override JQuery.dataTables padding */
 table.dataTable thead th {
   padding: 0px;
 }
+/*table.dataTable tbody th,
+table.dataTable tbody td
+{
+  padding: 1px;
+}*/
 
 /*body            { font-family: sans-serif; background: #eee; } */
 .body {
@@ -280,12 +285,16 @@ table.DataList
 }
 
 table.DataList td,
-table.DataList th
+table.DataList th,
+table.DataList tbody td,
+table.DataList thead th
 {
     padding: 1px;
 }
 table.PaddedDataList td,
-table.PaddedDataList th
+table.PaddedDataList th,
+table.PaddedDataList tbody td,
+table.PaddedDataList thead th
 {
     padding: 0.5em;
 }
