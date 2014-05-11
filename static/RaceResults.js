@@ -202,14 +202,14 @@
     }
     
     function geturlargs() {
-        var vars = new Object({}), hash;
+        var vars = {}, hash;
         var q = document.URL.split('?')[1];
         if(q !== undefined){
             q = q.split('&');
             for(var i = 0; i < q.length; i++){
                 hash = q[i].split('=');
                 // decode the URI, but have to replace '+' with ' ' - from http://stackoverflow.com/questions/3431512/javascript-equivalent-to-phps-urldecode 
-                vars[hash[0]] = decodeURIComponent(hash[1].replace(/\+/g, ' '));
+                vars[decodeURIComponent(hash[0])] = decodeURIComponent(hash[1].replace(/\+/g, ' '));
             }
         }
         return vars;
