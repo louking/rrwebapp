@@ -190,7 +190,7 @@
         if (img) {
             $(this).after("&nbsp;&nbsp;&nbsploading...");
             //for some reason the image was broken
-            //window.console && console.log("<img src='"+img+"' alt='&nbsp;&nbsp;&nbsploading...'>");
+            //window.console && console.log("<img src='"+img+"' alt='&nbsp;&nbsp;&nbsploading...' />");
             //$(this).after("<img src='"+img+"' alt='&nbsp;&nbsp;&nbsploading...' />").fadeIn();
         }
     });
@@ -1035,6 +1035,17 @@
         var columndefs = [
                         {aTargets:[timeCol,paceCol,agtimeCol],sType:'racetime'},
                                 ];
+        
+        if (!printerfriendly) {
+            if (document.referrer.search('viewstandings') != -1) {
+                $('#_rrwebapp-button-back').button()
+                    .on('click',function(){
+                            window.location.href = document.referrer;
+                    });
+            } else {
+                $('#_rrwebapp-button-back').hide();
+            }
+        }
         
         if (!printerfriendly){
             var tableparamupdates = {
