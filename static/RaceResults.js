@@ -1074,10 +1074,6 @@
             }
         }
 
-        //$('#_rrwebapp_filtername').chosen({
-        //    width: 30,
-        //});
-
         _rrwebapp_table = $('#_rrwebapp-table-runnerresults')
             .dataTable(getDataTableParams(tableparamupdates,printerfriendly))
             .yadcf([
@@ -1087,7 +1083,7 @@
                     filter_type:"multi_select",
                     select_type: 'chosen',
                     select_type_options: {
-                        width: 30,
+                        width: '30em',
                     },
                     filter_reset_button_text: 'all',
                 },{
