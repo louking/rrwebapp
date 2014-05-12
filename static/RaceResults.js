@@ -188,7 +188,11 @@
     $("a").click(function(){
         var img = $(this).attr('_rrwebapp-loadingimg');
         if (img) {
-            $(this).after("&nbsp;&nbsp;&nbsploading...");
+            //$(this).after("&nbsp;&nbsp;&nbsploading...");
+            $(this).after('<div id="progressbar"><div class="progress-label">&nbsp;&nbsp;&nbsploading...</div></div>');
+            $('#progressbar').progressbar({
+                value: false,
+            });
             //for some reason the image was broken
             //window.console && console.log("<img src='"+img+"' alt='&nbsp;&nbsp;&nbsploading...' />");
             //$(this).after("<img src='"+img+"' alt='&nbsp;&nbsp;&nbsploading...' />").fadeIn();
@@ -1070,13 +1074,21 @@
             }
         }
 
+        //$('#_rrwebapp_filtername').chosen({
+        //    width: 30,
+        //});
+
         _rrwebapp_table = $('#_rrwebapp-table-runnerresults')
             .dataTable(getDataTableParams(tableparamupdates,printerfriendly))
             .yadcf([
                 {
                     column_number:nameCol,
                     filter_container_id:"_rrwebapp_filtername",
-                    //filter_type:"auto_complete",
+                    filter_type:"multi_select",
+                    select_type: 'chosen',
+                    select_type_options: {
+                        width: 30,
+                    },
                     filter_reset_button_text: 'all',
                 },{
                     column_number:seriesCol,
@@ -1091,17 +1103,19 @@
                     filter_container_id:"_rrwebapp_filterdivision",
                     filter_reset_button_text: 'all',
                 },]);
+            
         if (!printerfriendly) {
             resetDataTableHW();
         }
+        
 
         // set name based on caller's preference
         var selectfilter = '#_rrwebapp_filtername select';
         var namechoices = getchoicevalues(selectfilter);
         if ($.inArray(name, namechoices) != -1) {
             yadcf.exFilterColumn(_rrwebapp_table, nameCol, name);
-        } else {
-            yadcf.exFilterColumn(_rrwebapp_table, nameCol, namechoices[0])            
+        //} else {
+        //    yadcf.exFilterColumn(_rrwebapp_table, nameCol, namechoices[0])            
         }
 
         // set series based on caller's preference

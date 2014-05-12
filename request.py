@@ -33,7 +33,8 @@ SCRIPTS_JS = [
     'js/jquery-1.11.0.min.js',
     'js/jquery-ui-1.10.4.custom.min.js',
     'js/jquery.dataTables.min.js',
-    'js/jquery.dataTables.yadcf.js',
+    'js/chosen_v1.1.0/chosen.jquery.min.js',
+    'js/yadcf-0.6.9/jquery.dataTables.yadcf.js',
     'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
     #'js/jquery.browser.js',         # browser removed from JQueryUI 1.9, needed by FixedColumns
     #'js/FixedColumns.js',
@@ -43,7 +44,8 @@ SCRIPTS_JS = [
 SCRIPTS_CSS = [
     'css/sm-f0-8em-theme/jquery-ui-1.10.4.custom.min.css',
     'css/jquery.dataTables.css',
-    'css/jquery.dataTables.yadcf.css',
+    'css/chosen_v1.1.0/chosen.min.css',
+    'css/yadcf-0.6.9/jquery.dataTables.yadcf.css',
     
     'style.css',
 ]
