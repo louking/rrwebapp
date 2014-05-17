@@ -293,7 +293,7 @@ class RunnerResults(MethodView):
     #----------------------------------------------------------------------
         try:
             starttime = time.time()
-            runnerid = request.args.get('runner',None)
+            runnerid = request.args.get('participant',None)
             seriesarg = request.args.get('series',None)
                 
             form = RunnerResultForm()
@@ -301,7 +301,7 @@ class RunnerResults(MethodView):
             # filter on valid runnerid, if present
             resultfilter = {}
             name = None
-            pagename = 'Runner Results'
+            pagename = 'Results'
             if runnerid:
                 runner = Runner.query.filter_by(id=runnerid).first()
                 if runner:
@@ -368,14 +368,14 @@ class RunnerResults(MethodView):
                 else:
                     thisplace = None
 
-                # order must match that which is expected within runnerresults.html
+                # order must match that which is expected within results.html
                 displayresults.append((result,thisseries,thisrace,thisdate,thisdistance,thisplace,thisname,thistime,thisdiv,thisagtime,thispace))
             
             # commit database updates and close transaction
             db.session.commit()
             finishtime = time.time()
             app.logger.debug('RunnerResults elapsed time = {} seconds'.format(finishtime-starttime))
-            return flask.render_template('runnerresults.html',form=form,pagename=pagename,resultsdata=displayresults,
+            return flask.render_template('results.html',form=form,pagename=pagename,resultsdata=displayresults,
                                          name=name,series=seriesarg,
                                          inhibityear=True,inhibitclub=True)
         
@@ -384,7 +384,7 @@ class RunnerResults(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/runnerresults',view_func=RunnerResults.as_view('runnerresults'),methods=['GET'])
+app.add_url_rule('/results',view_func=RunnerResults.as_view('results'),methods=['GET'])
 #----------------------------------------------------------------------
 
 # NOTE: THIS HAS NOT BEEN TESTED AND IS NOT CURRENTLY USED

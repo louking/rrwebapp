@@ -84,7 +84,7 @@ def getnavigation():
     
     # anonymous access
     navigation.append({'display':'Standings','url':flask.url_for('choosestandings')})
-    navigation.append({'display':'Runner Results','url':flask.url_for('runnerresults'),'attr':[{'name':'_rrwebapp-loadingimg','value':flask.url_for('static',filename='images/ajax-loader.gif')}]})
+    navigation.append({'display':'Results','url':flask.url_for('results'),'attr':[{'name':'_rrwebapp-loadingimg','value':flask.url_for('static',filename='images/ajax-loader.gif')}]})
     navigation.append({'display':'About','url':flask.url_for('sysinfo')})
     
     if thisuser.is_authenticated() and owner_permission.can():
