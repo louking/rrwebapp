@@ -45,6 +45,7 @@ from loutilities import timeu, agegrade
 
 # control behavior of import
 DIFF_CUTOFF = 0.7   # ratio of matching characters for cutoff handled by 'clubmember'
+NONMEMBERCUTOFF = 0.9   # insist on high cutoff for nonmember matching
 AGE_DELTAMAX = 3    # +/- num years to be included in DISP_MISSED
 JOIN_GRACEPERIOD = timedelta(7) # allow runner to join 1 week beyond race date
 
@@ -136,8 +137,12 @@ class EditResults(MethodView):
                 app.logger.error(cause)
                 flask.flash(cause)
                 return flask.redirect(flask.url_for('manageraces'))
+
+            # active is ClubMember object for active members; if race isn't for members only nonmember is ClubMember object for nonmembers
             membersonly = race.series[0].series.membersonly
-            active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=membersonly,active=True)
+            active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
+            if not membersonly:
+                nonmember = clubmember.DbClubMember(cutoff=NONMEMBERCUTOFF,club_id=club_id,member=False)
             
             # fix up the following:
             #   * time gets converted from seconds
@@ -613,7 +618,7 @@ class AjaxImportResults(MethodView):
                 app.logger.error(cause)
                 return failure_response(cause=cause)
             
-            # get race and list of runners who should be included in this race, based on membersonly
+            # get race and list of runners who should be included in this race, based on race's membersonly configuration
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
             racedatedt = dbdate.asc2dt(race.date)
             if len(race.series) == 0:
@@ -621,8 +626,12 @@ class AjaxImportResults(MethodView):
                 cause =  'Race needs to be included in at least one series to import results'
                 app.logger.error(cause)
                 return failure_response(cause=cause)
+            
+            # active is ClubMember object for active members; if race isn't for members only nonmember is ClubMember object for nonmembers
             membersonly = race.series[0].series.membersonly
-            active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=membersonly,active=True)
+            active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
+            if not membersonly:
+                nonmember = clubmember.DbClubMember(cutoff=NONMEMBERCUTOFF,club_id=club_id,member=False)
 
             # collect results from resultsfile
             numentries = 0
@@ -640,22 +649,33 @@ class AjaxImportResults(MethodView):
                     foundrunner = active.findmember(dbresult.name,dbresult.age,race.date)
                     if foundrunner:
                         runnername,ascdob = foundrunner
+                        
+                        # TODO: what happens with ascdob for nonmember runner?
                         runner = Runner.query.filter_by(name=runnername,dateofbirth=ascdob).first()
                         dbresult.runnerid = runner.id
-                        # did runner not join in time for the race?
+                        # if runner did not join in time for member's only race, indicate this result isn't used
                         if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(race.date)+JOIN_GRACEPERIOD:
                                 dbresult.initialdisposition = DISP_NOTUSED
                                 dbresult.runnerid = None
                                 dbresult.confirmed = True
-                        # exact match?
+                        
+                        # runner joined in time for race, or not member's only race
+                        # if exact match, indicate we have a match
                         elif runnername.lower() == dbresult.name.lower():
                             dbresult.initialdisposition = DISP_MATCH
                             dbresult.confirmed = True
+                        
+                        # runner joined in time for race, or not member's only race, but match wasn't exact
+                        # check for exclusions
                         else:
                             exclusion = Exclusion.query.filter_by(foundname=dbresult.name,runnerid=runner.id).first()
+                            
+                            # if results name not found against this runner id in exclusions table, indicate we found close match
                             if not exclusion:
                                 dbresult.initialdisposition = DISP_CLOSE
                                 dbresult.confirmed = False
+                                
+                            # results name vs this runner id has been excluded
                             else:
                                 dbresult.initialdisposition = DISP_NOTUSED  # was DISP_EXCLUDED
                                 dbresult.runnerid = None
@@ -666,11 +686,11 @@ class AjaxImportResults(MethodView):
                         missed = active.getmissedmatches()
                         # don't consider 'missed matches' where age difference from result is too large, or excluded
                         missed = filtermissed(missed,race.date,dbresult.age)
-                        # if there remain are any missed results
+                        # if there remain are any missed results, indicate missed (due to age difference)
                         if len(missed) > 0:
                             dbresult.initialdisposition = DISP_MISSED
                             dbresult.confirmed = False
-                        # otherwise
+                        # otherwise, this result isn't used
                         else:
                             dbresult.initialdisposition = DISP_NOTUSED
                             dbresult.confirmed = True
