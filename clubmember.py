@@ -75,13 +75,18 @@ class ClubMember():
     
     first row in filename has at least First,Last,DOB,Gender,City,State
     
-    :params csvfile: csv file from which club members are to be retrieved
+    :params csvfile: csv file from which club members are to be retrieved, filename or file object
     :params cutoff: cutoff for getmember.  float in (0,1].  higher means strings have to match more closely to be considered "close".  Default 0.6
     '''
     #----------------------------------------------------------------------
     def __init__(self,csvfile,cutoff=0.6,exceldates=True):
     #----------------------------------------------------------------------
-        _IN = open(csvfile,'rb')
+        if type(csvfile) == file:
+            closeit = False
+            _IN = csvfile
+        else:
+            _IN = open(csvfile,'rb')
+            closeit = True
         IN = csv.DictReader(_IN)
         
         # collect member information by member name
@@ -97,14 +102,17 @@ class ClubMember():
             # allow First or GivenName; allow Last or FamilyName; throw error for First, Last keys
             first = thisrow['GivenName']  if 'GivenName' in thisrow  else thisrow['First']
             last  = thisrow['FamilyName'] if 'FamilyName' in thisrow else thisrow['Last']
+            middle = thisrow['MiddleName'] if 'MiddleName' in thisrow else ''
             first = first.strip()
             last = last.strip()
+            middle = middle.strip()
             
             name = ' '.join([first,last]).strip()
             thismember = {}
             thismember['name'] = name
             thismember['fname'] = first
             thismember['lname'] = last
+            thismember['mname'] = middle
             if thismember['name'] == '': break   # assume first blank 'name' is the end of the data
 
             dob = self.file2ascdate(thisrow['DOB'])
@@ -124,7 +132,8 @@ class ClubMember():
             self.members[lowername].append(thismember)    # allows for possibility that multiple members have same name
         
         # done with the file
-        _IN.close()
+        if closeit:
+            _IN.close()
         
     #----------------------------------------------------------------------
     def file2ascdate(self,date):
@@ -315,15 +324,15 @@ class CsvClubMember(ClubMember):
     '''
     ClubMember object with csv input
     
-    :params csvfilename: excel file from which club members are to be retrieved
+    :params csvfile: csv file from which club members are to be retrieved, filename or file object
     :params cutoff: cutoff for getmember.  float in (0,1].  higher means strings have to match more closely to be considered "close".  Default 0.6
     '''
     
     #----------------------------------------------------------------------
-    def __init__(self,csvfilename,cutoff=0.6):
+    def __init__(self,csvfile,cutoff=0.6):
     #----------------------------------------------------------------------
         # do all the work
-        ClubMember.__init__(self,csvfilename,cutoff=cutoff,exceldates=False)
+        ClubMember.__init__(self,csvfile,cutoff=cutoff,exceldates=False)
     
 ########################################################################
 class DbClubMember(ClubMember):
