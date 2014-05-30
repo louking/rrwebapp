@@ -75,12 +75,16 @@ def filtermissed(missed,racedate,resultage):
     
     :param missed: list of missed matches, as returned from clubmember.xxx().getmissedmatches()
     :param racedate: race date in dbdate format
-    :param age: resultage from race result
+    :param age: resultage from race result, if None, '', 0, empty list is returned
     
     :rtype: missed list, including only elements within the allowed age range
     '''
     # make a local copy in case the caller wants to preserve the original list
     localmissed = missed[:]
+    
+    # if age in result is invalid, empty list is returned
+    if not resultage:
+        return []
     
     racedatedt = dbdate.asc2dt(racedate)
     for thismissed in missed:
@@ -718,7 +722,7 @@ class AjaxImportResults(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}'.format(e)
-            app.logger.error(cause)
+            app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
 app.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_view('_importresults'),methods=['POST'])
@@ -820,7 +824,7 @@ class AjaxUpdateManagedResult(MethodView):
             except Exception,e:
                 db.session.rollback()
                 cause = 'Unexpected Error: value {} not allowed for field {}, {}'.format(value,field,e)
-                app.logger.error(cause)
+                app.logger.error(traceback.format_exc())
                 return failure_response(cause=cause)
                 
                 
@@ -832,7 +836,7 @@ class AjaxUpdateManagedResult(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}'.format(e)
-            app.logger.error(cause)
+            app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
 app.add_url_rule('/_updatemanagedresult/<int:resultid>',view_func=AjaxUpdateManagedResult.as_view('_updatemanagedresult'),methods=['POST'])
