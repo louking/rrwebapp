@@ -44,7 +44,7 @@
             });
             // subtract off height of info field -- assumes this is the only
             // field at bottom of table.  See sDomValue definition
-            var footerheight = 0
+            var footerheight = 0;
             $('.dataTables_info').each(function(){
                 footerheight = this.offsetHeight;
             });
@@ -66,14 +66,14 @@
         }
         //normal return
         return height;
-    };
+    }
 
     var sDomValue = '<"H"Clpfr>t<"F"i>';
     var sPrinterFriendlyDomValue = '<"H"Clpr>t<"F">';
     function getDataTableParams(updates,printerfriendly) {
         if (arguments.length == 1) {
             printerfriendly = false;
-        };
+        }
         if (!printerfriendly){
             var params = {
                     sDom: sDomValue,
@@ -92,9 +92,9 @@
                             info = info + iEnd +" entries";
                         }
     
-                        return info
+                        return info;
                       }
-                }
+                };
         }
         else {
             var params = {
@@ -104,10 +104,10 @@
                     bSort: false,
                     bScrollCollapse: true,
                 }
-        };
+        }
         $.extend(params,updates)
-        return params
-    };
+        return params;
+    }
     var sSpecDomValue = '<"H"Clpr>t';
     function getSpecTableParams(updates) {
         var params = {

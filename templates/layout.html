@@ -51,7 +51,19 @@
     {% if session.nav %}
       <ul id="navigation">
       {% for thisnav in session.nav %}
-         <li><a href={{ thisnav.url }}{%for a in thisnav.attr%} {{a.name}}="{{a.value}}"{%endfor%}>{{ thisnav.display }}</a></li>
+        {# if list not present, just simple entry #}
+        {% if not thisnav.list %}
+          <li><a href="{{ thisnav.url }}"{%for a in thisnav.attr%} {{a.name}}="{{a.value}}"{%endfor%}>{{ thisnav.display }}</a></li>
+        {% else %}
+          <li>
+            <a href="#">{{ thisnav.display }}</a>
+            <ul>
+              {% for subnav in thisnav.list %}
+                <li><a href="{{ subnav.url }}"{%for a in subnav.attr%} {{a.name}}="{{a.value}}"{%endfor%}>{{ subnav.display }}</a></li>
+              {% endfor %}
+            </ul>
+          </li>
+        {% endif %}
       {% endfor %}
       </ul>
     {% endif %}

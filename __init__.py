@@ -75,6 +75,7 @@ import race
 import member
 import results
 import standings
+import tools
 import sysinfo
 import docs
 

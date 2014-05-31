@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import num,tabbool,tabboollink,tabeditlink %}
+{% block pagename %}
+    {{pagename}}
+{% endblock %}
+{% block scripts %}
+  <script type="text/javascript">
+    $( document ).ready( function() {
+      normalizememberlist();
+    })
+  </script>
+  <script type="text/javascript">
+  </script>
+{% endblock %}
+{% block body %}
+  <div>
+    <p>Translate RunningAHEAD indivual membership list into CSV file suitable for Import Members</p>
+    <form id='normalize-members' method='post' enctype='multipart/form-data'>
+      <input id='choosefileImport' type=file name='file'>
+      <button id='fileImport'>Translate</button>
+    </form>
+  </div>
+{% endblock %}

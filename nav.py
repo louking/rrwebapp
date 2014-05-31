@@ -66,6 +66,7 @@ def getnavigation():
     if 'club_id' in flask.session:
         club = Club.query.filter_by(id=flask.session['club_id']).first()
         readcheck = ViewClubDataPermission(flask.session['club_id'])
+        writecheck = UpdateClubDataPermission(flask.session['club_id'])
 
     navigation = []
     
@@ -85,6 +86,12 @@ def getnavigation():
     # anonymous access
     navigation.append({'display':'Standings','url':flask.url_for('choosestandings')})
     navigation.append({'display':'Results','url':flask.url_for('results'),'attr':[{'name':'_rrwebapp-loadingimg','value':flask.url_for('static',filename='images/ajax-loader.gif')}]})
+    
+    if thisuser.is_authenticated():
+        # TODO: when more tools are available, move writecheck to appropriate tools
+        if club and writecheck.can():
+            navigation.append({'display':'Tools','list':[]})
+            navigation[-1]['list'].append({'display':'Normalize','url':flask.url_for('normalizememberlist')})
     navigation.append({'display':'About','url':flask.url_for('sysinfo')})
     
     if thisuser.is_authenticated() and owner_permission.can():

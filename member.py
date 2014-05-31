@@ -46,14 +46,81 @@ from apicommon import failure_response, success_response
 import clubmember
 
 # module specific needs
+from collections import OrderedDict
+import csv
+from copy import copy
 from racedb import Runner, Club
 from forms import MemberForm 
 #from runningclub import memberfile   # required for xlsx support
 from loutilities.csvu import DictReaderStr2Num
 from loutilities import timeu
+from loutilities.csvwt import wlist
 
 # module globals
 tYmd = timeu.asctime('%Y-%m-%d')
+MINHDR = ['FamilyName','GivenName','Gender','DOB','RenewalDate','ExpirationDate','City','State']
+
+#----------------------------------------------------------------------
+def normalizeRAmemberlist(inputstream,filterexpdate=None):
+#----------------------------------------------------------------------
+    '''
+    Take RunningAHEAD membership list (Export individual membership records), and produce member list.
+    For a given expiration date, the earliest renewal date is used
+    This allows "first renewal for year" computations
+    
+    :param inputstream: open file with csv exported from RunningAHEAD (e.g., from request.files['file'].stream)
+    :param filterexpdate: yyyy-mm-dd for expiration date to filter on, else None
+    :rtype: csv file data, string format (e.g., data for make_response(data))
+    '''
+
+    memberships = csv.DictReader(inputstream)
+    members = OrderedDict({})
+    
+    # for each membership, unique member can be found from combination of names, dob, gender (should be unique)
+    # make list of memberships for this member
+    for mship in memberships:
+        first = mship['GivenName']
+        middle = mship['MiddleName']
+        last = mship['FamilyName']
+        gender = mship['Gender']
+        dob = mship['DOB']
+        
+        # make list of memberships for this member
+        members.setdefault((last,first,middle,dob,gender),[]).append(mship)
+    
+    # get ready for output
+    outdatalist = wlist()
+    OUT = csv.DictWriter(outdatalist,MINHDR,extrasaction='ignore')
+    OUT.writeheader()
+    
+    # for each member, find earliest renew date for each expiration date
+    for key in members:
+        renewbyexp = {}
+        thesememberships = members[key]
+        for mship in thesememberships:
+            thisexpdate = mship['ExpirationDate']
+            thisrenewdate = mship['RenewalDate']
+            
+            # special case for 11/11/2013, FSRC bulk import
+            if thisrenewdate =='2013-11-11':
+                thisrenewdate = mship['JoinDate']
+            
+            # optional filter
+            if not filterexpdate or thisexpdate == filterexpdate:
+                if thisexpdate not in renewbyexp or thisrenewdate < renewbyexp[thisexpdate]:
+                    renewbyexp[thisexpdate] = thisrenewdate
+        
+        # for each expiration date (already filtered appropriately),
+        # grab a record, update renewal and expiration dates, then save
+        for thisexpdate in renewbyexp:
+            outrec = copy(members[key][-1])   # doesn't matter which one, pick the last
+            outrec['RenewalDate'] = renewbyexp[thisexpdate]
+            outrec['ExpirationDate'] = thisexpdate
+            OUT.writerow(outrec)    # note this adds \r\n
+    
+    # one big string for return data
+    outputdata = ''.join(outdatalist)
+    return outputdata
 
 #######################################################################
 class ManageMembers(MethodView):
