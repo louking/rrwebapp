@@ -146,6 +146,7 @@ class EditResults(MethodView):
             membersonly = race.series[0].series.membersonly
             active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
             if not membersonly:
+                inactive = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=False)
                 nonmember = clubmember.DbClubMember(cutoff=NONMEMBERCUTOFF,club_id=club_id,member=False)
             
             # fix up the following:
@@ -161,7 +162,13 @@ class EditResults(MethodView):
                 thisdisposition = result.initialdisposition # set in AjaxImportResults.post()
                 thisrunnervalue = result.runnerid           # set in AjaxImportResults.post()
                 thisrunnerchoice = [(None,'<not included>')]
+                
+                # need to redo logic from AjaxImportResults() because AjaxImportResults() may leave null in runnerid field of managedresult
                 foundrunner = active.findmember(result.name,result.age,race.date)
+                if not membersonly:
+                    foundinactive = inactive.findmember(result.name,result.age,race.date)
+                    foundnonmember = nonmember.findname(result.name)
+                    
                 if thisdisposition in [DISP_MATCH,DISP_CLOSE]:
                     # found a possible runner
                     if foundrunner:
@@ -169,25 +176,38 @@ class EditResults(MethodView):
                         runner = Runner.query.filter_by(name=runnername,dateofbirth=ascdob).first()
                         thisrunnerchoice.append([runner.id,runner.name])
                     
+                    elif not membersonly:
+                        if foundinactive:
+                            runnername,ascdob = foundinactive
+                            runner = Runner.query.filter_by(name=runnername,dateofbirth=ascdob).first()
+                            thisrunnerchoice.append([runner.id,runner.name])
+                        elif foundnonmember:
+                            runnername = foundnonmember
+                            runner = Runner.query.filter_by(name=runnername).first()
+                            thisrunnerchoice.append([runner.id,runner.name])
+                        # this shouldn't happen
+                        else:
+                            stophere
+                            pass
+                            
                     # this shouldn't happen
                     else:
+                        stophere
                         pass    # TODO: this is a bug -- that to do?
 
                 # didn't find runner, what were other possibilities?
                 elif thisdisposition == DISP_MISSED:
-                    missed = active.getmissedmatches()
                     # remove runners who were not within the age window, or who were excluded
+                    missed = active.getmissedmatches()
+                    if not membersonly and not missed:
+                        missed = inactive.getmissedmatches()
+                        
                     missed = filtermissed(missed,race.date,result.age)
-                    if len(missed)>0:
-                        for thismissed in missed:
-                            missedrunner = Runner.query.filter_by(name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
-                            dobdt = dbdate.asc2dt(thismissed['dob'])
-                            nameage = '{} ({})'.format(missedrunner.name,timeu.age(racedatedt,dobdt))
-                            thisrunnerchoice.append((missedrunner.id,nameage))
-                    
-                    # this shouldn't happen
-                    else:
-                        pass    # TODO: this is a bug -- that to do?
+                    for thismissed in missed:
+                        missedrunner = Runner.query.filter_by(name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
+                        dobdt = dbdate.asc2dt(thismissed['dob'])
+                        nameage = '{} ({})'.format(missedrunner.name,timeu.age(racedatedt,dobdt))
+                        thisrunnerchoice.append((missedrunner.id,nameage))
                     
                 # for no match and excluded entries, change choice
                 elif thisdisposition in [DISP_NOTUSED,DISP_EXCLUDED]:
@@ -636,6 +656,10 @@ class AjaxImportResults(MethodView):
             active = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
             if not membersonly:
                 nonmember = clubmember.DbClubMember(cutoff=NONMEMBERCUTOFF,club_id=club_id,member=False)
+                inactive = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=False)
+            else:
+                foundinactive = None
+                foundnonmember = None
 
             # collect results from resultsfile
             numentries = 0
@@ -648,57 +672,107 @@ class AjaxImportResults(MethodView):
                         if hasattr(dbresult,field):
                             setattr(dbresult,field,fileresult[field])
                     cleanresult(dbresult)
+                    app.logger.debug('Processing {}'.format(dbresult.name))
                     
                     # create initial disposition
-                    foundrunner = active.findmember(dbresult.name,dbresult.age,race.date)
-                    if foundrunner:
-                        runnername,ascdob = foundrunner
+                    foundmember = active.findmember(dbresult.name,dbresult.age,race.date)
+                    app.logger.debug('  foundmember = {}'.format(foundmember))
+                    if not membersonly:
+                        foundinactive = inactive.findmember(dbresult.name,dbresult.age,race.date)
+                        foundnonmember = nonmember.findname(dbresult.name)
+                        app.logger.debug('  foundinactive = {}'.format(foundinactive))
+                        app.logger.debug('  foundnonmember = {}'.format(foundnonmember))
+
+                    # for members or people who were once members, set age based on date of birth in database
+                    # note this clause will be executed for membersonly races
+                    if foundmember or not membersonly and foundinactive:
+                        if foundmember:
+                            runnername,ascdob = foundmember
+                        else:
+                            runnername,ascdob = foundinactive
                         
-                        # TODO: what happens with ascdob for nonmember runner?
+                        # set active or inactive member's id
                         runner = Runner.query.filter_by(name=runnername,dateofbirth=ascdob).first()
                         dbresult.runnerid = runner.id
-                        # if runner did not join in time for member's only race, indicate this result isn't used
-                        if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(race.date)+JOIN_GRACEPERIOD:
-                                dbresult.initialdisposition = DISP_NOTUSED
-                                dbresult.runnerid = None
-                                dbresult.confirmed = True
-                        
-                        # runner joined in time for race, or not member's only race
-                        # if exact match, indicate we have a match
-                        elif runnername.lower() == dbresult.name.lower():
-                            dbresult.initialdisposition = DISP_MATCH
+                        app.logger.debug('  using runner.id = {}'.format(runner.id))
+                        # TODO: what about agegradeage?  Need to check AjaxTabulateResults
+                    
+                    # not membersonly and found a nonmember, update result in ManagedResult table
+                    elif not membersonly and foundnonmember:
+                        runnername = foundnonmember
+                        runner = Runner.query.filter_by(name=runnername,member=False).first()
+                        dbresult.runnerid = runner.id
+                        app.logger.debug('  using runner.id = {}'.format(runner.id))
+                    
+                    # if runner did not join in time for member's only race, indicate this result isn't used
+                    if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(race.date)+JOIN_GRACEPERIOD:
+                            dbresult.initialdisposition = DISP_NOTUSED
+                            dbresult.runnerid = None
                             dbresult.confirmed = True
+                            app.logger.debug('    DISP_NOTUSED')
+                    
+                    # runner joined in time for race, or not member's only race
+                    # if exact match, indicate we have a match
+                    elif runnername.lower() == dbresult.name.lower():
+                        dbresult.initialdisposition = DISP_MATCH
+                        dbresult.confirmed = True
+                        app.logger.debug('    DISP_MATCH')
+                    
+                    # runner joined in time for race, or not member's only race, but match wasn't exact
+                    # check for exclusions
+                    else:
+                        exclusion = Exclusion.query.filter_by(foundname=dbresult.name,runnerid=dbresult.runnerid).first()
                         
-                        # runner joined in time for race, or not member's only race, but match wasn't exact
-                        # check for exclusions
-                        else:
-                            exclusion = Exclusion.query.filter_by(foundname=dbresult.name,runnerid=runner.id).first()
+                        # if results name not found against this runner id in exclusions table, indicate we found close match
+                        if not exclusion:
+                            dbresult.initialdisposition = DISP_CLOSE
+                            dbresult.confirmed = False
+                            app.logger.debug('    DISP_CLOSE')
                             
-                            # if results name not found against this runner id in exclusions table, indicate we found close match
-                            if not exclusion:
-                                dbresult.initialdisposition = DISP_CLOSE
-                                dbresult.confirmed = False
-                                
-                            # results name vs this runner id has been excluded
-                            else:
-                                dbresult.initialdisposition = DISP_NOTUSED  # was DISP_EXCLUDED
-                                dbresult.runnerid = None
-                                dbresult.confirmed = True
+                        # results name vs this runner id has been excluded
+                        else:
+                            dbresult.initialdisposition = DISP_NOTUSED  # was DISP_EXCLUDED
+                            dbresult.runnerid = None
+                            dbresult.confirmed = True
+                            app.logger.debug('    DISP_NOTUSED')
                     
                     # didn't find runner on initial search
-                    else:
+                    if not (foundmember or foundinactive or foundnonmember):
+                        # favor active members, then inactive members
+                        # note: nonmembers are not looked at for missed because filtermissed() depends on DOB
                         missed = active.getmissedmatches()
+                        app.logger.debug('  active.getmissedmatches() = {}'.format(missed))
+                        if not membersonly and not missed:
+                            missed = inactive.getmissedmatches()
+                            app.logger.debug('  inactive.getmissedmatches() = {}'.format(missed))
+                        
                         # don't consider 'missed matches' where age difference from result is too large, or excluded
+                        app.logger.debug('  missed before filter = {}'.format(missed))
                         missed = filtermissed(missed,race.date,dbresult.age)
+                        app.logger.debug('  missed after filter = {}'.format(missed))
+
                         # if there remain are any missed results, indicate missed (due to age difference)
                         if len(missed) > 0:
                             dbresult.initialdisposition = DISP_MISSED
                             dbresult.confirmed = False
-                        # otherwise, this result isn't used
-                        else:
+                            app.logger.debug('    DISP_MISSED')
+                            
+                        # otherwise, if membersonly, this result isn't used
+                        elif membersonly:
                             dbresult.initialdisposition = DISP_NOTUSED
                             dbresult.confirmed = True
-
+                            app.logger.debug('    DISP_NOTUSED')
+                            
+                        # not membersonly and didn't find a nonmember, need to create runner 
+                        else:
+                            runner = Runner(club_id,dbresult.name,None,dbresult.gender,None,member=False)
+                            added = racedb.insert_or_update(db.session,Runner,runner,skipcolumns=['id'],name=dbresult.name,dateofbirth=None,member=False)
+                            dbresult.runnerid = runner.id
+                            app.logger.debug('  added runner.id = {}'.format(runner.id))
+                            dbresult.initialdisposition = DISP_MATCH
+                            dbresult.confirmed = True
+                            app.logger.debug('    DISP_MATCH')
+                            
                     db.session.add(dbresult)
                     dbresults.append(dbresult)
                 except StopIteration:
