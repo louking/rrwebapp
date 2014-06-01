@@ -14,16 +14,16 @@
         // TODO: need import form here to be the same as within RaceResults.manageraces()
         toolbutton.init('tool-button',
                         "\
+            <h3>Tabulate Results</h3>\
+            <div>\
+              <button id='_rrwebapp-button-tabulate' _rrwebapp-tabulate-url='{{ url_for("_tabulateresults",raceid=race.id) }}'>Tabulate</button>\
+            </div>\
             <h3>Import Results</h3>\
             <div>\
               <form id='_rrwebapp-import-results' _rrwebapp-import-url='{{ url_for("_importresults",raceid=race.id) }}' method='post' enctype='multipart/form-data'>\
                 <input id='_rrwebapp-button-choose-import-file' type='file' name='file'/>\
                 <button id='_rrwebapp-button-import'>Import</button>\
               </form>\
-            </div>\
-            <h3>Tabulate Results</h3>\
-            <div>\
-              <button id='_rrwebapp-button-tabulate' _rrwebapp-tabulate-url='{{ url_for("_tabulateresults",raceid=race.id) }}'>Tabulate</button>\
             </div>\
             ");
         {% endif %}

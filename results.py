@@ -108,7 +108,7 @@ def filtermissed(missed,racedate,resultage):
     return localmissed
 
 #######################################################################
-class EditResults(MethodView):
+class EditParticipants(MethodView):
 #######################################################################
     decorators = [login_required]
     #----------------------------------------------------------------------
@@ -230,7 +230,7 @@ class EditResults(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/editparticipants/<int:raceid>',view_func=EditResults.as_view('editparticipants'),methods=['GET'])
+app.add_url_rule('/editparticipants/<int:raceid>',view_func=EditParticipants.as_view('editparticipants'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
