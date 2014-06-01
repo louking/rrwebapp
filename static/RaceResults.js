@@ -904,7 +904,7 @@
                     column_number:matchCol,
                     filter_container_id:"_rrwebapp_filtermatch",
                     column_data_type: "text",
-                    //html_data_type: "text",
+                    filter_match_mode: "exact",
                     filter_reset_button_text: 'all',    // no filter reset button
                 },]);
         resetDataTableHW();
