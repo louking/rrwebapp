@@ -3,6 +3,21 @@
     Features
 {% endblock %}
 {% block body %}
+  <h2>{{_rrwebapp_productname|safe}} For Everyone</h2>
+  <p>
+    {{_rrwebapp_productname|safe}} will allow club members (and everyone else who knows the link) to
+  </p>
+  <ul>
+    <li>view club standings</li>
+    <li>view club race results</li>
+    <li>compare two or more participants' results</li>
+  </ul>
+  
+  <h2>{{_rrwebapp_productname|safe}} For Your Club</h2>
+  <ul>
+    <li>{{_rrwebapp_productname|safe}} keeps different clubs' information separate, i.e., separate membership, races, division, series, results, standings, by club</li>
+  </ul>
+  
   <h2>{{_rrwebapp_productname|safe}} Administration</h2>
   <p>
     {{_rrwebapp_productname|safe}} will will allow administrators to
@@ -26,19 +41,6 @@
       indicates this is not correct, this association will not be suggested for future race results imports</li>
     </ul>
     <li>tabulate results into race series results</li>
-  </ul>
-  <h2>{{_rrwebapp_productname|safe}} For Everyone</h2>
-  <p>
-    {{_rrwebapp_productname|safe}} will allow club members (and everyone else who knows the link) to
-  </p>
-  <ul>
-    <li>view club standings</li>
-    <li>view club race series results</li>
-  </ul>
-  
-  <h2>{{_rrwebapp_productname|safe}} For Your Club</h2>
-  <ul>
-    <li>{{_rrwebapp_productname|safe}} keeps different clubs' information separate, i.e., separate membership, races, division, series, results, standings, by club</li>
   </ul>
   
 {% endblock %}
