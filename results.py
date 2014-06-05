@@ -685,6 +685,7 @@ class AjaxImportResults(MethodView):
 
                     # for members or people who were once members, set age based on date of birth in database
                     # note this clause will be executed for membersonly races
+                    runnername = ''
                     if foundmember or not membersonly and foundinactive:
                         if foundmember:
                             runnername,ascdob = foundmember
