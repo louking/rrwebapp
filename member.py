@@ -49,7 +49,7 @@ import clubmember
 from collections import OrderedDict
 import csv
 from copy import copy
-from racedb import Runner, Club
+from racedb import Runner, Club, RaceResult
 from forms import MemberForm 
 #from runningclub import memberfile   # required for xlsx support
 from loutilities.csvu import DictReaderStr2Num
