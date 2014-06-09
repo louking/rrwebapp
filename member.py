@@ -440,7 +440,8 @@ class AjaxImportMembers(MethodView):
                             result = RaceResult.query.filter_by(runnerid=dbnonmember.id).first()
                             resultage = result.agage
                             racedate = tYmd.asc2dt(result.race.date)
-                            expectedage = racedate.year - dob.year - int((racedate.month, racedate.day) < (dob.month, dob.day))
+                            expectedage = timeu.age(racedate,dob)
+                            #expectedage = racedate.year - dob.year - int((racedate.month, racedate.day) < (dob.month, dob.day))
                         
                         # we found the right person, always if dob isn't specified, but preferably check race result for correct age
                         if dob is None or resultage == expectedage:
