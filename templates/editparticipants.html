@@ -28,7 +28,8 @@
             ");
         {% endif %}
 
-      editparticipants( {% if writeallowed %}true{% else %}false{% endif %});    
+      editparticipants( {% if writeallowed %}true{% else %}false{% endif %},
+                        {% if membersonly  %}true{% else %}false{% endif %});    
 
       {% if writeallowed %}
         //addbutton.position({my: "left center", at: "right+3 center", of: '#filterseries'});
@@ -55,9 +56,15 @@
           <tr>
             <th class="_rrwebapp-col-_unordered">{{ form.place.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.name.label }}</th>
+            {# {% if not membersonly %}
+              <th class="_rrwebapp-col-_unordered">Action</th>
+            {% endif %} #}
             <th class="_rrwebapp-col-_unordered">{{ form.gender.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.age.label }}</th>
             <th class="_rrwebapp-col-_unordered _rrwebapp-col-match">{{ form.disposition.label }}</th>
+            {% if not membersonly %}
+              <th class="_rrwebapp-col-_unordered _rrwebapp-col-membertype">{{ form.membertype.label }}</th>
+            {% endif %}
             <th class="_rrwebapp-col-_unordered _rrwebapp-col-confirmed">{{ form.confirmed.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.runnerid.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.hometown.label }}</th>
@@ -66,13 +73,29 @@
           </tr>
         </thead>
         <tbody>
-          {% for result,thistime,thisdisposition, thismemberchoice, thismembervalue in resultsdata %}
+          {% for result,thistime,thisdisposition, thismemberchoice, thismembervalue, thismembertype in resultsdata %}
             <tr class="_rrwebapp-row-disposition-{{thisdisposition}} _rrwebapp-row-confirmed-{{result.confirmed}}">
               <td align=center>{{ num(result.place,0) }}</td>
               <td>{{ result.name }}</td>
+              {# {% if not membersonly %}
+                <td>
+                  {% if thisdisposition != '' %}
+                    {% if thismembervalue != None %}
+                      <button type="submit" class="_rrwebapp-editparticpants-button-remove"
+                              _rrwebapp-action={{url_for('_removemember')}}?{{{'id':thismembervalue}|urlencode}}>Remove</button>
+                    {% else %}
+                      <button type="submit" class="_rrwebapp-editparticpants-button-add"
+                              _rrwebapp-action={{url_for('_addmember')}}?{{{'name':result.name,'gender':result.gender}|urlencode}}>Add</button>
+                    {% endif %}
+                  {% endif %}
+                </td>
+              {% endif %} #}
               <td align=center>{{ result.gender }}</td>
               <td align=center>{{ num(result.age,0) }}</td>
               <td align=center>{{ thisdisposition }}</td>
+              {% if not membersonly %}
+                <td align=center>{{ thismembertype }}</td>
+              {% endif %}
               <td align=center>
                 <input class="_rrwebapp-editparticipants-checkbox-confirmed" type="checkbox" {% if result.confirmed %}checked{%endif%}
                           id="_rrwebapp-editparticipants-checkbox-confirmed-{{ result.id }}" 
@@ -81,9 +104,14 @@
                 <label for="_rrwebapp-editparticipants-checkbox-confirmed-{{ result.id }}"></label>
               </td>
               <td>
-                {% if writeallowed and (thisdisposition == 'missed' or thisdisposition == 'similar') %}
+                {# leave as select field unless 'definite', or membersonly and '' (means definitely didn't find) #}
+                {% if writeallowed and (thisdisposition == 'missed' or thisdisposition == 'similar') or (not membersonly and thisdisposition != 'definite') %}
                   <select class="_rrwebapp-editparticipants-select-runner" 
                           _rrwebapp-field='runnerid'
+                          {% if not membersonly %}
+                            _rrwebapp-newrunner-name='{{ result.name }}'
+                            _rrwebapp-newrunner-gender='{{ result.gender }}'
+                          {% endif %}
                           _rrwebapp-apiurl={{url_for('_updatemanagedresult',resultid=result.id)}}>
                     {% for value,choice in thismemberchoice %}
                       <option value={{value}} {%if value==thismembervalue %}selected{%endif%}>{{choice}}</option>

@@ -115,6 +115,7 @@ class ManagedResultForm(Form):
     name = StringField('Result Name',[validators.Optional()])
     gender = SelectField('Gender',[validators.Optional()],coerce=str,choices=[('',''),('F','F'),('M','M')])
     age = IntegerField('Age',[validators.Optional()])
+    membertype = StringField('Type',[validators.Optional()])
     hometown = StringField('Hometown',[validators.Optional()])
     club = StringField('Club',[validators.Optional()])
     time = StringField('Time',[validators.Optional()])

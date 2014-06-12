@@ -181,7 +181,14 @@
     function getFilterValue(table_arg, column_number){
         return table_arg.fnSettings().aoPreSearchCols[column_number].sSearch;
     }
-    
+
+    // retrieve column index when header has certain text
+    function getColIndex(searchtext) {
+        return $('thead tr:first th').filter(
+            function(){
+                return $(this).text() == searchtext;
+            }).index();
+    }
     // common functions
     
     // for slow loading links
@@ -268,6 +275,11 @@
         return value
     };
         
+    // getselecttext - sel is standard DOM selector (not jQuery), val is value looking for, returns "" if not found
+    function getselecttext(sel,val) {
+        return $( sel ).find("option[value="+val+"]").text()
+    }
+    
     // getchoicevalues tested for select
     // from http://stackoverflow.com/questions/4964456/make-javascript-do-list-comprehension
     function getchoicevalues(sel) {
@@ -810,7 +822,7 @@
     };  // managedivisions
         
     // editparticipants
-    function editparticipants(writeallowed) {
+    function editparticipants(writeallowed,membersonly) {
         
         function setchecked(sel) {
             if (sel.checked) {
@@ -872,9 +884,32 @@
                     if ($.inArray(selectvalue, choicevalues) != -1) {
                         choicevalues.splice( $.inArray(selectvalue, choicevalues), 1 );
                     }
+                    // also remove 'new' from choicevalues
+                    if ($.inArray('new', choicevalues) != -1) {
+                        choicevalues.splice( $.inArray(selectvalue, choicevalues), 1 );
+                    }
+                    
                     // why doesn't ajax call stringify choicevalues?
                     addlfields = {include:selectvalue,exclude:JSON.stringify(choicevalues)} 
                     $.extend(ajaxparams,addlfields)
+                    
+                    // special processing for runnerid field, if going to new name, or coming from new name
+                    if (!membersonly && field === 'runnerid') {
+                        var newname = $( this ).attr('_rrwebapp-newrunner-name')
+                        var newgen = $( this ).attr('_rrwebapp-newrunner-gender')
+                        var lastid = $( this ).data('revert')
+                        if (typeof newname != undefined) {
+                            // if going to new name
+                            if (getselecttext(this,getvalue(this)) === newname + ' (new)') {
+                                addlfields = {newname:newname,newgen:newgen}
+                                $.extend(ajaxparams,addlfields)
+                            // if coming from new name
+                            } else if (getselecttext(this,lastid) === newname + ' (new)') {
+                                addlfields = {removeid:lastid}
+                                $.extend(ajaxparams,addlfields)
+                            }
+                        }
+                    }
 
                     ajax_update_db_noform(apiurl,ajaxparams,this,true,
                         // this function is called in ajax_update_db_noform_resp if successful
@@ -894,7 +929,8 @@
                         });
         });
 
-        var matchCol = 4;
+        var matchCol = getColIndex('Match');
+        var typeCol = getColIndex('Type');      // if not there, -1
         _rrwebapp_table = $('#_rrwebapp-table-editparticipants')
             .dataTable(getDataTableParams({
                 bPaginate: true,
