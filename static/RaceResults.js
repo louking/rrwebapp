@@ -993,23 +993,47 @@
 
         var matchCol = getColIndex('Match');
         var typeCol = getColIndex('Type');      // if not there, -1
+        var yadcffilters = [{
+                        column_number:matchCol,
+                        filter_container_id:"_rrwebapp_filtermatch",
+                        column_data_type: "text",
+                        filter_match_mode: "exact",
+                        filter_type:"multi_select",
+                        select_type: 'chosen',
+                        select_type_options: {
+                            width: '20em',
+                        },
+                        filter_reset_button_text: 'all',    // no filter reset button
+                    }];
+        if (typeCol != -1) {
+            yadcffilters.push({
+                        column_number:typeCol,
+                        filter_container_id:"_rrwebapp_filtertype",
+                        column_data_type: "text",
+                        filter_match_mode: "exact",
+                        filter_type:"multi_select",
+                        select_type: 'chosen',
+                        select_type_options: {
+                            width: '20em',
+                        },
+                        filter_reset_button_text: 'all',    // no filter reset button
+                    });
+        }
         _rrwebapp_table = $('#_rrwebapp-table-editparticipants')
             .dataTable(getDataTableParams({
                 bPaginate: true,
                 bSort: false,
             }))
-            .yadcf([{
-                    column_number:matchCol,
-                    filter_container_id:"_rrwebapp_filtermatch",
-                    column_data_type: "text",
-                    filter_match_mode: "exact",
-                    filter_reset_button_text: 'all',    // no filter reset button
-                },]);
+            .yadcf(yadcffilters);
         resetDataTableHW();
 
         if (writeallowed) {
-            toolbutton.position({my: "left center", at: "right+3 center", of: '#_rrwebapp_filtermatch'});
             toolbutton.$widgets.css({height:"0px"});   // no more widgets in container            
+            if (typeCol == -1) {
+                toolbutton.position({my: "left center", at: "right+3 center", of: '#_rrwebapp_filtermatch'});                
+            } else {
+                toolbutton.position({my: "left center", at: "right+3 center", of: '#_rrwebapp_filtertype'});                                
+            }
         }
         //_rrwa_resultstable = $('#_rrwebapp-table-editparticipants').DataTable({
         //    //paging: false,

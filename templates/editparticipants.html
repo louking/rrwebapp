@@ -31,10 +31,10 @@
       editparticipants( {% if writeallowed %}true{% else %}false{% endif %},
                         {% if membersonly  %}true{% else %}false{% endif %});    
 
-      {% if writeallowed %}
+      {#{% if writeallowed %}
         //addbutton.position({my: "left center", at: "right+3 center", of: '#filterseries'});
         toolbutton.position({my: "left center", at: "right+3 center", of: '#_rrwebapp_filtermatch'});
-      {% endif %}
+      {% endif %}#}
     })
   </script>
   <script type="text/javascript">
@@ -45,6 +45,9 @@
     <div class="TextLeft ">
       <div>
         <label class="Label">Match:</label><span id="_rrwebapp_filtermatch"></span>
+        {% if not membersonly %}
+          <label class="Label">Type:</label><span id="_rrwebapp_filtertype"></span>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -56,9 +59,6 @@
           <tr>
             <th class="_rrwebapp-col-_unordered">{{ form.place.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.name.label }}</th>
-            {# {% if not membersonly %}
-              <th class="_rrwebapp-col-_unordered">Action</th>
-            {% endif %} #}
             <th class="_rrwebapp-col-_unordered">{{ form.gender.label }}</th>
             <th class="_rrwebapp-col-_unordered">{{ form.age.label }}</th>
             <th class="_rrwebapp-col-_unordered _rrwebapp-col-match">{{ form.disposition.label }}</th>
@@ -77,19 +77,6 @@
             <tr class="_rrwebapp-row-disposition-{{thisdisposition}} _rrwebapp-row-confirmed-{{result.confirmed}}">
               <td align=center>{{ num(result.place,0) }}</td>
               <td>{{ result.name }}</td>
-              {# {% if not membersonly %}
-                <td>
-                  {% if thisdisposition != '' %}
-                    {% if thismembervalue != None %}
-                      <button type="submit" class="_rrwebapp-editparticpants-button-remove"
-                              _rrwebapp-action={{url_for('_removemember')}}?{{{'id':thismembervalue}|urlencode}}>Remove</button>
-                    {% else %}
-                      <button type="submit" class="_rrwebapp-editparticpants-button-add"
-                              _rrwebapp-action={{url_for('_addmember')}}?{{{'name':result.name,'gender':result.gender}|urlencode}}>Add</button>
-                    {% endif %}
-                  {% endif %}
-                </td>
-              {% endif %} #}
               <td align=center>{{ result.gender }}</td>
               <td align=center>{{ num(result.age,0) }}</td>
               <td align=center>{{ thisdisposition }}</td>
