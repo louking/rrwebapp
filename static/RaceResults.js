@@ -1065,11 +1065,17 @@
                     sScrollY: gettableheight()+13, 
                     sScrollXInner: "100%",
                     aoColumnDefs: columndefs,
+                    oLanguage: {
+                        sEmptyTable: "Race results have not been tabulated yet, please check again later"
+                    },
                 };
         }
         else {
             var tableparamupdates = {
-                aoColumnDefs: columndefs,
+                    aoColumnDefs: columndefs,
+                    oLanguage: {
+                        sEmptyTable: "Race results have not been tabulated yet, please check again later"
+                    },
             }
         }
 
