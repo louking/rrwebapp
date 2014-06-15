@@ -299,6 +299,32 @@
         }
     };
     
+    function updateselectbyapi(sel,apiurl,ajaxparams) {
+        ajax_update_db_noform(apiurl,ajaxparams,sel,true,
+            // this function is called in ajax_update_db_noform_resp if successful
+            function(sel,data){
+                // remove current options
+                $(sel+' option').each(function(){
+                   $(this).remove();
+                });
+                // add options from response
+                $.each(data.choices,function(ndx,choice){
+                   $(sel).append($('<option>').val(choice[0]).text(choice[1]));
+                });
+            });
+        
+    };
+    
+    function updateselectbyarray(sel,selchoices) {
+        $(sel+' option').each(function(){
+           $(this).remove();
+        });
+        // add options from selchoices array
+        $.each(selchoices,function(ndx,choice){
+           $(sel).append($('<option>').val(choice[0]).text(choice[1]));
+        });
+    };
+    
     // decorate buttons
     $("._rrwebapp-actionbutton").button();
     $("._rrwebapp-simplebutton").button();
@@ -879,19 +905,15 @@
                     // control exclusion table
                     selectelement = $(this).parent().parent().find('select._rrwebapp-editparticipants-select-runner')
                     selectvalue = $( selectelement ).val()
-                    choicevalues = getchoicevalues(selectelement);
-                    // remove value from choicevalues (if it exists -- it should exist, though)
-                    if ($.inArray(selectvalue, choicevalues) != -1) {
-                        choicevalues.splice( $.inArray(selectvalue, choicevalues), 1 );
+                    excludevalues = getchoicevalues(selectelement);
+                    // remove value from excludevalues (if it exists -- it should exist, though)
+                    if ($.inArray(selectvalue, excludevalues) != -1) {
+                        excludevalues.splice( $.inArray(selectvalue, excludevalues), 1 );
                     }
-                    // also remove 'new' from choicevalues
-                    if ($.inArray('new', choicevalues) != -1) {
-                        choicevalues.splice( $.inArray(selectvalue, choicevalues), 1 );
+                    // also remove 'new' from excludevalues
+                    if ($.inArray('new', excludevalues) != -1) {
+                        excludevalues.splice( $.inArray(selectvalue, excludevalues), 1 );
                     }
-                    
-                    // why doesn't ajax call stringify choicevalues?
-                    addlfields = {include:selectvalue,exclude:JSON.stringify(choicevalues)} 
-                    $.extend(ajaxparams,addlfields)
                     
                     // special processing for runnerid field, if going to new name, or coming from new name
                     if (!membersonly && field === 'runnerid') {
@@ -907,13 +929,21 @@
                             } else if (getselecttext(this,lastid) === newname + ' (new)') {
                                 addlfields = {removeid:lastid}
                                 $.extend(ajaxparams,addlfields)
+                                // remove lastid from excludevalues (if it exists -- it should exist, though)
+                                if ($.inArray(lastid, excludevalues) != -1) {
+                                    excludevalues.splice( $.inArray(lastid, excludevalues), 1 );
+                                }
                             }
                         }
                     }
 
+                    // why doesn't ajax call stringify excludevalues?
+                    addlfields = {include:selectvalue,exclude:JSON.stringify(excludevalues)} 
+                    $.extend(ajaxparams,addlfields)
+                    
                     ajax_update_db_noform(apiurl,ajaxparams,this,true,
                         // this function is called in ajax_update_db_noform_resp if successful
-                        function(sel){
+                        function(sel,data){
                             // change row class if confirmed changes
                             var field = $( sel ).attr('_rrwebapp-field');
                             value = getvalue(sel)
@@ -924,6 +954,38 @@
                                 } else {
                                     $(sel).closest('tr').removeClass('_rrwebapp-row-confirmed-True');
                                     $(sel).closest('tr').addClass('_rrwebapp-row-confirmed-False');
+                                }
+                            }
+                            
+                            // if newname added or removed, update select field appropriately
+                            // see http://stackoverflow.com/questions/5915789/replace-item-in-array-with-javascript for array manipulation
+                            if (typeof data.action != 'undefined') {
+                                // successful add of newname
+                                var choicevals = getchoicevalues(sel);
+                                var choices = [];
+                                for (i=0;i<choicevals.length;i++) {
+                                    choices.push([choicevals[i],getselecttext(sel,choicevals[i])])
+                                }
+                                if (data.action == 'newname') {
+                                    var index = choicevals.indexOf('new');
+                                    if (index != -1) {
+                                        choices[index] = [data.id,data.name+' (new)'];
+                                        updateselectbyarray('#'+$(sel).attr('id'),choices);
+                                        setvalue(sel,data.id);
+                                        $( sel ).data('revert', data.id);
+                                    }
+                                }
+                                // successfull remove of id, just moved off of this one, replace with new
+                                // preserve choice user just made
+                                else if (data.action == 'removeid') {
+                                    var index = choicevals.indexOf(data.id.toString())
+                                    if (index != -1) {
+                                        var currchoice = getvalue(sel);
+                                        choices[index] = ['new',data.name+' (new)'];
+                                        updateselectbyarray('#'+$(sel).attr('id'),choices);
+                                        setvalue(sel,currchoice);
+                                        $( sel ).data('revert', currchoice);
+                                    }
                                 }
                             }
                         });
@@ -1317,22 +1379,6 @@
         $( document ).tooltip();
     };  // viewstandings
 
-    function updateselect(sel,apiurl,ajaxparams) {
-        ajax_update_db_noform(apiurl,ajaxparams,sel,true,
-            // this function is called in ajax_update_db_noform_resp if successful
-            function(sel,data){
-                // remove current options
-                $(sel+' option').each(function(){
-                   $(this).remove() 
-                });
-                // add options from response
-                $.each(data.choices,function(ndx,choice){
-                   $(sel).append($('<option>').val(choice[0]).text(choice[1]));
-                });
-            });
-        
-    };
-    
     function choosestandings() {
         function setyearselect( sel ) {
             var apiurl = $( sel ).attr('_rrwebapp_apiurl');
@@ -1349,7 +1395,7 @@
             // ajax parameter setup
             ajaxparams = {club:club}
             
-            updateselect('#_rrwebapp-choosestandings-select-year',apiurl,ajaxparams);
+            updateselectbyapi('#_rrwebapp-choosestandings-select-year',apiurl,ajaxparams);
             
             // reset last value if possible
             choicevalues = getchoicevalues('#_rrwebapp-choosestandings-select-year')
@@ -1374,7 +1420,7 @@
             // ajax parameter setup
             ajaxparams = {club:club,year:year}
             
-            updateselect('#_rrwebapp-choosestandings-select-series',apiurl,ajaxparams);
+            updateselectbyapi('#_rrwebapp-choosestandings-select-series',apiurl,ajaxparams);
 
             // reset last value if possible
             choicevalues = getchoicevalues('#_rrwebapp-choosestandings-select-series')

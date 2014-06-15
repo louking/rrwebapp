@@ -106,7 +106,8 @@
               <td>
                 {# leave as select field unless 'definite', or membersonly and '' (means definitely didn't find) #}
                 {% if writeallowed and (thisdisposition == 'missed' or thisdisposition == 'similar') or (not membersonly and thisdisposition != 'definite') %}
-                  <select class="_rrwebapp-editparticipants-select-runner" 
+                  <select class="_rrwebapp-editparticipants-select-runner"
+                          id="_rrwebapp-editparticipants-select-id-{{result.id}}"
                           _rrwebapp-field='runnerid'
                           {% if not membersonly %}
                             _rrwebapp-newrunner-name='{{ result.name }}'

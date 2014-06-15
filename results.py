@@ -42,6 +42,7 @@ from forms import ManagedResultForm, SeriesResultForm, RunnerResultForm
 from loutilities.namesplitter import split_full_name
 import loutilities.renderrun as render
 from loutilities import timeu, agegrade
+tYmd = timeu.asctime('%Y-%m-%d')
 
 # control behavior of import
 DIFF_CUTOFF = 0.7   # ratio of matching characters for cutoff handled by 'clubmember'
@@ -67,12 +68,13 @@ DISP_NOTUSED = ''               # not used for results
 class BooleanError(Exception): pass
 
 #----------------------------------------------------------------------
-def filtermissed(missed,racedate,resultage):
+def filtermissed(club_id,missed,racedate,resultage):
 #----------------------------------------------------------------------
     '''
     filter missed matches which are greater than a configured max age delta
     also filter missed matches which were in the exclusions table
     
+    :param club_id: club id for missed matches
     :param missed: list of missed matches, as returned from clubmember.xxx().getmissedmatches()
     :param racedate: race date in dbdate format
     :param age: resultage from race result, if None, '', 0, empty list is returned
@@ -96,8 +98,8 @@ def filtermissed(missed,racedate,resultage):
             resultname = thismissed['name']
             runnername = thismissed['dbname']
             ascdob = thismissed['dob']
-            runner = Runner.query.filter_by(name=runnername,dateofbirth=ascdob).first()
-            exclusion = Exclusion.query.filter_by(foundname=resultname,runnerid=runner.id).first()
+            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
+            exclusion = Exclusion.query.filter_by(club_id=club_id,foundname=resultname,runnerid=runner.id).first()
             if exclusion:
                 localmissed.remove(thismissed)
                 
@@ -188,15 +190,16 @@ class EditParticipants(MethodView):
                 thisrunnervalue = result.runnerid           # set in AjaxImportResults.post()
                 thisrunnerchoice = [(None,'<not included>')]
                 
-                # need to redo logic from AjaxImportResults() because AjaxImportResults() may leave null in runnerid field of managedresult
+                # need to repeat logic from AjaxImportResults() because AjaxImportResults() may leave null in runnerid field of managedresult
                 candidate = pool.findmember(result.name,result.age,race.date)
                 
                 runner = None
+                runnername = ''
                 if thisdisposition in [DISP_MATCH,DISP_CLOSE]:
                     # found a possible runner
                     if candidate:
                         runnername,ascdob = candidate
-                        runner = Runner.query.filter_by(name=runnername,dateofbirth=ascdob).first()
+                        runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
                         thisrunnerchoice.append([runner.id,runner.name])
                     
                     # this shouldn't happen
@@ -206,11 +209,21 @@ class EditParticipants(MethodView):
 
                 # didn't find runner, what were other possibilities?
                 elif thisdisposition == DISP_MISSED:
+                    # this is possible because maybe (new) member was chosen in prior use of editparticipants
+                    if candidate:
+                        runnername,ascdob = candidate
+                        runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
+                        thisrunnerchoice.append([runner.id,runner.name])
+                    
+                    # this handles case where age mismatch was chosen in prior use of editparticipants
+                    elif thisrunnervalue:
+                        runner = Runner.query.filter_by(club_id=club_id,id=thisrunnervalue).first()
+
                     # remove runners who were not within the age window, or who were excluded
                     missed = pool.getmissedmatches()                        
-                    missed = filtermissed(missed,race.date,result.age)
+                    missed = filtermissed(club_id,missed,race.date,result.age)
                     for thismissed in missed:
-                        missedrunner = Runner.query.filter_by(name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
+                        missedrunner = Runner.query.filter_by(club_id=club_id,name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
                         dobdt = dbdate.asc2dt(thismissed['dob'])
                         nameage = '{} ({})'.format(missedrunner.name,timeu.age(racedatedt,dobdt))
                         thisrunnerchoice.append((missedrunner.id,nameage))
@@ -225,7 +238,9 @@ class EditParticipants(MethodView):
                 
                 # for non membersonly race, maybe need to add new name to member database, give that option
                 if not membersonly and thisdisposition != DISP_MATCH:
-                    thisrunnerchoice.append(('new','{} (new)'.format(result.name)))
+                    # it's possible that result.name == runnername if (new) member was added in prior use of editparticipants
+                    if result.name != runnername:
+                        thisrunnerchoice.append(('new','{} (new)'.format(result.name)))
                 
                 # include all the metadata for this result
                 times.append(thistime)
@@ -630,8 +645,19 @@ class AjaxImportResults(MethodView):
                     return failure_response(cause='Overwrite results?',confirm=True)
                 # force is true.  delete all the current results for this race
                 else:
-                    numdeleted = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
-                    numdeleted = RaceResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
+                    app.logger.debug('editparticipants overwrite started')
+                    nummrdeleted = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
+                    numrrdeleted = RaceResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
+                    app.logger.debug('{} managedresults deleted; {} raceresults deleted'.format(nummrdeleted,numrrdeleted))
+                    # also delete any nonmembers who do not have results, as these were most likely brought in by past version of this race
+                    nonmembers = Runner.query.filter_by(club_id=club_id,member=False)
+                    for nonmember in nonmembers:
+                        nonmemberresults = RaceResult.query.filter_by(club_id=club_id,runnerid=nonmember.id).all()
+                        app.logger.debug('nonmember={}/{} nonmemberresults={}'.format(nonmember.name,nonmember.id,nonmemberresults))
+                        if len(nonmemberresults) == 0:
+                            db.session.delete(nonmember)
+                    # pick up any deletes for later processing
+                    db.session.flush()
             
             # save file for import
             tempdir = tempfile.mkdtemp()
@@ -697,7 +723,7 @@ class AjaxImportResults(MethodView):
                         runnername,ascdob = candidate
                         
                         # set active or inactive member's id
-                        runner = Runner.query.filter_by(name=runnername,dateofbirth=ascdob).first()
+                        runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
                         dbresult.runnerid = runner.id
                         app.logger.debug('  using runner.id = {}'.format(runner.id))
                     
@@ -727,7 +753,7 @@ class AjaxImportResults(MethodView):
                                 thisresultage = dbresult.age
                                 if thisresultage:
                                     thisracedate = tYmd.asc2dt(race.date)
-                                    pastresult = RaceResult.query.filter_by(runnerid=runner.id).first()
+                                    pastresult = RaceResult.query.filter_by(club_id=club_id,runnerid=runner.id).first()
                                     pastresultage = pastresult.agage
                                     pastracedate = tYmd.asc2dt(pastresult.race.date)
                                     
@@ -751,7 +777,7 @@ class AjaxImportResults(MethodView):
                         # runner joined in time for race, or not member's only race, but match wasn't exact
                         # check for exclusions
                         else:
-                            exclusion = Exclusion.query.filter_by(foundname=dbresult.name,runnerid=dbresult.runnerid).first()
+                            exclusion = Exclusion.query.filter_by(club_id=club_id,foundname=dbresult.name,runnerid=dbresult.runnerid).first()
                             
                             # if results name not found against this runner id in exclusions table, indicate we found close match
                             if not exclusion:
@@ -781,12 +807,12 @@ class AjaxImportResults(MethodView):
                         
                         # don't consider 'missed matches' where age difference from result is too large, or excluded
                         app.logger.debug('  missed before filter = {}'.format(missed))
-                        missed = filtermissed(missed,race.date,dbresult.age)
+                        missed = filtermissed(club_id,missed,race.date,dbresult.age)
                         app.logger.debug('  missed after filter = {}'.format(missed))
 
                         # if there remain are any missed results, indicate missed (due to age difference)
                         # or missed (due to new member proposed for not membersonly)
-                        if len(missed) > 0:
+                        if len(missed) > 0 or not membersonly:
                             dbresult.initialdisposition = DISP_MISSED
                             dbresult.confirmed = False
                             app.logger.debug('    DISP_MISSED')
@@ -794,12 +820,7 @@ class AjaxImportResults(MethodView):
                         # otherwise, this result isn't used
                         else:
                             dbresult.initialdisposition = DISP_NOTUSED
-                            # we're definitely not using this name in membersonly race,
-                            # but admin will be given choice to add for non membersonly race, so not confirmed
-                            if membersonly:
-                                dbresult.confirmed = True
-                            else:
-                                dbresult.confirmed = False
+                            dbresult.confirmed = True
                             app.logger.debug('    DISP_NOTUSED')
                             
                         # not membersonly and didn't find a nonmember, need to create runner 
@@ -890,7 +911,7 @@ class AjaxUpdateManagedResult(MethodView):
             newname  = flask.request.args.get('newname',None)
             newgen   = flask.request.args.get('newgen',None)
             removeid = flask.request.args.get('removeid',None)
-            if newgen and newgen not in ['M','F'] or not newname:
+            if newgen and (newgen not in ['M','F'] or not newname):
                 db.session.rollback()
                 cause = 'Unexpected Error: invalid gender'
                 app.logger.error(cause)
@@ -916,27 +937,39 @@ class AjaxUpdateManagedResult(MethodView):
                     if newname:
                         runner = Runner(club_id,newname,None,newgen,None,member=False)
                         added = racedb.insert_or_update(db.session,Runner,runner,skipcolumns=['id'],name=newname,dateofbirth=None,member=False)
+                        respargs['action'] = 'newname'
+                        respargs['actionsuccess'] = True
                         respargs['id'] = runner.id
+                        respargs['name'] = runner.name
                         value = runner.id
+                        app.logger.debug('new member value={}'.format(value))
                     
                     # removeid present means that this id should be removed from the database, if possible
-                    if runnerid:
-                        runner = Runner.query.filter_by(club_id=club_id,id=memberid).first()
+                    if removeid:
+                        runner = Runner.query.filter_by(club_id=club_id,id=removeid).first()
                         if not runner:
                             db.session.rollback()
-                            cause = 'Unexpected Error: member with id={} not found for club'.format(memberid)
+                            cause = 'Unexpected Error: member with id={} not found for club'.format(removeid)
                             app.logger.error(cause)
                             return failure_response(cause=cause)
                             
                         # make sure no results for member
-                        results = RaceResult.query.filter_by(club_id=club_id,runnerid=memberid).all()
+                        results = RaceResult.query.filter_by(club_id=club_id,runnerid=removeid).all()
                         if len(results) == 0:
                             # no results, ok to remove member
                             db.session.delete(runner)
-                            respargs['removesuccess'] = True
+                            respargs['action'] = 'removeid'
+                            respargs['id'] = removeid
+                            respargs['name'] = runner.name
+                            respargs['actionsuccess'] = True
                         else:
-                            respargs['removesuccess'] = False
-                            respargs['removefailcause'] = 'had results'
+                            #respargs['action'] = 'removeid'
+                            #respargs['actionsuccess'] = False
+                            #respargs['removefailcause'] = 'Could not remove id={}.  Had results'.format(removeid)
+                            db.session.rollback()
+                            cause = 'Unexpected Error: Could not remove id={}.  Had results'.format(removeid)
+                            app.logger.error(cause)
+                            return failure_response(cause=cause)
 
                     if value != 'None':
                         result.runnerid = int(value)
@@ -1005,122 +1038,6 @@ app.add_url_rule('/_updatemanagedresult/<int:resultid>',view_func=AjaxUpdateMana
 #----------------------------------------------------------------------
 
 #######################################################################
-class AjaxAddMember(MethodView):
-#######################################################################
-    decorators = [login_required]
-    
-    #----------------------------------------------------------------------
-    def post(self):
-    #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-            
-            readcheck = ViewClubDataPermission(club_id)
-            writecheck = UpdateClubDataPermission(club_id)
-            
-            # verify user can write the data, otherwise abort
-            if not writecheck.can():
-                db.session.rollback()
-                flask.abort(403)
-            
-            # are name and gender ok? if not allowed, return failure response
-            name = flask.request.args.get('name','')
-            if name == '':
-                db.session.rollback()
-                cause = 'Unexpected Error: name must be supplied'
-                app.logger.error(cause)
-                return failure_response(cause=cause)
-            gender = flask.request.args.get('gender','')
-            if gender not in ['M','F']:
-                db.session.rollback()
-                cause = 'Unexpected Error: invalid gender'
-                app.logger.error(cause)
-                return failure_response(cause=cause)
-            
-            # try to add member, handle exception
-            runner = Runner(club_id,name,None,gender,None,member=False)
-            added = racedb.insert_or_update(db.session,Runner,runner,skipcolumns=['id'],name=name,dateofbirth=None,member=False)
-            respargs = {'id':runner.id}
-            
-            # commit database updates and close transaction
-            db.session.commit()
-            return success_response(**respargs)
-        
-        except Exception,e:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            cause = 'Unexpected Error: {}'.format(e)
-            app.logger.error(traceback.format_exc())
-            return failure_response(cause=cause)
-#----------------------------------------------------------------------
-app.add_url_rule('/_addmember',view_func=AjaxAddMember.as_view('_addmember'),methods=['POST'])
-#----------------------------------------------------------------------
-
-#######################################################################
-class AjaxRemoveMember(MethodView):
-#######################################################################
-    decorators = [login_required]
-    
-    #----------------------------------------------------------------------
-    def post(self):
-    #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-            
-            readcheck = ViewClubDataPermission(club_id)
-            writecheck = UpdateClubDataPermission(club_id)
-            
-            # verify user can write the data, otherwise abort
-            if not writecheck.can():
-                db.session.rollback()
-                flask.abort(403)
-            
-            # is id ok? if not return failure response
-            memberid = flask.request.args.get('id','')
-            if memberid == '':
-                db.session.rollback()
-                cause = 'Unexpected Error: id must be supplied'
-                app.logger.error(cause)
-                return failure_response(cause=cause)
-            # let exception handler catch integer problem
-            memberid = int(memberid)
-            
-            # try to delete member, handle exception
-            runner = Runner.query.filter_by(club_id=club_id,id=memberid).first()
-            if not runner:
-                db.session.rollback()
-                cause = 'Unexpected Error: member with id={} not found for club'.format(memberid)
-                app.logger.error(cause)
-                return failure_response(cause=cause)
-                
-            # make sure no results for member
-            results = RaceResult.query.filter_by(club_id=club_id,runnerid=memberid).all()
-            if len(results) > 0:
-                db.session.rollback()
-                cause = 'Cannot remove {} as results have already been captured'.format(runner.name)
-                app.logger.error(cause)
-                return failure_response(cause=cause)
-            
-            # no results, ok to remove member
-            db.session.delete(runner)
-            
-            # commit database updates and close transaction
-            db.session.commit()
-            return success_response()
-        
-        except Exception,e:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            cause = 'Unexpected Error: {}'.format(e)
-            app.logger.error(traceback.format_exc())
-            return failure_response(cause=cause)
-#----------------------------------------------------------------------
-app.add_url_rule('/_removemember',view_func=AjaxRemoveMember.as_view('_removemember'),methods=['POST'])
-#----------------------------------------------------------------------
-
-#######################################################################
 class AjaxTabulateResults(MethodView):
 #######################################################################
     decorators = [login_required]
@@ -1177,7 +1094,7 @@ class AjaxTabulateResults(MethodView):
             for series in theseseries:
                 # get divisions for this series, if appropriate
                 if series.divisions:
-                    alldivs = Divisions.query.filter_by(seriesid=series.id,active=True).all()
+                    alldivs = Divisions.query.filter_by(club_id=club_id,seriesid=series.id,active=True).all()
                     
                     if len(alldivs) == 0:
                         cause = "Series '{0}' indicates divisions to be calculated, but no divisions found".format(series.name)
@@ -1190,12 +1107,13 @@ class AjaxTabulateResults(MethodView):
                         divisions.append((div.divisionlow,div.divisionhigh))
 
                 # collect results from database
+                # NOTE: filter() method requires fully qualified field names (e.g., *ManagedResult.*club_id)
                 results = ManagedResult.query.filter(ManagedResult.club_id==club_id, ManagedResult.raceid==race.id, ManagedResult.runnerid!=None).order_by('time').all()
                 
                 # loop through result entries, collecting overall, bygender, division and agegrade results
                 for thisresult in results:
                     # get runner information
-                    runner = Runner.query.filter_by(id=thisresult.runnerid).first()
+                    runner = Runner.query.filter_by(club_id=club_id,id=thisresult.runnerid).first()
                     runnerid = runner.id
                     gender = runner.gender
             
