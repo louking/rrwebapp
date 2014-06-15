@@ -676,7 +676,7 @@ class AjaxImportResults(MethodView):
                 return failure_response(cause=cause)
                 
             # how did this happen?  check allowed_file() for bugs
-            except raceresults.parameterError,e:
+            except raceresults.dataError,e:
                 db.session.rollback()
                 #cause =  'Program Error: Invalid file type {} for file {} path {} (unexpected)'.format(ext,resultfile.filename,resultpathname)
                 cause =  'Program Error: {}'.format(e)

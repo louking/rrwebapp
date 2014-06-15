@@ -16,6 +16,7 @@ raceresults  -- retrieve race results from a file
 '''
 
 # standard
+import os.path
 
 # pypi
 
@@ -45,7 +46,7 @@ fieldxform = {
 
 # exceptions for this module.  See __init__.py for package exceptions
 class headerError(Exception): pass
-class parameterError(Exception): pass
+class dataError(Exception): pass
 
 ########################################################################
 class RaceResults():
@@ -65,6 +66,13 @@ class RaceResults():
         self.filename = filename
         self.distance = distance
         self.timereqd = timereqd
+        
+        # text file allows non-contiguous rows -- all others must be contiguous
+        root,ext = os.path.splitext(filename)
+        if ext == '.txt':
+            self.contiguousrows = False
+        else:
+            self.contiguousrows = True
         
         # timefactor is based on the first entry's time and distance
         # see self._normalizetime()
@@ -269,7 +277,7 @@ class RaceResults():
             if tottime > maxpace:
                 self.timefactor = 1/60.0
             if tottime*self.timefactor < minpace or tottime*self.timefactor > maxpace:
-                raise parameterError, '{0}: invalid time detected - {1} ({2} secs) for {3} mile race'.format(self.filename,time,tottime,distance)
+                raise dataError, '{0}: invalid time detected - {1} ({2} secs) for {3} mile race'.format(self.filename,time,tottime,distance)
             
         tottime *= self.timefactor
         return tottime
@@ -294,38 +302,51 @@ class RaceResults():
             # create dict association, similar to csv.DictReader
             result = dict(zip(self.fieldhdrs,filteredline))
             
-            # special processing for age - normalize to integer
-            if 'age' in result and result['age'] is not None:
-                if not result['age']: # 0 or ''
-                    result['age'] = None
-                else:
-                    try:
-                        result['age'] = int(result['age'])
-                    except ValueError:
-                        textfound = False
-                        continue
-                
-            # special processing for place - normalize to integer
-            if 'place' in result and result['place'] is not None:
-                if not result['place']:  # 0 or ''
-                    result['place'] = None
-                else:
-                    try:
-                        result['place'] = int(result['place'])
-                    except ValueError:
-                        textfound = False
-                        continue
-                
             # special processing if name is split, to combine first, last names
             if self.splitnames:
                 first = result.pop('firstname').strip()
                 last = result.pop('lastname').strip()
                 result['name'] = ' '.join([first,last])
                 
+            # special processing for age - normalize to integer
+            if 'age' in result and result['age'] is not None:
+                if type(result['age']) in [str,unicode]:
+                    result['age'] = result['age'].strip()
+                if not result['age']: # 0 or ''
+                    result['age'] = None
+                else:
+                    try:
+                        result['age'] = int(result['age'])
+                    except ValueError:
+                        if not self.contiguousrows:
+                            textfound = False
+                            continue
+                        else:
+                            raise dataError, "invalid age '{}' for record with name '{}'".format(result['age'],result['name'])
+                
+            # special processing for place - normalize to integer
+            if 'place' in result and result['place'] is not None:
+                if type(result['place']) in [str,unicode]:
+                    result['place'] = result['place'].strip()
+                if not result['place']:  # 0 or ''
+                    result['place'] = None
+                else:
+                    try:
+                        result['place'] = int(result['place'])
+                    except ValueError:
+                        if not self.contiguousrows:
+                            textfound = False
+                            continue
+                        else:
+                            raise dataError, "invalid place '{}' for record with name '{}'".format(result['place'],result['name'])
+                
             # look for some obvious errors in name
             if result['name'] is None or result['name'][0] in '=-/!':
-                textfound = False
-                continue
+                if not self.contiguousrows:
+                    textfound = False
+                    continue
+                else:
+                    raise dataError, "invalid name '{}'".format(result['name'])
             
             # TODO: add normalization for gender
             
