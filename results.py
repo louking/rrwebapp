@@ -121,7 +121,7 @@ def getmembertype(runner):
     '''
     
     if not runner:
-        return ''
+        return 'nonmember'
     
     elif runner.member:
         if runner.active:
