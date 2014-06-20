@@ -588,7 +588,11 @@ def cleanresult(managedresult):
     if not managedresult.hometown:
         if managedresult.city and managedresult.state:
             managedresult.hometown = ', '.join([managedresult.city,managedresult.state])
-        
+
+    # gender needs to be upper case
+    if managedresult.gender:
+        managedresult.gender = managedresult.gender.upper()
+
 
 #######################################################################
 class AjaxImportResults(MethodView):
