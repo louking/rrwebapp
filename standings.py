@@ -225,12 +225,12 @@ class ViewStandings(MethodView):
             # declare "file" handler for HTML file type
             fh = HtmlStandingsHandler(racenums)
             rr.renderseries(fh)
-            # division has to be beyond name, because place and name are fixed, and division has visibility turned off
-            roworder = ['division','place','name','gender'] + ['race{}'.format(r) for r in racenums] + ['total']
-            headerclasses = (['_rrwebapp-class-col-{}'.format(h) for h in ['division','place','name','gender']]
+
+            roworder = ['division','place','name','gender','age'] + ['race{}'.format(r) for r in racenums] + ['total']
+            headerclasses = (['_rrwebapp-class-col-{}'.format(h) for h in ['division','place','name','gender','age']]
                                 + ['_rrwebapp-class-col-race' for h in racenums]
                                 + ['_rrwebapp-class-col-total'])
-            tooltips = ([None,None,None,None]
+            tooltips = ([None,None,None,None,None]
                         + [r.name for r in races]
                         + [None])
             
