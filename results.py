@@ -168,6 +168,9 @@ class EditParticipants(MethodView):
                 flask.flash(cause)
                 return flask.redirect(flask.url_for('manageraces'))
 
+            # determine precision for rendered output
+            timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
+            
             # active is ClubMember object for active members; if race isn't for members only nonmember is ClubMember object for nonmembers
             membersonly = race.series[0].series.membersonly
             if membersonly:
@@ -185,7 +188,7 @@ class EditParticipants(MethodView):
             runnervalues = []
             membertypes = []
             for result in results:
-                thistime = render.rendertime(result.time,0)
+                thistime = render.rendertime(result.time,timeprecision)
                 thisdisposition = result.initialdisposition # set in AjaxImportResults.post()
                 thisrunnervalue = result.runnerid           # set in AjaxImportResults.post()
                 thisrunnerchoice = [(None,'<not included>')]
@@ -287,6 +290,9 @@ class SeriesResults(MethodView):
                 flask.flash(cause)
                 return flask.redirect(flask.url_for('manageraces'))
             
+            # determine precision for rendered output
+            timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
+            
             # get all the results, and the race record
             results = []
             for series in race.series:
@@ -307,8 +313,8 @@ class SeriesResults(MethodView):
                 thisname = runner.name
                 series = Series.query.filter_by(id=result.seriesid).first()
                 thisseries = series.name
-                thistime = render.rendertime(result.time,0)
-                thisagtime = render.rendertime(result.agtime,0)
+                thistime = render.rendertime(result.time,timeprecision)
+                thisagtime = render.rendertime(result.agtime,agtimeprecision)
                 thispace = render.rendertime(result.time / race.distance, 0, useceiling=False)
                 if result.divisionlow:
                     if result.divisionlow == 0:
@@ -406,9 +412,10 @@ class RunnerResults(MethodView):
                 thisseries = result.series.name
                 thisrace = result.race.name
                 thisdate = result.race.date
+                timeprecision,agtimeprecision = render.getprecision(result.race.distance,surface=result.race.surface)
                 thisdistance = result.race.distance
-                thistime = render.rendertime(result.time,0)
-                thisagtime = render.rendertime(result.agtime,0)
+                thistime = render.rendertime(result.time,timeprecision)
+                thisagtime = render.rendertime(result.agtime,agtimeprecision)
                 thispace = render.rendertime(result.time / result.race.distance, 0, useceiling=False)
                 if result.divisionlow:
                     if result.divisionlow == 0:
@@ -1091,7 +1098,7 @@ class AjaxTabulateResults(MethodView):
             divdate = racedate.replace(month=1,day=1)
 
             # get precision for time rendering
-            timeprecision,agtimeprecision = render.getprecision(race.distance)
+            timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
 
             # for each series for this race - 'series' describes how to tabulate the results
             theseseries = [s.series for s in race.series]
@@ -1151,7 +1158,7 @@ class AjaxTabulateResults(MethodView):
                     # always add age grade to result if we know the age
                     # we will decide whether to render, later based on series.calcagegrade, in another script
                     if agegradeage:
-                        timeprecision,agtimeprecision = render.getprecision(race.distance)
+                        timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
                         adjtime = render.adjusttime(resulttime,timeprecision)    # ceiling for adjtime
                         raceresult.agpercent,raceresult.agtime,raceresult.agfactor = ag.agegrade(agegradeage,gender,race.distance,adjtime)
             
