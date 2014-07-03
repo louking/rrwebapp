@@ -682,7 +682,7 @@ class AjaxImportResults(MethodView):
             # format not good enough
             except raceresults.headerError, e:
                 db.session.rollback()
-                cause =  e
+                cause = '{}'.format(e)
                 app.logger.warning(cause)
                 return failure_response(cause=cause)
                 
