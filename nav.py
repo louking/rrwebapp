@@ -91,7 +91,8 @@ def getnavigation():
         # TODO: when more tools are available, move writecheck to appropriate tools
         if club and writecheck.can():
             navigation.append({'display':'Tools','list':[]})
-            navigation[-1]['list'].append({'display':'Normalize','url':flask.url_for('normalizememberlist')})
+            navigation[-1]['list'].append({'display':'Normalize Members','url':flask.url_for('normalizememberlist')})
+            navigation[-1]['list'].append({'display':'Export Results','url':flask.url_for('exportresults')})
     navigation.append({'display':'About','url':flask.url_for('sysinfo')})
     
     if thisuser.is_authenticated() and owner_permission.can():

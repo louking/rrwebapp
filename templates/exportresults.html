@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import render_field %}
+{% block pagename %}
+    {{pagename}}
+{% endblock %}
+{% block scripts %}
+  <script type="text/javascript">
+    $( document ).ready( function() {
+      //exportresults();
+    })
+  </script>
+  <script type="text/javascript">
+  </script>
+{% endblock %}
+{% block body %}
+  <div>
+    <p>Export results for club specified at top of page. Dates must be in yyyy-mm-dd format.</p>
+    <form id='export-results' method='post' enctype='multipart/form-data'>
+      {{ form.hidden_tag() }}
+      <div class="W9emLabel W20emTextBox">
+          {{ render_field(form.start) }}
+          {{ render_field(form.end) }}
+          <center><input type=submit align=middle value=Export></center>
+      </div>
+    </form>
+  </div>
+{% endblock %}
