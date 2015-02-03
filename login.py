@@ -177,6 +177,8 @@ def logout():
 def on_identity_loaded(sender, identity):
 #----------------------------------------------------------------------
     try:
+        # from http://pythonhosted.org/Flask-Principal/ Granular Resource Protection
+        
         # Set the identity user object
         identity.user = current_user
         if not current_user.is_authenticated():
@@ -190,9 +192,10 @@ def on_identity_loaded(sender, identity):
         # identity with the roles that the user provides
         if hasattr(current_user,'roles'):
             for role in current_user.roles:
-                if role.name == 'viewer' or role.name == 'admin':
+                if role.name == 'viewer':
                     identity.provides.add(ViewClubDataNeed(role.club.id))
                 elif role.name == 'admin':
+                    identity.provides.add(ViewClubDataNeed(role.club.id))
                     identity.provides.add(UpdateClubDataNeed(role.club.id))
                 elif role.name == 'owner':
                     identity.provides.add(RoleNeed('owner'))
