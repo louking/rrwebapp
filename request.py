@@ -88,7 +88,7 @@ def before_request():
 def after_request(response):
 #----------------------------------------------------------------------
     if not app.config['DEBUG']:
-        app.logger.info('{} {} {}'.format(request.method, request.url, response.status_code))
+        app.logger.info('{}: {} {} {}'.format(request.remote_addr, request.method, request.url, response.status_code))
     return response
 
 
