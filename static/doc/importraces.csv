@@ -15,6 +15,7 @@ File Contents,,,,,
 * required fields are in **bold**,,,,,
 * column order is not specified or implied by the order of fields in this table,,,,,
 "* other fields may be present, are ignored",,,,,
+"* marathon distance should be configured as 26.2 and half marathon distance is 13.1, due to errors in age grade table",,,,,
 ,,,,,
 table,,,,,
 thead,,th,Heading,Format,Description
