@@ -4,6 +4,13 @@ Options +FollowSymLinks
 RewriteEngine On
 RewriteBase /scoretility/
 
+# no caching
+<IfModule mod_expires.c>
+    ExpiresActive on
+    ExpiresByType text/html "now"
+    ExpiresDefault "now"
+</IfModule>
+
 # everything else sent to flask
 RewriteRule ^(rrwebappdispatch\.py/.*)$ - [L]
 RewriteRule ^(.*)$ rrwebappdispatch.py/$1 [L]
