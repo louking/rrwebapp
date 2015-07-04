@@ -325,7 +325,7 @@ class AjaxImportMembers(MethodView):
 
             # get all the member runners currently in the database
             # hash them into dict by (name,dateofbirth)
-            allrunners = Runner.query.filter_by(member=True,active=True).all()
+            allrunners = Runner.query.filter_by(club_id=club_id,member=True,active=True).all()
             inactiverunners = {}
             for thisrunner in allrunners:
                 inactiverunners[thisrunner.name,thisrunner.dateofbirth] = thisrunner
@@ -363,7 +363,7 @@ class AjaxImportMembers(MethodView):
                 app.logger.debug('WindowsError exception ignored: {}'.format(e))
 
             # get old clubmembers from database
-            dbmembers = clubmember.DbClubMember()   # use default database
+            dbmembers = clubmember.DbClubMember(club_id=club_id)   # use default database
 
             # prepare for age check
             thisyear = timeu.epoch2dt(time.time()).year
@@ -393,13 +393,13 @@ class AjaxImportMembers(MethodView):
                     if matchingmember:
                         membername,memberdob = matchingmember
                         if memberdob == thisdob:
-                            dbmember = racedb.getunique(db.session,Runner,member=True,name=membername,dateofbirth=thisdob)
+                            dbmember = racedb.getunique(db.session,Runner,club_id=club_id,member=True,name=membername,dateofbirth=thisdob)
                     
                     # TODO: need to handle case where dob transitions from '' to actual date of birth
                     
                     # no member found, maybe there is nonmember of same name already in database
                     if dbmember is None:
-                        dbnonmember = racedb.getunique(db.session,Runner,member=False,name=thisname)
+                        dbnonmember = racedb.getunique(db.session,Runner,club_id=club_id,member=False,name=thisname)
                         # TODO: there's a slim possibility that there are two nonmembers with the same name, but I'm sure we've already
                         # bolloxed that up in importresult as there's no way to discriminate between the two
                         
@@ -460,7 +460,7 @@ class AjaxImportMembers(MethodView):
                         thisrunner = Runner(club_id,thisname,thisdob,thisgender,thishometown,
                                             fname=thisfname,lname=thislname,
                                             renewdate=thisrenewdate,expdate=thisexpdate)
-                        added = racedb.insert_or_update(db.session,Runner,thisrunner,skipcolumns=['id'],name=thisname,dateofbirth=thisdob)
+                        added = racedb.insert_or_update(db.session,Runner,thisrunner,skipcolumns=['id'],club_id=club_id,name=thisname,dateofbirth=thisdob)
                         
                     # remove this runner from collection of runners which should be deactivated in database
                     if (thisrunner.name,thisrunner.dateofbirth) in inactiverunners:
@@ -468,7 +468,7 @@ class AjaxImportMembers(MethodView):
                 
             # any runners remaining in 'inactiverunners' should be deactivated
             for (name,dateofbirth) in inactiverunners:
-                thisrunner = Runner.query.filter_by(name=name,dateofbirth=dateofbirth).first() # should be only one returned by filter
+                thisrunner = Runner.query.filter_by(club_id=club_id,name=name,dateofbirth=dateofbirth).first() # should be only one returned by filter
                 thisrunner.active = False
         
             # commit database updates and close transaction
