@@ -12,6 +12,7 @@
 # standard
 import json
 import csv
+import traceback
 
 # pypi
 import flask
@@ -349,7 +350,7 @@ class AjaxImportRaces(MethodView):
             for thisrace in fileraces:
                 # add or update race in database
                 race = Race(club_id,thisrace['year'],thisrace['race'],None,thisrace['date'],thisrace['time'],thisrace['distance'],thisrace['surface'])
-                added = racedb.insert_or_update(db.session,Race,race,skipcolumns=['id'],name=race.name,year=race.year)
+                added = racedb.insert_or_update(db.session,Race,race,skipcolumns=['id'],club_id=club_id,name=race.name,year=race.year)
                 
                 # remove this race from collection of races which should be deleted in database
                 if (race.name,race.year) in inactiveraces:
@@ -357,17 +358,19 @@ class AjaxImportRaces(MethodView):
                     
             # any races remaining in 'inactiveraces' should be deactivated # TODO: should these be deleted?  That's pretty dangerous
             for (name,year) in inactiveraces:
-                thisrace = Race.query.filter_by(name=name,year=year).first() # should be only one returned by filter
+                thisrace = Race.query.filter_by(club_id=club_id,name=name,year=year).first() # should be only one returned by filter
                 thisrace.active = False
                 
             # commit database updates and close transaction
             db.session.commit()
             return success_response()
         
-        except:
+        except Exception,e:
             # roll back database updates and close transaction
             db.session.rollback()
-            raise
+            cause = 'Unexpected Error: {}'.format(e)
+            app.logger.error(traceback.format_exc())
+            return failure_response(cause=cause)
 #----------------------------------------------------------------------
 app.add_url_rule('/_importraces',view_func=AjaxImportRaces.as_view('_importraces'),methods=['POST'])
 #----------------------------------------------------------------------
