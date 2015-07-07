@@ -866,7 +866,7 @@ class AjaxImportResults(MethodView):
         except Exception,e:
             # roll back database updates and close transaction
             db.session.rollback()
-            cause = 'Unexpected Error: {}'.format(e)
+            cause = traceback.format_exc()
             app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
 #----------------------------------------------------------------------

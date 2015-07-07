@@ -475,10 +475,12 @@ class AjaxImportMembers(MethodView):
             db.session.commit()
             return success_response()
         
-        except:
+        except Exception,e:
             # roll back database updates and close transaction
             db.session.rollback()
-            raise
+            cause = traceback.format_exc()
+            app.logger.error(traceback.format_exc())
+            return failure_response(cause=cause)
 #----------------------------------------------------------------------
 app.add_url_rule('/_importmembers',view_func=AjaxImportMembers.as_view('_importmembers'),methods=['POST'])
 #----------------------------------------------------------------------

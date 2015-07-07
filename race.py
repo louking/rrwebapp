@@ -26,7 +26,7 @@ import racedb
 from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
 from database_flask import db   # this is ok because this module only runs under flask
-from apicommon import failure_response, success_response
+from apicommon import failure_response, success_response, check_header
 
 # module specific needs
 from racedb import Race, Club, Series, RaceSeries, Divisions, ManagedResult
@@ -305,18 +305,19 @@ class AjaxImportRaces(MethodView):
                 cause = 'Invalid file type "{}"'.format(thisfileext)
                 app.logger.warning(cause)
                 return failure_response(cause=cause)
-            
-            # get all the races currently in the database for the indicated club,year
-            allraces = Race.query.filter_by(club_id=club_id,active=True,year=thisyear).all()
-            
-            # if some races exist, verify user wants to overwrite
-            if allraces and not request.args.get('force')=='true':
-                db.session.rollback()
-                return failure_response(cause='Overwrite races for this year?',confirm=True)
-            
+
             # handle csv file
             if thisfileext == 'csv':
                 thisfilecsv = DictReaderStr2Num(thisfile.stream)
+
+                # verify file has required fields
+                requiredfields = 'year,race,date,time,distance,surface'.split(',')
+                if not check_header(requiredfields, thisfilecsv.fieldnames):
+                    db.session.rollback()
+                    cause = "invalid races file - one or more header fields missing, must have all of '{}'".format("', '".join(requiredfields))
+                    app.logger.error(cause)
+                    return failure_response(cause=cause)
+
                 fileraces = []
                 for row in thisfilecsv:
                     # make sure all races are within correct year
@@ -340,6 +341,14 @@ class AjaxImportRaces(MethodView):
                 cause = 'Unexpected Error: Invalid file extention encountered "{}"'.format(thisfileext)
                 app.logger.error(cause)
                 return failure_response(cause=cause)
+            
+            # get all the races currently in the database for the indicated club,year
+            allraces = Race.query.filter_by(club_id=club_id,active=True,year=thisyear).all()
+            
+            # if some races exist, verify user wants to overwrite
+            if allraces and not request.args.get('force')=='true':
+                db.session.rollback()
+                return failure_response(cause='Overwrite races for this year?',confirm=True)
             
             # prepare to invalidate any races which are currently there, but not in the file
             inactiveraces = {}
@@ -368,7 +377,7 @@ class AjaxImportRaces(MethodView):
         except Exception,e:
             # roll back database updates and close transaction
             db.session.rollback()
-            cause = 'Unexpected Error: {}'.format(e)
+            cause = traceback.format_exc()
             app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
 #----------------------------------------------------------------------

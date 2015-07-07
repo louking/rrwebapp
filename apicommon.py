@@ -53,3 +53,22 @@ def failure_response(**respargs):
     '''
 
     return flask.jsonify(success=False,**respargs)
+
+#----------------------------------------------------------------------
+def check_header(requiredfields, headerfields):
+#----------------------------------------------------------------------
+    '''
+    verify all the fields in requiredfields are in the csv header
+
+    :param requiredfields: list with fields which are required to be in the csv file
+    :param headerfields: list of fields in header
+    :rtype: boolean - True means header is ok, False otherwise
+    '''
+
+    # each requiredfield must be in the csv header
+    for requiredfield in requiredfields:
+        if requiredfield not in headerfields:
+            return False
+
+    # didn't find any problems
+    return True
