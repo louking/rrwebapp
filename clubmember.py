@@ -32,10 +32,10 @@ import pdb
 import argparse
 import datetime
 import difflib
-import csv
 
 # pypi
 #from IPython.core.debugger import Tracer; debughere = Tracer(); debughere() # set breakpoint where needed
+import unicodecsv
 
 # github
 
@@ -87,7 +87,7 @@ class ClubMember():
         else:
             _IN = open(csvfile,'rb')
             closeit = True
-        IN = csv.DictReader(_IN)
+        IN = unicodecsv.DictReader(_IN)
         
         # collect member information by member name
         self.members = {}
