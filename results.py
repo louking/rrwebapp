@@ -664,7 +664,7 @@ class AjaxImportResults(MethodView):
                     nonmembers = Runner.query.filter_by(club_id=club_id,member=False)
                     for nonmember in nonmembers:
                         nonmemberresults = RaceResult.query.filter_by(club_id=club_id,runnerid=nonmember.id).all()
-                        app.logger.debug('nonmember={}/{} nonmemberresults={}'.format(nonmember.name,nonmember.id,nonmemberresults))
+                        # app.logger.debug('nonmember={}/{} nonmemberresults={}'.format(nonmember.name,nonmember.id,nonmemberresults))
                         if len(nonmemberresults) == 0:
                             db.session.delete(nonmember)
                     # pick up any deletes for later processing
@@ -713,19 +713,23 @@ class AjaxImportResults(MethodView):
             # collect results from resultsfile
             numentries = 0
             dbresults = []
+            logfirst = True
             while True:
                 try:
                     fileresult = rr.next()
+                    if logfirst:
+                        app.logger.debug('first file result {}'.format(fileresult))
+                        logfirst = False
                     dbresult   = ManagedResult(club_id,raceid)
                     for field in fileresult:
                         if hasattr(dbresult,field):
                             setattr(dbresult,field,fileresult[field])
                     cleanresult(dbresult)
-                    app.logger.debug('Processing {}'.format(dbresult.name))
+                    # app.logger.debug('Processing {}'.format(dbresult.name))
                     
                     # create initial disposition
                     candidate = pool.findmember(dbresult.name,dbresult.age,race.date)
-                    app.logger.debug('  candidate = {}'.format(candidate))
+                    # app.logger.debug('  candidate = {}'.format(candidate))
 
                     # for members or people who were once members, set age based on date of birth in database
                     # note this clause will be executed for membersonly races
@@ -736,7 +740,7 @@ class AjaxImportResults(MethodView):
                         # set active or inactive member's id
                         runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
                         dbresult.runnerid = runner.id
-                        app.logger.debug('  using runner.id = {}'.format(runner.id))
+                        # app.logger.debug('  using runner.id = {}'.format(runner.id))
                     
                         # if candidate has renewdate and did not join in time for member's only race, indicate this result isn't used
                         if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(race.date)+JOIN_GRACEPERIOD:
@@ -756,7 +760,7 @@ class AjaxImportResults(MethodView):
                             if ascdob:
                                 dbresult.initialdisposition = DISP_MATCH
                                 dbresult.confirmed = True
-                                app.logger.debug('    DISP_MATCH')
+                                # app.logger.debug('    DISP_MATCH')
                                 
                             # otherwise was nonmember, included from some non memberonly race
                             else:
@@ -774,7 +778,7 @@ class AjaxImportResults(MethodView):
                                     if abs(deltaage - deltayears) <= 1:
                                         dbresult.initialdisposition = DISP_MATCH
                                         dbresult.confirmed = True
-                                        app.logger.debug('    DISP_MATCH')
+                                        # app.logger.debug('    DISP_MATCH')
 
                                     # if inconsistent, ignore candidate
                                     else:
@@ -794,7 +798,7 @@ class AjaxImportResults(MethodView):
                             if not exclusion:
                                 dbresult.initialdisposition = DISP_CLOSE
                                 dbresult.confirmed = False
-                                app.logger.debug('    DISP_CLOSE')
+                                # app.logger.debug('    DISP_CLOSE')
                                 
                             # results name vs this runner id has been excluded
                             else:
@@ -814,25 +818,25 @@ class AjaxImportResults(MethodView):
                         # favor active members, then inactive members
                         # note: nonmembers are not looked at for missed because filtermissed() depends on DOB
                         missed = pool.getmissedmatches()
-                        app.logger.debug('  pool.getmissedmatches() = {}'.format(missed))
+                        # app.logger.debug('  pool.getmissedmatches() = {}'.format(missed))
                         
                         # don't consider 'missed matches' where age difference from result is too large, or excluded
-                        app.logger.debug('  missed before filter = {}'.format(missed))
+                        # app.logger.debug('  missed before filter = {}'.format(missed))
                         missed = filtermissed(club_id,missed,race.date,dbresult.age)
-                        app.logger.debug('  missed after filter = {}'.format(missed))
+                        # app.logger.debug('  missed after filter = {}'.format(missed))
 
                         # if there remain are any missed results, indicate missed (due to age difference)
                         # or missed (due to new member proposed for not membersonly)
                         if len(missed) > 0 or not membersonly:
                             dbresult.initialdisposition = DISP_MISSED
                             dbresult.confirmed = False
-                            app.logger.debug('    DISP_MISSED')
+                            # app.logger.debug('    DISP_MISSED')
                             
                         # otherwise, this result isn't used
                         else:
                             dbresult.initialdisposition = DISP_NOTUSED
                             dbresult.confirmed = True
-                            app.logger.debug('    DISP_NOTUSED')
+                            # app.logger.debug('    DISP_NOTUSED')
                             
                         # not membersonly and didn't find a nonmember, need to create runner 
                         #else:

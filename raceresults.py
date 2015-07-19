@@ -23,6 +23,7 @@ import os.path
 # github
 
 # home grown
+from . import app
 from loutilities import textreader
 
 # fieldxform is a dict whose keys are the 'real' information we're interested in
@@ -105,6 +106,7 @@ class RaceResults():
             while True:
                 origline = self.file.next()
                 fieldsfound = 0
+                self.field = {} # need to clear in case earlier line had some garbage
                 line = []
                 if not delimited:
                     for word in origline.split():
@@ -220,6 +222,7 @@ class RaceResults():
                             if thischar == len(origline): break
                         
                         # set up delimiters in the file reader
+                        app.logger.debug('delimiters found at {}'.format(delimiters))
                         self.file.setdelimiter(delimiters)
                                     
                     break
@@ -234,6 +237,7 @@ class RaceResults():
                 currcol = f['start'] - skipped
                 self.fieldcols.append(currcol)
                 skipped += len(f['match']) - 1  # if matched multiple columns, need to skip some
+            app.logger.debug('found fieldhdrs {}'.format(self.fieldhdrs))
                 
         # not good to come here
         except StopIteration:
