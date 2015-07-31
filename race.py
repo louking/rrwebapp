@@ -34,6 +34,9 @@ from forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 #from runningclub import racefile   # required for xlsx support
 from loutilities.csvu import DictReaderStr2Num
 
+# acceptable surfaces
+SURFACES = 'road,track,trail'.split(',')
+
 #######################################################################
 class ManageRaces(MethodView):
 #######################################################################
@@ -155,7 +158,7 @@ class RaceSettings(MethodView):
 
             form.series.data = [rs.series.id for rs in race.series if rs.active]
 
-            form.surface.choices = [('road','road'),('track','track'),('trail','trail')]
+            form.surface.choices = [(s,s) for s in SURFACES]
 
             # commit database updates and close transaction
             db.session.commit()
@@ -201,7 +204,7 @@ class RaceSettings(MethodView):
                     serieselect = (thisseries.id,thisseries.name)
                     seriesl.append(serieselect)
                 form.series.choices = seriesl
-                form.surface.choices = [('road','road'),('track','track'),('trail','trail')]
+                form.surface.choices = [(s,s) for s in SURFACES]
 
                 if not form.validate_on_submit():
                     return 'error occurred on form submit -- update error message and display form again'
@@ -311,7 +314,7 @@ class AjaxImportRaces(MethodView):
                 thisfilecsv = DictReaderStr2Num(thisfile.stream)
 
                 # verify file has required fields
-                requiredfields = 'year,race,date,time,distance,surface'.split(',')
+                requiredfields = 'year,race,date,distance,surface'.split(',')
                 if not check_header(requiredfields, thisfilecsv.fieldnames):
                     db.session.rollback()
                     cause = "invalid races file - one or more header fields missing, must have all of '{}'".format("', '".join(requiredfields))
@@ -357,6 +360,17 @@ class AjaxImportRaces(MethodView):
             
             # process each name in race list
             for thisrace in fileraces:
+                # make sure surface is acceptable
+                if thisrace['surface'] not in SURFACES:
+                    db.session.rollback()
+                    cause = 'Bad surface "{}" encountered for race "{}". Must be one of {}'.format(thisrace['surface'],thisrace['race'],SURFACES)
+                    app.logger.error(cause)
+                    return failure_response(cause=cause)
+
+                # time field is optional
+                if 'time' not in thisrace:
+                    thisrace['time'] = ''
+
                 # add or update race in database
                 race = Race(club_id,thisrace['year'],thisrace['race'],None,thisrace['date'],thisrace['time'],thisrace['distance'],thisrace['surface'])
                 added = racedb.insert_or_update(db.session,Race,race,skipcolumns=['id'],club_id=club_id,name=race.name,year=race.year)

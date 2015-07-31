@@ -26,4 +26,4 @@ tbody,,td,**time**\ :sup:`1`,hh:mm,"Time of race, hh is 24 hour format.  E.g., 1
 tbody,,td,**distance**,Number,Distance of race (miles)
 tbody,,td,**surface**,Text,"road, track or trail"
 /table,,,,,
-":sup:`1` May be blank, but column must be present",,,,,
+":sup:`1` May be blank, column optional",,,,,
