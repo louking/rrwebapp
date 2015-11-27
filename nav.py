@@ -51,6 +51,18 @@ def strip_tags(html):
 productname = strip_tags(app.jinja_env.globals['_rrwebapp_productname'])
 
 #----------------------------------------------------------------------
+def is_authenticated(user):
+#----------------------------------------------------------------------
+    # flask-login 3.x changed user.is_authenticated from method to property
+    # we are not sure which flask-login we're using, so try method first, 
+    # then property
+
+    try:
+        return user.is_authenticated()
+    except TypeError:
+        return user.is_authenticated
+
+#----------------------------------------------------------------------
 def getnavigation():
 #----------------------------------------------------------------------
     '''
@@ -60,7 +72,7 @@ def getnavigation():
     :rettype: list of dicts {'display':navdisplay,'url':navurl}
     '''
     thisuser = current_user
-    
+
     # set club and club permissions
     club = None
     if 'club_id' in flask.session:
@@ -72,7 +84,7 @@ def getnavigation():
     
     navigation.append({'display':'{} Home'.format(productname),'url':flask.url_for('index')})
     
-    if thisuser.is_authenticated():
+    if is_authenticated(thisuser):
         if owner_permission.can():
             navigation.append({'display':'Clubs','url':flask.url_for('manageclubs')})
             navigation.append({'display':'Users','url':flask.url_for('manageusers')})
@@ -87,7 +99,7 @@ def getnavigation():
     navigation.append({'display':'Standings','url':flask.url_for('choosestandings')})
     navigation.append({'display':'Results','url':flask.url_for('results'),'attr':[{'name':'_rrwebapp-loadingimg','value':flask.url_for('static',filename='images/ajax-loader.gif')}]})
     
-    if thisuser.is_authenticated():
+    if is_authenticated(thisuser):
         # TODO: when more tools are available, move writecheck to appropriate tools
         if club and writecheck.can():
             navigation.append({'display':'Tools','list':[]})
@@ -95,7 +107,7 @@ def getnavigation():
             navigation[-1]['list'].append({'display':'Export Results','url':flask.url_for('exportresults')})
     navigation.append({'display':'About','url':flask.url_for('sysinfo')})
     
-    if thisuser.is_authenticated() and owner_permission.can():
+    if is_authenticated(thisuser) and owner_permission.can():
         navigation.append({'display':'Debug','url':flask.url_for('debug')})
     
     return navigation
@@ -157,7 +169,7 @@ def setnavigation():
     flask.session['nav'] = getnavigation()
     
     # update years and clubs choices
-    if thisuser.is_authenticated():
+    if is_authenticated(thisuser):
         flask.session['year_choices'] = getuseryears(thisuser)
         flask.session['club_choices'] = getuserclubs(thisuser)
 
@@ -173,7 +185,7 @@ class UserClubAPI(MethodView):
         Return {'club_id':<session.club_id>, 'choices':[(<club_id>, <club_name>),...]}
         """
         try:
-            if not current_user.is_authenticated():
+            if not is_authenticated(current_user):
                 db.session.rollback()
                 return failure_response({'error':403})
             
@@ -205,7 +217,7 @@ class UserClubAPI(MethodView):
         Sets session.club_id
         """
         try:
-            if not current_user.is_authenticated() or club_id not in [c[0] for c in getuserclubs(current_user)]:
+            if not is_authenticated(current_user) or club_id not in [c[0] for c in getuserclubs(current_user)]:
                 db.session.rollback()
                 return failure_response({'error':403})
             
@@ -239,7 +251,7 @@ class UserYearAPI(MethodView):
         Return {'year':<session.year>, 'choices':[(<year>, <year>),...]}
         """
         try:
-            if not current_user.is_authenticated():
+            if not is_authenticated(current_user):
                 db.session.rollback()
                 return failure_response({'error':403})
 
@@ -264,7 +276,7 @@ class UserYearAPI(MethodView):
         Sets session.year
         """
         try:
-            if not current_user.is_authenticated() or year not in [y[0] for y in getuseryears(current_user)]:
+            if not is_authenticated(current_user) or year not in [y[0] for y in getuseryears(current_user)]:
                 db.session.rollback()
                 abort(403)
 

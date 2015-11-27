@@ -48,6 +48,18 @@ login_manager.login_view = 'login'
 
 class dbConsistencyError(Exception): pass
 
+#----------------------------------------------------------------------
+def is_authenticated(user):
+#----------------------------------------------------------------------
+    # flask-login 3.x changed user.is_authenticated from method to property
+    # we are not sure which flask-login we're using, so try method first, 
+    # then property
+
+    try:
+        return user.is_authenticated()
+    except TypeError:
+        return user.is_authenticated
+
 ########################################################################
 ########################################################################
 #----------------------------------------------------------------------
@@ -120,7 +132,7 @@ def login():
             
             # log login
             app.logger.debug("logged in user '{}'".format(flask.session['user_name']))
-            
+
             # commit database updates and close transaction
             db.session.commit()
             return flask.redirect(flask.request.args.get('next') or flask.url_for('index'))
@@ -181,7 +193,7 @@ def on_identity_loaded(sender, identity):
         
         # Set the identity user object
         identity.user = current_user
-        if not current_user.is_authenticated():
+        if not is_authenticated(current_user):
             set_logged_out()
     
         # Add the UserNeed to the identity
