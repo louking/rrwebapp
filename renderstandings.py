@@ -110,6 +110,7 @@ class BaseStandingsHandler():
             'name-won-agegroup': None,
             'name-noteligable': None,
             'age': None,
+            'nraces': None,
             'race': None,
             'race-dropped': None,
             'total': None,
@@ -214,6 +215,19 @@ class BaseStandingsHandler():
 
         pass
     
+    #----------------------------------------------------------------------
+    def setnraces(self,gen,nraces,stylename='nraces'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'nraces' column for output
+
+        :param gen: gender M or F
+        :param nraces: value for nraces column
+        :param stylename: name of style for field display
+        '''
+
+        pass
+
     #----------------------------------------------------------------------
     def setrace(self,gen,racenum,result,stylename='race'):
     #----------------------------------------------------------------------
@@ -677,6 +691,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         self.setplace(gen,'Place')
         self.setname(gen,'Name')
         self.setage(gen,'Age')
+        self.setnraces(gen,'n')
         self.setdivision(gen,'Division')
         self.settotal(gen,'Total Pts.')
         
@@ -759,6 +774,19 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         '''
 
         self.pline[gen]['age'] = addstyle(self.pline[gen]['header'],str(age),stylename)
+
+    #----------------------------------------------------------------------
+    def setnraces(self,gen,nraces,stylename='nraces'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'nraces' column for output
+
+        :param gen: gender M or F
+        :param nraces: value for nraces column
+        :param stylename: name of style for field display
+        '''
+
+        self.pline[gen]['nraces'] = addstyle(self.pline[gen]['header'],str(nraces),stylename)
 
     #----------------------------------------------------------------------
     def setdivision(self,gen,division,stylename='division'):
@@ -1306,6 +1334,7 @@ class StandingsRenderer():
                 fh.setplace(gen,'Place','racehdr')
                 fh.setname(gen,'Age Group','divhdr')
                 fh.setage(gen,'Age','divhdr')
+                fh.setnraces(gen,'n','divhdr')
                 fh.render(gen)
                 fh.setheader(gen,False)
                 
@@ -1361,6 +1390,7 @@ class StandingsRenderer():
                         
                         # render race results
                         iracenums = iter(self.racenums)
+                        nraces = 0
                         for pts in byrunner[runnerid,name,age]['bydivision']:
                             racenum = next(iracenums)
                             if pts in byrunner[runnerid,name,age]['racesused']:
@@ -1368,6 +1398,10 @@ class StandingsRenderer():
                                 byrunner[runnerid,name,age]['racesused'].remove(pts)
                             else:
                                 fh.setrace(gen,racenum,pts,stylename='race-dropped')
+                            # count number of races runner ran
+                            if type(pts) == int or type(pts) == float:
+                                nraces += 1
+                        fh.setnraces(gen,nraces)
                         fh.render(gen)
                         
                     # skip line between divisions
@@ -1379,6 +1413,7 @@ class StandingsRenderer():
             fh.setplace(gen,'Place','racehdr')
             fh.setname(gen,'Overall','divhdr')
             fh.setage(gen,'Age','divhdr')
+            fh.setnraces(gen,'n','divhdr')
             fh.setdivision(gen,'Overall')
             fh.render(gen)
             fh.setheader(gen,False)
@@ -1422,6 +1457,7 @@ class StandingsRenderer():
                 
                 # render race results
                 iracenums = iter(self.racenums)
+                nraces = 0
                 for pts in byrunner[runnerid,name,age]['bygender']:
                     racenum = next(iracenums)
                     if pts in byrunner[runnerid,name,age]['racesused']:
@@ -1429,6 +1465,10 @@ class StandingsRenderer():
                         byrunner[runnerid,name,age]['racesused'].remove(pts)
                     else:
                         fh.setrace(gen,racenum,pts,stylename='race-dropped')
+                    # count number of races runner ran
+                    if type(pts) == int or type(pts) == float:
+                        nraces += 1
+                fh.setnraces(gen,nraces)
                 fh.render(gen)
 
             fh.skipline(gen)

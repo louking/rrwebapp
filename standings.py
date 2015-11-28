@@ -226,11 +226,11 @@ class ViewStandings(MethodView):
             fh = HtmlStandingsHandler(racenums)
             rr.renderseries(fh)
 
-            roworder = ['division','place','name','gender','age'] + ['race{}'.format(r) for r in racenums] + ['total']
-            headerclasses = (['_rrwebapp-class-col-{}'.format(h) for h in ['division','place','name','gender','age']]
+            roworder = ['division','place','name','gender','age','nraces'] + ['race{}'.format(r) for r in racenums] + ['total']
+            headerclasses = (['_rrwebapp-class-col-{}'.format(h) for h in ['division','place','name','gender','age','nraces']]
                                 + ['_rrwebapp-class-col-race' for h in racenums]
                                 + ['_rrwebapp-class-col-total'])
-            tooltips = ([None,None,None,None,None]
+            tooltips = ([None,None,None,None,None,'Number of races']
                         + [r.name for r in races]
                         + [None])
             
