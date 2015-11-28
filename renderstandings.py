@@ -22,6 +22,7 @@ import math
 import copy
 import xml.etree.ElementTree as ET
 import urllib
+from datetime import datetime
 
 # pypi
 import xlwt
@@ -1168,9 +1169,9 @@ class StandingsRenderer():
             if runnerid not in age:
                 # should be no need to filter on club here
                 runner = Runner.query.filter_by(id=runnerid).first()
-                # use age at time report is run if dob available, else just use age from first result
+                # use age on Jan 1 from current year if dob available, else just use age from first result
                 if runner.dateofbirth:
-                    thisage = timeu.age(timeu.epoch2dt(time.time()),tYmd.asc2dt(runner.dateofbirth))
+                    thisage = timeu.age(datetime(int(self.year),1,1),tYmd.asc2dt(runner.dateofbirth))
                 else:
                     thisage = result.agage
                 age[runnerid] = thisage
