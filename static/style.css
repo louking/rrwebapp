@@ -12,11 +12,24 @@
 table.dataTable thead th {
   padding: 0px;
 }
-/*table.dataTable tbody th,
-table.dataTable tbody td
-{
-  padding: 1px;
-}*/
+
+/* _rrwebapp-filter allows yadcf external filters to be on single line  */
+._rrwebapp-filter {
+  display: inline-block;
+}
+
+/* override JQuery.dataTables sort wrapper right position, keeps icon within column header */
+table.dataTable thead th
+div.DataTables_sort_wrapper span {
+  right: 0px;
+}
+
+/* override JQuery.dataTables padding for header */
+.dataTables_wrapper .ui-toolbar {
+    padding: 4px;
+}
+
+/* jqueryui progressbar */
 .ui-progressbar {
   position: relative;
 }

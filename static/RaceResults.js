@@ -48,8 +48,8 @@
             $('.dataTables_info').each(function(){
                 footerheight = this.offsetHeight;
             });
-            height = height - (footerheight + 5); // 5 for some padding
-        
+            height = height - (footerheight + 10); // 10 for padding
+
         // dataTable hasn't been drawn yet
         } else {
             height=$(window).height()
@@ -59,7 +59,7 @@
                 - $('thead').height()
                 - 112;
         }
-        
+
         // override if too small
         if (height<50){
             height = 430;
@@ -68,22 +68,26 @@
         return height;
     }
 
-    var sDomValue = '<"H"Clpfr>t<"F"i>';
-    var sPrinterFriendlyDomValue = '<"H"Clpr>t<"F">';
+    var sDomValue = '<"H"lBpfr>t<"F"i>';
+    var sPrinterFriendlyDomValue = 'lpfrt';
+    // var sDomValue = '<"H"Clpfr>t<"F"i>';
+    // var sPrinterFriendlyDomValue = '<"H"Clpr>t<"F">';
     function getDataTableParams(updates,printerfriendly) {
         if (arguments.length == 1) {
             printerfriendly = false;
         }
         if (!printerfriendly){
             var params = {
-                    sDom: sDomValue,
-                    bJQueryUI: true,
-                    bPaginate: false,
-                    sScrollY: gettableheight(),
-                    bScrollCollapse: true,
-                    sScrollX: "100%",
+                    dom: sDomValue,
+                    jQueryUI: true,
+                    paging: false,
+                    scrollY: gettableheight(),
+                    scrollCollapse: true,
+                    buttons: [],
+                    responsive: true,
+                    //sScrollX: "100%",
                     //sScrollXInner: "100%",
-                    fnInfoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
+                    infoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                         var info = "Showing ";
                         if (oSettings.oFeatures.bPaginate) {
                             info = info + iStart +" to ";                        
@@ -98,17 +102,18 @@
         }
         else {
             var params = {
-                    sDom: sPrinterFriendlyDomValue,
-                    bJQueryUI: true,
-                    bPaginate: false,
-                    bSort: false,
-                    bScrollCollapse: true,
+                    dom: sPrinterFriendlyDomValue,
+                    jQueryUI: true,
+                    paging: false,
+                    ordering: false,
+                    scrollCollapse: true,
                 }
         }
         $.extend(params,updates)
         return params;
     }
-    var sSpecDomValue = '<"H"Clpr>t';
+    //var sSpecDomValue = '<"H"Clpr>t';
+    var sSpecDomValue = 'lfrtip';
     function getSpecTableParams(updates) {
         var params = {
                 sDom: sSpecDomValue,
@@ -1290,7 +1295,8 @@
         
     };  // runnerresults
 
-    function viewstandings(division,gender,printerfriendly) {
+    // define as variable to support replacement during stackoverflow debugging
+    var viewstandings = function (division,gender,printerfriendly) {
         // not sure why fudge is needed
         var initialheightfudge = -12;
         
@@ -1327,13 +1333,15 @@
                     {aTargets:[divisionCol],bVisible:false},
                     {aTargets:['_rrwebapp-class-col-place',
                                '_rrwebapp-class-col-race',
-                               '_rrwebapp-class-col-total'
+                               '_rrwebapp-class-col-total',
+                               '_rrwebapp-class-col-nraces'
                                ],sType:'num-html'},
                     ];
         if (!printerfriendly){
             var tableparamupdates = {
                 sScrollY: gettableheight() - initialheightfudge,
-                sScrollX: "100%",
+                buttons: ['csv'],
+                //sScrollX: "100%",
                 //sScrollXInner: "150%",
                 aoColumnDefs: columndefs,
                 };
@@ -1379,32 +1387,35 @@
                 newtab(newurl);
         });
             
-        //new FixedColumns(_rrwebapp_table, {
-        //            iLeftColumns: 2,
-        //            sHeightMatch: 'auto',
-        //        });
-        
+        // find the external filters
+        var divfilter = '#_rrwebapp_filterdivision select';
+        var genfilter = '#_rrwebapp_filtergender select';
+
         // force always to have some Division filter, hopefully Overall
-        var selectfilter = '#_rrwebapp_filterdivision select';
-        $(selectfilter+" option[value='-1']").remove();
+        $(divfilter+" option[value='-1']").remove();
         
         // set division based on caller's preference
-        var divchoices = getchoicevalues(selectfilter);
-        if ($.inArray(division, divchoices) != -1) {
-            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, division);
-        } else {
-            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, divchoices[0])            
-        }
-        
         // set gender based on caller's preference
-        selectfilter = '#_rrwebapp_filtergender select';
-        var genchoices = getchoicevalues(selectfilter);
-        if ($.inArray(gender, genchoices) != -1) {
-            yadcf.exFilterColumn(_rrwebapp_table, genderCol, gender);
+        var divchoices = getchoicevalues(divfilter);
+        var genchoices = getchoicevalues(genfilter);
+        if ($.inArray(division, divchoices) != -1) {
+            var usedivision = division;
         } else {
-            yadcf.exFilterColumn(_rrwebapp_table, genderCol, genchoices[0])            
+            var usedivision = divchoices[0];
+        }
+        if ($.inArray(gender, genchoices) != -1) {
+            var usegender = gender;
+        } else {
+            var usegender = genchoices[0]
         }
 
+        yadcf.exFilterColumn(_rrwebapp_table, [[divisionCol, usedivision], [genderCol, usegender]])
+
+        // reset gender column if didn't mean to filter
+        if (usegender == "-1") {
+            yadcf.exResetFilters( _rrwebapp_table, [genderCol] )
+        }
+        
         // mouseover races shows race name
         $( document ).tooltip();
     };  // viewstandings

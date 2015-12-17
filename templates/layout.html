@@ -16,7 +16,9 @@
 <body>
 {% if not printerfriendly %}
   <div class=heading>
-    <h1>{{_rrwebapp_productname|safe}}{% if request.url[0:16] == "http://127.0.0.1" %} (development){% endif %}
+    <h1>{{_rrwebapp_productname|safe}}
+    {% if request.url[0:16] == "http://127.0.0.1" %} (development){% endif %}
+    {% if request.url[0:14] == "http://sandbox" %} (sandbox){% endif %}
   </h1>
     <div class=pagename>{{self.pagename()}}</div>
     <div class=metanav>
@@ -103,6 +105,9 @@
   {% if request.url[0:16] == "http://127.0.0.1" %}
     html {background: antiquewhite;}
   {% endif %}
+  {% if request.url[0:14] == "http://sandbox" %}
+    html {background: lightcyan;}
+  {% endif %}
 </style>
 {% block css %}
 {% endblock %}
@@ -110,6 +115,11 @@
 {% for js in _rrwebapp_jsfiles %}
   <script type="text/javascript" src="{{ url_for('static', filename=js.filename) }}?v={{ js.version }}"></script>
 {% endfor %}
+{% if pagejsfiles %}
+  {% for js in pagejsfiles %}
+    <script type="text/javascript" src="{{ url_for('static', filename=js.filename) }}?v={{ js.version }}"></script>
+  {% endfor %}
+{% endif %}
 {% block scripts %}
 {% endblock %}
 </body>
