@@ -86,7 +86,7 @@
                     buttons: [],
                     responsive: true,
                     //sScrollX: "100%",
-                    //sScrollXInner: "100%",
+                    //scrollXInner: "100%",
                     infoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                         var info = "Showing ";
                         if (oSettings.oFeatures.bPaginate) {
@@ -116,12 +116,12 @@
     var sSpecDomValue = 'lfrtip';
     function getSpecTableParams(updates) {
         var params = {
-                sDom: sSpecDomValue,
-                bJQueryUI: true,
-                bPaginate: false,
-                bSort: false,
-                bScrollCollapse: true,
-                //sScrollXInner: "100%",
+                dom: sSpecDomValue,
+                jQueryUI: true,
+                paging: false,
+                ordering: false,
+                scrollCollapse: true,
+                //scrollXInner: "100%",
             }
         $.extend(params,updates)
         return params
@@ -713,7 +713,7 @@
         }
 
         _rrwebapp_table = $('#_rrwebapp-table-manage-members')
-            .dataTable(getDataTableParams({sScrollY: gettableheight()-10}));
+            .dataTable(getDataTableParams({scrollY: gettableheight()-10}));
                 // -10 because sorting icons shown below headings
         resetDataTableHW();
         
@@ -809,7 +809,7 @@
         });
 
         _rrwebapp_table = $('#_rrwebapp-table-manage-races')
-            .dataTable(getDataTableParams({bSort: false}));
+            .dataTable(getDataTableParams({ordering: false}));
         resetDataTableHW();
 
         //_rrwa_racestable = $('#_rrwebapp-table-manage-races').DataTable({
@@ -831,7 +831,7 @@
         });
     
         _rrwebapp_table = $('#_rrwebapp-table-manage-series')
-            .dataTable(getDataTableParams({bSort: false}));
+            .dataTable(getDataTableParams({ordering: false}));
         resetDataTableHW();
 
     };  // manageseries
@@ -847,7 +847,7 @@
         });
     
         _rrwebapp_table = $('#_rrwebapp-table-manage-divisions')
-            .dataTable(getDataTableParams({bSort:false}))
+            .dataTable(getDataTableParams({ordering:false}))
         setTimeout(function () {resetDataTableHW()},30);
         
     };  // managedivisions
@@ -1026,8 +1026,9 @@
         }
         _rrwebapp_table = $('#_rrwebapp-table-editparticipants')
             .dataTable(getDataTableParams({
-                bPaginate: true,
-                bSort: false,
+                paging: true,
+                buttons: ['csv'],
+                ordering: false,
             }))
             .yadcf(yadcffilters);
         resetDataTableHW();
@@ -1061,25 +1062,26 @@
         var paceCol = 8;
         var agtimeCol = 9;
         var columndefs = [
-                        {aTargets:[seriesCol],bVisible:false},
-                        {aTargets:[timeCol,paceCol,agtimeCol],sType:'racetime'},
+                        {targets:[seriesCol],bVisible:false},
+                        {targets:[timeCol,paceCol,agtimeCol],type:'racetime'},
                                 ];
         
         if (!printerfriendly){
             var tableparamupdates = {
-                    sScrollY: gettableheight()+13, 
-                    sScrollXInner: "100%",
-                    aoColumnDefs: columndefs,
-                    oLanguage: {
-                        sEmptyTable: "Race results have not been tabulated yet, please check again later"
+                    scrollY: gettableheight()+13, 
+                    buttons: ['csv'],
+                    scrollXInner: "100%",
+                    columnDefs: columndefs,
+                    language: {
+                        emptyTable: "Race results have not been tabulated yet, please check again later"
                     },
                 };
         }
         else {
             var tableparamupdates = {
-                    aoColumnDefs: columndefs,
-                    oLanguage: {
-                        sEmptyTable: "Race results have not been tabulated yet, please check again later"
+                    columnDefs: columndefs,
+                    language: {
+                        emptyTable: "Race results have not been tabulated yet, please check again later"
                     },
             }
         }
@@ -1170,7 +1172,7 @@
         var paceCol = 11;
         var agtimeCol = 12;
         var columndefs = [
-                        {aTargets:[timeCol,paceCol,agtimeCol],sType:'racetime'},
+                        {targets:[timeCol,paceCol,agtimeCol],type:'racetime'},
                                 ];
         
         if (!printerfriendly) {
@@ -1187,23 +1189,24 @@
         
         if (!printerfriendly){
             var tableparamupdates = {
-                    //sScrollY: gettableheight()+3, 
-                    //sScrollXInner: "100%",
-                    bPaginate: true,
-                    iDisplayLength: 25,
-                    aLengthMenu: [[25, 50, 100, -1], [25, 50, 100, "All"]],
-                    //bSortClasses: false,
-                    bDeferRender: true,
-                    aoColumnDefs: columndefs,
+                    //scrollY: gettableheight()+3, 
+                    //scrollXInner: "100%",
+                    paging: true,
+                    pageLength: 25,
+                    buttons: ['csv'],
+                    lengthMenu: [[25, 50, 100, -1], [25, 50, 100, "All"]],
+                    //orderClasses: false,
+                    deferRender: true,
+                    columnDefs: columndefs,
                 };
             if (name !== 'None') {
-                tableparamupdates['aaSorting'] = [];
+                tableparamupdates['order'] = [];
             }
         }
         else {
             var tableparamupdates = {
-                    aoColumnDefs: columndefs,
-                    bSortClasses: false,
+                    columnDefs: columndefs,
+                    orderClasses: false,
             }
         }
 
@@ -1330,25 +1333,25 @@
         var divisionCol = 0;
         var genderCol = 3;
         var columndefs = [
-                    {aTargets:[divisionCol],bVisible:false},
-                    {aTargets:['_rrwebapp-class-col-place',
+                    {targets:[divisionCol],bVisible:false},
+                    {targets:['_rrwebapp-class-col-place',
                                '_rrwebapp-class-col-race',
                                '_rrwebapp-class-col-total',
                                '_rrwebapp-class-col-nraces'
-                               ],sType:'num-html'},
+                               ],type:'num-html'},
                     ];
         if (!printerfriendly){
             var tableparamupdates = {
-                sScrollY: gettableheight() - initialheightfudge,
+                scrollY: gettableheight() - initialheightfudge,
                 buttons: ['csv'],
                 //sScrollX: "100%",
-                //sScrollXInner: "150%",
-                aoColumnDefs: columndefs,
+                //scrollXInner: "150%",
+                columnDefs: columndefs,
                 };
         }
         else {
             var tableparamupdates = {
-                aoColumnDefs: columndefs,
+                columnDefs: columndefs,
             }
         }
         _rrwebapp_table = $('#_rrwebapp-table-standings')
