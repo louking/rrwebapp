@@ -85,7 +85,7 @@
                     scrollCollapse: true,
                     buttons: [],
                     responsive: true,
-                    //sScrollX: "100%",
+                    // scrollX: "100%",
                     //scrollXInner: "100%",
                     infoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                         var info = "Showing ";
