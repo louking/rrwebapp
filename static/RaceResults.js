@@ -84,9 +84,8 @@
                     scrollY: gettableheight(),
                     scrollCollapse: true,
                     buttons: [],
-                    responsive: true,
-                    // scrollX: "100%",
-                    //scrollXInner: "100%",
+                    // responsive: true,    // causes + button on left, which is not user friendly
+                    scrollX: "100%",
                     infoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                         var info = "Showing ";
                         if (oSettings.oFeatures.bPaginate) {

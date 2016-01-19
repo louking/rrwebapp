@@ -8,21 +8,22 @@
   background: none;
 }
 
-/* override JQuery.dataTables padding */
-table.dataTable thead th {
-  padding: 0px;
-}
-
 /* _rrwebapp-filter allows yadcf external filters to be on single line  */
 ._rrwebapp-filter {
   display: inline-block;
 }
 
+/* override JQuery.dataTables padding */
+/*table.dataTable thead th {
+  padding: 0px;
+}*/
+
 /* override JQuery.dataTables sort wrapper right position, keeps icon within column header */
-table.dataTable thead th
-div.DataTables_sort_wrapper span {
-  right: 0px;
-}
+/*table.dataTable thead th
+  div.DataTables_sort_wrapper span {
+    right: 0px;
+  }
+*/
 
 /* override JQuery.dataTables padding for header */
 .dataTables_wrapper .ui-toolbar {
@@ -306,7 +307,7 @@ label.Label
 
 table.DataList
 {
-    border-collapse: collapse;
+    border-collapse: separate;
 }
 
 table.DataList td,
@@ -314,19 +315,25 @@ table.DataList th,
 table.DataList tbody td,
 table.DataList thead th
 {
-    padding: 1px;
+    /* padding: 1px 18px 1px 1px;  /* 18px required for dataTables sort icon */
+    padding-top: 1px;
+    padding-bottom: 1px;
 }
 table.PaddedDataList td,
 table.PaddedDataList th,
 table.PaddedDataList tbody td,
 table.PaddedDataList thead th
 {
-    padding: 0.5em;
+    /*padding: 0.5em;*/
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;    
 }
 table.SlightlyPaddedDataList td,
 table.SlightlyPaddedDataList th
 {
-    padding: 3px;
+    /*padding: 3px;*/
+    padding-top: 3px;
+    padding-bottom: 3px;    
 }
 table.DataList th
 {

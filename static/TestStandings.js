@@ -68,10 +68,10 @@
             sDom: 'lfrtip',
             bJQueryUI: true,
             bPaginate: false,
-            sScrollY: gettableheight(),
-            bScrollCollapse: true,
+            // sScrollY: gettableheight(),
+            // bScrollCollapse: true,
             sScrollX: "100%",
-            sScrollXInner: "100%",
+            // sScrollXInner: "100%",
             fnInfoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                 var info = "Showing ";
                 if (oSettings.oFeatures.bPaginate) {
@@ -104,7 +104,7 @@
                     filter_container_id:"_rrwebapp_filtergender",
                     filter_reset_button_text: 'all',
                 },]);
-        resetDataTableHW();
+        //resetDataTableHW();
         
 
         // find the external filters
