@@ -65,14 +65,14 @@
 
         var tableparams = {
             //sDom: '<"H"Clpr>t',
-            sDom: 'lfrtip',
-            bJQueryUI: true,
-            bPaginate: false,
+            dom: 'lfrtip',
+            jQueryUI: true,
+            paging: false,
             // sScrollY: gettableheight(),
             // bScrollCollapse: true,
-            sScrollX: "100%",
+            scrollX: "100%",
             // sScrollXInner: "100%",
-            fnInfoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
+            infoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                 var info = "Showing ";
                 if (oSettings.oFeatures.bPaginate) {
                     info = info + iStart +" to ";                        
@@ -83,10 +83,10 @@
 
                 return info;
               },
-            sScrollY: gettableheight() - initialheightfudge,
+            scrollY: gettableheight() - initialheightfudge,
             //sScrollX: "100%",
             //sScrollXInner: "150%",
-            aoColumnDefs: columndefs,
+            columnDefs: columndefs,
             };
 
         _rrwebapp_table = $('#_rrwebapp-table-standings')
