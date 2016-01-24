@@ -86,6 +86,7 @@
                     buttons: [],
                     // responsive: true,    // causes + button on left, which is not user friendly
                     scrollX: "100%",
+                    scrollXInner: "100%",
                     infoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                         var info = "Showing ";
                         if (oSettings.oFeatures.bPaginate) {
@@ -1069,7 +1070,7 @@
             var tableparamupdates = {
                     scrollY: gettableheight()+13, 
                     buttons: ['csv'],
-                    scrollXInner: "100%",
+                    // scrollXInner: "100%",
                     columnDefs: columndefs,
                     language: {
                         emptyTable: "Race results have not been tabulated yet, please check again later"
@@ -1343,7 +1344,7 @@
             var tableparamupdates = {
                 scrollY: gettableheight() - initialheightfudge,
                 buttons: ['csv'],
-                //sScrollX: "100%",
+                scrollX: "100%",
                 //scrollXInner: "150%",
                 columnDefs: columndefs,
                 };
