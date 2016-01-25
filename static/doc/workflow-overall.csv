@@ -1,0 +1,21 @@
+This describes the work flow for managing the scoretility database.
+
+Start of Year: Add Races
+-----------------------------------------------------------------------------
+* create races file as described in `http://www.steeplechasers.org/scoretility/doc/importraces <http://www.steeplechasers.org/scoretility/doc/importraces>`_
+* import races under Races->Tools
+* copy previous year's series - make any changes required for the new year
+"* edit each series, checking the races which are part of that series"
+
+Import and Tabulate Race Results
+----------------------------------------------
+
+Import Updated Member List
+================================
+
+
+
+
+
+Import Race Results
+================================
