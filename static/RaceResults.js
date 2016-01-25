@@ -85,7 +85,7 @@
                     scrollCollapse: true,
                     buttons: [],
                     // responsive: true,    // causes + button on left, which is not user friendly
-                    scrollX: "100%",
+                    scrollX: true,
                     scrollXInner: "100%",
                     infoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                         var info = "Showing ";
@@ -1344,7 +1344,7 @@
             var tableparamupdates = {
                 scrollY: gettableheight() - initialheightfudge,
                 buttons: ['csv'],
-                scrollX: "100%",
+                // scrollX: "100%",
                 //scrollXInner: "150%",
                 columnDefs: columndefs,
                 };
