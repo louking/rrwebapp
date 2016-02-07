@@ -109,6 +109,7 @@ class ClubMember():
             
             name = ' '.join([first,last]).strip()
             thismember = {}
+            thismember['id'] = thisrow['id'] if 'id' in thisrow else None
             thismember['name'] = name
             thismember['fname'] = first
             thismember['lname'] = last
@@ -375,10 +376,11 @@ class DbClubMember(ClubMember):
         # function x is x(s,f), where s is session, f is field value
         # note it is ok to split name like this, because it will just get joined together when the csv is processed in clubmember
         d = csvwt.Db2Csv()
-        hdrmap = {'dateofbirth':{'DOB':_dob2excel},
-                  'gender':'Gender',
-                  'name':{'First':lambda s,f: ' '.join(f.split(' ')[0:-1]),'Last':lambda s,f: f.split(' ')[-1]},
-                  'hometown':{'City':_city, 'State':_state}
+        hdrmap = {'id' : 'id',
+                  'dateofbirth' : {'DOB':_dob2excel},
+                  'gender' : 'Gender',
+                  'name' : {'First':lambda s,f: ' '.join(f.split(' ')[0:-1]),'Last':lambda s,f: f.split(' ')[-1]},
+                  'hometown' : {'City':_city, 'State':_state}
                     }
         d.addtable('Sheet1',s,racedb.Runner,hdrmap,**kwfilter)
         

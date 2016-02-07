@@ -851,9 +851,25 @@
         setTimeout(function () {resetDataTableHW()},30);
         
     };  // managedivisions
-        
+    
+    // getrunners
+    function getrunners(membersonly) {
+        if (sessionStorage.rrwa_runners) {
+            var allrecords = JSON.parse(sessionStorage.rrwa_runners)
+            if (membersonly) {
+                var runnerrecords = allrecords.filter(function(element) {return element.active})
+            } else {
+                var runnerrecords = allrecords
+            }
+            var runners = runnerrecords.map(function(element){return element.name})
+            return runners
+        } else {
+            throw "runner data not in sessionStorage"
+        }
+    }; // getrunners
+
     // editparticipants
-    function editparticipants(writeallowed,membersonly) {
+    function editparticipants(raceid, readallowed, writeallowed, membersonly) {
         
         function setchecked(sel) {
             if (sel.checked) {
@@ -863,27 +879,7 @@
             }
         };
 
-        // make button for checkbox
-        $('._rrwebapp-editparticipants-checkbox-confirmed').button({text:false});
-        $('._rrwebapp-editparticipants-checkbox-confirmed').each(function(){setchecked(this);});
-        
         if (writeallowed) {
-            // set up import button
-            $('#_rrwebapp-button-import').button()
-                .click( function( event ) {
-                    event.preventDefault();
-                    url = $('#_rrwebapp-import-results').attr('_rrwebapp-import-url')
-                    ajax_import_file(url,'#_rrwebapp-import-results',false);
-                });
-            
-            // set up tabulate button
-            $('#_rrwebapp-button-tabulate').button()
-                .click( function( event ) {
-                    event.preventDefault();
-                    url = $('#_rrwebapp-button-tabulate').attr('_rrwebapp-tabulate-url')
-                    ajax_update_db_noform(url,{},'#_rrwebapp-button-tabulate',false)
-                });
-
             // handle checkbox update
             $('._rrwebapp-editparticipants-checkbox-confirmed')
                 .on('click',
@@ -892,110 +888,7 @@
                     });
         }
         
-        // initial revert values -- see ajax_update_db_noform_resp for use of 'revert' data field
-        $('._rrwebapp-editparticipants-select-runner, ._rrwebapp-editparticipants-checkbox-confirmed').each(function() {
-            $( this ).data('revert', getvalue(this));
-        });
-        
-        $('._rrwebapp-editparticipants-select-runner, ._rrwebapp-editparticipants-checkbox-confirmed')
-            .on('change',
-                function ( event ) {
-                    var apiurl = $( this ).attr('_rrwebapp-apiurl');
-                    var field = $( this ).attr('_rrwebapp-field');
-                    value = getvalue(this)
-
-                    // ajax parameter setup
-                    ajaxparams = {field:field,value:value}
-                    
-                    // control exclusion table
-                    selectelement = $(this).parent().parent().find('select._rrwebapp-editparticipants-select-runner')
-                    selectvalue = $( selectelement ).val()
-                    excludevalues = getchoicevalues(selectelement);
-                    // remove value from excludevalues (if it exists -- it should exist, though)
-                    if ($.inArray(selectvalue, excludevalues) != -1) {
-                        excludevalues.splice( $.inArray(selectvalue, excludevalues), 1 );
-                    }
-                    // also remove 'new' from excludevalues
-                    if ($.inArray('new', excludevalues) != -1) {
-                        excludevalues.splice( $.inArray(selectvalue, excludevalues), 1 );
-                    }
-                    
-                    // special processing for runnerid field, if going to new name, or coming from new name
-                    if (!membersonly && field === 'runnerid') {
-                        var newname = $( this ).attr('_rrwebapp-newrunner-name')
-                        var newgen = $( this ).attr('_rrwebapp-newrunner-gender')
-                        var lastid = $( this ).data('revert')
-                        if (typeof newname != undefined) {
-                            // if going to new name
-                            if (getselecttext(this,getvalue(this)) === newname + ' (new)') {
-                                addlfields = {newname:newname,newgen:newgen}
-                                $.extend(ajaxparams,addlfields)
-                            // if coming from new name
-                            } else if (getselecttext(this,lastid) === newname + ' (new)') {
-                                addlfields = {removeid:lastid}
-                                $.extend(ajaxparams,addlfields)
-                                // remove lastid from excludevalues (if it exists -- it should exist, though)
-                                if ($.inArray(lastid, excludevalues) != -1) {
-                                    excludevalues.splice( $.inArray(lastid, excludevalues), 1 );
-                                }
-                            }
-                        }
-                    }
-
-                    // why doesn't ajax call stringify excludevalues?
-                    addlfields = {include:selectvalue,exclude:JSON.stringify(excludevalues)} 
-                    $.extend(ajaxparams,addlfields)
-                    
-                    ajax_update_db_noform(apiurl,ajaxparams,this,true,
-                        // this function is called in ajax_update_db_noform_resp if successful
-                        function(sel,data){
-                            // change row class if confirmed changes
-                            var field = $( sel ).attr('_rrwebapp-field');
-                            value = getvalue(sel)
-                            if (field=='confirmed'){
-                                if (value) {
-                                    $(sel).closest('tr').removeClass('_rrwebapp-row-confirmed-False');
-                                    $(sel).closest('tr').addClass('_rrwebapp-row-confirmed-True');
-                                } else {
-                                    $(sel).closest('tr').removeClass('_rrwebapp-row-confirmed-True');
-                                    $(sel).closest('tr').addClass('_rrwebapp-row-confirmed-False');
-                                }
-                            }
-                            
-                            // if newname added or removed, update select field appropriately
-                            // see http://stackoverflow.com/questions/5915789/replace-item-in-array-with-javascript for array manipulation
-                            if (typeof data.action != 'undefined') {
-                                // successful add of newname
-                                var choicevals = getchoicevalues(sel);
-                                var choices = [];
-                                for (i=0;i<choicevals.length;i++) {
-                                    choices.push([choicevals[i],getselecttext(sel,choicevals[i])])
-                                }
-                                if (data.action == 'newname') {
-                                    var index = choicevals.indexOf('new');
-                                    if (index != -1) {
-                                        choices[index] = [data.id,data.name+' (new)'];
-                                        updateselectbyarray('#'+$(sel).attr('id'),choices);
-                                        setvalue(sel,data.id);
-                                        $( sel ).data('revert', data.id);
-                                    }
-                                }
-                                // successfull remove of id, just moved off of this one, replace with new
-                                // preserve choice user just made
-                                else if (data.action == 'removeid') {
-                                    var index = choicevals.indexOf(data.id.toString())
-                                    if (index != -1) {
-                                        var currchoice = getvalue(sel);
-                                        choices[index] = ['new',data.name+' (new)'];
-                                        updateselectbyarray('#'+$(sel).attr('id'),choices);
-                                        setvalue(sel,currchoice);
-                                        $( sel ).data('revert', currchoice);
-                                    }
-                                }
-                            }
-                        });
-        });
-
+        // initialize table before everything else
         var matchCol = getColIndex('Match');
         var typeCol = getColIndex('Type');      // if not there, -1
         var yadcffilters = [{
@@ -1004,7 +897,7 @@
                         column_data_type: "text",
                         filter_match_mode: "exact",
                         filter_type:"multi_select",
-                        select_type: 'chosen',
+                        select_type: 'select2',
                         select_type_options: {
                             width: '20em',
                         },
@@ -1017,7 +910,7 @@
                         column_data_type: "text",
                         filter_match_mode: "exact",
                         filter_type:"multi_select",
-                        select_type: 'chosen',
+                        select_type: 'select2',
                         select_type_options: {
                             width: '20em',
                         },
@@ -1026,13 +919,201 @@
         }
         _rrwebapp_table = $('#_rrwebapp-table-editparticipants')
             .dataTable(getDataTableParams({
+                columns: [
+                    { data: 'id',           name: 'id',          visible: false },
+                    { data: 'place',        name: 'place',       className: 'dt-body-center' },
+                    { data: 'resultname',   name: 'resultname' },
+                    { data: 'gender',       name: 'gender',      className: 'dt-body-center' },
+                    { data: 'age',          name: 'age',         className: 'dt-body-center' },
+                    { data: 'disposition',  name: 'disposition', className: 'dt-body-center' },
+                    { data: 'confirm',      name: 'confirm',     className: 'dt-body-center',
+                      render: function ( data, type, row, meta ) {
+                        var val = '' 
+                            + '<input class="_rrwebapp-editparticipants-checkbox-confirmed" type="checkbox" ' 
+                            + ((data) ? 'checked ' : ' ') 
+                            + 'id="_rrwebapp-editparticipants-checkbox-confirmed-' + row.id + '" ' 
+                            + '_rrwebapp-field=\'confirmed\' ' 
+                            + '_rrwebapp-apiurl=' + window.location.origin + '/_updatemanagedresult/' + row.id + '>\n' 
+                            + '<label for="_rrwebapp-editparticipants-checkbox-confirmed-' + row.id + '"></label>';
+                        return val;
+                      }
+                    },
+                    { data: 'runnerid',     name: 'runnerid',    
+                      render: function ( data, type, row, meta ) { 
+                        if ( data && row.disposition==='definite') {
+                            return memberdata[data];
+                        } else if (writeallowed && (row.disposition === 'missed' || row.disposition === 'similar') || (!membersonly && row.disposition != 'definite')) {
+                            var val = ''
+                                + '<select class="_rrwebapp-editparticipants-select-runner"'
+                                + ' id="_rrwebapp-editparticipants-select-id-' + row.id + '"'
+                                + ' _rrwebapp-field=\'runnerid\''
+                                + ((!membersonly) ? ' _rrwebapp-newrunner-name=' + row.name + ' _rrwebapp-newrunner-gender=' + row.gender : '')
+                                + '_rrwebapp-apiurl=' + window.location.origin + '/_updatemanagedresult/' + row.id + '>\n'
+                            var len = tableselects[row.id].length;
+                            for ( var i = 0; i < len; i++ ) {
+                                var value  = tableselects[row.id][i][0];
+                                var choice = tableselects[row.id][i][1];
+                                val += '<option value=' + ((value===null) ? 'None' : value)
+                                    + ((value==data) ? ' selected' : '')
+                                    + '>' + choice + '</option>\n';
+                            }
+                            val += '</select>';
+
+                            return val
+                        } else {
+                            return '';
+                        }
+                      }
+                    },
+                    { data: 'hometown',     name: 'hometown' },
+                    { data: 'club',         name: 'club' },
+                    { data: 'time',         name: 'time',        className: 'dt-body-center' }
+                ],
+                data: tabledata,
+                rowCallback: function ( row, data, index ) {
+                                $( row ).addClass('_rrwebapp-row-disposition-' + data.disposition);
+                                $( row ).addClass('_rrwebapp-row-confirmed-' + data.confirm);
+
+                                var table = this.api();
+                                var id_ndx = table.column('id:name').index();
+                            },
                 paging: true,
                 buttons: ['csv'],
                 ordering: false,
             }))
             .yadcf(yadcffilters);
+
+        // set initial table height
         resetDataTableHW();
 
+        // setcontrols
+        function setcontrols() {
+            // make button for checkbox
+            $('._rrwebapp-editparticipants-checkbox-confirmed').button({text:false});
+            $('._rrwebapp-editparticipants-checkbox-confirmed').each(function(){setchecked(this);});
+            
+            // initial revert values -- see ajax_update_db_noform_resp for use of 'revert' data field
+            $('._rrwebapp-editparticipants-select-runner, ._rrwebapp-editparticipants-checkbox-confirmed').each(function() {
+                $( this ).data('revert', getvalue(this));
+            });
+            
+            if (writeallowed) {
+                // handle checkbox update
+                $('._rrwebapp-editparticipants-checkbox-confirmed')
+                    .on('click',
+                        function(){
+                            setchecked(this);
+                        });
+            }
+
+            $('._rrwebapp-editparticipants-select-runner, ._rrwebapp-editparticipants-checkbox-confirmed')
+                .on('change',
+                    function ( event ) {
+                        var apiurl = $( this ).attr('_rrwebapp-apiurl');
+                        var field = $( this ).attr('_rrwebapp-field');
+                        value = getvalue(this)
+
+                        // ajax parameter setup
+                        ajaxparams = {field:field,value:value}
+                        
+                        // control exclusion table
+                        selectelement = $(this).parent().parent().find('select._rrwebapp-editparticipants-select-runner')
+                        selectvalue = $( selectelement ).val()
+                        excludevalues = getchoicevalues(selectelement);
+                        // remove value from excludevalues (if it exists -- it should exist, though)
+                        if ($.inArray(selectvalue, excludevalues) != -1) {
+                            excludevalues.splice( $.inArray(selectvalue, excludevalues), 1 );
+                        }
+                        // also remove 'new' from excludevalues
+                        if ($.inArray('new', excludevalues) != -1) {
+                            excludevalues.splice( $.inArray(selectvalue, excludevalues), 1 );
+                        }
+                        
+                        // special processing for runnerid field, if going to new name, or coming from new name
+                        if (!membersonly && field === 'runnerid') {
+                            var newname = $( this ).attr('_rrwebapp-newrunner-name')
+                            var newgen = $( this ).attr('_rrwebapp-newrunner-gender')
+                            var lastid = $( this ).data('revert')
+                            if (typeof newname != undefined) {
+                                // if going to new name
+                                if (getselecttext(this,getvalue(this)) === newname + ' (new)') {
+                                    addlfields = {newname:newname,newgen:newgen}
+                                    $.extend(ajaxparams,addlfields)
+                                // if coming from new name
+                                } else if (getselecttext(this,lastid) === newname + ' (new)') {
+                                    addlfields = {removeid:lastid}
+                                    $.extend(ajaxparams,addlfields)
+                                    // remove lastid from excludevalues (if it exists -- it should exist, though)
+                                    if ($.inArray(lastid, excludevalues) != -1) {
+                                        excludevalues.splice( $.inArray(lastid, excludevalues), 1 );
+                                    }
+                                }
+                            }
+                        }
+
+                        // why doesn't ajax call stringify excludevalues?
+                        addlfields = {include:selectvalue,exclude:JSON.stringify(excludevalues)} 
+                        $.extend(ajaxparams,addlfields)
+                        
+                        ajax_update_db_noform(apiurl,ajaxparams,this,true,
+                            // this function is called in ajax_update_db_noform_resp if successful
+                            function(sel,data){
+                                // change row class if confirmed changes
+                                var field = $( sel ).attr('_rrwebapp-field');
+                                value = getvalue(sel)
+                                if (field=='confirmed'){
+                                    if (value) {
+                                        $(sel).closest('tr').removeClass('_rrwebapp-row-confirmed-false');
+                                        $(sel).closest('tr').addClass('_rrwebapp-row-confirmed-true');
+                                    } else {
+                                        $(sel).closest('tr').removeClass('_rrwebapp-row-confirmed-true');
+                                        $(sel).closest('tr').addClass('_rrwebapp-row-confirmed-false');
+                                    }
+                                }
+                                
+                                // if newname added or removed, update select field appropriately
+                                // see http://stackoverflow.com/questions/5915789/replace-item-in-array-with-javascript for array manipulation
+                                if (typeof data.action != 'undefined') {
+                                    // successful add of newname
+                                    var choicevals = getchoicevalues(sel);
+                                    var choices = [];
+                                    for (i=0;i<choicevals.length;i++) {
+                                        choices.push([choicevals[i],getselecttext(sel,choicevals[i])])
+                                    }
+                                    if (data.action == 'newname') {
+                                        var index = choicevals.indexOf('new');
+                                        if (index != -1) {
+                                            choices[index] = [data.id,data.name+' (new)'];
+                                            updateselectbyarray('#'+$(sel).attr('id'),choices);
+                                            setvalue(sel,data.id);
+                                            $( sel ).data('revert', data.id);
+                                        }
+                                    }
+                                    // successfull remove of id, just moved off of this one, replace with new
+                                    // preserve choice user just made
+                                    else if (data.action == 'removeid') {
+                                        var index = choicevals.indexOf(data.id.toString())
+                                        if (index != -1) {
+                                            var currchoice = getvalue(sel);
+                                            choices[index] = ['new',data.name+' (new)'];
+                                            updateselectbyarray('#'+$(sel).attr('id'),choices);
+                                            setvalue(sel,currchoice);
+                                            $( sel ).data('revert', currchoice);
+                                        }
+                                    }
+                                }
+                            });
+            });
+        };  // setcontrols
+
+        // set controls first time table is drawn
+        setcontrols();
+
+        // set controls every time table is drawn
+        var table = _rrwebapp_table.api();
+        table.on( 'draw', setcontrols);
+
+        // set up widgets at top of page
         if (writeallowed) {
             toolbutton.$widgets.css({height:"0px"});   // no more widgets in container            
             if (typeCol == -1) {
@@ -1041,16 +1122,7 @@
                 toolbutton.position({my: "left center", at: "right+3 center", of: '#_rrwebapp_filtertype'});                                
             }
         }
-        //_rrwa_resultstable = $('#_rrwebapp-table-editparticipants').DataTable({
-        //    //paging: false,
-        //    //scrollY: 450, // when scrolling, scroll jumps after updating column value
-        //    ordering: false,
-        //    //drawCallback: setuppage,
-        //    //columnDefs: [{target:'._rrwebapp-col-time',type:'date',orderable:true},
-        //    //             {target:'._rrwebapp-col-_unordered',orderable:false},
-        //    //             ]
-        //});
-        
+
     };  // editparticipants
 
     function seriesresults(writeallowed,series,division,gender,printerfriendly) {
@@ -1217,7 +1289,7 @@
                     column_number:nameCol,
                     filter_container_id:"_rrwebapp_filtername",
                     filter_type:"multi_select",
-                    select_type: 'chosen',
+                    select_type: 'select2',
                     select_type_options: {
                         width: '30em',
                     },

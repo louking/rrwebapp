@@ -12,8 +12,8 @@ table#_rrwebapp-table-editparticipants tr._rrwebapp-row-disposition-similar
     background-color: #FFAD33;  /*orange*/
 }
 table#_rrwebapp-table-editparticipants tr._rrwebapp-row-disposition-definite,
-table#_rrwebapp-table-editparticipants tr._rrwebapp-row-disposition-similar._rrwebapp-row-confirmed-True,
-table#_rrwebapp-table-editparticipants tr._rrwebapp-row-disposition-missed._rrwebapp-row-confirmed-True
+table#_rrwebapp-table-editparticipants tr._rrwebapp-row-disposition-similar._rrwebapp-row-confirmed-true,
+table#_rrwebapp-table-editparticipants tr._rrwebapp-row-disposition-missed._rrwebapp-row-confirmed-true
 {
     background-color: #99FF99;  /*green*/
 }

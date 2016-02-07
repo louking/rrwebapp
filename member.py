@@ -32,8 +32,8 @@ import traceback
 
 # pypi
 import flask
-from flask import make_response,request
-from flask.ext.login import login_required
+from flask import make_response, request
+from flask.ext.login import login_required, current_user
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
 
@@ -60,6 +60,8 @@ from loutilities.csvwt import wlist
 # module globals
 tYmd = timeu.asctime('%Y-%m-%d')
 MINHDR = ['FamilyName','GivenName','Gender','DOB','RenewalDate','ExpirationDate','City','State']
+
+class InvalidUser(Exception): pass
 
 #----------------------------------------------------------------------
 def normalizeRAmemberlist(inputstream,filterexpdate=None):
@@ -484,5 +486,68 @@ class AjaxImportMembers(MethodView):
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
 app.add_url_rule('/_importmembers',view_func=AjaxImportMembers.as_view('_importmembers'),methods=['POST'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class AjaxLoadMembers(MethodView):
+#######################################################################
+    
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+   
+        try:
+            if not current_user.is_active:
+                db.session.rollback()
+                cause = "need to be logged in to use this api"
+                return failure_response(cause=cause)
+
+            club_id = flask.session['club_id']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            
+            # verify user can read the data, otherwise abort
+            if not readcheck.can():
+                db.session.rollback()
+                cause = "need to have read permissions to use this api"
+                return failure_response(cause=cause)
+               
+            # get all the runners in the database
+            runners = Runner.query.filter_by(club_id=club_id).all()
+
+            # pull out the pertinent data in the runner table
+            table = []
+            columns = [
+                'id',
+                'name',
+                'fname',
+                'lname',
+                'dateofbirth',
+                'gender',
+                'hometown',
+                'renewdate',
+                'expdate',
+                'member',
+                'active',
+            ]
+
+            for runner in runners:
+                row = {}
+                for column in columns:
+                    row[column] = getattr(runner,column,None)
+                table.append(row)
+
+            # commit database updates and close transaction
+            db.session.commit()
+            return success_response(data=table)
+        
+        except Exception,e:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            cause = traceback.format_exc()
+            app.logger.error(traceback.format_exc())
+            return failure_response(cause=cause)
+#----------------------------------------------------------------------
+app.add_url_rule('/_loadmembers',view_func=AjaxLoadMembers.as_view('_loadmembers'),methods=['GET'])
 #----------------------------------------------------------------------
 

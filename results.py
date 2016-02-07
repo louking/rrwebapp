@@ -25,6 +25,7 @@ from flask import make_response,request
 from flask.ext.login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
+from datatables import DataTables, ColumnDT
 
 # home grown
 from . import app
@@ -38,7 +39,7 @@ from apicommon import failure_response, success_response
 import raceresults
 import clubmember
 from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, Series, Divisions, dbdate
-from forms import ManagedResultForm, SeriesResultForm, RunnerResultForm
+from forms import SeriesResultForm, RunnerResultForm
 from loutilities.namesplitter import split_full_name
 import loutilities.renderrun as render
 from loutilities import timeu, agegrade
@@ -134,6 +135,102 @@ def getmembertype(runner):
         return 'nonmember'
 
 #######################################################################
+class FixupResult():
+#######################################################################
+
+    #----------------------------------------------------------------------
+    def __init__(self, race, pool, result, timeprecision):
+    #----------------------------------------------------------------------
+        '''
+        fix up result
+        
+        fix up the following:
+          * time gets converted from seconds
+          * determine member matching, set runnerid choices and initially selected choice
+          * based on matching, set disposition
+
+        :param race: race record
+        :param pool: pool from which candidates come from
+        :param result: record from runner table or None
+        :param racedate: race date in yyyy-mm-dd format
+        :param timeprecision: precision for time rendering
+        
+        :rtype: runner, time, disposition, runnerchoice, runnervalue
+        '''
+
+        club_id = flask.session['club_id']
+        membersonly = race.series[0].series.membersonly
+        racedatedt = dbdate.asc2dt(race.date)
+
+        thistime = render.rendertime(result.time,timeprecision)
+        thisdisposition = result.initialdisposition # set in AjaxImportResults.post()
+        thisrunnervalue = result.runnerid           # set in AjaxImportResults.post()
+        thisrunnerchoice = [(None,'[not included]')]
+
+        # need to repeat logic from AjaxImportResults() because AjaxImportResults() may leave null in runnerid field of managedresult
+        candidate = pool.findmember(result.name,result.age,race.date)
+        
+        runner = None
+        runnername = ''
+        if thisdisposition in [DISP_MATCH,DISP_CLOSE]:
+            # found a possible runner
+            if candidate:
+                runnername,ascdob = candidate
+                runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
+                dobdt = dbdate.asc2dt(ascdob)
+                nameage = '{} ({})'.format(runner.name,timeu.age(racedatedt,dobdt))
+                thisrunnerchoice.append([runner.id,nameage])
+            
+            # see issue #183
+            else:
+                stophere
+                pass    # TODO: this is a bug -- that to do?
+
+        # didn't find runner, what were other possibilities?
+        elif thisdisposition == DISP_MISSED:
+            # this is possible because maybe (new) member was chosen in prior use of editparticipants
+            if candidate:
+                runnername,ascdob = candidate
+                runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
+                dobdt = dbdate.asc2dt(ascdob)
+                nameage = '{} ({})'.format(runner.name,timeu.age(racedatedt,dobdt))
+                thisrunnerchoice.append([runner.id,nameage])
+            
+            # this handles case where age mismatch was chosen in prior use of editparticipants
+            elif thisrunnervalue:
+                runner = Runner.query.filter_by(club_id=club_id,id=thisrunnervalue).first()
+
+            # remove runners who were not within the age window, or who were excluded
+            missed = pool.getmissedmatches()                        
+            missed = filtermissed(club_id,missed,race.date,result.age)
+            for thismissed in missed:
+                missedrunner = Runner.query.filter_by(club_id=club_id,name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
+                dobdt = dbdate.asc2dt(thismissed['dob'])
+                nameage = '{} ({})'.format(missedrunner.name,timeu.age(racedatedt,dobdt))
+                thisrunnerchoice.append((missedrunner.id,nameage))
+            
+        # for no match and excluded entries, change choice
+        elif thisdisposition in [DISP_NOTUSED,DISP_EXCLUDED]:
+            if membersonly:
+                thisrunnerchoice = [(None,'n/a')]
+            else:
+                # leave default
+                pass
+        
+        # for non membersonly race, maybe need to add new name to member database, give that option
+        if not membersonly and thisdisposition != DISP_MATCH:
+            # it's possible that result.name == runnername if (new) member was added in prior use of editparticipants
+            if result.name != runnername:
+                thisrunnerchoice.append(('new','{} (new)'.format(result.name)))
+        
+        # make results accessible
+        self.runner = runner
+        self.time = thistime
+        self.disposition = thisdisposition
+        self.runnerchoice = thisrunnerchoice
+        self.runnervalue = thisrunnervalue
+
+#######################################################################
 class EditParticipants(MethodView):
 #######################################################################
     decorators = [login_required]
@@ -152,15 +249,12 @@ class EditParticipants(MethodView):
                 db.session.rollback()
                 flask.abort(403)
                 
-            form = ManagedResultForm()
-    
             # get all the results, and the race record
             results = []
             results = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).order_by('time').all()
 
             # get race and list of runners who should be included in this race, based on membersonly
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
-            racedatedt = dbdate.asc2dt(race.date)
             if len(race.series) == 0:
                 db.session.rollback()
                 cause =  "Race '{}' is not included in any series".format(race.name)
@@ -177,86 +271,58 @@ class EditParticipants(MethodView):
                 pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
             else:
                 pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
+
+            # convert members for page select
+            members = pool.getmembers()
+            pagemembers = {}
+            for thismembername in members:
+                for thismember in members[thismembername]:
+                    racedate = tYmd.asc2dt(race.date)
+                    dob = tYmd.asc2dt(thismember['dob'])
+                    nameage = u'{} ({})'.format(thismember['name'], timeu.age(racedate,dob))
+                    pagemembers[thismember['id']] = nameage
             
+            # collect data for table
+            tabledata = []
+            tableselects = {}
+
             # fix up the following:
             #   * time gets converted from seconds
             #   * determine member matching, set runnerid choices and initially selected choice
             #   * based on matching, set disposition
-            times = []
-            dispositions = []
-            runnerchoices = []
-            runnervalues = []
-            membertypes = []
             for result in results:
-                thistime = render.rendertime(result.time,timeprecision)
-                thisdisposition = result.initialdisposition # set in AjaxImportResults.post()
-                thisrunnervalue = result.runnerid           # set in AjaxImportResults.post()
-                thisrunnerchoice = [(None,'<not included>')]
-                
-                # need to repeat logic from AjaxImportResults() because AjaxImportResults() may leave null in runnerid field of managedresult
-                candidate = pool.findmember(result.name,result.age,race.date)
-                
-                runner = None
-                runnername = ''
-                if thisdisposition in [DISP_MATCH,DISP_CLOSE]:
-                    # found a possible runner
-                    if candidate:
-                        runnername,ascdob = candidate
-                        runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
-                        thisrunnerchoice.append([runner.id,runner.name])
-                    
-                    # this shouldn't happen
-                    else:
-                        stophere
-                        pass    # TODO: this is a bug -- that to do?
+                r = FixupResult(race, pool, result, timeprecision)
 
-                # didn't find runner, what were other possibilities?
-                elif thisdisposition == DISP_MISSED:
-                    # this is possible because maybe (new) member was chosen in prior use of editparticipants
-                    if candidate:
-                        runnername,ascdob = candidate
-                        runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
-                        thisrunnerchoice.append([runner.id,runner.name])
-                    
-                    # this handles case where age mismatch was chosen in prior use of editparticipants
-                    elif thisrunnervalue:
-                        runner = Runner.query.filter_by(club_id=club_id,id=thisrunnervalue).first()
-
-                    # remove runners who were not within the age window, or who were excluded
-                    missed = pool.getmissedmatches()                        
-                    missed = filtermissed(club_id,missed,race.date,result.age)
-                    for thismissed in missed:
-                        missedrunner = Runner.query.filter_by(club_id=club_id,name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
-                        dobdt = dbdate.asc2dt(thismissed['dob'])
-                        nameage = '{} ({})'.format(missedrunner.name,timeu.age(racedatedt,dobdt))
-                        thisrunnerchoice.append((missedrunner.id,nameage))
-                    
-                # for no match and excluded entries, change choice
-                elif thisdisposition in [DISP_NOTUSED,DISP_EXCLUDED]:
-                    if membersonly:
-                        thisrunnerchoice = [(None,'n/a')]
-                    else:
-                        # leave default
-                        pass
-                
-                # for non membersonly race, maybe need to add new name to member database, give that option
-                if not membersonly and thisdisposition != DISP_MATCH:
-                    # it's possible that result.name == runnername if (new) member was added in prior use of editparticipants
-                    if result.name != runnername:
-                        thisrunnerchoice.append(('new','{} (new)'.format(result.name)))
-                
                 # include all the metadata for this result
-                times.append(thistime)
-                dispositions.append(thisdisposition)
-                runnerchoices.append(thisrunnerchoice)
-                runnervalues.append(thisrunnervalue)
-                membertypes.append(getmembertype(runner))
+                thisresult = {
+                    'id' : result.id,
+                    'place' : result.place,
+                    'resultname' : result.name,
+                    'gender' : result.gender,
+                    'age' : result.age,
+                    'disposition' : r.disposition,
+                    'confirm' : result.confirmed,
+                    'runnerid' : result.runnerid,
+                    'hometown' : result.hometown,
+                    'club' : result.club,
+                    'time' : r.time,
+                }
 
-            resultsdata = zip(results,times,dispositions,runnerchoices,runnervalues,membertypes)
-            
+                tabledata.append(thisresult)
+
+                # use select field unless 'definite', or membersonly and '' (means definitely didn't find)
+                if writecheck.can() and (r.disposition == 'missed' or r.disposition == 'similar') or (not membersonly and r.disposition != 'definite'):
+                    tableselects[result.id] = r.runnerchoice
+
             # commit database updates and close transaction
             db.session.commit()
-            return flask.render_template('editparticipants.html',form=form,race=race,membersonly=membersonly,resultsdata=resultsdata,writeallowed=writecheck.can())
+            return flask.render_template('editparticipants.html', 
+                                         race=race, 
+                                         data=tabledata, 
+                                         selects=tableselects, 
+                                         members=pagemembers, 
+                                         membersonly=membersonly, 
+                                         writeallowed=writecheck.can())
         
         except:
             # roll back database updates and close transaction
@@ -264,6 +330,40 @@ class EditParticipants(MethodView):
             raise
 #----------------------------------------------------------------------
 app.add_url_rule('/editparticipants/<int:raceid>',view_func=EditParticipants.as_view('editparticipants'),methods=['GET'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class AjaxEditParticipants(MethodView):
+#######################################################################
+    decorators = [login_required]
+    #----------------------------------------------------------------------
+    def get(self, raceid):
+    #----------------------------------------------------------------------
+        try:
+            club_id = flask.session['club_id']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can at least read the data, otherwise abort
+            if not readcheck.can():
+                db.session.rollback()
+                flask.abort(403)
+            
+            # handle create, edit, remove
+            update = request.args.get('action','')
+            data   = json.loads(request.args.get('data','{}'))
+
+            # commit database updates and close transaction
+            db.session.commit()
+            return flask.jsonify(table.output_result())
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/_editparticipants/<int:raceid>',view_func=AjaxEditParticipants.as_view('_editparticipants'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -906,7 +1006,7 @@ class AjaxUpdateManagedResult(MethodView):
                 return failure_response(cause=cause)
             
             # which field changed?  if not allowed, return failure response
-            field = flask.request.args.get('field','<not supplied>')
+            field = flask.request.args.get('field','[not supplied]')
             if field not in ['runnerid','confirmed']:
                 db.session.rollback()
                 cause = 'Unexpected Error: field {} not supported'.format(field)

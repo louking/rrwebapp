@@ -8,6 +8,10 @@
 {% endblock %}
 {% block scripts %}
   <script type="text/javascript">
+    var tabledata = {{ data|tojson|safe }},
+        tableselects = {{ selects|tojson|safe }},
+        memberdata = {{ members|tojson|safe }};
+
     $( document ).ready( function() {
       {% if writeallowed %}
         // TODO: need export to standard format, as well as update of import
@@ -28,7 +32,9 @@
             ");
         {% endif %}
 
-      editparticipants( {% if writeallowed %}true{% else %}false{% endif %},
+      editparticipants( {{ race.id }},
+                        {% if readallowed %}true{% else %}false{% endif %},
+                        {% if writeallowed %}true{% else %}false{% endif %},
                         {% if membersonly  %}true{% else %}false{% endif %});    
 
       {#{% if writeallowed %}
@@ -57,67 +63,23 @@
       <table class="" id="_rrwebapp-table-editparticipants" >
         <thead>
           <tr>
-            <th class="_rrwebapp-col-_unordered">{{ form.place.label }}</th>
-            <th class="_rrwebapp-col-_unordered">{{ form.name.label }}</th>
-            <th class="_rrwebapp-col-_unordered">{{ form.gender.label }}</th>
-            <th class="_rrwebapp-col-_unordered">{{ form.age.label }}</th>
-            <th class="_rrwebapp-col-_unordered _rrwebapp-col-match">{{ form.disposition.label }}</th>
+            <th class="_rrwebapp-col-_unordered">Id</th>
+            <th class="_rrwebapp-col-_unordered">Place</th>
+            <th class="_rrwebapp-col-_unordered">Result Name</th>
+            <th class="_rrwebapp-col-_unordered">Gender</th>
+            <th class="_rrwebapp-col-_unordered">Age</th>
+            <th class="_rrwebapp-col-_unordered _rrwebapp-col-match">Match</th>
             {% if not membersonly %}
-              <th class="_rrwebapp-col-_unordered _rrwebapp-col-membertype">{{ form.membertype.label }}</th>
+              <th class="_rrwebapp-col-_unordered _rrwebapp-col-membertype">Type</th>
             {% endif %}
-            <th class="_rrwebapp-col-_unordered _rrwebapp-col-confirmed">{{ form.confirmed.label }}</th>
-            <th class="_rrwebapp-col-_unordered">{{ form.runnerid.label }}</th>
-            <th class="_rrwebapp-col-_unordered">{{ form.hometown.label }}</th>
-            <th class="_rrwebapp-col-_unordered">{{ form.club.label }}</th>
-            <th class="_rrwebapp-col-time">{{ form.time.label }}</th>
+            <th class="_rrwebapp-col-_unordered _rrwebapp-col-confirmed">Confirm</th>
+            <th class="_rrwebapp-col-_unordered">Standings Name</th>
+            <th class="_rrwebapp-col-_unordered">Hometown</th>
+            <th class="_rrwebapp-col-_unordered">Club</th>
+            <th class="_rrwebapp-col-time">Time</th>
           </tr>
         </thead>
         <tbody>
-          {% for result,thistime,thisdisposition, thismemberchoice, thismembervalue, thismembertype in resultsdata %}
-            <tr class="_rrwebapp-row-disposition-{{thisdisposition}} _rrwebapp-row-confirmed-{{result.confirmed}}">
-              <td align=center>{{ num(result.place,0) }}</td>
-              <td>{{ result.name }}</td>
-              <td align=center>{{ result.gender }}</td>
-              <td align=center>{{ num(result.age,0) }}</td>
-              <td align=center>{{ thisdisposition }}</td>
-              {% if not membersonly %}
-                <td align=center>{{ thismembertype }}</td>
-              {% endif %}
-              <td align=center>
-                <input class="_rrwebapp-editparticipants-checkbox-confirmed" type="checkbox" {% if result.confirmed %}checked{%endif%}
-                          id="_rrwebapp-editparticipants-checkbox-confirmed-{{ result.id }}" 
-                          _rrwebapp-field='confirmed'
-                          _rrwebapp-apiurl={{url_for('_updatemanagedresult',resultid=result.id)}}>
-                <label for="_rrwebapp-editparticipants-checkbox-confirmed-{{ result.id }}"></label>
-              </td>
-              <td>
-                {# leave as select field unless 'definite', or membersonly and '' (means definitely didn't find) #}
-                {% if writeallowed and (thisdisposition == 'missed' or thisdisposition == 'similar') or (not membersonly and thisdisposition != 'definite') %}
-                  <select class="_rrwebapp-editparticipants-select-runner"
-                          id="_rrwebapp-editparticipants-select-id-{{result.id}}"
-                          _rrwebapp-field='runnerid'
-                          {% if not membersonly %}
-                            _rrwebapp-newrunner-name='{{ result.name }}'
-                            _rrwebapp-newrunner-gender='{{ result.gender }}'
-                          {% endif %}
-                          _rrwebapp-apiurl={{url_for('_updatemanagedresult',resultid=result.id)}}>
-                    {% for value,choice in thismemberchoice %}
-                      <option value={{value}} {%if value==thismembervalue %}selected{%endif%}>{{choice}}</option>
-                    {% endfor %}
-                  </select>
-                {% else %}
-                  {% for value,choice in thismemberchoice %}
-                    {% if value==thismembervalue %}
-                      {{ choice }}
-                    {% endif %}
-                  {% endfor %}
-                {% endif %}
-              </td>
-              <td>{{ result.hometown }}</td>
-              <td>{{ result.club }}</td>
-              <td align=center>{{ thistime }}</td>
-            </tr>
-          {% endfor %}
         </tbody>
       </table>
 {% endblock %}

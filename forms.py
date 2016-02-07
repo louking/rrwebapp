@@ -109,23 +109,6 @@ class MemberForm(Form):
     member = BooleanField('Is Member',[validators.Optional()])
     
 ########################################################################
-class ManagedResultForm(Form):
-########################################################################
-    place = IntegerField('Place',[validators.Optional()])
-    name = StringField('Result Name',[validators.Optional()])
-    gender = SelectField('Gender',[validators.Optional()],coerce=str,choices=[('',''),('F','F'),('M','M')])
-    age = IntegerField('Age',[validators.Optional()])
-    membertype = StringField('Type',[validators.Optional()])
-    hometown = StringField('Hometown',[validators.Optional()])
-    club = StringField('Club',[validators.Optional()])
-    time = StringField('Time',[validators.Optional()])
-    
-    # metadata
-    disposition = StringField('Match',[validators.Optional()])      # initial disposition
-    runnerid = SelectField('Standings Name',[validators.Optional()])# set when runnerid has positive value; can be used to select member or exclusion
-    confirmed = BooleanField('Confirm',[validators.Optional()])          # set True by system for definite match or definite non-match, or by user in other cases
-
-########################################################################
 class SeriesResultForm(Form):
 ########################################################################
     series = StringField('Series',[validators.Optional()])
