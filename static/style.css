@@ -30,6 +30,16 @@
     padding: 4px;
 }
 
+/* jqueryui and dataTables selectize have conflict, this is needed to bring dataTables Editor selectize to front */
+div.selectize-dropdown {
+  z-index: 102;
+}
+
+/* any form error will be in red */
+div.DTE_Form_Error {
+    color: #b11f1f;
+}
+
 /* jqueryui progressbar */
 .ui-progressbar {
   position: relative;
@@ -368,6 +378,11 @@ table.DataList tr:hover td
 {
     background-color: #ECF0FF;
     cursor: pointer;
+}
+
+/* fix labels on editor popups */
+div.DTE_Body div.DTE_Body_Content div.DTE_Field > label {
+  margin-right: 0px;
 }
 
 ._rrwebapp-class-pfriendly-races a {

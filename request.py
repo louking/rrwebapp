@@ -34,33 +34,48 @@ class invalidScript(Exception): pass
 # all css scripts are processed before all js scripts - see layout.html for details
 SCRIPTS = [
     'js/jquery-1.11.3.min.js',
+
     # 'js/jquery-ui-1.11.4/jquery-ui.js',
     # 'js/jquery-ui-1.11.4/themes/smoothness/jquery-ui.css',
     'js/jquery-ui-1.10.4.custom.js',
     'css/sm-f0-8em-theme/jquery-ui-1.10.4.custom.min.css',
-    'js/DataTables-1.10.10/DataTables-1.10.10/js/jquery.dataTables.js',
-    'js/DataTables-1.10.10/DataTables-1.10.10/js/dataTables.jqueryui.js',
-    'js/DataTables-1.10.10/DataTables-1.10.10/css/dataTables.jqueryui.css',
-    'js/DataTables-1.10.10/Buttons-1.1.0/js/dataTables.buttons.js',
-    'js/DataTables-1.10.10/Buttons-1.1.0/js/buttons.jqueryui.js',
-    'js/DataTables-1.10.10/Buttons-1.1.0/js/buttons.html5.js',
-    'js/DataTables-1.10.10/Buttons-1.1.0/css/buttons.jqueryui.css',
-    # 'js/DataTables-1.10.10/Responsive-2.0.0/js/dataTables.responsive.js',
-    # 'js/DataTables-1.10.10/Responsive-2.0.0/js/responsive.jqueryui.js',
-    # 'js/DataTables-1.10.10/Responsive-2.0.0/css/responsive.jqueryui.css',
-    'js/chosen_v1.4.2/chosen.jquery.min.js',
-    'js/chosen_v1.4.2/chosen.min.css',
-    'js/select2-4.0.1/css/select2.css',
+
+    'js/DataTables-1.10.11/DataTables-1.10.11/js/jquery.dataTables.js',
+    'js/DataTables-1.10.11/DataTables-1.10.11/js/dataTables.jqueryui.js',
+    'js/DataTables-1.10.11/DataTables-1.10.11/css/dataTables.jqueryui.css',
+
+    'js/DataTables-1.10.11/Buttons-1.1.2/js/dataTables.buttons.js',
+    'js/DataTables-1.10.11/Buttons-1.1.2/js/buttons.jqueryui.js',
+
+    'js/DataTables-1.10.11/Buttons-1.1.2/js/buttons.html5.js',
+    'js/DataTables-1.10.11/Buttons-1.1.2/css/buttons.jqueryui.css',
+
+    'js/DataTables-1.10.11/Editor-1.5.5/js/dataTables.editor.js',
+    'js/DataTables-1.10.11/Editor-1.5.5-errorfix/js/editor.jqueryui.js',
+    'js/DataTables-1.10.11/Editor-1.5.5/css/editor.jqueryui.css',
+
+    'js/DataTables-1.10.11/Select-1.1.2/js/dataTables.select.js',
+    'js/DataTables-1.10.11/Select-1.1.2/css/select.jqueryui.css',
+
+    # 'js/chosen_v1.4.2/chosen.jquery.min.js',
+    # 'js/chosen_v1.4.2/chosen.min.css',
+
     'js/select2-4.0.1/js/select2.full.js',
-    'js/yadcf-0.8.8+thru4b778d7/jquery.dataTables.yadcf.js',
-    'js/yadcf-0.8.8+thru4b778d7/jquery.dataTables.yadcf.css',
+    'js/select2-4.0.1/css/select2.css',
+
+    'js/selectize.js-0.12.1/css/selectize.css',
+    'js/selectize.js-0.12.1/js/standalone/selectize.js',
+    'js/DataTables-1.10.11/FieldType-Selectize/editor.selectize.js',
+    'js/DataTables-1.10.11/FieldType-Selectize/editor.selectize.css',
+
+    'js/yadcf-0.8.9/jquery.dataTables.yadcf.js',
+    'js/yadcf-0.8.9/jquery.dataTables.yadcf.css',
+
     'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
 
-    #'js/jquery.browser.js',         # browser removed from JQueryUI 1.9, needed by FixedColumns
-    #'js/FixedColumns.js',
-    
     'RaceResults.js',
     'style.css',
+
 ]
 
 #----------------------------------------------------------------------

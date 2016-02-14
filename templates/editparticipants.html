@@ -10,7 +10,8 @@
   <script type="text/javascript">
     var tabledata = {{ data|tojson|safe }},
         tableselects = {{ selects|tojson|safe }},
-        memberdata = {{ members|tojson|safe }};
+        memberages = {{ memberages|tojson|safe }};
+        membernames = {{ membernames|tojson|safe }}
 
     $( document ).ready( function() {
       {% if writeallowed %}
@@ -63,7 +64,7 @@
       <table class="" id="_rrwebapp-table-editparticipants" >
         <thead>
           <tr>
-            <th class="_rrwebapp-col-_unordered">Id</th>
+            <th class="_rrwebapp-col-_unordered"></th>
             <th class="_rrwebapp-col-_unordered">Place</th>
             <th class="_rrwebapp-col-_unordered">Result Name</th>
             <th class="_rrwebapp-col-_unordered">Gender</th>

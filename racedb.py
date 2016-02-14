@@ -540,7 +540,7 @@ class ManagedResult(Base):
     def __init__(self, club_id, raceid, place=None, name=None, fname=None, lname=None,
                  gender=None,age=None,city=None,state=None,club=None,
                  time=None,
-                 runnerid=None,disposition=None,selectionmethod=None):
+                 runnerid=None,initialdisposition=None,selectionmethod=None):
     #----------------------------------------------------------------------
         self.club_id = club_id
         self.raceid = raceid
@@ -555,7 +555,7 @@ class ManagedResult(Base):
         self.club = club
         self.time = time
         self.runnerid = runnerid
-        self.disposition = disposition
+        self.initialdisposition = initialdisposition
         self.selectionmethod = selectionmethod
 
     #----------------------------------------------------------------------
