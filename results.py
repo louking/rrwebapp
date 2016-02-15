@@ -78,8 +78,9 @@ class MapDict():
 #######################################################################
     '''
     convert dict d to new dict based on mapping
+    mapping is dict like {'outkey_n':'inkey_n', 'outkey_m':f(dbrow), ...}
 
-    :param mapping: dict with keys like {'to1':'from1', ...}
+    :param mapping: mapping dict with key for each output field
     '''
 
     #----------------------------------------------------------------------
@@ -103,9 +104,15 @@ class MapDict():
 
         # go through keys, skipping the ones which are not present
         for to_key in self.mapping:
-            from_key = self.mapping[to_key]
-            if from_key in from_dict:
-                to_dict[to_key] = from_dict[from_key]
+            if hasattr(self.mapping[to_key], '__call__'):
+                callback = self.mapping[to_key]
+                to_dict[to_key] = callback(from_dict)
+
+            # simple map from from_dict field
+            else:
+                from_key = self.mapping[to_key]
+                if from_key in from_dict:
+                    to_dict[to_key] = from_dict[from_key]
 
         return to_dict
 
@@ -243,7 +250,7 @@ class ImportResults():
                                 else None
         dbmapping['age']      = lambda inrow: int(inrow['age']) if inrow.get('age') \
                                 else 0
-        dbmapping['time']     = lambda inrow: timeu.timesecs(inrow['time'])
+        dbmapping['time']     = lambda inrow: float(inrow['time'])
         dbmapping['initialdisposition'] = self.set_initialdisposition
 
         # set up DataTablesEditor object
@@ -397,6 +404,7 @@ class ImportResults():
 
         # convert inresult keys
         thisinresult = self.map.convert(inresult)
+        app.logger.debug('thisinresult={}'.format(thisinresult))
 
         # this makes the dbresult accessible to the dbmapping functions
         self.dbresult = dbresult
@@ -567,19 +575,34 @@ class EditParticipants(MethodView):
 
             # convert members for page select
             memberrecs = pool.getmembers()
-            memberages = {}
             membernames = []
+            memberages = {}
+            memberagegens = {}
             for thismembername in memberrecs:
                 # get names and ages associated with each name
                 for thismember in memberrecs[thismembername]:
                     racedate = tYmd.asc2dt(race.date)
                     dob = tYmd.asc2dt(thismember['dob'])
-                    nameage = u'{} ({})'.format(thismember['name'], timeu.age(racedate,dob))
+                    age = timeu.age(racedate,dob)
+
+                    # memberages is used for picklist on missed and similar dispositions
+                    nameage = u'{} ({})'.format(thismember['name'], age)
                     memberages[thismember['id']] = nameage
-                    # note only want to save the names for use on the page select
-                    thismemberoption = {'label':thismember['name'],'value':thismember['name']}
+
+                    # set up to retrieve age, gender for this member
+                    memberagegens.setdefault(thismembername,[])
+                    memberagegens[thismembername].append({'age': age, 'gender':thismember['gender']})
+
+                    # note only want to save the names for use on the name select
+                    # annotate for easy sort
+                    # TODO: is this an issue if two with the same name have different capitalization?
+                    thismemberoption = (thismember['name'].lower(), {'label':thismember['name'],'value':thismember['name']})
                     if thismemberoption not in membernames:
                         membernames.append(thismemberoption)
+
+            # sort membernames and remove annotation
+            membernames.sort()
+            membernames = [m[1] for m in membernames]
 
             # collect data for table
             tabledata = []
@@ -606,6 +629,7 @@ class EditParticipants(MethodView):
                                          selects=tableselects,
                                          membernames=membernames, 
                                          memberages=memberages, 
+                                         memberagegens=memberagegens,
                                          membersonly=membersonly, 
                                          writeallowed=writecheck.can())
         
@@ -662,12 +686,19 @@ class AjaxEditParticipants(MethodView):
                 app.logger.warning(cause)
                 return dt_editor_response(error=cause)
 
-            # need race date, determine precision for time output
-            racedatedt = dbdate.asc2dt(race.date)
+            if len(race.series) == 0:
+                db.session.rollback()
+                cause =  'Race needs to be included in at least one series to import results'
+                app.logger.error(cause)
+                return dt_editor_response(error=cause)
+            
+            # determine precision for time output
             timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
 
             # dataTables Editor helper
             dbmapping = dict(zip(self.dbfields,self.formfields))
+            dbmapping['time']     = lambda inrow: timeu.timesecs(inrow['time'])
+
             formmapping = dict(zip(self.formfields,self.dbfields))
             formmapping['time'] = lambda dbrow: render.rendertime(dbrow.time,timeprecision)
 
@@ -678,13 +709,6 @@ class AjaxEditParticipants(MethodView):
             # dbmapping is not needed for this
             dte = DataTablesEditor({}, formmapping)
             
-            # active is ClubMember object for active members; if race isn't for members only inactive and nonmember ClubMember objects for nonmembers
-            membersonly = race.series[0].series.membersonly
-            if membersonly:
-                pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
-            else:
-                pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
-
             # loop through data, determining best match
             responsedata = []
             for resultid in data:
@@ -1016,6 +1040,12 @@ class AjaxImportResults(MethodView):
                 app.logger.warning(cause)
                 return failure_response(cause=cause)
 
+            if len(race.series) == 0:
+                db.session.rollback()
+                cause =  'Race needs to be included in at least one series to import results'
+                app.logger.error(cause)
+                return failure_response(cause=cause)
+            
             # do we have any results yet?  If so, make sure it is ok to overwrite them
             dbresults = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).all()
 
@@ -1065,22 +1095,9 @@ class AjaxImportResults(MethodView):
                 app.logger.error(cause)
                 return failure_response(cause=cause)
             
-            # get race and list of runners who should be included in this race, based on race's membersonly configuration
-            race = Race.query.filter_by(club_id=club_id,id=raceid).first()
-            racedatedt = dbdate.asc2dt(race.date)
-            if len(race.series) == 0:
-                db.session.rollback()
-                cause =  'Race needs to be included in at least one series to import results'
-                app.logger.error(cause)
-                return failure_response(cause=cause)
+            # create importer
+            importresults = ImportResults(club_id, raceid)
             
-            # active is ClubMember object for active members; if race isn't for members only inactive and nonmember ClubMember objects for nonmembers
-            membersonly = race.series[0].series.membersonly
-            if membersonly:
-                pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
-            else:
-                pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
-                
             # collect results from resultsfile
             numentries = 0
             dbresults = []
@@ -1092,133 +1109,11 @@ class AjaxImportResults(MethodView):
                         app.logger.debug('first file result {}'.format(fileresult))
                         logfirst = False
                     dbresult   = ManagedResult(club_id,raceid)
-                    for field in fileresult:
-                        if hasattr(dbresult,field):
-                            setattr(dbresult,field,fileresult[field])
-                    fix_dbresult_fields(dbresult)
-                    # app.logger.debug('Processing {}'.format(dbresult.name))
-                    
-                    # create initial disposition
-                    candidate = pool.findmember(dbresult.name,dbresult.age,race.date)
-                    # app.logger.debug('  candidate = {}'.format(candidate))
 
-                    # for members or people who were once members, set age based on date of birth in database
-                    # note this clause will be executed for membersonly races
-                    if candidate:
-                        # note some candidates' ascdob may come back as None (these must be nonmembers because we have dob for all current/previous members)
-                        runnername,ascdob = candidate
-                        
-                        # set active or inactive member's id
-                        runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
-                        dbresult.runnerid = runner.id
-                        # app.logger.debug('  using runner.id = {}'.format(runner.id))
-                    
-                        # if candidate has renewdate and did not join in time for member's only race, indicate this result isn't used
-                        if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(race.date)+JOIN_GRACEPERIOD:
-                                # discard candidate
-                                candidate = None
-                                
-                                # was...
-                                #dbresult.initialdisposition = DISP_NOTUSED
-                                #dbresult.runnerid = None
-                                #dbresult.confirmed = True
-                                #app.logger.debug('    DISP_NOTUSED')
-                        
-                        # runner joined in time for race, or not member's only race
-                        # if exact match, indicate we have a match
-                        elif runnername.lower() == dbresult.name.lower():
-                            # if current or former member
-                            if ascdob:
-                                dbresult.initialdisposition = DISP_MATCH
-                                dbresult.confirmed = True
-                                # app.logger.debug('    DISP_MATCH')
-                                
-                            # otherwise was nonmember, included from some non memberonly race
-                            else:
-                                # must check current result age against any previous result age
-                                thisresultage = dbresult.age
-                                if thisresultage:
-                                    thisracedate = tYmd.asc2dt(race.date)
-                                    pastresult = RaceResult.query.filter_by(club_id=club_id,runnerid=runner.id).first()
-                                    pastresultage = pastresult.agage
-                                    pastracedate = tYmd.asc2dt(pastresult.race.date)
-                                    
-                                    # make sure this result age is consistent with previous result +/- 1 year
-                                    deltayears = abs((thisracedate - pastracedate).days / 365.25)
-                                    deltaage = abs(int(thisresultage) - pastresultage)
-                                    if abs(deltaage - deltayears) <= 1:
-                                        dbresult.initialdisposition = DISP_MATCH
-                                        dbresult.confirmed = True
-                                        # app.logger.debug('    DISP_MATCH')
+                    # update database entry
+                    runner_choices = importresults.update_dbresult(fileresult, dbresult)
 
-                                    # if inconsistent, ignore candidate
-                                    else:
-                                        candidate = None
-
-                                # ignore candidates when we do not have age in result
-                                else:
-                                    candidate = None
-                                    dbresult.runnerid = None
-
-                        # runner joined in time for race, or not member's only race, but match wasn't exact
-                        # check for exclusions
-                        else:
-                            exclusion = Exclusion.query.filter_by(club_id=club_id,foundname=dbresult.name,runnerid=dbresult.runnerid).first()
-                            
-                            # if results name not found against this runner id in exclusions table, indicate we found close match
-                            if not exclusion:
-                                dbresult.initialdisposition = DISP_CLOSE
-                                dbresult.confirmed = False
-                                # app.logger.debug('    DISP_CLOSE')
-                                
-                            # results name vs this runner id has been excluded
-                            else:
-                                candidate = None
-                                
-                                # was...
-                                #dbresult.initialdisposition = DISP_NOTUSED  # was DISP_EXCLUDED
-                                #dbresult.runnerid = None
-                                #dbresult.confirmed = True
-                                #app.logger.debug('    DISP_NOTUSED')
-                    
-                    # didn't find runner on initial search, or candidate was discarded
-                    if not candidate:
-                        # clear runnerid in case we discarded candidate above
-                        dbresult.runnerid = None
-
-                        # favor active members, then inactive members
-                        # note: nonmembers are not looked at for missed because filtermissed() depends on DOB
-                        missed = pool.getmissedmatches()
-                        # app.logger.debug('  pool.getmissedmatches() = {}'.format(missed))
-                        
-                        # don't consider 'missed matches' where age difference from result is too large, or excluded
-                        # app.logger.debug('  missed before filter = {}'.format(missed))
-                        missed = filtermissed(club_id,missed,race.date,dbresult.age)
-                        # app.logger.debug('  missed after filter = {}'.format(missed))
-
-                        # if there remain are any missed results, indicate missed (due to age difference)
-                        # or missed (due to new member proposed for not membersonly)
-                        if len(missed) > 0 or not membersonly:
-                            dbresult.initialdisposition = DISP_MISSED
-                            dbresult.confirmed = False
-                            # app.logger.debug('    DISP_MISSED')
-                            
-                        # otherwise, this result isn't used
-                        else:
-                            dbresult.initialdisposition = DISP_NOTUSED
-                            dbresult.confirmed = True
-                            # app.logger.debug('    DISP_NOTUSED')
-                            
-                        # not membersonly and didn't find a nonmember, need to create runner 
-                        #else:
-                        #    runner = Runner(club_id,dbresult.name,None,dbresult.gender,None,member=False)
-                        #    added = racedb.insert_or_update(db.session,Runner,runner,skipcolumns=['id'],name=dbresult.name,dateofbirth=None,member=False)
-                        #    dbresult.runnerid = runner.id
-                        #    app.logger.debug('  added runner.id = {}'.format(runner.id))
-                        #    dbresult.initialdisposition = DISP_MATCH
-                        #    dbresult.confirmed = True
-                        #    app.logger.debug('    DISP_MATCH')
-                            
+                    # add to database
                     db.session.add(dbresult)
                     dbresults.append(dbresult)
                 except StopIteration:

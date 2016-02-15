@@ -128,16 +128,13 @@ class DataTablesEditor():
 
         for dbattr in self.dbmapping:
             # call the function to fill dbrow.<dbattr>
-            print 'DataTablesEditor.set_dbrow: dbattr={}'.format(dbattr)
             if hasattr(self.dbmapping[dbattr], '__call__'):
-                print '  function detected'
                 callback = self.dbmapping[dbattr]
                 setattr(dbrow, dbattr, callback(inrow))
 
             # simple map from inrow field
             else:
                 key = self.dbmapping[dbattr]
-                print '  key detected, from key={}'.format(key)
                 if key in inrow:
                     setattr(dbrow, dbattr, inrow[key])
                 else:

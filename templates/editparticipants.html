@@ -10,8 +10,9 @@
   <script type="text/javascript">
     var tabledata = {{ data|tojson|safe }},
         tableselects = {{ selects|tojson|safe }},
-        memberages = {{ memberages|tojson|safe }};
-        membernames = {{ membernames|tojson|safe }}
+        memberages = {{ memberages|tojson|safe }},
+        memberagegens = {{ memberagegens|tojson|safe }},
+        membernames = {{ membernames|tojson|safe }};
 
     $( document ).ready( function() {
       {% if writeallowed %}
@@ -25,9 +26,9 @@
             </div>\
             <h3>Import Results</h3>\
             <div>\
-              <form id='_rrwebapp-import-results' _rrwebapp-import-url='{{ url_for("_importresults",raceid=race.id) }}' method='post' enctype='multipart/form-data'>\
+              <form id='_rrwebapp-import-results' method='post' enctype='multipart/form-data'>\
                 <input id='_rrwebapp-button-choose-import-file' type='file' name='file'/>\
-                <button id='_rrwebapp-button-import'>Import</button>\
+                <button id='_rrwebapp-button-import' _rrwebapp-formaction='{{ url_for("_importresults",raceid=race.id) }}'>Import</button>\
               </form>\
             </div>\
             ");

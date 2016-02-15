@@ -864,28 +864,51 @@
         };
 
         if (writeallowed) {
+            // set up import button
+            $('#_rrwebapp-button-import').button()
+                .click( function( event ) {
+                    event.preventDefault();
+                    url = $(this).attr('_rrwebapp-formaction')
+                    ajax_import_file(url,'#_rrwebapp-import-results',false);
+                });
+
+            // set up tabulate button
+            $('#_rrwebapp-button-tabulate').button()
+                .click( function( event ) {
+                    event.preventDefault();
+                    url = $('#_rrwebapp-button-tabulate').attr('_rrwebapp-tabulate-url')
+                    ajax_update_db_noform(url,{},'#_rrwebapp-button-tabulate',false)
+                });
+
             // handle checkbox update
             $('._rrwebapp-editparticipants-checkbox-confirmed')
                 .on('click',
                     function(){
                         setchecked(this);
                     });
+
         }
         
         // set up for editing
         var editor = new $.fn.dataTable.Editor( {
             ajax:  window.location.origin + '/_editparticipants/' + raceid,
             table: '#_rrwebapp-table-editparticipants',
+            display: 'jqueryui',
             idSrc:  'id',
-                fields: [
+            formOptions: {
+                main: {
+                    onReturn: 'none'
+                }
+            },
+            fields: [
                 { label: 'Result Name:', name: 'resultname',
                   type: 'selectize', options: membernames,
                   opts: { searchField: 'label' },
                 },
+                { label: 'Age:',  name: 'age'  },
                 { label: 'Gender:',  name: 'gender',
                   type: 'select', options: {'': 'None', 'M':'M', 'F':'F'},
                 },
-                { label: 'Age:',  name: 'age'  },
                 { label: 'Time:',  name: 'time'  },
                 { label: 'Hometown:',  name: 'hometown'  },
                 { label: 'Club:',  name: 'club'  }
