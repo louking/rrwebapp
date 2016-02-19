@@ -12,7 +12,9 @@
         tableselects = {{ selects|tojson|safe }},
         memberages = {{ memberages|tojson|safe }},
         memberagegens = {{ memberagegens|tojson|safe }},
-        membernames = {{ membernames|tojson|safe }};
+        membernames = {{ membernames|tojson|safe }},
+        crudapi = '{{ crudapi }}',
+        fieldapi = '{{ fieldapi }}';
 
     $( document ).ready( function() {
       {% if writeallowed %}

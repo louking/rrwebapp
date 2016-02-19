@@ -37,7 +37,16 @@ div.selectize-dropdown {
 
 /* any form error will be in red */
 div.DTE_Form_Error {
-    color: #b11f1f;
+    color: red;
+}
+
+div.DTE_Field input._rrwebapp_CRUD_input_short {
+    width: 85%;
+}
+._rrwebapp_button_age_cycle {
+    float: right;
+    padding-top: 8px;
+    padding-bottom: 9px;
 }
 
 /* jqueryui progressbar */

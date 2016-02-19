@@ -887,34 +887,87 @@
                         setchecked(this);
                     });
 
+            // set up for editing
+            var editor = new $.fn.dataTable.Editor( {
+                ajax:  crudapi + raceid,
+                table: '#_rrwebapp-table-editparticipants',
+                display: 'jqueryui',
+                idSrc:  'id',
+                formOptions: {
+                    main: {
+                        onReturn: 'none'
+                    }
+                },
+                fields: [
+                    { label: 'Result Name:', name: 'resultname',
+                      type: 'selectize', options: membernames,
+                      opts: { searchField: 'label' },
+                    },
+                    { label: 'Age:',  name: 'age' },
+                    { label: 'Gender:',  name: 'gender',
+                      type: 'select', options: {'': 'None', 'M':'M', 'F':'F'},
+                    },
+                    { label: 'Time:',  name: 'time'  },
+                    { label: 'Hometown:',  name: 'hometown'  },
+                    { label: 'Club:',  name: 'club'  }
+                ]
+            } );
+
+            function setagegen(name, index) {
+                var age = memberagegens[name][index].age;
+                var gender = memberagegens[name][index].gender;
+                editor.set('age',age);
+                editor.set('gender',gender);
+
+            }
+
+            var $resultname = editor.field('resultname').input();
+            var $age = editor.field('age').input();
+            $resultname.on('change', function(e) {
+                var name = editor.field('resultname').get().toLowerCase();
+
+                // reset age field
+                $('._rrwebapp_button_age_cycle').remove();
+                $age.removeClass("_rrwebapp_CRUD_input_short")
+
+                if (name !== '') {
+                    // only one person with this name
+                    if (memberagegens[name].length == 1) {
+                        setagegen(name, 0);
+
+                    // multiple people with this name, create a button to switch between
+                    } else if (memberagegens[name].length > 1) {
+                        var agegen_index = 0;
+                        setagegen(name, agegen_index);
+                        $age
+                            .addClass("_rrwebapp_CRUD_input_short")
+                            .after('<button class=_rrwebapp_button_age_cycle title="More than one member matches this name. Click here to cycle through members">')
+                        $('._rrwebapp_button_age_cycle')
+                            .button( {
+                                icons: {
+                                    primary: "ui-icon-arrowthick-1-e"
+                                }
+                            } )
+                            .on('click', function() {
+                                agegen_index += 1;
+                                agegen_index %= memberagegens[name].length;
+                                setagegen(name, agegen_index);
+                            });
+
+                    // not sure how this can happen, but handle gracefully
+                    } else {                        
+                        editor.set('age','');
+                        editor.set('gender','');
+                    }
+                
+                // nothing in resultname field, clear age, gender
+                } else {
+                    editor.set('age','');
+                    editor.set('gender','');
+                };
+            });
         }
         
-        // set up for editing
-        var editor = new $.fn.dataTable.Editor( {
-            ajax:  window.location.origin + '/_editparticipants/' + raceid,
-            table: '#_rrwebapp-table-editparticipants',
-            display: 'jqueryui',
-            idSrc:  'id',
-            formOptions: {
-                main: {
-                    onReturn: 'none'
-                }
-            },
-            fields: [
-                { label: 'Result Name:', name: 'resultname',
-                  type: 'selectize', options: membernames,
-                  opts: { searchField: 'label' },
-                },
-                { label: 'Age:',  name: 'age'  },
-                { label: 'Gender:',  name: 'gender',
-                  type: 'select', options: {'': 'None', 'M':'M', 'F':'F'},
-                },
-                { label: 'Time:',  name: 'time'  },
-                { label: 'Hometown:',  name: 'hometown'  },
-                { label: 'Club:',  name: 'club'  }
-            ]
-        } );
-
         // initialize table before everything else
         var matchCol = getColIndex('Match');
         var typeCol = getColIndex('Type');      // if not there, -1
@@ -1087,7 +1140,7 @@
                             + ((data) ? 'checked ' : ' ') 
                             + 'id="_rrwebapp-editparticipants-checkbox-confirmed-' + row.id + '" ' 
                             + '_rrwebapp-field=\'confirmed\' ' 
-                            + '_rrwebapp-apiurl=' + window.location.origin + '/_updatemanagedresult/' + row.id + '>\n' 
+                            + '_rrwebapp-apiurl=' + fieldapi + row.id + '>\n' 
                             + '<label for="_rrwebapp-editparticipants-checkbox-confirmed-' + row.id + '"></label>';
                         return val;
                       }
@@ -1102,7 +1155,7 @@
                                 + ' id="_rrwebapp-editparticipants-select-id-' + row.id + '"'
                                 + ' _rrwebapp-field=\'runnerid\''
                                 + ((!membersonly) ? ' _rrwebapp-newrunner-name=' + row.name + ' _rrwebapp-newrunner-gender=' + row.gender : '')
-                                + '_rrwebapp-apiurl=' + window.location.origin + '/_updatemanagedresult/' + row.id + '>\n'
+                                + '_rrwebapp-apiurl=' + fieldapi + row.id + '>\n'
                             var len = tableselects[row.id].length;
                             for ( var i = 0; i < len; i++ ) {
                                 var value  = tableselects[row.id][i][0];

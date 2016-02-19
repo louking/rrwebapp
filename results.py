@@ -545,8 +545,9 @@ class EditParticipants(MethodView):
             readcheck = ViewClubDataPermission(club_id)
             writecheck = UpdateClubDataPermission(club_id)
             
-            # verify user can at least read the data, otherwise abort
-            if not readcheck.can():
+            # verify user can write the data, otherwise abort
+            # TODO: maybe readcheck is ok, but javascript needs to be reviewed carefully
+            if not writecheck.can():
                 db.session.rollback()
                 flask.abort(403)
                 
@@ -630,6 +631,8 @@ class EditParticipants(MethodView):
                                          membernames=membernames, 
                                          memberages=memberages, 
                                          memberagegens=memberagegens,
+                                         crudapi=flask.url_for('_editparticipants',raceid=0)[0:-1],  
+                                         fieldapi=flask.url_for('_updatemanagedresult',resultid=0)[0:-1],
                                          membersonly=membersonly, 
                                          writeallowed=writecheck.can())
         
@@ -715,11 +718,6 @@ class AjaxEditParticipants(MethodView):
                 thisdata = data[resultid]
                 # create of update
                 if action!='remove':
-                    # edit
-                    if action == 'edit' and resultid != thisdata['id']:
-                        error = 'Unknown error occurred: invalid id detected'
-                        raise ParameterError
-
                     # check gender
                     if thisdata['gender'].upper() not in ['M','F']:
                         fielderrors.append({'name' : 'gender', 'status' : 'Gender must be chosen'})
