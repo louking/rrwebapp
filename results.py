@@ -634,6 +634,7 @@ class EditParticipants(MethodView):
                                          crudapi=flask.url_for('_editparticipants',raceid=0)[0:-1],  
                                          fieldapi=flask.url_for('_updatemanagedresult',resultid=0)[0:-1],
                                          membersonly=membersonly, 
+                                         inhibityear=True,inhibitclub=True,
                                          writeallowed=writecheck.can())
         
         except:
