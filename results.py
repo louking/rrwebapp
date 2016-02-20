@@ -55,6 +55,9 @@ NONMEMBERCUTOFF = 0.9   # insist on high cutoff for nonmember matching
 AGE_DELTAMAX = 3    # +/- num years to be included in DISP_MISSED
 JOIN_GRACEPERIOD = timedelta(7) # allow runner to join 1 week beyond race date
 
+PACE_FAST = 2.5 * 60.0  # 2:30/mile is pretty fast
+PACE_SLOW = 30 * 60     # 30:00/mile is pretty slow
+
 # support age grade
 ag = agegrade.AgeGrade()
 
@@ -159,16 +162,18 @@ def filtermissed(club_id,missed,racedate,resultage):
     return localmissed
 
 #----------------------------------------------------------------------
-def getmembertype(runner):
+def getmembertype(runnerid):
 #----------------------------------------------------------------------
     '''
     determine member type based on runner field values
     
-    :param runner: record from runner table or None
+    :param runnerid: runnerid or None
     
     :rtype: 'member', 'inactive', 'nonmember', ''
     '''
     
+    runner = Runner.query.filter_by(id=runnerid).first()
+
     if not runner:
         return 'nonmember'
     
@@ -316,7 +321,7 @@ class ImportResults():
                         thisracedate = tYmd.asc2dt(self.race.date)
                         pastresult = RaceResult.query.filter_by(club_id=club_id,runnerid=runner.id).first()
                         pastresultage = pastresult.agage
-                        pastracedate = tYmd.asc2dt(pastresult.self.race.date)
+                        pastracedate = tYmd.asc2dt(pastresult.race.date)
                         
                         # make sure this result age is consistent with previous result +/- 1 year
                         deltayears = abs((thisracedate - pastracedate).days / 365.25)
@@ -349,13 +354,7 @@ class ImportResults():
                 # results name vs this runner id has been excluded
                 else:
                     candidate = None
-                    
-                    # was...
-                    #dbresult.initialdisposition = DISP_NOTUSED  # was DISP_EXCLUDED
-                    #dbresult.runnerid = None
-                    #dbresult.confirmed = True
-                    #app.logger.debug('    DISP_NOTUSED')
-        
+                           
         # didn't find runner on initial search, or candidate was discarded
         if not candidate:
             # clear runnerid in case we discarded candidate above
@@ -384,9 +383,6 @@ class ImportResults():
                 dbresult.confirmed = True
                 # app.logger.debug('    DISP_NOTUSED')
 
-        # make missed matches accessible
-        self.runner_choices = missed
-
         # this needs to be the same as what was already stored in the record
         return dbresult.initialdisposition
     
@@ -412,7 +408,95 @@ class ImportResults():
         # update dbresult - this executes dbmapping function for each dbresult attribute
         self.dte.set_dbrow(thisinresult, dbresult)
 
-        return self.runner_choices
+        # return missed matches for select rendering
+        runner_choices = getrunnerchoices(self.club_id, self.race, self.pool, dbresult)
+
+        return runner_choices
+
+#----------------------------------------------------------------------
+def getrunnerchoices(club_id, race, pool, result):
+#----------------------------------------------------------------------
+    '''
+    get runner choice possibilies for rendering on editresults
+
+    :param club_id: club id
+    :param race: race entry from database
+    :param pool: candidate pool
+    :param result: database result
+    :rtype: choices for use in Standings Name select
+    '''
+
+    membersonly = race.series[0].series.membersonly
+    racedatedt = dbdate.asc2dt(race.date)
+    thisdisposition = result.initialdisposition
+    thisrunnerid = result.runnerid
+
+    thisrunnerchoice = [(None,'[not included]')]
+
+    # need to repeat logic from AjaxImportResults() because AjaxImportResults() may leave null in runnerid field of managedresult
+    candidate = pool.findmember(result.name,result.age,race.date)
+    
+    runner = None
+    runnername = ''
+    if thisdisposition in [DISP_MATCH,DISP_CLOSE]:
+        # found a possible runner
+        if candidate:
+            runnername,ascdob = candidate
+            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
+            try:
+                dobdt = dbdate.asc2dt(ascdob)
+                nameage = '{} ({})'.format(runner.name,timeu.age(racedatedt,dobdt))
+            # possibly no date of birth
+            except ValueError:
+                nameage = runner.name
+            thisrunnerchoice.append([runner.id,nameage])
+        
+        # see issue #183
+        else:
+            pass    # TODO: this is a bug -- that to do?
+
+    # didn't find runner, what were other possibilities?
+    elif thisdisposition == DISP_MISSED:
+        # this is possible because maybe (new) member was chosen in prior use of editparticipants
+        if candidate:
+            runnername,ascdob = candidate
+            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
+            try:
+                dobdt = dbdate.asc2dt(ascdob)
+                nameage = '{} ({})'.format(runner.name,timeu.age(racedatedt,dobdt))
+            # possibly no date of birth
+            except ValueError:
+                nameage = runner.name
+            thisrunnerchoice.append([runner.id,nameage])
+        
+        # this handles case where age mismatch was chosen in prior use of editparticipants
+        elif thisrunnerid:
+            runner = Runner.query.filter_by(club_id=club_id,id=thisrunnerid).first()
+
+        # remove runners who were not within the age window, or who were excluded
+        missed = pool.getmissedmatches()                        
+        missed = filtermissed(club_id,missed,race.date,result.age)
+        for thismissed in missed:
+            missedrunner = Runner.query.filter_by(club_id=club_id,name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
+            dobdt = dbdate.asc2dt(thismissed['dob'])
+            nameage = '{} ({})'.format(missedrunner.name,timeu.age(racedatedt,dobdt))
+            thisrunnerchoice.append((missedrunner.id,nameage))
+        
+    # for no match and excluded entries, change choice
+    elif thisdisposition in [DISP_NOTUSED,DISP_EXCLUDED]:
+        if membersonly:
+            thisrunnerchoice = [(None,'n/a')]
+        else:
+            # leave default
+            pass
+    
+    # for non membersonly race, maybe need to add new name to member database, give that option
+    if not membersonly and thisdisposition != DISP_MATCH:
+        # it's possible that result.name == runnername if (new) member was added in prior use of editparticipants
+        if result.name != runnername:
+            thisrunnerchoice.append(('new','{} (new)'.format(result.name)))
+
+    return thisrunnerchoice
 
 #######################################################################
 class FixupResult():
@@ -438,78 +522,13 @@ class FixupResult():
         '''
 
         self.result = result
-
         club_id = flask.session['club_id']
-        membersonly = race.series[0].series.membersonly
-        racedatedt = dbdate.asc2dt(race.date)
 
-        thistime = render.rendertime(result.time,timeprecision)
-        thisdisposition = result.initialdisposition # set in AjaxImportResults.post()
-        thisrunnerid = result.runnerid           # set in AjaxImportResults.post()
-        thisrunnerchoice = [(None,'[not included]')]
+        # make time renderable
+        self.time = render.rendertime(result.time,timeprecision)
 
-        # need to repeat logic from AjaxImportResults() because AjaxImportResults() may leave null in runnerid field of managedresult
-        candidate = pool.findmember(result.name,result.age,race.date)
-        
-        runner = None
-        runnername = ''
-        if thisdisposition in [DISP_MATCH,DISP_CLOSE]:
-            # found a possible runner
-            if candidate:
-                runnername,ascdob = candidate
-                runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
-                dobdt = dbdate.asc2dt(ascdob)
-                nameage = '{} ({})'.format(runner.name,timeu.age(racedatedt,dobdt))
-                thisrunnerchoice.append([runner.id,nameage])
-            
-            # see issue #183
-            else:
-                stophere
-                pass    # TODO: this is a bug -- that to do?
-
-        # didn't find runner, what were other possibilities?
-        elif thisdisposition == DISP_MISSED:
-            # this is possible because maybe (new) member was chosen in prior use of editparticipants
-            if candidate:
-                runnername,ascdob = candidate
-                runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
-                dobdt = dbdate.asc2dt(ascdob)
-                nameage = '{} ({})'.format(runner.name,timeu.age(racedatedt,dobdt))
-                thisrunnerchoice.append([runner.id,nameage])
-            
-            # this handles case where age mismatch was chosen in prior use of editparticipants
-            elif thisrunnerid:
-                runner = Runner.query.filter_by(club_id=club_id,id=thisrunnerid).first()
-
-            # remove runners who were not within the age window, or who were excluded
-            missed = pool.getmissedmatches()                        
-            missed = filtermissed(club_id,missed,race.date,result.age)
-            for thismissed in missed:
-                missedrunner = Runner.query.filter_by(club_id=club_id,name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
-                dobdt = dbdate.asc2dt(thismissed['dob'])
-                nameage = '{} ({})'.format(missedrunner.name,timeu.age(racedatedt,dobdt))
-                thisrunnerchoice.append((missedrunner.id,nameage))
-            
-        # for no match and excluded entries, change choice
-        elif thisdisposition in [DISP_NOTUSED,DISP_EXCLUDED]:
-            if membersonly:
-                thisrunnerchoice = [(None,'n/a')]
-            else:
-                # leave default
-                pass
-        
-        # for non membersonly race, maybe need to add new name to member database, give that option
-        if not membersonly and thisdisposition != DISP_MATCH:
-            # it's possible that result.name == runnername if (new) member was added in prior use of editparticipants
-            if result.name != runnername:
-                thisrunnerchoice.append(('new','{} (new)'.format(result.name)))
-        
-        # make results accessible
-        self.runner = runner
-        self.time = thistime
-        self.disposition = thisdisposition
-        self.runnerchoice = thisrunnerchoice
-        self.runnerid = thisrunnerid
+        # get choices for this result
+        self.runnerchoice = getrunnerchoices(club_id, race, pool, result)
 
     #----------------------------------------------------------------------
     def renderable_result(self):
@@ -522,7 +541,7 @@ class FixupResult():
             'resultname' : self.result.name,
             'gender' : self.result.gender,
             'age' : self.result.age,
-            'disposition' : self.disposition,
+            'disposition' : self.result.initialdisposition,
             'confirm' : self.result.confirmed,
             'runnerid' : self.result.runnerid,
             'hometown' : self.result.hometown,
@@ -583,11 +602,15 @@ class EditParticipants(MethodView):
                 # get names and ages associated with each name
                 for thismember in memberrecs[thismembername]:
                     racedate = tYmd.asc2dt(race.date)
-                    dob = tYmd.asc2dt(thismember['dob'])
-                    age = timeu.age(racedate,dob)
+                    try:
+                        dob = tYmd.asc2dt(thismember['dob'])
+                        age = timeu.age(racedate,dob)
+                        nameage = u'{} ({})'.format(thismember['name'], age)
+                    # maybe no dob
+                    except ValueError:
+                        nameage = thismember['name']
 
                     # memberages is used for picklist on missed and similar dispositions
-                    nameage = u'{} ({})'.format(thismember['name'], age)
                     memberages[thismember['id']] = nameage
 
                     # set up to retrieve age, gender for this member
@@ -616,10 +639,15 @@ class EditParticipants(MethodView):
             for result in results:
                 r = FixupResult(race, pool, result, timeprecision)
                 thisresult = r.renderable_result()
+
+                runner = Runner.query.filter_by(club_id=club_id,id=result.runnerid).first()
+                thisresult['membertype'] = getmembertype(result.runnerid)
+
                 tabledata.append(thisresult)
 
                 # use select field unless 'definite', or membersonly and '' (means definitely didn't find)
-                if writecheck.can() and (r.disposition == 'missed' or r.disposition == 'similar') or (not membersonly and r.disposition != 'definite'):
+                if writecheck.can() and ((result.initialdisposition == DISP_MISSED or result.initialdisposition == DISP_CLOSE) 
+                                         or (not membersonly and result.initialdisposition != DISP_MATCH)):
                     tableselects[result.id] = r.runnerchoice
 
             # commit database updates and close transaction
@@ -701,10 +729,11 @@ class AjaxEditParticipants(MethodView):
 
             # dataTables Editor helper
             dbmapping = dict(zip(self.dbfields,self.formfields))
-            dbmapping['time']     = lambda inrow: timeu.timesecs(inrow['time'])
+            dbmapping['time']     = lambda inrow: timeu.racetimesecs(inrow['time'], race.distance, PACE_FAST, PACE_SLOW)
 
             formmapping = dict(zip(self.formfields,self.dbfields))
             formmapping['time'] = lambda dbrow: render.rendertime(dbrow.time,timeprecision)
+            formmapping['membertype'] = lambda dbrow: getmembertype(dbrow.runnerid)
 
             # prepare to import results to database
             importresults = ImportResults(club_id, raceid, dbmapping)
@@ -715,6 +744,7 @@ class AjaxEditParticipants(MethodView):
             
             # loop through data, determining best match
             responsedata = []
+            runnerchoices = {}
             for resultid in data:
                 thisdata = data[resultid]
                 # create of update
@@ -755,7 +785,9 @@ class AjaxEditParticipants(MethodView):
                     responsedata.append(thisrow)
                     app.logger.debug('thisrow={}'.format(thisrow))
 
-                    # TODO: need to update thisresult.runnerchoice for resultid
+                    # update thisresult.runnerchoice for resultid
+                    runnerchoices[dbresult.id] = runner_choices
+                    app.logger.debug('resultid={} runnerchoices={}'.format(dbresult.id, runner_choices))
 
                 # remove
                 else:
@@ -766,7 +798,7 @@ class AjaxEditParticipants(MethodView):
 
             # commit database updates and close transaction
             db.session.commit()
-            return dt_editor_response(data=responsedata)
+            return dt_editor_response(data=responsedata, choices=runnerchoices)
         
         except:
             # roll back database updates and close transaction

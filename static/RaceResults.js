@@ -913,17 +913,22 @@
                 ]
             } );
 
+            // function to set age and gender fields
             function setagegen(name, index) {
                 var age = memberagegens[name][index].age;
                 var gender = memberagegens[name][index].gender;
                 editor.set('age',age);
                 editor.set('gender',gender);
-
             }
 
-            var $resultname = editor.field('resultname').input();
+            // grab selectize instance and age field
+            var $resultname = editor.field('resultname').inst();
             var $age = editor.field('age').input();
-            $resultname.on('change', function(e) {
+
+            // function to update age and gender based on resultname
+            // if multiple members of same name, allow cycle through age/genders
+            // if age already in field, default to closest age found
+            function updateagegen(e) {
                 var name = editor.field('resultname').get().toLowerCase();
 
                 // reset age field
@@ -937,8 +942,26 @@
 
                     // multiple people with this name, create a button to switch between
                     } else if (memberagegens[name].length > 1) {
-                        var agegen_index = 0;
+                        var agegen_index;
+                        // pick default age/gen to display
+                        agegen_index = 0;
+
+                        // if an age is already in the field, find the closest one among the members matching name
+                        if (editor.get('age') != '') {
+                            agediff = 200;
+                            for (i=0; i<memberagegens[name].length; i++) {
+                                thisagediff = Math.abs(editor.get('age') - memberagegens[name][i].age);
+                                if (thisagediff < agediff) {
+                                    agediff = thisagediff;
+                                    agegen_index = i;
+                                }
+                            }
+                        };
+
+                        // update the age and gender fields
                         setagegen(name, agegen_index);
+
+                        // add button to cycle through members of same name
                         $age
                             .addClass("_rrwebapp_CRUD_input_short")
                             .after('<button class=_rrwebapp_button_age_cycle title="More than one member matches this name. Click here to cycle through members">')
@@ -965,12 +988,27 @@
                     editor.set('age','');
                     editor.set('gender','');
                 };
+            };
+
+            // update tableselects when receive response from server
+            editor.on('postSubmit', function(e, json, data, action){
+                for (var key in json.choices) {
+                    if (json.choices.hasOwnProperty(key)) {
+                        tableselects[key] = json.choices[key]
+                    }
+                }                
             });
+
+            // update age and gender when resultname is focused or changed
+            // note rather than at focus should do at initialize, but see https://github.com/selectize/selectize.js/issues/1009
+            $resultname.on('focus', updateagegen);
+            $resultname.on('change', updateagegen);
         }
         
         // initialize table before everything else
         var matchCol = getColIndex('Match');
         var typeCol = getColIndex('Type');      // if not there, -1
+        var timeCol = getColIndex('Time');
         var yadcffilters = [{
                         column_number:matchCol,
                         filter_container_id:"_rrwebapp_filtermatch",
@@ -1133,6 +1171,7 @@
                     { data: 'gender',       name: 'gender',      className: 'dt-body-center' },
                     { data: 'age',          name: 'age',         className: 'dt-body-center' },
                     { data: 'disposition',  name: 'disposition', className: 'dt-body-center' },
+                    { data: 'membertype',   name: 'membertype',  className: 'dt-body-center', visible: !membersonly },
                     { data: 'confirm',      name: 'confirm',     className: 'dt-body-center',
                       render: function ( data, type, row, meta ) {
                         var val = '' 
@@ -1192,7 +1231,7 @@
                     'csv'
                 ],
                 ordering: true,
-                order: [10,'asc'],  // 10 is time column
+                order: [10,'asc'],  // time column
             }))
             .yadcf(yadcffilters);
 
