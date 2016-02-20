@@ -1231,7 +1231,7 @@
                     'csv'
                 ],
                 ordering: true,
-                order: [10,'asc'],  // time column
+                order: [timeCol,'asc'], 
             }))
             .yadcf(yadcffilters);
 
