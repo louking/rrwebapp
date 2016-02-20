@@ -55,9 +55,6 @@ NONMEMBERCUTOFF = 0.9   # insist on high cutoff for nonmember matching
 AGE_DELTAMAX = 3    # +/- num years to be included in DISP_MISSED
 JOIN_GRACEPERIOD = timedelta(7) # allow runner to join 1 week beyond race date
 
-PACE_FAST = 2.5 * 60.0  # 2:30/mile is pretty fast
-PACE_SLOW = 30 * 60     # 30:00/mile is pretty slow
-
 # support age grade
 ag = agegrade.AgeGrade()
 
@@ -729,7 +726,7 @@ class AjaxEditParticipants(MethodView):
 
             # dataTables Editor helper
             dbmapping = dict(zip(self.dbfields,self.formfields))
-            dbmapping['time']     = lambda inrow: timeu.racetimesecs(inrow['time'], race.distance, PACE_FAST, PACE_SLOW)
+            dbmapping['time']     = lambda inrow: raceresults.normalizeracetime(inrow['time'], race.distance)
 
             formmapping = dict(zip(self.formfields,self.dbfields))
             formmapping['time'] = lambda dbrow: render.rendertime(dbrow.time,timeprecision)
@@ -753,7 +750,7 @@ class AjaxEditParticipants(MethodView):
                     if thisdata['gender'].upper() not in ['M','F']:
                         fielderrors.append({'name' : 'gender', 'status' : 'Gender must be chosen'})
 
-                    # overwrite hh:mm:ss time field into seconds
+                    # check for hh:mm:ss time field error
                     try:
                         dbtime = timeu.timesecs(thisdata['time'])
                     except ValueError:

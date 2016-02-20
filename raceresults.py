@@ -25,6 +25,7 @@ import os.path
 # home grown
 from . import app
 from loutilities import textreader
+from loutilities.timeu import racetimesecs
 
 # fieldxform is a dict whose keys are the 'real' information we're interested in
 # the value for a particular key contains a list with possible header entries which might be used to represent that key
@@ -49,6 +50,23 @@ fieldxform = {
 class headerError(Exception): pass
 class dataError(Exception): pass
 
+# for _normalizetime
+PACE_FAST = 2.5 * 60.0  # 2:30/mile is pretty fast
+PACE_SLOW = 30 * 60     # 30:00/mile is pretty slow
+
+#----------------------------------------------------------------------
+def normalizeracetime(racetime, distance, fastpace=PACE_FAST, slowpace=PACE_SLOW):
+#----------------------------------------------------------------------
+    '''
+    normalize a race time in hh:mm:ss format
+
+    :param racetime: hh:mm:ss or hh:mm or mm:ss or ss, all allowing decimal
+    :param distance: distance in units (defaults assume miles)
+    :param fastpace: fast pace in seconds per unit (default assumes seconds/mile)
+    :param slowpace: slow pace in seconds per unit (default assumes seconds/mile)
+    '''
+    return racetimesecs(racetime, distance, fastpace, slowpace)
+    
 ########################################################################
 class RaceResults():
 ########################################################################
@@ -74,10 +92,6 @@ class RaceResults():
             self.contiguousrows = False
         else:
             self.contiguousrows = True
-        
-        # timefactor is based on the first entry's time and distance
-        # see self._normalizetime()
-        self.timefactor = None
         
         # self.field item value will be of form {'begin':startindex,'end':startindex+length} for easy slicing
         self.field = {}
@@ -257,10 +271,7 @@ class RaceResults():
         
         # if string, assume hh:mm:ss or mm:ss or ss
         if type(time) in [str,unicode]:
-            timefields = time.split(':')
-            tottime = 0.0
-            for f in timefields:
-                tottime = tottime*60 + float(f)
+            thistime = time
     
         # if float or int, assume it came from excel, and is in days
         elif type(time) in [float,int]:
@@ -268,23 +279,14 @@ class RaceResults():
             
             # to avoid quantization error through excel, round with epsilon of 0.00005
             tottime = round(tottime*10000)/10000.0
+            hours = int(tottime/3600)
+            tottime -= hours*3600
+            minutes = int(tottime/60)
+            tottime -= minutes*60
+            seconds = tottime
+            thistime = '{}:{}:{}'.format(hours, minutes, seconds)
         
-        # it is possible that excel times have been put in as hh:mm accidentally
-        # use timefactor to adjust this, based on the time of the first runner, and the distance
-        # assume 6mm +/- 50%.  if the time doesn't fit in this range, divide by 60
-        # if time still doesn't fit, ask for help (raise exception)
-        if not self.timefactor:
-            timeestimate = distance * 6.0 * 60  # 6 minute mile
-            minpace = timeestimate * 0.5
-            maxpace = timeestimate * 2.0
-            self.timefactor = 1.0
-            if tottime > maxpace:
-                self.timefactor = 1/60.0
-            if tottime*self.timefactor < minpace or tottime*self.timefactor > maxpace:
-                raise dataError, '{0}: invalid time detected - {1} ({2} secs) for {3} mile race'.format(self.filename,time,tottime,distance)
-            
-        tottime *= self.timefactor
-        return tottime
+        return normalizeracetime(thistime, distance)
     
     #----------------------------------------------------------------------
     def next(self):
