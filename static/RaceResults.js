@@ -901,7 +901,10 @@
                 fields: [
                     { label: 'Result Name:', name: 'resultname',
                       type: 'selectize', options: membernames,
-                      opts: { searchField: 'label' },
+                      opts: { 
+                        searchField: 'label',
+                        openOnFocus: false
+                    },
                     },
                     { label: 'Age:',  name: 'age' },
                     { label: 'Gender:',  name: 'gender',
