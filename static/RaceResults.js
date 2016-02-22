@@ -1057,6 +1057,7 @@
                 }
 
                 $('._rrwebapp-editparticipants-select-runner, ._rrwebapp-editparticipants-checkbox-confirmed')
+                    .off('change')  // remove any listeners left over from previous draw
                     .on('change',
                         function ( event ) {
                             var apiurl = $( this ).attr('_rrwebapp-apiurl');
@@ -1193,8 +1194,8 @@
                                 + '<select class="_rrwebapp-editparticipants-select-runner"'
                                 + ' id="_rrwebapp-editparticipants-select-id-' + row.id + '"'
                                 + ' _rrwebapp-field=\'runnerid\''
-                                + ((!membersonly) ? ' _rrwebapp-newrunner-name=' + row.name + ' _rrwebapp-newrunner-gender=' + row.gender : '')
-                                + '_rrwebapp-apiurl=' + fieldapi + row.id + '>\n'
+                                + ((!membersonly) ? ' _rrwebapp-newrunner-name="' + row.resultname + '" _rrwebapp-newrunner-gender="' + row.gender + '"' : '')
+                                + ' _rrwebapp-apiurl=' + fieldapi + row.id + '>\n'
                             var len = tableselects[row.id].length;
                             for ( var i = 0; i < len; i++ ) {
                                 var value  = tableselects[row.id][i][0];
