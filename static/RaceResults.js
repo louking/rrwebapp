@@ -1245,7 +1245,7 @@
         // set up widgets at top of page
         if (writeallowed) {
             toolbutton.$widgets.css({height:"0px"});   // no more widgets in container            
-            if (typeCol == -1) {
+            if (membersonly) {
                 toolbutton.position({my: "left center", at: "right+3 center", of: '#_rrwebapp_filtermatch'});                
             } else {
                 toolbutton.position({my: "left center", at: "right+3 center", of: '#_rrwebapp_filtertype'});                                
