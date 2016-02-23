@@ -1010,7 +1010,7 @@
         
         // initialize table before everything else
         var matchCol = getColIndex('Match');
-        var typeCol = getColIndex('Type');      // if not there, -1
+        var typeCol = getColIndex('Type');
         var timeCol = getColIndex('Time');
         var yadcffilters = [{
                         column_number:matchCol,
@@ -1024,7 +1024,7 @@
                         },
                         filter_reset_button_text: 'all',    // no filter reset button
                     }];
-        if (typeCol != -1) {
+        if (!membersonly) {
             yadcffilters.push({
                         column_number:typeCol,
                         filter_container_id:"_rrwebapp_filtertype",
