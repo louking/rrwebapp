@@ -119,6 +119,34 @@ def setscripts():
     app.jinja_env.globals['_rrwebapp_jsfiles'] = annotatescripts(jsfiles)
     
 #----------------------------------------------------------------------
+def addscripts(scriptlist):
+#----------------------------------------------------------------------
+    '''
+    return script tags for designated filenames. the result must be passed into
+    template to be added to standard scripts. this can be used for js or css files
+    but all in the list must be the same
+
+    :param scriptlist: list of filenames to be added to the jsfiles list when template is built
+    :rtype: list of annotated scripts to be passed to template
+    '''
+    
+    if len(scriptlist) == 0:
+        return []
+
+    # get filetype of first file
+    firstfiletype = scriptlist[0].split('.')[-1]
+    if firstfiletype not in ['css', 'js']:
+        raise invalidScript,'Invalid script filename: {}'.format(thisfile)
+
+    # make sure all scripts referenced are of same type as first
+    for thisfile in scriptlist:
+        filetype = thisfile.split('.')[-1]
+        if filetype != firstfiletype:
+            raise invalidScript,'All scripts in script list must be of same type: {}'.format(scriptlist)
+
+    return annotatescripts(scriptlist)
+
+#----------------------------------------------------------------------
 @app.before_request
 def before_request():
 #----------------------------------------------------------------------

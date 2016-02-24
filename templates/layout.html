@@ -101,6 +101,9 @@
 {% for css in _rrwebapp_cssfiles %}
   <link rel=stylesheet type=text/css href="{{ url_for('static', filename=css.filename) }}?v={{ css.version }}">
 {% endfor %}
+{% for css in pagecssfiles %}
+  <link rel=stylesheet type=text/css href="{{ url_for('static', filename=css.filename) }}?v={{ css.version }}">
+{% endfor %}
 <style>
   {% if request.url[0:16] == "http://127.0.0.1" %}
     html {background: antiquewhite;}

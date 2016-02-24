@@ -42,7 +42,7 @@ from renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
 from forms import StandingsForm, ChooseStandingsForm
 import loutilities.renderrun as render
 from loutilities import timeu
-from request import annotatescripts
+from request import addscripts
 
 #######################################################################
 class ChooseStandings(MethodView):
@@ -383,7 +383,7 @@ class TestStandings(MethodView):
             return flask.render_template('viewstandings.html',form=form,headingdata=headingdata,
                                          racerows=racerows,standings=standings,description=description,
                                          division=division,gender=gender,printerfriendly=printerfriendly,
-                                         pagejsfiles=annotatescripts(['TestStandings.js']),
+                                         pagejsfiles=addscripts(['TestStandings.js']),
                                          inhibityear=True,inhibitclub=True)
         
         except Exception,e:
