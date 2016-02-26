@@ -94,6 +94,9 @@ def getnavigation():
             navigation.append({'display':'Races','url':flask.url_for('manageraces')})
             navigation.append({'display':'Series','url':flask.url_for('manageseries')})
             navigation.append({'display':'Divisions','url':flask.url_for('managedivisions')})
+
+        if club and writecheck.can():
+            navigation.append({'display':'Exclusions','url':flask.url_for('editexclusions')})
     
     # anonymous access
     navigation.append({'display':'Standings','url':flask.url_for('choosestandings')})

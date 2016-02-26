@@ -37,6 +37,7 @@ from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, Vi
                                     UpdateClubDataPermission, ViewClubDataPermission
 from database_flask import db   # this is ok because this module only runs under flask
 from apicommon import failure_response, success_response
+from request import addscripts
 
 # module specific needs
 import raceresults
@@ -810,6 +811,152 @@ class AjaxEditParticipants(MethodView):
             return dt_editor_response(data=[], error=cause, fieldErrors=fielderrors)
 #----------------------------------------------------------------------
 app.add_url_rule('/_editparticipants/<int:raceid>',view_func=AjaxEditParticipants.as_view('_editparticipants'),methods=['POST'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class EditExclusions(MethodView):
+#######################################################################
+    decorators = [login_required]
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        try:
+            club_id = flask.session['club_id']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can write the data, otherwise abort
+            if not writecheck.can():
+                db.session.rollback()
+                flask.abort(403)
+            
+            # retrieve exclusion table
+            exclusions = Exclusion.query.filter_by(club_id=club_id).all()
+
+            # build table data
+            tabledata = []
+            for exclusion in exclusions:
+                thisentry = {
+                    'id'         : exclusion.id,
+                    'foundname'  : exclusion.foundname,
+                    'runnerid'   : exclusion.runnerid,
+                    'membername' : Runner.query.filter_by(id=exclusion.runnerid).first().name,
+                }
+                tabledata.append(thisentry)
+
+            # DataTables options string, data: and buttons: are passed separately
+            dt_options = {
+                'dom': '<"H"lBpfr>t<"F"i>',
+                'columns': [
+                    {
+                        'data': None,
+                        'defaultContent': '',
+                        'className': 'select-checkbox',
+                        'orderable': False
+                    },
+                    { 'data': 'foundname', 'name': 'resultname', 'label': 'Result Name' },
+                    { 'data': 'membername', 'name': 'membername', 'label': 'Member Name' }, 
+                    { 'data': 'runnerid', 'name': 'runnerid', 'visible': False }
+                ],
+                'select': True,
+                'ordering': True,
+                'order': [1,'asc']
+            }
+
+            ed_options = {
+                'idSrc': 'id',
+                'ajax': flask.url_for('_editexclusions'),
+            }
+
+            # buttons just names the buttons to be included, in what order
+            buttons = [ 'remove', 'csv' ]
+
+
+            # commit database updates and close transaction
+            db.session.commit()
+            return flask.render_template('datatables.html', 
+                                         pagename='Edit Exclusions',
+                                         pagejsfiles=addscripts(['datatables.js']),
+                                         ed_options = ed_options,
+                                         dt_options = dt_options,
+                                         tabledata=tabledata, 
+                                         tablebuttons = buttons,
+                                         inhibityear=True,
+                                         writeallowed=writecheck.can())
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/editexclusions',view_func=EditExclusions.as_view('editexclusions'),methods=['GET'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class AjaxEditExclusions(MethodView):
+#######################################################################
+    decorators = [login_required]
+    #----------------------------------------------------------------------
+    def post(self):
+    #----------------------------------------------------------------------
+        # prepare for possible errors
+        error = ''
+        fielderrors = []
+
+        try:
+            club_id = flask.session['club_id']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can write the data, otherwise abort
+            if not writecheck.can():
+                db.session.rollback()
+                cause = 'operation not permitted for user'
+                return dt_editor_response(error=cause)
+            
+            # handle create, edit, remove
+            action = get_request_action(request.form)
+
+            # get data from form
+            data = get_request_data(request.form)
+            app.logger.debug('action={}, data={}, form={}'.format(action, data, request.form))
+
+            if action not in ['remove']:
+                db.session.rollback()
+                cause = 'unknown action "{}"'.format(action)
+                app.logger.warning(cause)
+                return dt_editor_response(error=cause)
+
+            # loop through data
+            responsedata = []
+            for exclusionid in data:
+                thisdata = data[exclusionid]
+                # remove is only choice
+                if action == 'remove':
+                    resultid = thisdata['id']
+                    dbresult = Exclusion.query.filter_by(id=exclusionid).first()
+                    app.logger.debug('deleting id={}, name={}'.format(exclusionid,dbresult.foundname))
+                    db.session.delete(dbresult)
+
+            # commit database updates and close transaction
+            db.session.commit()
+            return dt_editor_response(data=responsedata)
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            if fielderrors:
+                cause = 'please check indicated fields'
+            elif error:
+                cause = error
+            else:
+                cause = traceback.format_exc()
+                app.logger.error(traceback.format_exc())
+            return dt_editor_response(data=[], error=cause, fieldErrors=fielderrors)
+#----------------------------------------------------------------------
+app.add_url_rule('/_editexclusions',view_func=AjaxEditExclusions.as_view('_editexclusions'),methods=['POST'])
 #----------------------------------------------------------------------
 
 #######################################################################
