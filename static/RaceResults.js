@@ -1002,9 +1002,8 @@
                 }                
             });
 
-            // update age and gender when resultname is focused or changed
-            // note rather than at focus should do at initialize, but see https://github.com/selectize/selectize.js/issues/1009
-            $resultname.on('focus', updateagegen);
+            // update age and gender when editor form is opened or resultname is changed
+            editor.on('open', updateagegen);
             $resultname.on('change', updateagegen);
         }
         
