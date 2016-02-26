@@ -1,0 +1,63 @@
+{# datatables.html is used, in conjunction with datatables.js to display a single
+   dataTable $('#datatable'), with optional Editor support
+
+   parameters:
+      pagename:     name of page to be displayed at the top of the page
+      dt_options:   options to be passed to DataTables instance, 
+                    except for data: and buttons: options
+      tabledata:    data for the table, as expected by DataTables, 
+                    with additional label: field per column, used for column headings
+      tablebuttons: buttons: option value for dt_options
+      ed_options:   options to be passed to Editor instance, 
+                    if not present, Editor will not be configured
+
+      pagejsfiles:  list of js files for page
+      pagecssfiles: list of css files for page
+#}
+
+{% extends "layout.html" %}
+{% block pagename %}
+    {{ pagename }}
+{% endblock %}
+{% block css %}
+{% endblock %}
+{% block scripts %}
+  <script type="text/javascript">
+    $( document ).ready( function() {
+      var 
+        dt_options = {{ dt_options|tojson|safe }},
+        {% if ed_options is defined %}
+          ed_options = {{ ed_options|tojson|safe }},
+        {% endif %}
+        tabledata  = {{ tabledata|tojson|safe }},
+        tablebuttons = {{ tablebuttons|tojson|safe }};
+      
+      {% if ed_options is defined %}
+        datatables(tabledata, tablebuttons, dt_options, ed_options);    
+      {% else %}
+        datatables(tabledata, tablebuttons, dt_options);
+      {% endif %}
+    })
+  </script>
+  <script type="text/javascript">
+  </script>
+{% endblock %}
+{% block body %}
+  <table class="" id="datatable" >
+    <thead>
+      <tr>
+        {# assume select column if Editor options are provided #}
+        {% if ed_options is defined %}
+          <th class=""></th>
+        {% endif %}
+        {% for col in dt_options.columns %}
+          {% if col.label %}
+            <th class="">{{ col.label }}</th>
+          {% endif %}
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+{% endblock %}
