@@ -626,6 +626,9 @@
         
     function ajax_import_file_resp(urlpath,formsel,data) {
         window.console && console.log(data);
+        $('#progressbar').progressbar('destroy');
+        $('#progressbar').remove();
+
         if (data.success) {
             if (data.redirect){
                 window.location.replace(data.redirect);
@@ -682,10 +685,14 @@
             contentType: false,
             cache: false,
             processData: false,
-            async: false,
+            async: true,
             success: function(data) {ajax_import_file_resp(urlpath,formsel,data)},
         });
         
+        // show we're doing something
+        $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">&nbsp;&nbsp;&nbsploading...</div></div>');
+        progressbar = $('#progressbar').progressbar({value:false});
+
         //closetoolbutton();
         toolbutton.close();
     };
