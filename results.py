@@ -1152,24 +1152,6 @@ def allowed_file(filename):
 #----------------------------------------------------------------------
     return '.' in filename and filename.split('.')[-1] in ['xls','xlsx','txt','csv']
 
-#----------------------------------------------------------------------
-def fix_dbresult_fields(managedresult):
-#----------------------------------------------------------------------
-    if not managedresult.name:
-        managedresult.name = ' '.join([managedresult.fname,managedresult.lname])
-    elif not managedresult.fname or not managedresult.lname:
-        names = split_full_name(managedresult.name)
-        managedresult.fname = names['fname']
-        managedresult.lname = names['lname']
-    
-    if not managedresult.hometown:
-        if managedresult.city and managedresult.state:
-            managedresult.hometown = ', '.join([managedresult.city,managedresult.state])
-
-    # gender needs to be upper case
-    if managedresult.gender:
-        managedresult.gender = managedresult.gender.upper()
-
 
 #######################################################################
 class AjaxImportResults(MethodView):
