@@ -1312,36 +1312,33 @@
             resetDataTableHW();
         }
 
-        // force always to have some Series filter
-        var selectfilter = '#_rrwebapp_filterseries select';
-        $(selectfilter+" option[value='-1']").remove();
+        // set series, division and gender based on caller's preferences
+        var serieschoices = getchoicevalues('#_rrwebapp_filterseries select');
+        var divchoices = getchoicevalues('#_rrwebapp_filterdivision select');
+        var genchoices = getchoicevalues('#_rrwebapp_filtergender select');
 
-        // set series based on caller's preference
-        var serieschoices = getchoicevalues(selectfilter);
+        // set default series, division, gender if included in current filter
+        filtercolumns = [];
         if ($.inArray(series, serieschoices) != -1) {
-            yadcf.exFilterColumn(_rrwebapp_table, seriesCol, series);
+            filtercolumns.push([seriesCol,series])
         } else {
-            yadcf.exFilterColumn(_rrwebapp_table, seriesCol, serieschoices[0])            
+            if (serieschoices.length > 1) {
+                filtercolumns.push([seriesCol,serieschoices[1]]);
+            }
         }
-
-        // set division based on caller's preference
-        var selectfilter = '#_rrwebapp_filterdivision select';
-        var divchoices = getchoicevalues(selectfilter);
         if ($.inArray(division, divchoices) != -1) {
-            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, division);
-        } else {
-            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, divchoices[0])            
+            filtercolumns.push([divisionCol, division]);
         }
-        
-        // set gender based on caller's preference
-        selectfilter = '#_rrwebapp_filtergender select';
-        var genchoices = getchoicevalues(selectfilter);
         if ($.inArray(gender, genchoices) != -1) {
-            yadcf.exFilterColumn(_rrwebapp_table, genderCol, gender);
-        } else {
-            yadcf.exFilterColumn(_rrwebapp_table, genderCol, genchoices[0])            
-        }
-        
+            filtercolumns.push([genderCol, gender]);
+        } 
+
+        // set up external filters
+        yadcf.exFilterColumn(_rrwebapp_table, filtercolumns);
+
+        // force always to have some Series filter
+        //$("#_rrwebapp_filterseries select option[value='-1']").remove();
+
         // printerfriendly
         $('#_rrwebapp-button-printerfriendly').button({
             text: false,
@@ -1448,42 +1445,30 @@
         }
         
 
-        // set name based on caller's preference
-        var selectfilter = '#_rrwebapp_filtername select';
-        var namechoices = getchoicevalues(selectfilter);
+        // set filters based on caller's preference
+        var filtercolumns = [];
+        var namechoices = getchoicevalues('#_rrwebapp_filtername select');
+        var serieschoices = getchoicevalues('#_rrwebapp_filterseries select');
+        var divchoices = getchoicevalues('#_rrwebapp_filterdivision select');
+        var genchoices = getchoicevalues('#_rrwebapp_filtergender select');
+
+        // set default name, series, gender if included in current filter
         if ($.inArray(name, namechoices) != -1) {
-            yadcf.exFilterColumn(_rrwebapp_table, nameCol, name);
-        //} else {
-        //    yadcf.exFilterColumn(_rrwebapp_table, nameCol, namechoices[0])            
+            filtercolumns.push([nameCol, [name]]);  // name needs to be list for multi-select
         }
-
-        // set series based on caller's preference
-        var selectfilter = '#_rrwebapp_filterseries select';
-        var serieschoices = getchoicevalues(selectfilter);
         if ($.inArray(series, serieschoices) != -1) {
-            yadcf.exFilterColumn(_rrwebapp_table, seriesCol, series);
-        } else {
-            yadcf.exFilterColumn(_rrwebapp_table, seriesCol, serieschoices[0])            
+            filtercolumns.push([seriesCol, series]);
         }
-
-        // set division based on caller's preference
-        var selectfilter = '#_rrwebapp_filterdivision select';
-        var divchoices = getchoicevalues(selectfilter);
         if ($.inArray(division, divchoices) != -1) {
-            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, division);
-        } else {
-            yadcf.exFilterColumn(_rrwebapp_table, divisionCol, divchoices[0])            
+            filtercolumns.push([divisionCol, division]);
         }
-        
-        // set gender based on caller's preference
-        selectfilter = '#_rrwebapp_filtergender select';
-        var genchoices = getchoicevalues(selectfilter);
         if ($.inArray(gender, genchoices) != -1) {
-            yadcf.exFilterColumn(_rrwebapp_table, genderCol, gender);
-        } else {
-            yadcf.exFilterColumn(_rrwebapp_table, genderCol, genchoices[0])            
+            filtercolumns.push([genderCol, gender]);
         }
         
+        // set up external filters
+        yadcf.exFilterColumn(_rrwebapp_table, filtercolumns);
+
         // printerfriendly
         $('#_rrwebapp-button-printerfriendly').button({
             text: false,
@@ -1597,35 +1582,21 @@
                 newtab(newurl);
         });
             
-        // find the external filters
-        var divfilter = '#_rrwebapp_filterdivision select';
-        var genfilter = '#_rrwebapp_filtergender select';
+        // set filters based on caller's preference
+        filtercolumns = [];
+        var divchoices = getchoicevalues('#_rrwebapp_filterdivision select');
+        var genchoices = getchoicevalues('#_rrwebapp_filtergender select');
 
-        // force always to have some Division filter, hopefully Overall
-        $(divfilter+" option[value='-1']").remove();
-        
-        // set division based on caller's preference
-        // set gender based on caller's preference
-        var divchoices = getchoicevalues(divfilter);
-        var genchoices = getchoicevalues(genfilter);
+        // set default division, gender if included in current filter
         if ($.inArray(division, divchoices) != -1) {
-            var usedivision = division;
-        } else {
-            var usedivision = divchoices[0];
+            filtercolumns.push([divisionCol, division]);
         }
         if ($.inArray(gender, genchoices) != -1) {
-            var usegender = gender;
-        } else {
-            var usegender = genchoices[0]
+            filtercolumns.push([genderCol, gender]);
         }
 
-        yadcf.exFilterColumn(_rrwebapp_table, [[divisionCol, usedivision], [genderCol, usegender]])
+        yadcf.exFilterColumn(_rrwebapp_table, filtercolumns)
 
-        // reset gender column if didn't mean to filter
-        if (usegender == "-1") {
-            yadcf.exResetFilters( _rrwebapp_table, [genderCol] )
-        }
-        
         // mouseover races shows race name
         $( document ).tooltip();
     };  // viewstandings
