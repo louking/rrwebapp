@@ -19,10 +19,11 @@ import os
 from datetime import timedelta
 import traceback
 from collections import defaultdict, OrderedDict
+from urllib import urlencode
 
 # pypi
 import flask
-from flask import make_response,request
+from flask import make_response, request, jsonify
 from flask.ext.login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
@@ -42,13 +43,14 @@ from request import addscripts
 # module specific needs
 import raceresults
 import clubmember
-from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, Series, Divisions, dbdate
+from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, Series, Divisions, Club, dbdate
 from datatables_editor import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 from forms import SeriesResultForm, RunnerResultForm
 from loutilities.namesplitter import split_full_name
 import loutilities.renderrun as render
 from loutilities import timeu, agegrade
 tYmd = timeu.asctime('%Y-%m-%d')
+tmdy = timeu.asctime('%m/%d/%y')
 
 # control behavior of import
 DIFF_CUTOFF = 0.7   # ratio of matching characters for cutoff handled by 'clubmember'
@@ -878,10 +880,9 @@ class EditExclusions(MethodView):
             return flask.render_template('datatables.html', 
                                          pagename='Edit Exclusions',
                                          pagejsfiles=addscripts(['datatables.js']),
-                                         ed_options = ed_options,
-                                         dt_options = dt_options,
                                          tabledata=tabledata, 
                                          tablebuttons = buttons,
+                                         options = {'dtopts': dt_options, 'editoropts': ed_options},
                                          inhibityear=True,
                                          writeallowed=writecheck.can())
         
@@ -1043,6 +1044,7 @@ class SeriesResults(MethodView):
 app.add_url_rule('/seriesresults/<int:raceid>',view_func=SeriesResults.as_view('seriesresults'),methods=['GET'])
 #----------------------------------------------------------------------
 
+
 #######################################################################
 class RunnerResults(MethodView):
 #######################################################################
@@ -1051,10 +1053,10 @@ class RunnerResults(MethodView):
     #----------------------------------------------------------------------
         try:
             starttime = time.time()
+            club_shname = request.args.get('club',None)
             runnerid = request.args.get('participant',None)
             seriesarg = request.args.get('series',None)
-                
-            form = RunnerResultForm()
+            # NOTE: session variables are updated in nav.py
 
             # filter on valid runnerid, if present
             resultfilter = {}
@@ -1067,77 +1069,89 @@ class RunnerResults(MethodView):
                     name = runner.name
                     pagename = '{} Results'.format(name)
 
-            # get all the results
-            results = []
-            for series in Series.query.all():
-                seriesid = series.id
-                resultfilter['seriesid'] = seriesid
-                seriesresults = RaceResult.query.filter_by(**resultfilter).order_by(series.orderby).all()
-                # this is easier, code-wise, than using sqlalchemy desc() function
-                if series.hightolow:
-                    seriesresults.reverse()
-                # remove results for inactive races
-                results += [s for s in seriesresults if s.race.active]
-            
-            # kludge alert!  filter out results when raceseries is inactive
-            allraceseries = RaceSeries.query.all()
-            raceseries = {}
-            for rs in allraceseries:
-                raceseries[rs.raceid,rs.seriesid] = rs.active
-            filteredresults = []
-            for result in results[:]:
-                if raceseries[result.raceid,result.seriesid]:
-                    filteredresults.append(result)
-            results = filteredresults
-            
-            # sort results by date
-            dateresults = [(r.race.date,r) for r in results]
-            dateresults.sort()
-            results = [dr[1] for dr in dateresults]
-            
-            # fix up the following:
-            #   * time gets converted from seconds
-            #   * determine member matching, set runnerid choices and initially selected choice
-            #   * based on matching, set disposition
-            displayresults = []
-            for result in results:
-                thisname = result.runner.name
-                thisseries = result.series.name
-                thisrace = result.race.name
-                thisdate = result.race.date
-                timeprecision,agtimeprecision = render.getprecision(result.race.distance,surface=result.race.surface)
-                thisdistance = result.race.distance
-                thistime = render.rendertime(result.time,timeprecision)
-                thisagtime = render.rendertime(result.agtime,agtimeprecision)
-                thispace = render.rendertime(result.time / result.race.distance, 0, useceiling=False)
-                if result.divisionlow:
-                    if result.divisionlow == 0:
-                        thisdiv = 'up to {}'.format(result.divisionhigh)
-                    elif result.divisionhigh == 99:
-                        thisdiv = '{} and up'.format(result.divisionlow)
-                    else:
-                        thisdiv = '{} - {}'.format(result.divisionlow,result.divisionhigh)
-                else:
-                    thisdiv = ''
+            # DataTables options string, data: and buttons: are passed separately
+            dt_options = {
+                'dom': '<"H"lBpfr>t<"F"i>',
+                'columns': [
+                    { 'data': 'name',           'name': 'name',             'label': 'Name' },
+                    { 'data': 'series',         'name': 'series',           'label': 'Series' }, 
+                    { 'data': 'date',           'name': 'date',             'label': 'Date',        'className': 'dt-body-center' },
+                    { 'data': 'race',           'name': 'race',             'label': 'Race'},
+                    { 'data': 'miles',          'name': 'miles',            'label': 'Miles',       'className': 'dt-body-center' },
+                    { 'data': 'gender',         'name': 'gender',           'label': 'Gen',         'className': 'dt-body-center' },
+                    { 'data': 'age',            'name': 'age',              'label': 'Age',         'className': 'dt-body-center' },
+                    { 'data': 'genderplace',    'name': 'genderplace',      'label': 'Gen Place',   'className': 'dt-body-center' },
+                    { 'data': 'division',       'name': 'division',         'label': 'Div',         'className': 'dt-body-center' },
+                    { 'data': 'divisionplace',  'name': 'divisionplace',    'label': 'Div Place',   'className': 'dt-body-center' },
+                    { 'data': 'time',           'name': 'time',             'label': 'Time',        'className': 'dt-body-center' },
+                    { 'data': 'pace',           'name': 'pace',             'label': 'Pace',        'className': 'dt-body-center' },
+                    { 'data': 'agtime',         'name': 'agtime',           'label': 'AG Time',     'className': 'dt-body-center' },
+                    { 'data': 'agpercent',      'name': 'agpercent',        'label': 'AG %age',     'className': 'dt-body-center' },
+                ],
+                'ordering': True,
+                'serverSide': True,
+                'order': [0,'asc']
+            }
 
-                if result.genderplace:
-                    thisplace = result.genderplace
-                elif result.agtimeplace:
-                    thisplace = result.agtimeplace
-                else:
-                    thisplace = None
+            buttons = [ 'csv' ]
 
-                # order must match that which is expected within results.html
-                displayresults.append((result,thisseries,thisrace,thisdate,thisdistance,thisplace,thisname,thistime,thisdiv,thisagtime,thispace))
+            # no external filters if a runner was specified
+            if runnerid:
+                pretablehtml = ''
+                options = {'dtopts': dt_options}
+
+            # no runner was specified, yes we should be filtering
+            else:
+                pretablehtml = '''
+                    <div class="TextLeft W7emLabel">
+                      <div>
+                        <label class="Label">Name:</label><span id="_rrwebapp_filtername" class="_rrwebapp-filter"></span>
+                        <label class="Label">Series:</label><span id="_rrwebapp_filterseries" class="_rrwebapp-filter"></span>
+                        <label class="Label">Gender:</label><span id="_rrwebapp_filtergender" class="_rrwebapp-filter"></span>
+                      </div>
+                    </div>
+                '''
+                # set up yadcf
+                getcol = lambda name: [col['name'] for col in dt_options['columns']].index(name)
+                yadcf_options = [
+                    {
+                        'column_number':getcol('name'),
+                        'filter_container_id':"_rrwebapp_filtername",
+                        'filter_type':"multi_select",
+                        'select_type': 'select2',
+                        'select_type_options': {
+                            'width': '30em',
+                        },
+                        'filter_reset_button_text': 'all',
+                    },{
+                        'column_number':getcol('series'),
+                        'filter_container_id':"_rrwebapp_filterseries",
+                        'filter_reset_button_text': 'all',
+                    },{
+                        'column_number':getcol('gender'),
+                        'filter_container_id':"_rrwebapp_filtergender",
+                        'filter_reset_button_text': 'all',
+                    }
+                ]
+                options = {'dtopts': dt_options, 'yadcfopts': yadcf_options}
+
             
             # commit database updates and close transaction
             db.session.commit()
             finishtime = time.time()
             app.logger.debug('RunnerResults elapsed time = {} seconds'.format(finishtime-starttime))
-            return flask.render_template('results.html',form=form,pagename=pagename,resultsdata=displayresults,
-                                         name=name,series=seriesarg,
-                                         inhibityear=True,inhibitclub=True)
-        
+            return flask.render_template('datatables.html',
+                                         pagename=pagename,
+                                         pretablehtml=pretablehtml,
+                                         pagejsfiles=addscripts(['datatables.js']),
+                                         # serverSide must be True to pass url
+                                         # add the request args to the ajax function
+                                         tabledata=flask.url_for('_results')+'?'+urlencode(request.args),
+                                         tablebuttons= buttons,
+                                         options = options,
+                                         inhibityear=True,inhibitclub=True,
+                                         )
+
         except:
             # roll back database updates and close transaction
             db.session.rollback()
@@ -1146,6 +1160,156 @@ class RunnerResults(MethodView):
 app.add_url_rule('/results',view_func=RunnerResults.as_view('results'),methods=['GET'])
 #----------------------------------------------------------------------
 
+
+#----------------------------------------------------------------------
+def renderdivision(result):
+#----------------------------------------------------------------------
+    '''
+    render division string for result
+
+    :param result: result from RaceResult
+    :rtype: string for rendering
+    '''
+
+    if result.divisionhigh:
+        thisdiv = '{}-{}'.format(result.divisionlow,result.divisionhigh)
+    else:
+        thisdiv = ''
+
+    return thisdiv
+
+#----------------------------------------------------------------------
+def renderage(result):
+#----------------------------------------------------------------------
+    '''
+    render age string for result
+    any exceptions returns empty string - probably bad dateofbirth
+
+    :param result: result from RaceResult joined with Runner, Race
+    :rtype: string for rendering
+    '''
+
+    try:
+        thisage = timeu.age(tYmd.asc2dt(result.race.date),tYmd.asc2dt(result.runner.dateofbirth))
+    except:
+        thisage = ''
+
+    return thisage
+
+#----------------------------------------------------------------------
+def renderplace(cell):
+#----------------------------------------------------------------------
+    '''
+    render place
+
+    :param cell: cell passed from table
+    :rtype: string for rendering
+    '''
+
+    # try to render as integer, otherwise use one decimal place
+    if cell or cell==0:
+        if int(cell) == float(cell):
+            thisplace = int(cell)
+        else:
+            thisplace = '{0:.1f}'.format(cell)
+    else:
+        thisplace = ''
+
+    return thisplace
+
+
+#######################################################################
+class AjaxRunnerResults(MethodView):
+#######################################################################
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        try:
+            starttime = time.time()
+            club_shname = request.args.get('club',None)
+            runnerid = request.args.get('participant',None)
+            seriesarg = request.args.get('series',None)
+
+            # filter on valid runnerid, if present
+            resultfilter = {}
+            runnerfilter = {}
+            seriesfilter = {}
+            name = None
+            pagename = 'Results'
+            if runnerid:
+                runner = Runner.query.filter_by(id=runnerid).first()
+                if runner:
+                    resultfilter['runnerid'] = runnerid
+                    runnerfilter['id'] = runnerid
+                    name = runner.name
+                    pagename = '{} Results'.format(name)
+
+            # filter on club, if present
+            if club_shname:
+                club = Club.query.filter_by(shname=club_shname).first()
+                if club:
+                    resultfilter['club_id'] = club.id
+                    runnerfilter['club_id'] = club.id
+                    seriesfilter['club_id'] = club.id
+
+            # need to filter after the fact for series, because the seriesid is different for different years
+            if seriesarg:
+                series = Series.query.filter_by(name=seriesarg).first()
+                if series:
+                    seriesfilter['name'] = series.name
+                    app.logger.debug('filter by series {}'.format(seriesarg))
+
+            columns = [
+                ColumnDT('runner.name',     mData='name'), 
+                ColumnDT('series.name',     mData='series'),
+                ColumnDT('race.date',       mData='date'),
+                ColumnDT('race.name',       mData='race'),
+                ColumnDT('race.distance',   mData='miles',              searchable=False,
+                         # render integers as integers, 1 decimal less than 1, 2 decimals between 1 and 3 and 1 decimal above 3
+                         filter=lambda c: '{0:.{1}f}'.format(c,0 if int(c)==float(c) else 1 if c > 3 else 3 if c < 1 else 2)),
+                ColumnDT('runner.gender',   mData='gender',             searchable=False),
+                ColumnDT('age',             mData='age',                searchable=False,   filterarg='row', filter=renderage),
+                ColumnDT('genderplace',     mData='genderplace',        searchable=False,   filter=renderplace),
+                ColumnDT('division',        mData='division',           searchable=False,   filterarg='row', filter=renderdivision),
+                ColumnDT('divisionplace',   mData='divisionplace',      searchable=False,   filter=renderplace),
+                ColumnDT('time',            mData='time',               searchable=False,   filter=lambda c: render.rendertime(c, 0)),  # TODO: get precision
+                ColumnDT('time',            mData='pace',               searchable=False,
+                         filterarg='row', filter=lambda r: render.rendertime(r.time / r.race.distance, 0, useceiling=False)),
+                ColumnDT('agtime',          mData='agtime',             searchable=False,   filter=lambda c: render.rendertime(c, 0)),  # TODO: get precision
+                ColumnDT('agpercent',       mData='agpercent',          searchable=False,   filter=lambda c: '{:.2f}%'.format(c)),
+            ]
+
+            rowTable = DataTables(request.args, RaceResult, RaceResult.query.filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race"), columns)
+
+            # prepare for name, series and gender filter
+            # need to use db.session to access query function
+            # see http://stackoverflow.com/questions/2175355/selecting-distinct-column-values-in-sqlalchemy-elixir
+            # see http://stackoverflow.com/questions/22275412/sqlalchemy-return-all-distinct-column-values
+            # see http://stackoverflow.com/questions/11175519/how-to-query-distinct-on-a-joined-column
+            names = [row.name for row in db.session.query(Runner.name).filter_by(**runnerfilter).distinct().all()]
+            series = [row.name for row in db.session.query(Series.name).filter_by(**seriesfilter).distinct().all()]
+            genders = ['M','F']
+
+            # alternate methods only bring up names and series which are currently displayed on the page
+            # names = [row.runner.name for row in rowTable.query.from_self().group_by(RaceResult.runnerid).distinct().all()]
+            # series = [row.series.name for row in rowTable.query.from_self().group_by(RaceResult.seriesid).distinct().all()]
+
+            # add yadcf filter
+            getcol = lambda name: [col.mData for col in columns].index(name)
+            output_result = rowTable.output_result()
+            output_result['yadcf_data_{}'.format(getcol('name'))] = names
+            output_result['yadcf_data_{}'.format(getcol('series'))] = series
+            output_result['yadcf_data_{}'.format(getcol('gender'))] = genders
+
+            return jsonify(output_result)
+
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/_results',view_func=AjaxRunnerResults.as_view('_results'),methods=['GET'])
+#----------------------------------------------------------------------
 
 #----------------------------------------------------------------------
 def allowed_file(filename):

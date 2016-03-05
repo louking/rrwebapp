@@ -196,8 +196,9 @@
     }
     // common functions
     
-    // for slow loading links
-    $("a").click(function(){
+    // special link processing
+    $("a").click(function( event ){
+        // for slow loading links
         var img = $(this).attr('_rrwebapp-loadingimg');
         if (img) {
             //$(this).after("&nbsp;&nbsp;&nbsploading...");
@@ -205,9 +206,26 @@
             $('#progressbar').progressbar({
                 value: false,
             });
-            //for some reason the image was broken
-            //window.console && console.log("<img src='"+img+"' alt='&nbsp;&nbsp;&nbsploading...' />");
-            //$(this).after("<img src='"+img+"' alt='&nbsp;&nbsp;&nbsploading...' />").fadeIn();
+        }
+
+        // use form to gather url arguments
+        var formopts = $(this).attr('_rrwebapp-editor-form')
+        if (formopts) {
+            event.preventDefault();
+            var opts = JSON.parse(formopts);
+
+            // convert functions for buttons - see http://stackoverflow.com/questions/3946958/pass-function-in-json-and-execute
+            // this assumes buttons is array of objects
+            // TODO: handle full http://editor.datatables.net/reference/api/buttons() capability, i.e., string or single object
+            for (i=0; i<opts.buttons.length; i++) {
+                opts.buttons[i].fn = new Function(opts.buttons[i].fn);
+            }
+
+            naveditor = new $.fn.dataTable.Editor ( opts.editoropts )
+                .title( opts.title )
+                .buttons( opts.buttons )
+                .edit( null, false )
+                .open();
         }
     });
     

@@ -15,12 +15,14 @@ helper functions and ajax APIs to support navigation and headers
 '''
 
 # standard
+import json
 
 # pypi
 import flask
 from flask_login import current_user, abort
 from flask.views import MethodView
 from flask.ext.login import login_required
+from flask import request
 
 # home grown
 from . import app
@@ -98,10 +100,46 @@ def getnavigation():
         if club and writecheck.can():
             navigation.append({'display':'Exclusions','url':flask.url_for('editexclusions')})
     
+    # get club option list
+    clubs = Club.query.all()
+    clubnames = [club.name for club in clubs if club.name != 'owner']
+    clubshnames = [club.shname for club in clubs if club.name != 'owner']
+    clubopts = dict(zip(clubnames,clubshnames))
+
+    # update session based on arguments
+    clubarg = request.args.get('club',None)
+    yeararg = request.args.get('year',None)
+    seriesarg = request.args.get('series',None)
+    if clubarg:
+        flask.session['last_standings_club'] = clubarg
+    if yeararg:
+        flask.session['last_standings_year'] = yeararg
+    if seriesarg:
+        flask.session['last_standings_series'] = seriesarg
+
+    # get defaults for navigation forms
+    clubsess = flask.session.get('last_standings_club',None)
+
     # anonymous access
     navigation.append({'display':'Standings','url':flask.url_for('choosestandings')})
-    navigation.append({'display':'Results','url':flask.url_for('results'),'attr':[{'name':'_rrwebapp-loadingimg','value':flask.url_for('static',filename='images/ajax-loader.gif')}]})
-    
+    navigation.append({'display':'Results','url':'#',
+        'attr':[{   'name':'_rrwebapp-editor-form',
+                    'value': json.dumps({
+                            'title' : 'Choose club',
+                            'buttons' : [{'label': 'Go', 'fn': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(flask.url_for('results'))}],
+                            'editoropts': {
+                                'fields': [ {
+                                    'name': 'club',
+                                    'label': 'Club:',
+                                    'type': 'select', 'options': clubopts,
+                                    'def': clubsess,
+                                    },
+                                ],
+                            },
+                            })
+                  } ] 
+    })
+
     if is_authenticated(thisuser):
         # TODO: when more tools are available, move writecheck to appropriate tools
         if club and writecheck.can():
