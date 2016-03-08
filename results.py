@@ -13,7 +13,6 @@
 import json
 import csv
 import os.path
-import time
 import tempfile
 import os
 from datetime import timedelta
@@ -38,7 +37,7 @@ from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, Vi
                                     UpdateClubDataPermission, ViewClubDataPermission
 from database_flask import db   # this is ok because this module only runs under flask
 from apicommon import failure_response, success_response
-from request import addscripts
+from request import addscripts, crossdomain
 
 # module specific needs
 import raceresults
@@ -1052,7 +1051,6 @@ class RunnerResults(MethodView):
     def get(self):
     #----------------------------------------------------------------------
         try:
-            starttime = time.time()
             club_shname = request.args.get('club',None)
             runnerid = request.args.get('participant',None)
             seriesarg = request.args.get('series',None)
@@ -1135,11 +1133,9 @@ class RunnerResults(MethodView):
                 ]
                 options = {'dtopts': dt_options, 'yadcfopts': yadcf_options}
 
-            
+          
             # commit database updates and close transaction
             db.session.commit()
-            finishtime = time.time()
-            app.logger.debug('RunnerResults elapsed time = {} seconds'.format(finishtime-starttime))
             return flask.render_template('datatables.html',
                                          pagename=pagename,
                                          pretablehtml=pretablehtml,
@@ -1222,10 +1218,10 @@ def renderplace(cell):
 class AjaxRunnerResults(MethodView):
 #######################################################################
     #----------------------------------------------------------------------
+    @crossdomain(origin='*')
     def get(self):
     #----------------------------------------------------------------------
         try:
-            starttime = time.time()
             club_shname = request.args.get('club',None)
             runnerid = request.args.get('participant',None)
             seriesarg = request.args.get('series',None)
@@ -1279,20 +1275,17 @@ class AjaxRunnerResults(MethodView):
                 ColumnDT('agpercent',       mData='agpercent',          searchable=False,   filter=lambda c: '{:.2f}%'.format(c)),
             ]
 
-            rowTable = DataTables(request.args, RaceResult, RaceResult.query.filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race"), columns)
+            rowTable = DataTables(request.args, RaceResult, RaceResult.query.filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race"), columns, dialect='mysql')
 
             # prepare for name, series and gender filter
             # need to use db.session to access query function
             # see http://stackoverflow.com/questions/2175355/selecting-distinct-column-values-in-sqlalchemy-elixir
             # see http://stackoverflow.com/questions/22275412/sqlalchemy-return-all-distinct-column-values
             # see http://stackoverflow.com/questions/11175519/how-to-query-distinct-on-a-joined-column
+            # format depends on type of select
             names = [row.name for row in db.session.query(Runner.name).filter_by(**runnerfilter).distinct().all()]
             series = [row.name for row in db.session.query(Series.name).filter_by(**seriesfilter).distinct().all()]
             genders = ['M','F']
-
-            # alternate methods only bring up names and series which are currently displayed on the page
-            # names = [row.runner.name for row in rowTable.query.from_self().group_by(RaceResult.runnerid).distinct().all()]
-            # series = [row.series.name for row in rowTable.query.from_self().group_by(RaceResult.seriesid).distinct().all()]
 
             # add yadcf filter
             getcol = lambda name: [col.mData for col in columns].index(name)
