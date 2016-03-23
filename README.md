@@ -20,7 +20,7 @@ scoretility will allow club members (and everyone else who knows the link) to
 
 ### scoretility Administration
 
-scoretility will will allow administrators to
+scoretility will allow administrators to
 
 * update club membership via spreadsheet import
 * update races via spreadsheet import or add races individually
