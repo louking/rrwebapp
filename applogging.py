@@ -7,6 +7,7 @@
 #       01/11/14        Lou King        Create
 #
 #   Copyright 2014 Lou King
+#
 ###########################################################################################
 '''
 applogging - define logging for the application
