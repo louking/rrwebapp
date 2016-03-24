@@ -45,7 +45,7 @@ If you want to use scoretility as part of your business, you must negotiate a Co
 
 For **NON-COMMERCIAL USE ONLY**, scoretility license follows [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
-Non-commercial use specifically includes use by Road Runner's Club of America (RRCA) running clubs who provide this service as part of the standard membership. However this does not include any scoretility service provided separately by clubs which have additional charge beyond the membership fee.
+Non-commercial use specifically includes use by Road Runners Club of America (RRCA) running clubs who provide this service as part of the standard membership. However this does not include any scoretility service provided separately by clubs which have additional charge beyond the membership fee.
 
 ### Commercial License
 
