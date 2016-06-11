@@ -1,5 +1,5 @@
 
-AddHandler fcgid-script .py
+AddHandler fcgid-script .fcgi
 Options +FollowSymLinks
 RewriteEngine On
 RewriteBase /scoretility/
@@ -12,7 +12,7 @@ RewriteBase /scoretility/
 </IfModule>
 
 # everything else sent to flask
-RewriteRule ^(rrwebappdispatch\.py/.*)$ - [L]
-RewriteRule ^(.*)$ rrwebappdispatch.py/$1 [L]
+RewriteRule ^(rrwebappdispatch\.fcgi/.*)$ - [L]
+RewriteRule ^(.*)$ rrwebappdispatch.fcgi/$1 [L]
 
 

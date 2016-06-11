@@ -17,6 +17,8 @@ webdatabase  -- access to database for flask web application
 
 # standard
 import pdb
+import os.path
+from ConfigParser import SafeConfigParser
 
 # pypi
 from flask import Flask
@@ -27,16 +29,22 @@ from flask.ext.sqlalchemy import SQLAlchemy
 # other
 
 # home grown
-from loutilities import apikey
 from app import app
 #app = Flask('rrwebapp')
 
 # build database name, details kept in apikey database
-ak = apikey.ApiKey('Lou King','raceresultswebapp')
-dbuser = ak.getkey('dbuser')
-password = ak.getkey('dbpassword')
-dbserver = ak.getkey('dbserver')
-dbname = ak.getkey('dbname')
+# get configuration
+thisdir = os.path.dirname(__file__)
+sep = os.path.sep
+parentdir = sep.join(thisdir.split(sep)[:-1])
+configpath = os.path.join(parentdir, 'rrwebapp.cfg')
+config = SafeConfigParser()
+config.readfp(open(configpath))
+
+dbuser = config.get('database', 'dbuser')
+password = config.get('database', 'dbpassword')
+dbserver = config.get('database', 'dbserver')
+dbname = config.get('database', 'dbname')
 app.logger.debug('using mysql://{uname}:*******@{server}/{dbname}'.format(uname=dbuser,server=dbserver,dbname=dbname))
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://{uname}:{pw}@{server}/{dbname}'.format(uname=dbuser,pw=password,server=dbserver,dbname=dbname)
