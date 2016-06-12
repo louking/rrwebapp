@@ -10,6 +10,7 @@
 ###########################################################################################
 
 import os, sys
+from ConfigParser import SafeConfigParser
 
 # get configuration
 config = SafeConfigParser()
