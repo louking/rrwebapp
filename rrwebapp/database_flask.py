@@ -36,8 +36,8 @@ from app import app
 # get configuration
 thisdir = os.path.dirname(__file__)
 sep = os.path.sep
-parentdir = sep.join(thisdir.split(sep)[:-1])
-configpath = os.path.join(parentdir, 'rrwebapp.cfg')
+configdir = sep.join(thisdir.split(sep)[:-2])
+configpath = os.path.join(configdir, 'rrwebapp.cfg')
 config = SafeConfigParser()
 config.readfp(open(configpath))
 

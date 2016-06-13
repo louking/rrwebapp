@@ -3,9 +3,9 @@
 #################
 fsrcresult-old.py
 underdevelopment.txt
-static/css/*
-static/js/*
-static/images/*
+rrwebapp/static/css/*
+rrwebapp/static/js/*
+rrwebapp/static/images/*
 
 #################
 ## Eclipse

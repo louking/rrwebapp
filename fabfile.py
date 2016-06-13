@@ -33,7 +33,7 @@ def deploy(branchname='master'):
     with cd(project_dir):
         run('git pull')
         run('git checkout {}'.format(branchname))
-        run('cp -R ../libs/js  static')
-        run('cp -R ../libs/css static')
+        run('cp -R ../libs/js  rrwebapp/static')
+        run('cp -R ../libs/css rrwebapp/static')
         run('source bin/activate; pip install -r requirements.txt')
         run('touch {}'.format(WSGI_SCRIPT))

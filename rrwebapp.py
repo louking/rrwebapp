@@ -11,7 +11,7 @@
 from flask import Flask
 import os.path
 
-app = Flask(__name__)
+from rrwebapp import app
 
 if __name__ == "__main__":
     app.run()
