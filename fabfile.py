@@ -17,6 +17,12 @@ WSGI_SCRIPT = 'rrwebapp.wsgi'
 
 project_dir = ''
 
+def sandbox():
+    server = 'sandbox.scoretility.com'
+    global project_dir
+    project_dir = '/var/www/{}/{}'.format(server, APP_NAME)
+    env.hosts = ["{}@{}".format(USERNAME, server)]
+
 def beta():
     server = 'beta.scoretility.com'
     global project_dir
