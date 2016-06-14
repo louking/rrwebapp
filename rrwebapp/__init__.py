@@ -50,7 +50,7 @@ def getwebappconfig(app, filepath):
     for key,value in appconfig:
         try:
             app.config[key.upper()] = eval(value)
-        except SyntaxError:
+        except:
             app.config[key.upper()] = value
 
 # get configuration
