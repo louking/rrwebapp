@@ -78,6 +78,7 @@ import standings
 import tools
 import sysinfo
 import docs
+import staticfiles
 
 # initialize versions for scripts
 request.setscripts()
