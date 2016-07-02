@@ -32,6 +32,7 @@ from wtforms import SelectField, StringField, IntegerField, BooleanField, valida
 
 # home grown
 from . import app
+from . import celery
 import racedb
 from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
@@ -1409,44 +1410,14 @@ class AjaxImportResults(MethodView):
                 cause =  'Program Error: {}'.format(e)
                 app.logger.error(cause)
                 return failure_response(cause=cause)
+
+            # start task to import results
+            task = importresultstask.apply_async((club_id, raceid, tempdir, resultpathname))
             
-            # create importer
-            importresults = ImportResults(club_id, raceid)
-            
-            # collect results from resultsfile
-            numentries = 0
-            dbresults = []
-            logfirst = True
-            while True:
-                try:
-                    fileresult = rr.next()
-                    if logfirst:
-                        app.logger.debug('first file result {}'.format(fileresult))
-                        logfirst = False
-                    dbresult   = ManagedResult(club_id,raceid)
-
-                    # update database entry
-                    runner_choices = importresults.update_dbresult(fileresult, dbresult)
-
-                    # add to database
-                    db.session.add(dbresult)
-                    dbresults.append(dbresult)
-                except StopIteration:
-                    break
-                numentries += 1
-
-            # remove file and temporary directory
-            rr.close()
-            os.remove(resultpathname)
-            try:
-                os.rmdir(tempdir)
-            # no idea why this can happen; hopefully doesn't happen on linux
-            except WindowsError,e:
-                app.logger.warning('exception ignored: {}'.format(e))
-
             # commit database updates and close transaction
             db.session.commit()
-            return success_response(redirect=flask.url_for('editparticipants',raceid=raceid))
+            return jsonify({'current': 0, 'total':100}), 202, {'Location': url_for('importresultsstatus', task_id=task.id)}
+            #return success_response(redirect=flask.url_for('editparticipants',raceid=raceid))
         
         except Exception,e:
             # roll back database updates and close transaction
@@ -1457,6 +1428,109 @@ class AjaxImportResults(MethodView):
 #----------------------------------------------------------------------
 app.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_view('_importresults'),methods=['POST'])
 #----------------------------------------------------------------------
+
+#######################################################################
+class ImportResultsStatus(MethodView):
+#######################################################################
+    def get(self, task_id):
+        task = long_task.AsyncResult(task_id)
+        if task.state == 'PENDING':
+            # job did not start yet
+            response = {
+                'state': task.state,
+                'current': 0,
+                'total': 100,
+                'status': 'Pending...'
+            }
+        elif task.state != 'FAILURE':
+            response = {
+                'state': task.state,
+                'current': task.info.get('current', 0),
+                'total': task.info.get('total', 1),
+                'status': task.info.get('status', '')
+            }
+            if 'result' in task.info:
+                response['result'] = task.info['result']
+            if task.state == 'SUCCESS':
+                response['redirect'] = flask.url_for('editparticipants',raceid=task.info.get('raceid'))
+        else:
+            # something went wrong in the background job
+            response = {
+                'state': task.state,
+                'current': 100,
+                'total': 100,
+                'status': str(task.info),  # this is the exception raised
+            }
+        return jsonify(response)
+#----------------------------------------------------------------------
+app.add_url_rule('/importresultsstatus/<task_id>',view_func=ImportResultsStatus.as_view('importresultsstatus'), methods=['GET',])
+#----------------------------------------------------------------------
+
+#----------------------------------------------------------------------
+@celery.task(bind=True)
+def importresultstask(club_id, raceid, tempdir, resultpathname):
+#----------------------------------------------------------------------
+    '''
+    background task to import results
+
+    :param club_id: club identifier
+    :param raceid: race identifier
+    :param tempdir: temporary directory for results file
+    :param resultpathname: full pathname of results file
+    '''
+    # create race results iterator
+    race = Race.query.filter_by(club_id=club_id,id=raceid).first()
+    rr = raceresults.RaceResults(resultpathname,race.distance)
+    
+    # count rows, inefficiently. TODO: add count() method to raceresults.RaceResults class
+    try:
+        total = 0
+        rr.next()
+        total += 1
+    except StopIteration:
+        pass
+
+    # start over
+    rr.close()
+    rr = raceresults.RaceResults(resultpathname,race.distance)
+
+    # create importer
+    importresults = ImportResults(club_id, raceid)
+    
+    # collect results from resultsfile
+    numentries = 0
+    dbresults = []
+    logfirst = True
+    while True:
+        try:
+            fileresult = rr.next()
+            if logfirst:
+                app.logger.debug('first file result {}'.format(fileresult))
+                logfirst = False
+            dbresult   = ManagedResult(club_id,raceid)
+
+            # update database entry
+            runner_choices = importresults.update_dbresult(fileresult, dbresult)
+
+            # add to database
+            db.session.add(dbresult)
+            dbresults.append(dbresult)
+        except StopIteration:
+            break
+        numentries += 1
+        self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
+
+    # remove file and temporary directory
+    rr.close()
+    os.remove(resultpathname)
+    try:
+        os.rmdir(tempdir)
+    # no idea why this can happen; hopefully doesn't happen on linux
+    except WindowsError,e:
+        app.logger.warning('exception ignored: {}'.format(e))
+
+    # we're done
+    return {'current': total, 'total': total, 'raceid': raceid}
 
 #######################################################################
 class AjaxUpdateManagedResult(MethodView):

@@ -14,7 +14,7 @@ app - define the application
 ====================================
 '''
 
-# pypi
-from flask import Flask
+from . import app, celery
 
-app = Flask('rrwebapp')
+if __name__ == '__main__':
+    app.run(debug=True)

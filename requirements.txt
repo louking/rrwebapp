@@ -28,7 +28,7 @@ httplib2==0.8
 ipython==1.1.0
 itsdangerous==0.24
 kombu==3.0.35
-loutilities==0.10.5
+loutilities==0.10.6
 lxml==3.6.0
 mysql-python==1.2.5
 paramiko==1.17.0

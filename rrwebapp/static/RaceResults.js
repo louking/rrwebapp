@@ -715,6 +715,125 @@
         toolbutton.close();
     };
         
+    function ajax_update_progress(status_url, progressbar) {
+        // send GET request to status URL
+        $.getJSON(status_url, function(data) {
+            // update UI
+            percent = parseInt(data['current'] * 100 / data['total']);
+
+            current = data.current;
+            total = data.total;
+            progressbar = $('#progressbar').progressbar({value:current, max:total});
+            
+            // when we're done
+            if (data['state'] != 'PENDING' && data['state'] != 'PROGRESS') {
+                if ('result' in data) {
+                    // we're done, remove progress bar and redirect if necessary
+                    $('#progressbar').progressbar('destroy');
+                    $('#progressbar').remove();
+                    if (data.redirect){
+                        window.location.replace(data.redirect);
+                    } else {
+                        location.reload(true);
+                    };
+                }
+                else {
+                    // something unexpected happened
+                    $("<div>Error Occurred: "+data.cause+"</div>").dialog({
+                        dialogClass: 'no-titlebar',
+                        height: "auto",
+                        buttons: [
+                            {   text:  'OK',
+                                click: function(){
+                                    $( this ).dialog('destroy');
+                                    location.reload(true);
+                                }
+                            }
+                        ],
+                    });
+                }
+            }
+            else {
+                // rerun in 0.5 seconds
+                setTimeout(function() {
+                    ajax_update_progress(status_url, progressbar);
+                }, 500);
+            }
+        });
+    }
+
+    function ajax_import_file_background_resp(urlpath,formsel,data) {
+        window.console && console.log(data);
+        if (data.success) {
+
+            // show we're doing something and start updating progress
+            $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">&nbsp;&nbsp;&nbsploading...</div></div>');
+            status_url = data.getResponseHeader('Location');
+            current = data.current;
+            total = data.total;
+            progressbar = $('#progressbar').progressbar({value:current, max:total});
+            ajax_update_progress(status_url, progressbar);
+        } else {
+            window.console && console.log('FAILURE: ' + data.cause);
+            // if overwrite requested, force the overwrite
+            if (data.confirm) {
+                $("<div>"+data.cause+"</div>").dialog({
+                    dialogClass: 'no-titlebar',
+                    height: "auto",
+                    modal: true,
+                    buttons: [
+                        {   text:  'Cancel',
+                            click: function() {
+                                $( this ).dialog('destroy');
+                            }
+                        },{ text:  'Overwrite',
+                            click: function(){
+                                ajax_import_file(urlpath,formsel,true);
+                                $( this ).dialog('destroy');
+                            }
+                        }
+                    ],
+                });
+            } else {
+                $("<div>Error Occurred: "+data.cause+"</div>").dialog({
+                    dialogClass: 'no-titlebar',
+                    height: "auto",
+                    buttons: [
+                        {   text:  'OK',
+                            click: function(){
+                                $( this ).dialog('destroy');
+                            }
+                        }
+                    ],
+                });
+            };
+        };
+    };
+    
+    function ajax_import_file_background(urlpath,formsel,force) {
+        var form_data = new FormData($(formsel)[0]);
+        
+        // force = true means to overwrite existing data for this year
+        var url = urlpath+'?force='+force
+        
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: form_data,
+            contentType: false,
+            cache: false,
+            processData: false,
+            async: true,
+            success: function(data) {ajax_import_file_backgroound_resp(urlpath,formsel,data)},
+            error: function() {
+                alert('Unexpected error');
+            }
+        });
+        
+        //closetoolbutton();
+        toolbutton.close();
+    };
+        
     // managemembers
     function managemembers( writeallowed ) {
         //var $filterseries = $('#filterseries');
@@ -826,7 +945,7 @@
                 $('#'+buttonid)
                     .click( function( event ) {
                         event.preventDefault();
-                        ajax_import_file(formaction,'#'+formid,false);
+                        ajax_import_file_background(formaction,'#'+formid,false);
                     });
             }
             popupbutton.click(this, popupcontent, popupaction)
@@ -894,7 +1013,7 @@
                 .click( function( event ) {
                     event.preventDefault();
                     url = $(this).attr('_rrwebapp-formaction')
-                    ajax_import_file(url,'#_rrwebapp-import-results',false);
+                    ajax_import_file_background(url,'#_rrwebapp-import-results',false);
                 });
 
             // set up tabulate button
