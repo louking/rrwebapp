@@ -27,7 +27,7 @@ from flask.views import MethodView
 from werkzeug.utils import secure_filename
 
 # home grown
-from app import app
+from . import app
 import racedb
 from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission

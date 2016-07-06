@@ -28,7 +28,8 @@ from celery import Celery
 #                                    UpdateClubDataPermission, ViewClubDataPermission
 from loutilities.configparser import getitems
 
-print 'rrwebapp.__init__.py executed'
+import os
+print 'pid={} __init__.py executed'.format(os.getpid())
 
 # create app and celery tasking back end
 app = Flask('rrwebapp')

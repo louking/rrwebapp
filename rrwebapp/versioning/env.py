@@ -33,7 +33,7 @@ import os, sys
 sys.path.append(os.getcwd())
 
 # get the app model
-from app import app
+from . import app
 import racedb   # needs to be before database_flask imported
 from database_flask import db
 

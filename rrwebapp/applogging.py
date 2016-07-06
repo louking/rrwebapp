@@ -18,7 +18,7 @@ applogging - define logging for the application
 # pypi
 
 # module specific needs
-from app import app
+from . import app
 
 #----------------------------------------------------------------------
 def setlogging():

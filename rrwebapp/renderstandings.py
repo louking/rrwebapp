@@ -35,7 +35,7 @@ import flask
 # home grown
 import racedb
 from loutilities import renderrun as render
-from app import app
+from . import app
 
 # module speicific needs
 import time

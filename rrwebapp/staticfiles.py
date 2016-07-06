@@ -8,7 +8,7 @@
 ###########################################################################################
 
 from flask import Flask, request, send_from_directory
-from app import app
+from . import app
 
 @app.route('/robots.txt')
 @app.route('/sitemap.xml')
