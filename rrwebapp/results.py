@@ -22,13 +22,15 @@ from urllib import urlencode
 
 # pypi
 import flask
-from flask import make_response, request, jsonify
+from flask import make_response, request, jsonify, url_for
 from flask.ext.login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
 from datatables import DataTables, ColumnDT
 from flask.ext.wtf import Form
 from wtforms import SelectField, StringField, IntegerField, BooleanField, validators
+from celery import states
+from celery.exceptions import Ignore
 
 # home grown
 from . import app
@@ -581,7 +583,7 @@ class EditParticipants(MethodView):
                 cause =  "Race '{}' is not included in any series".format(race.name)
                 app.logger.error(cause)
                 flask.flash(cause)
-                return flask.redirect(flask.url_for('manageraces'))
+                return flask.redirect(url_for('manageraces'))
 
             # determine precision for rendered output
             timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
@@ -659,8 +661,8 @@ class EditParticipants(MethodView):
                                          membernames=membernames, 
                                          memberages=memberages, 
                                          memberagegens=memberagegens,
-                                         crudapi=flask.url_for('_editparticipants',raceid=0)[0:-1],  
-                                         fieldapi=flask.url_for('_updatemanagedresult',resultid=0)[0:-1],
+                                         crudapi=url_for('_editparticipants',raceid=0)[0:-1],  
+                                         fieldapi=url_for('_updatemanagedresult',resultid=0)[0:-1],
                                          membersonly=membersonly, 
                                          inhibityear=True,inhibitclub=True,
                                          writeallowed=writecheck.can())
@@ -868,7 +870,7 @@ class EditExclusions(MethodView):
 
             ed_options = {
                 'idSrc': 'id',
-                'ajax': flask.url_for('_editexclusions'),
+                'ajax': url_for('_editexclusions'),
             }
 
             # buttons just names the buttons to be included, in what order
@@ -982,7 +984,7 @@ class SeriesResults(MethodView):
                 cause =  "Race '{}' is not included in any series".format(race.name)
                 app.logger.error(cause)
                 flask.flash(cause)
-                return flask.redirect(flask.url_for('manageraces'))
+                return flask.redirect(url_for('manageraces'))
             
             # determine precision for rendered output
             timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
@@ -1144,7 +1146,7 @@ class RunnerResults(MethodView):
                                          pagejsfiles=addscripts(['datatables.js']),
                                          # serverSide must be True to pass url
                                          # add the request args to the ajax function
-                                         tabledata=flask.url_for('_results')+'?'+urlencode(request.args),
+                                         tabledata=url_for('_results')+'?'+urlencode(request.args),
                                          tablebuttons= buttons,
                                          options = options,
                                          inhibityear=True,inhibitclub=True,
@@ -1416,8 +1418,8 @@ class AjaxImportResults(MethodView):
             
             # commit database updates and close transaction
             db.session.commit()
-            return jsonify({'current': 0, 'total':100}), 202, {'Location': url_for('importresultsstatus', task_id=task.id)}
-            #return success_response(redirect=flask.url_for('editparticipants',raceid=raceid))
+            return jsonify({'success': True, 'current': 0, 'total':100, 'location': url_for('importresultsstatus', task_id=task.id)}), 202, {}
+            #return success_response(redirect=url_for('editparticipants',raceid=raceid))
         
         except Exception,e:
             # roll back database updates and close transaction
@@ -1433,7 +1435,7 @@ app.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_v
 class ImportResultsStatus(MethodView):
 #######################################################################
     def get(self, task_id):
-        task = long_task.AsyncResult(task_id)
+        task = importresultstask.AsyncResult(task_id)
         if task.state == 'PENDING':
             # job did not start yet
             response = {
@@ -1452,14 +1454,14 @@ class ImportResultsStatus(MethodView):
             if 'result' in task.info:
                 response['result'] = task.info['result']
             if task.state == 'SUCCESS':
-                response['redirect'] = flask.url_for('editparticipants',raceid=task.info.get('raceid'))
+                response['redirect'] = url_for('editparticipants',raceid=task.info.get('raceid'))
         else:
             # something went wrong in the background job
             response = {
                 'state': task.state,
                 'current': 100,
                 'total': 100,
-                'status': str(task.info),  # this is the exception raised
+                'cause': str(task.info),  # this is the exception raised
             }
         return jsonify(response)
 #----------------------------------------------------------------------
@@ -1468,7 +1470,7 @@ app.add_url_rule('/importresultsstatus/<task_id>',view_func=ImportResultsStatus.
 
 #----------------------------------------------------------------------
 @celery.task(bind=True)
-def importresultstask(club_id, raceid, tempdir, resultpathname):
+def importresultstask(self, club_id, raceid, tempdir, resultpathname):
 #----------------------------------------------------------------------
     '''
     background task to import results
@@ -1478,59 +1480,74 @@ def importresultstask(club_id, raceid, tempdir, resultpathname):
     :param tempdir: temporary directory for results file
     :param resultpathname: full pathname of results file
     '''
-    # create race results iterator
-    race = Race.query.filter_by(club_id=club_id,id=raceid).first()
-    rr = raceresults.RaceResults(resultpathname,race.distance)
-    
-    # count rows, inefficiently. TODO: add count() method to raceresults.RaceResults class
     try:
-        total = 0
-        rr.next()
-        total += 1
-    except StopIteration:
-        pass
-
-    # start over
-    rr.close()
-    rr = raceresults.RaceResults(resultpathname,race.distance)
-
-    # create importer
-    importresults = ImportResults(club_id, raceid)
-    
-    # collect results from resultsfile
-    numentries = 0
-    dbresults = []
-    logfirst = True
-    while True:
+        # create race results iterator
+        race = Race.query.filter_by(club_id=club_id,id=raceid).first()
+        rr = raceresults.RaceResults(resultpathname,race.distance)
+        
+        # count rows, inefficiently. TODO: add count() method to raceresults.RaceResults class
         try:
-            fileresult = rr.next()
-            if logfirst:
-                app.logger.debug('first file result {}'.format(fileresult))
-                logfirst = False
-            dbresult   = ManagedResult(club_id,raceid)
-
-            # update database entry
-            runner_choices = importresults.update_dbresult(fileresult, dbresult)
-
-            # add to database
-            db.session.add(dbresult)
-            dbresults.append(dbresult)
+            total = 0
+            while True:
+                rr.next()
+                total += 1
         except StopIteration:
-            break
-        numentries += 1
-        self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
+            pass
 
-    # remove file and temporary directory
-    rr.close()
-    os.remove(resultpathname)
-    try:
-        os.rmdir(tempdir)
-    # no idea why this can happen; hopefully doesn't happen on linux
-    except WindowsError,e:
-        app.logger.warning('exception ignored: {}'.format(e))
+        # start over
+        rr.close()
+        rr = raceresults.RaceResults(resultpathname,race.distance)
 
-    # we're done
-    return {'current': total, 'total': total, 'raceid': raceid}
+        # create importer
+        importresults = ImportResults(club_id, raceid)
+        
+        # collect results from resultsfile
+        numentries = 0
+        dbresults = []
+        logfirst = True
+        while True:
+            try:
+                fileresult = rr.next()
+                if logfirst:
+                    app.logger.debug('first file result {}'.format(fileresult))
+                    logfirst = False
+                dbresult   = ManagedResult(club_id,raceid)
+
+                # update database entry
+                runner_choices = importresults.update_dbresult(fileresult, dbresult)
+
+                # add to database
+                db.session.add(dbresult)
+                dbresults.append(dbresult)
+            except StopIteration:
+                break
+            numentries += 1
+            self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
+
+        # remove file and temporary directory
+        rr.close()
+        os.remove(resultpathname)
+        try:
+            os.rmdir(tempdir)
+        # no idea why this can happen; hopefully doesn't happen on linux
+        except WindowsError,e:
+            app.logger.warning('exception ignored: {}'.format(e))
+
+        # we're done
+        db.session.commit()
+        return {'current': total, 'total': total, 'raceid': raceid}
+
+    except:
+        # close database session and roll back
+        # see http://stackoverflow.com/questions/7672327/how-to-make-a-celery-task-fail-from-within-the-task
+        db.session.rollback()
+        self.update_state(
+                state = states.FAILURE,
+                meta = traceback.format_exc()
+            )
+
+        # ignore the task so no other state is recorded
+        raise Ignore()
 
 #######################################################################
 class AjaxUpdateManagedResult(MethodView):
@@ -1984,7 +2001,7 @@ class AjaxTabulateResults(MethodView):
 
             # commit database updates and close transaction
             db.session.commit()
-            return success_response(redirect=flask.url_for('seriesresults',raceid=raceid))
+            return success_response(redirect=url_for('seriesresults',raceid=raceid))
         
         except Exception,e:
             # roll back database updates and close transaction

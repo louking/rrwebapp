@@ -719,15 +719,15 @@
         // send GET request to status URL
         $.getJSON(status_url, function(data) {
             // update UI
-            percent = parseInt(data['current'] * 100 / data['total']);
+            var percent = parseInt(data['current'] * 100 / data['total']);
 
-            current = data.current;
-            total = data.total;
-            progressbar = $('#progressbar').progressbar({value:current, max:total});
+            var current = data.current;
+            var total = data.total;
+            progressbar.progressbar({value:current, max:total});
             
             // when we're done
-            if (data['state'] != 'PENDING' && data['state'] != 'PROGRESS') {
-                if ('result' in data) {
+            if (data.state != 'PENDING' && data.state != 'PROGRESS') {
+                if (data.state == 'SUCCESS') {
                     // we're done, remove progress bar and redirect if necessary
                     $('#progressbar').progressbar('destroy');
                     $('#progressbar').remove();
@@ -739,7 +739,7 @@
                 }
                 else {
                     // something unexpected happened
-                    $("<div>Error Occurred: "+data.cause+"</div>").dialog({
+                    $("<div>Error Occurred: " + data.cause + "</div>").dialog({
                         dialogClass: 'no-titlebar',
                         height: "auto",
                         buttons: [
@@ -768,10 +768,20 @@
 
             // show we're doing something and start updating progress
             $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">&nbsp;&nbsp;&nbsploading...</div></div>');
-            status_url = data.getResponseHeader('Location');
-            current = data.current;
-            total = data.total;
-            progressbar = $('#progressbar').progressbar({value:current, max:total});
+            var status_url = data.location;
+            var current = data.current;
+            var total = data.total;
+            var progressbar = $('#progressbar').progressbar({
+                value: current, 
+                max: total,
+                // progressLabel needs style - see https://jqueryui.com/progressbar/#label
+                // change: function () {
+                //     progressLabel.text( progressbar.progressbar( 'value') + ' / ' + progressbar.progressbar( 'max' ) )
+                // },
+                // complete: function () {
+                //     progressLabel.text( 'Complete!' )
+                // }
+            });
             ajax_update_progress(status_url, progressbar);
         } else {
             window.console && console.log('FAILURE: ' + data.cause);
@@ -788,7 +798,7 @@
                             }
                         },{ text:  'Overwrite',
                             click: function(){
-                                ajax_import_file(urlpath,formsel,true);
+                                ajax_import_file_background(urlpath,formsel,true);
                                 $( this ).dialog('destroy');
                             }
                         }
@@ -824,7 +834,7 @@
             cache: false,
             processData: false,
             async: true,
-            success: function(data) {ajax_import_file_backgroound_resp(urlpath,formsel,data)},
+            success: function(data) {ajax_import_file_background_resp(urlpath,formsel,data)},
             error: function() {
                 alert('Unexpected error');
             }
