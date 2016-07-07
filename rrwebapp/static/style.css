@@ -55,6 +55,7 @@ div.DTE_Field input._rrwebapp_CRUD_input_short {
 }
 .progress-label {
   position: absolute;
+  left: 50%;
   top: 4px;
   font-weight: bold;
   text-shadow: 1px 1px 0 #fff;

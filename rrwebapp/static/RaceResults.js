@@ -708,7 +708,7 @@
         });
         
         // show we're doing something
-        $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">&nbsp;&nbsp;&nbsploading...</div></div>');
+        $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">Loading...</div></div>');
         progressbar = $('#progressbar').progressbar({value:false});
 
         //closetoolbutton();
@@ -719,11 +719,11 @@
         // send GET request to status URL
         $.getJSON(status_url, function(data) {
             // update UI
-            var percent = parseInt(data['current'] * 100 / data['total']);
+            var percent = parseInt(data.current * 100 / data.total);
 
             var current = data.current;
             var total = data.total;
-            progressbar.progressbar({value:current, max:total});
+            progressbar.progressbar({value:percent});
             
             // when we're done
             if (data.state != 'PENDING' && data.state != 'PROGRESS') {
@@ -767,20 +767,22 @@
         if (data.success) {
 
             // show we're doing something and start updating progress
-            $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">&nbsp;&nbsp;&nbsploading...</div></div>');
+            $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">Loading...</div></div>');
             var status_url = data.location;
             var current = data.current;
             var total = data.total;
-            var progressbar = $('#progressbar').progressbar({
-                value: current, 
-                max: total,
+            var percent = current * 100 / total;
+            var progressbar = $('#progressbar'), 
+                progressLabel = $('.progress-label');
+            progressbar.progressbar({
+                value: percent, 
                 // progressLabel needs style - see https://jqueryui.com/progressbar/#label
-                // change: function () {
-                //     progressLabel.text( progressbar.progressbar( 'value') + ' / ' + progressbar.progressbar( 'max' ) )
-                // },
-                // complete: function () {
-                //     progressLabel.text( 'Complete!' )
-                // }
+                change: function () {
+                    progressLabel.text( progressbar.progressbar( 'value') + '%' )
+                },
+                complete: function () {
+                    progressLabel.text( 'Complete!' )
+                }
             });
             ajax_update_progress(status_url, progressbar);
         } else {
