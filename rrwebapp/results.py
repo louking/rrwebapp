@@ -31,6 +31,7 @@ from flask.ext.wtf import Form
 from wtforms import SelectField, StringField, IntegerField, BooleanField, validators
 from celery import states
 from celery.exceptions import Ignore
+from attrdict import AttrDict
 
 # home grown
 from . import app
@@ -430,13 +431,26 @@ def getrunnerchoices(club_id, race, pool, result):
 
     membersonly = race.series[0].series.membersonly
     racedatedt = dbdate.asc2dt(race.date)
-    thisdisposition = result.initialdisposition
-    thisrunnerid = result.runnerid
 
+    # object should have either disposition or initialdisposition
+    # see http://stackoverflow.com/questions/610883/how-to-know-if-an-object-has-an-attribute-in-python
+    try:
+        thisdisposition = result.disposition
+    except AttributeError:
+        thisdisposition = result.initialdisposition
+
+    # object should have either name or resultname
+    try:
+        thisname = result.name
+    except AttributeError:
+        thisname = result.resultname
+
+    # current runnerid may change later depending on choice
+    thisrunnerid = result.runnerid
     thisrunnerchoice = [(None,'[not included]')]
 
     # need to repeat logic from AjaxImportResults() because AjaxImportResults() may leave null in runnerid field of managedresult
-    candidate = pool.findmember(result.name,result.age,race.date)
+    candidate = pool.findmember(thisname,result.age,race.date)
     
     runner = None
     runnername = ''
@@ -494,9 +508,9 @@ def getrunnerchoices(club_id, race, pool, result):
     
     # for non membersonly race, maybe need to add new name to member database, give that option
     if not membersonly and thisdisposition != DISP_MATCH:
-        # it's possible that result.name == runnername if (new) member was added in prior use of editparticipants
-        if result.name != runnername:
-            thisrunnerchoice.append(('new','{} (new)'.format(result.name)))
+        # it's possible that thisname == runnername if (new) member was added in prior use of editparticipants
+        if thisname != runnername:
+            thisrunnerchoice.append(('new','{} (new)'.format(thisname)))
 
     return thisrunnerchoice
 
@@ -572,22 +586,15 @@ class EditParticipants(MethodView):
                 db.session.rollback()
                 flask.abort(403)
                 
-            # get all the results, and the race record
-            results = []
-            results = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).order_by('time').all()
-
             # get race and list of runners who should be included in this race, based on membersonly
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
             if len(race.series) == 0:
                 db.session.rollback()
-                cause =  "Race '{}' is not included in any series".format(race.name)
+                cause =  "Race '{}' not found for this club".format(race.name)
                 app.logger.error(cause)
                 flask.flash(cause)
                 return flask.redirect(url_for('manageraces'))
 
-            # determine precision for rendered output
-            timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
-            
             # active is ClubMember object for active members; if race isn't for members only nonmember is ClubMember object for nonmembers
             membersonly = race.series[0].series.membersonly
             if membersonly:
@@ -630,38 +637,20 @@ class EditParticipants(MethodView):
             membernames.sort()
             membernames = [m[1] for m in membernames]
 
-            # collect data for table
+            # start with empty data
             tabledata = []
             tableselects = {}
-
-            # fix up the following:
-            #   * time gets converted from seconds
-            #   * determine member matching, set runnerid choices and initially selected choice
-            #   * based on matching, set disposition
-            for result in results:
-                r = FixupResult(race, pool, result, timeprecision)
-                thisresult = r.renderable_result()
-
-                runner = Runner.query.filter_by(club_id=club_id,id=result.runnerid).first()
-                thisresult['membertype'] = getmembertype(result.runnerid)
-
-                tabledata.append(thisresult)
-
-                # use select field unless 'definite', or membersonly and '' (means definitely didn't find)
-                if writecheck.can() and ((result.initialdisposition == DISP_MISSED or result.initialdisposition == DISP_CLOSE) 
-                                         or (not membersonly and result.initialdisposition != DISP_MATCH)):
-                    tableselects[result.id] = r.runnerchoice
 
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('editparticipants.html', 
                                          race=race, 
-                                         data=tabledata, 
+                                         data=url_for('_editparticipants',raceid=raceid), 
                                          selects=tableselects,
                                          membernames=membernames, 
                                          memberages=memberages, 
                                          memberagegens=memberagegens,
-                                         crudapi=url_for('_editparticipants',raceid=0)[0:-1],  
+                                         crudapi=url_for('_editparticipantscrud',raceid=0)[0:-1],  
                                          fieldapi=url_for('_updatemanagedresult',resultid=0)[0:-1],
                                          membersonly=membersonly, 
                                          inhibityear=True,inhibitclub=True,
@@ -677,6 +666,96 @@ app.add_url_rule('/editparticipants/<int:raceid>',view_func=EditParticipants.as_
 
 #######################################################################
 class AjaxEditParticipants(MethodView):
+#######################################################################
+    #----------------------------------------------------------------------
+    def get(self,raceid):
+    #----------------------------------------------------------------------
+        try:
+
+            club_id = flask.session['club_id']
+            thisyear = flask.session['year']
+            
+            readcheck = ViewClubDataPermission(club_id) 
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can write the data, otherwise abort
+            # TODO: maybe readcheck is ok, but javascript needs to be reviewed carefully
+            if not writecheck.can():
+                db.session.rollback()
+                flask.abort(403)
+                
+            # determine precision for rendered output, race is needed to fix up result as well
+            race = Race.query.filter_by(club_id=club_id,id=raceid).first()
+            timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
+            
+            # mData must match columns in RaceResults[.js].editparticipants
+            columns = [
+                ColumnDT('id',                  mData='id',                   searchable=False),
+                ColumnDT('place',               mData='place'), 
+                ColumnDT('name',                mData='resultname'),
+                ColumnDT('gender',              mData='gender',             searchable=False),
+                ColumnDT('age',                 mData='age',                searchable=False,   filterarg='cell',   filter=renderintstr),
+                ColumnDT('initialdisposition',  mData='disposition'),
+                ColumnDT('membertype',          mData='membertype',         searchable=False,   filterarg='row',    filter=rendermembertype),
+                # the odd confirmed lambda filter prevents a string 'True' or 'False' from being sent
+                ColumnDT('confirmed',           mData='confirm',            searchable=False,   filterarg='cell',   filter=lambda c: c),
+                ColumnDT('runnerid',            mData='runnerid'),
+                # next two, suppress 'None' rendering
+                ColumnDT('hometown',            mData='hometown',                               filterarg='cell',   filter=lambda c: c if c else ''),
+                ColumnDT('club',                mData='club',                                   filterarg='cell',   filter=lambda c: c if c else ''),
+                ColumnDT('time',                mData='time',               searchable=False,   filter=lambda c: render.rendertime(c, timeprecision)),
+            ]
+
+            rowTable = DataTables(request.args, ManagedResult, ManagedResult.query.filter_by(club_id=club_id,raceid=raceid), columns, dialect='mysql')
+
+            # prepare for match filter
+            # need to use db.session to access query function
+            # see http://stackoverflow.com/questions/2175355/selecting-distinct-column-values-in-sqlalchemy-elixir
+            # see http://stackoverflow.com/questions/22275412/sqlalchemy-return-all-distinct-column-values
+            # see http://stackoverflow.com/questions/11175519/how-to-query-distinct-on-a-joined-column
+            # format depends on type of select
+
+            # add to returned output
+            output_result = rowTable.output_result()
+            getcol = lambda colname: [col.mData for col in columns].index(colname)
+
+            # add yadcf filter
+            matches = [row.initialdisposition for row in db.session.query(ManagedResult.initialdisposition).distinct().all()]
+            output_result['yadcf_data_{}'.format(getcol('disposition'))] = matches
+
+            # determine if race is for members only
+            # then get appropriate pool of runners for possible inclusion in tableselects
+            membersonly = race.series[0].series.membersonly
+            if membersonly:
+                pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
+            else:
+                pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
+
+            # determine possible choices for this runner if not definite
+            tableselects = {}
+            for result in output_result['data']:
+                # use select field unless 'definite', or membersonly and '' (means definitely didn't find)
+                r = AttrDict(result)    # for convenience because getrunnerchoices assumes object not dict
+                if writecheck.can() and ((r.disposition == DISP_MISSED or r.disposition == DISP_CLOSE) 
+                                         or (not membersonly and r.disposition != DISP_MATCH)):
+                    tableselects[r.id] = getrunnerchoices(club_id, race, pool, r)
+
+            # add standings name selects and names
+            output_result['tableselects'] = tableselects
+            print output_result
+
+            return jsonify(output_result)
+
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/_editparticipants/<int:raceid>',view_func=AjaxEditParticipants.as_view('_editparticipants'),methods=['GET'])
+#----------------------------------------------------------------------
+
+#######################################################################
+class AjaxEditParticipantsCRUD(MethodView):
 #######################################################################
     decorators = [login_required]
     formfields = 'age,club,confirm,disposition,gender,hometown,id,place,resultname,runnerid,time'.split(',')
@@ -814,7 +893,7 @@ class AjaxEditParticipants(MethodView):
                 app.logger.error(traceback.format_exc())
             return dt_editor_response(data=[], error=cause, fieldErrors=fielderrors)
 #----------------------------------------------------------------------
-app.add_url_rule('/_editparticipants/<int:raceid>',view_func=AjaxEditParticipants.as_view('_editparticipants'),methods=['POST'])
+app.add_url_rule('/_editparticipantscrud/<int:raceid>',view_func=AjaxEditParticipantsCRUD.as_view('_editparticipantscrud'),methods=['POST'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -1197,6 +1276,24 @@ def renderage(result):
     return thisage
 
 #----------------------------------------------------------------------
+def renderintstr(cell):
+#----------------------------------------------------------------------
+    '''
+    render int string for cell
+    any exceptions returns 0
+
+    :param cell: cell with int probably
+    :rtype: int (hopefully)
+    '''
+
+    try:
+        this = int(cell)
+    except:
+        this = 0
+
+    return this
+
+#----------------------------------------------------------------------
 def renderplace(cell):
 #----------------------------------------------------------------------
     '''
@@ -1216,6 +1313,28 @@ def renderplace(cell):
         thisplace = ''
 
     return thisplace
+
+#----------------------------------------------------------------------
+def rendermembertype(result):
+#----------------------------------------------------------------------
+    '''
+    render membertype
+
+    :param result: result from ManagedResult
+    :rtype: string for rendering
+    '''
+
+    # if runner is indicated, find out whether runner is a member
+    if result.runnerid:
+        runner = Runner.query.filter_by(id=result.runnerid).first()
+        if runner.member:
+            this = 'member'
+        else:
+            this = 'nonmember'
+    else:
+        this = ''
+
+    return this
 
 
 #######################################################################

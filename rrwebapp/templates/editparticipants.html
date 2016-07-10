@@ -9,7 +9,7 @@
 {% block scripts %}
   <script type="text/javascript">
     var tabledata = {{ data|tojson|safe }},
-        tableselects = {{ selects|tojson|safe }},
+        tableselects = {},  // starts empty, updated as xhr.dt events occur (ajax responses received)
         memberages = {{ memberages|tojson|safe }},
         memberagegens = {{ memberagegens|tojson|safe }},
         membernames = {{ membernames|tojson|safe }},

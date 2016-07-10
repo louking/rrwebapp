@@ -201,8 +201,7 @@
         // for slow loading links
         var img = $(this).attr('_rrwebapp-loadingimg');
         if (img) {
-            //$(this).after("&nbsp;&nbsp;&nbsploading...");
-            $(this).after('<div id="progressbar"><div class="progress-label">&nbsp;&nbsp;&nbsploading...</div></div>');
+            $(this).after('<div id="progressbar"><div class="progress-label">Loading...</div></div>');
             $('#progressbar').progressbar({
                 value: false,
             });
@@ -767,7 +766,7 @@
         if (data.success) {
 
             // show we're doing something and start updating progress
-            $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">Loading...</div></div>');
+            $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">Initializing...</div></div>');
             var status_url = data.location;
             var current = data.current;
             var total = data.total;
@@ -1153,7 +1152,7 @@
             editor.on('postSubmit', function(e, json, data, action){
                 for (var key in json.choices) {
                     if (json.choices.hasOwnProperty(key)) {
-                        tableselects[key] = json.choices[key]
+                        tableselects[key] = json.choices[key];
                     }
                 }                
             });
@@ -1177,7 +1176,7 @@
                         select_type_options: {
                             width: '20em',
                         },
-                        filter_reset_button_text: 'all',    // no filter reset button
+                        filter_reset_button_text: 'all', 
                     }];
         if (!membersonly) {
             yadcffilters.push({
@@ -1190,11 +1189,22 @@
                         select_type_options: {
                             width: '20em',
                         },
-                        filter_reset_button_text: 'all',    // no filter reset button
+                        filter_reset_button_text: 'all', 
                     });
         }
 
         _rrwebapp_table = $('#_rrwebapp-table-editparticipants')
+            // when the ajax request is received back from the server, update the tableselects object
+            .on( 'xhr.dt', function ( e, settings, json, xhr ) {
+                // add tableselect keys if no xhr error
+                if (json) {
+                    for (key in json.tableselects) {
+                        tableselects[key] = json.tableselects[key];
+                    }                    
+                }
+            })
+
+            // when the page has been drawn, need to do a lot of housekeeping
             .on( 'draw.dt', function () {
                 // make button for checkbox
                 $('._rrwebapp-editparticipants-checkbox-confirmed').button({text:false});
@@ -1214,6 +1224,7 @@
                             });
                 }
 
+                // handle changes of selected runner and confirm checkbox
                 $('._rrwebapp-editparticipants-select-runner, ._rrwebapp-editparticipants-checkbox-confirmed')
                     .off('change')  // remove any listeners left over from previous draw
                     .on('change',
@@ -1315,7 +1326,8 @@
                 });
             })
         .dataTable(getDataTableParams({
-                data: tabledata,
+                serverSide: true,
+                ajax: tabledata,
                 columns: [
                     {
                         data: null,
