@@ -1662,7 +1662,7 @@ def importresultstask(self, club_id, raceid, tempdir, resultpathname):
         print traceback.format_exc()
         self.update_state(
                 state = states.FAILURE,
-                meta = {'current': 1, 'total': 1, 'result': traceback.format_exc()
+                meta = {'current': 1, 'total': 1, 'result': traceback.format_exc()}
             )
 
         # ignore the task so no other state is recorded
