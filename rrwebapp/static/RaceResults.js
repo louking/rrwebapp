@@ -726,7 +726,7 @@
             
             // when we're done
             if (data.state != 'PENDING' && data.state != 'PROGRESS') {
-                if (data.state == 'SUCCESS') {
+                if (data.state == 'SUCCESS' && data.cause == '') {
                     // we're done, remove progress bar and redirect if necessary
                     $('#progressbar').progressbar('destroy');
                     $('#progressbar').remove();

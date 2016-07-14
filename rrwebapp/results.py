@@ -1554,6 +1554,7 @@ class ImportResultsStatus(MethodView):
 #######################################################################
     def get(self, task_id):
         task = importresultstask.AsyncResult(task_id)
+
         if task.state == 'PENDING':
             # job did not start yet
             response = {
@@ -1569,10 +1570,15 @@ class ImportResultsStatus(MethodView):
                 'total': task.info.get('total', 1),
                 'status': task.info.get('status', '')
             }
-            if 'result' in task.info:
-                response['result'] = task.info['result']
+
+            # task is finished, check for traceback, which indicates an error occurred
             if task.state == 'SUCCESS':
-                response['redirect'] = url_for('editparticipants',raceid=task.info.get('raceid'))
+                # check for traceback, which indicates an error occurred
+                response['cause'] = task.info.get('traceback','')
+                if response['cause'] == '':
+                    response['redirect'] = url_for('editparticipants',raceid=task.info.get('raceid'))
+
+        # doesn't seem like this can happen, but just in case
         else:
             # something went wrong in the background job
             response = {
@@ -1659,14 +1665,12 @@ def importresultstask(self, club_id, raceid, tempdir, resultpathname):
         # close database session and roll back
         # see http://stackoverflow.com/questions/7672327/how-to-make-a-celery-task-fail-from-within-the-task
         db.session.rollback()
-        print traceback.format_exc()
-        self.update_state(
-                state = states.FAILURE,
-                meta = {'current': 1, 'total': 1, 'result': traceback.format_exc()}
-            )
 
-        # ignore the task so no other state is recorded
-        raise Ignore()
+        # tell the admins that this happened
+        celery.mail_admins('importtaskresults: exception occurred', traceback.format_stack())
+
+        # report this as success, but since traceback is present, server will tell user
+        return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}
 
 #######################################################################
 class AjaxUpdateManagedResult(MethodView):
