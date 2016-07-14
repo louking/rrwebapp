@@ -1659,13 +1659,14 @@ def importresultstask(self, club_id, raceid, tempdir, resultpathname):
         # close database session and roll back
         # see http://stackoverflow.com/questions/7672327/how-to-make-a-celery-task-fail-from-within-the-task
         db.session.rollback()
+        print traceback.format_exc()
         self.update_state(
                 state = states.FAILURE,
-                meta = traceback.format_exc()
+                meta = {'current': 1, 'total': 1, 'result': traceback.format_exc()
             )
 
         # ignore the task so no other state is recorded
-        # raise Ignore()
+        raise Ignore()
 
 #######################################################################
 class AjaxUpdateManagedResult(MethodView):
