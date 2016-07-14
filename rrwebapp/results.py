@@ -1608,7 +1608,7 @@ def importresultstask(self, club_id, raceid, tempdir, resultpathname):
         # create race results iterator
         race = Race.query.filter_by(club_id=club_id,id=raceid).first()
         rr = raceresults.RaceResults(resultpathname,race.distance)
-        
+
         # count rows, inefficiently. TODO: add count() method to raceresults.RaceResults class
         try:
             total = 0
@@ -1667,7 +1667,7 @@ def importresultstask(self, club_id, raceid, tempdir, resultpathname):
         db.session.rollback()
 
         # tell the admins that this happened
-        celery.mail_admins('importtaskresults: exception occurred', traceback.format_stack())
+        celery.mail_admins('importtaskresults: exception occurred', traceback.format_exc())
 
         # report this as success, but since traceback is present, server will tell user
         return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}
