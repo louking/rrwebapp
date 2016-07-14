@@ -742,7 +742,6 @@ class AjaxEditParticipants(MethodView):
 
             # add standings name selects and names
             output_result['tableselects'] = tableselects
-            print output_result
 
             return jsonify(output_result)
 
@@ -1666,7 +1665,7 @@ def importresultstask(self, club_id, raceid, tempdir, resultpathname):
             )
 
         # ignore the task so no other state is recorded
-        raise Ignore()
+        # raise Ignore()
 
 #######################################################################
 class AjaxUpdateManagedResult(MethodView):
