@@ -11,10 +11,15 @@ import os
 import os.path
 from stat import S_IRGRP, S_IRUSR, S_IWGRP, S_IWUSR
 
-# pypi
-import appdirs
+# homegrown
+from . import app
+
+class parameterError(Exception): pass
 
 # store temporary uploads here
-UPLOAD_TEMP_DIR = appdirs.user_data_dir( 'scoretility' )
+UPLOAD_TEMP_DIR = app.config.get('UPLOAD_TEMP_DIR','')
+if not UPLOAD_TEMP_DIR:
+    raise parameterError, 'rrwebapp.cfg [app] section requires UPLOAD_TEMP_DIR'
+
 if not os.path.exists( UPLOAD_TEMP_DIR ):
-    os.makedirs( UPLOAD_TEMP_DIR, S_IRGRP | S_IWGRP | S_IRUSR | S_IWUSR )
+    raise parameterError, "[app] UPLOAD_TEMP_DIR '{}' directory missing".format(UPLOAD_TEMP_DIR)
