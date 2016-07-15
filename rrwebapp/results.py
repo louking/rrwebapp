@@ -13,7 +13,6 @@
 import json
 import csv
 import os.path
-import tempfile
 import os
 from datetime import timedelta
 import traceback
@@ -42,6 +41,7 @@ from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, Vi
 from database_flask import db   # this is ok because this module only runs under flask
 from apicommon import failure_response, success_response
 from request import addscripts, crossdomain
+from appldirs import UPLOAD_TEMP_DIR
 
 # module specific needs
 import raceresults
@@ -1451,7 +1451,8 @@ class AjaxImportResults(MethodView):
             if not writecheck.can():
                 db.session.rollback()
                 flask.abort(403)
-                
+            
+            # see http://flask.pocoo.org/docs/0.11/patterns/fileuploads/
             resultfile = request.files['file']
 
             # get file extention
@@ -1508,17 +1509,20 @@ class AjaxImportResults(MethodView):
                     db.session.flush()
             
             # save file for import
-            tempdir = tempfile.mkdtemp()
+            tempdir = UPLOAD_TEMP_DIR
             resultfilename = secure_filename(resultfile.filename)
             resultpathname = os.path.join(tempdir,resultfilename)
+            if os.path.exists(resultpathname): os.remove(resultpathname)
             resultfile.save(resultpathname)            
 
             try:
                 rr = raceresults.RaceResults(resultpathname,race.distance)
+                rr.close()
             
             # format not good enough
             except raceresults.headerError, e:
                 db.session.rollback()
+                rr.close()
                 cause = '{}'.format(e)
                 app.logger.warning(cause)
                 return failure_response(cause=cause)
@@ -1526,13 +1530,13 @@ class AjaxImportResults(MethodView):
             # how did this happen?  check allowed_file() for bugs
             except raceresults.dataError,e:
                 db.session.rollback()
-                #cause =  'Program Error: Invalid file type {} for file {} path {} (unexpected)'.format(ext,resultfile.filename,resultpathname)
+                rr.close()
                 cause =  'Program Error: {}'.format(e)
                 app.logger.error(cause)
                 return failure_response(cause=cause)
 
             # start task to import results
-            task = importresultstask.apply_async((club_id, raceid, tempdir, resultpathname))
+            task = importresultstask.apply_async((club_id, raceid, resultpathname))
             
             # commit database updates and close transaction
             db.session.commit()
@@ -1594,14 +1598,13 @@ app.add_url_rule('/importresultsstatus/<task_id>',view_func=ImportResultsStatus.
 
 #----------------------------------------------------------------------
 @celery.task(bind=True)
-def importresultstask(self, club_id, raceid, tempdir, resultpathname):
+def importresultstask(self, club_id, raceid, resultpathname):
 #----------------------------------------------------------------------
     '''
     background task to import results
 
     :param club_id: club identifier
     :param raceid: race identifier
-    :param tempdir: temporary directory for results file
     :param resultpathname: full pathname of results file
     '''
     try:
@@ -1651,11 +1654,6 @@ def importresultstask(self, club_id, raceid, tempdir, resultpathname):
         # remove file and temporary directory
         rr.close()
         os.remove(resultpathname)
-        try:
-            os.rmdir(tempdir)
-        # no idea why this can happen; hopefully doesn't happen on linux
-        except WindowsError,e:
-            app.logger.warning('exception ignored: {}'.format(e))
 
         # we're done
         db.session.commit()
@@ -1667,7 +1665,7 @@ def importresultstask(self, club_id, raceid, tempdir, resultpathname):
         db.session.rollback()
 
         # tell the admins that this happened
-        celery.mail_admins('importtaskresults: exception occurred', traceback.format_exc())
+        celery.mail_admins('[scoretility] importtaskresults: exception occurred', traceback.format_exc())
 
         # report this as success, but since traceback is present, server will tell user
         return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}

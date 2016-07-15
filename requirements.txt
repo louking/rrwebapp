@@ -15,7 +15,7 @@ Werkzeug==0.11.10
 alembic==0.6.2
 amqp==1.4.9
 anyjson==0.3.3
-appdirs==1.2.0
+appdirs==1.4.0
 attrdict==2.0.0
 billiard==3.3.0.23
 blinker==1.3
