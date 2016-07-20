@@ -1684,9 +1684,10 @@
 
         // table needs to be after accordion declaration so size is set right
         var divisionCol = 0;
+        var nameCol = 2;
         var genderCol = 3;
         var columndefs = [
-                    {targets:[divisionCol],bVisible:false},
+                    {targets: [divisionCol],bVisible:false},
                     {targets:['_rrwebapp-class-col-place',
                                '_rrwebapp-class-col-race',
                                '_rrwebapp-class-col-total',
@@ -1697,9 +1698,10 @@
             var tableparamupdates = {
                 scrollY: gettableheight() - initialheightfudge,
                 buttons: ['csv'],
-                // scrollX: "100%",
-                //scrollXInner: "150%",
                 columnDefs: columndefs,
+                fixedColumns: {
+                                leftColumns: 3
+                              },
                 };
         }
         else {

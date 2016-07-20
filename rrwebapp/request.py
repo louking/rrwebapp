@@ -84,6 +84,9 @@ SCRIPTS = [
     ('buttons/{ver}/js/buttons.html5{min}.js', dt_buttons_ver, dt_cdn),
     ('buttons/{ver}/css/buttons.jqueryui{min}.css', dt_buttons_ver, dt_cdn),
 
+    ('fixedcolumns/{ver}/js/dataTables.fixedColumns{min}.js', dt_fixedcolumns_ver, dt_cdn),
+    ('fixedcolumns/{ver}/css/fixedColumns.jqueryui{min}.css', dt_fixedcolumns_ver, dt_cdn),
+
     'js/DataTables-1.10.11/Editor-1.5.5/js/dataTables.editor.js',
     'js/DataTables-1.10.11/Editor-1.5.5-errorfix/js/editor.jqueryui.js',
     'js/DataTables-1.10.11/Editor-1.5.5/css/editor.jqueryui.css',
