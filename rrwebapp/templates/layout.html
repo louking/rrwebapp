@@ -100,10 +100,10 @@
   
 {# see request.py for list of css, js files #}
 {% for css in _rrwebapp_cssfiles %}
-  <link rel=stylesheet type=text/css href="{{ url_for('static', filename=css.filename) }}?v={{ css.version }}">
+  <link rel=stylesheet type=text/css href="{{ css }}">
 {% endfor %}
 {% for css in pagecssfiles %}
-  <link rel=stylesheet type=text/css href="{{ url_for('static', filename=css.filename) }}?v={{ css.version }}">
+  <link rel=stylesheet type=text/css href="{{ css }}">
 {% endfor %}
 <style>
   {% if request.url[0:16] == "http://127.0.0.1" %}
@@ -117,11 +117,11 @@
 {% endblock %}
 
 {% for js in _rrwebapp_jsfiles %}
-  <script type="text/javascript" src="{{ url_for('static', filename=js.filename) }}?v={{ js.version }}"></script>
+  <script type="text/javascript" src="{{ js }}"></script>
 {% endfor %}
 {% if pagejsfiles %}
   {% for js in pagejsfiles %}
-    <script type="text/javascript" src="{{ url_for('static', filename=js.filename) }}?v={{ js.version }}"></script>
+    <script type="text/javascript" src="{{ js }}"></script>
   {% endfor %}
 {% endif %}
 {% block scripts %}

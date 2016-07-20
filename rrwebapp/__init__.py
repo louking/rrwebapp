@@ -78,6 +78,11 @@ import docs
 import staticfiles
 
 # initialize versions for scripts
-request.setscripts()
+# need to force app context with test_request_context() else get
+#    RuntimeError: Attempted to generate a URL without the application context being pushed.
+# see http://kronosapiens.github.io/blog/2014/08/14/understanding-contexts-in-flask.html
+# NOTE: with app_context() was not sufficient to prevent runtime error
+with app.test_request_context():
+    request.setscripts()
 
 

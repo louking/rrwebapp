@@ -19,7 +19,7 @@ from functools import update_wrapper
 
 # pypi
 import flask
-from flask import make_response, request, current_app
+from flask import url_for, make_response, request, current_app
 from flask.ext.login import login_required
 from flask.views import MethodView
 
@@ -35,39 +35,70 @@ class invalidScript(Exception): pass
 # all scripts required by this application are specified here
 # scripts are listed in the order they must be processed
 # all css scripts are processed before all js scripts - see layout.html for details
+
+# in SCRIPTS files from a CDN are contained in (filename, version, cdn) tuples
+#    cdn is host for content data network
+#    filename may contain {ver}, {min} as replacement_field {field_name}
+#    {min} gets replaced with '.min' if app.config['MINIMIZE_CDN_JAVASCRIPT'] is True
+#    {ver} gets replaced with version
+
+# if scriptitem in request.SCRIPTS is not a tuple, it is assumed to be the string filename 
+# of a file located in server static directory. v arg is set to modification time of the
+# file to assure updated files will be downloaded (i.e., cache won't be used)
+
+# jquery
+jq_cdn = 'https://code.jquery.com'
+jq_ver = '1.11.3'
+jq_ui_ver = '1.10.4'
+
+
+# dataTables
+dt_cdn = 'https://cdn.datatables.net'
+dt_datatables_ver = '1.10.12'
+dt_buttons_ver = '1.2.1'
+dt_fixedcolumns_ver = '3.2.2'
+dt_select_ver = '1.2.0'
+
+# select2
+s2_cdn = 'https://cdnjs.cloudflare.com/ajax/libs'
+s2_ver = '4.0.3'
+
+# selectize
+
+
 SCRIPTS = [
-    'js/jquery-1.11.3.min.js',
+    ('jquery-{ver}{min}.js', jq_ver, jq_cdn),
 
     # 'js/jquery-ui-1.11.4/jquery-ui.js',
     # 'js/jquery-ui-1.11.4/themes/smoothness/jquery-ui.css',
     'js/jquery-ui-1.10.4.custom.js',
     'css/sm-f0-8em-theme/jquery-ui-1.10.4.custom.min.css',
 
-    'js/DataTables-1.10.11/DataTables-1.10.11/js/jquery.dataTables.js',
-    'js/DataTables-1.10.11/DataTables-1.10.11/js/dataTables.jqueryui.js',
-    'js/DataTables-1.10.11/DataTables-1.10.11/css/dataTables.jqueryui.css',
+    ('{ver}/js/jquery.dataTables{min}.js', dt_datatables_ver, dt_cdn),
+    ('{ver}/js/dataTables.jqueryui{min}.js', dt_datatables_ver, dt_cdn),
+    ('{ver}/css/dataTables.jqueryui{min}.css', dt_datatables_ver, dt_cdn),
 
-    'js/DataTables-1.10.11/Buttons-1.1.2/js/dataTables.buttons.js',
-    'js/DataTables-1.10.11/Buttons-1.1.2/js/buttons.jqueryui.js',
+    ('buttons/{ver}/js/dataTables.buttons{min}.js', dt_buttons_ver, dt_cdn),
+    ('buttons/{ver}/js/buttons.jqueryui.js', dt_buttons_ver, dt_cdn),
 
-    'js/DataTables-1.10.11/Buttons-1.1.2/js/buttons.html5.js',
-    'js/DataTables-1.10.11/Buttons-1.1.2/css/buttons.jqueryui.css',
+    ('buttons/{ver}/js/buttons.html5{min}.js', dt_buttons_ver, dt_cdn),
+    ('buttons/{ver}/css/buttons.jqueryui{min}.css', dt_buttons_ver, dt_cdn),
 
     'js/DataTables-1.10.11/Editor-1.5.5/js/dataTables.editor.js',
     'js/DataTables-1.10.11/Editor-1.5.5-errorfix/js/editor.jqueryui.js',
     'js/DataTables-1.10.11/Editor-1.5.5/css/editor.jqueryui.css',
 
-    'js/DataTables-1.10.11/Select-1.1.2/js/dataTables.select.js',
-    'js/DataTables-1.10.11/Select-1.1.2/css/select.jqueryui.css',
+    ('select/{ver}/js/dataTables.select.js', dt_select_ver, dt_cdn),
+    ('select/{ver}/css/select.jqueryui.css', dt_select_ver, dt_cdn),
 
-    # 'js/chosen_v1.4.2/chosen.jquery.min.js',
-    # 'js/chosen_v1.4.2/chosen.min.css',
-
-    'js/select2-4.0.1/js/select2.full.js',
-    'js/select2-4.0.1/css/select2.css',
+    ('select2/{ver}/js/select2.full{min}.js', s2_ver, s2_cdn),
+    ('select2/{ver}/css/select2{min}.css', s2_ver, s2_cdn),
 
     'js/selectize.js-0.12.1/css/selectize.css',
     'js/selectize.js-0.12.1/js/standalone/selectize.js',
+    # can editor selectize come from here? Why no version?
+    #   https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q=field-type/editor.selectize.min.js 
+    #   https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q=field-type/editor.selectize.min.css
     'js/DataTables-1.10.11/FieldType-Selectize/editor.selectize.js',
     'js/DataTables-1.10.11/FieldType-Selectize/editor.selectize.css',
 
@@ -88,14 +119,39 @@ def annotatescripts(scripts):
     annotate scripts with version = file timestamp
     this is used to force browser to reload script file when it changes
 
-    :param scripts: list of script filenames to annotate
+    in scripts files from a CDN are contained in (filename, version, cdn) tuples
+       cdn is host for content data network
+       filename may contain {ver}, {min} as replacement_field {field_name}
+       {min} gets replaced with '.min' if app.config['MINIMIZE_CDN_JAVASCRIPT'] is True
+       {ver} gets replaced with version
+
+    if scriptitem in request.SCRIPTS is not a tuple, it is assumed to be the string filename 
+    of a file located in server static directory. v arg is set to modification time of the
+    file to assure updated files will be downloaded (i.e., cache won't be used)
+
+    :param scripts: list of scriptitems to annotate
     :rtype: list of {'filename':filename, 'version':version}
+
     '''
     annotated = []
-    for thisfile in scripts:
-        version = os.stat(os.path.join(app.static_folder,thisfile))[stat.ST_MTIME]
-        annotation = {'filename':thisfile,'version':version}
-        annotated.append(annotation)
+    
+    for scriptitem in scripts:
+        # handle CDN items
+        if type(scriptitem) == tuple:
+            thisfile, version, cdn = scriptitem
+            cdnmin = ''
+            if 'MINIMIZE_CDN_JAVASCRIPT' in app.config and app.config['MINIMIZE_CDN_JAVASCRIPT']:
+                cdnmin = '.min'
+            fileref = '{}/{}?v={}'.format(cdn,thisfile.format(ver=version,min=cdnmin),version)
+        
+        # handle static file items
+        else:
+            filepath = os.path.join(app.static_folder,scriptitem)
+            version = os.stat(filepath)[stat.ST_MTIME]
+            fileurl = url_for('static', filename=scriptitem)
+            fileref = '{}?v={}'.format(fileurl, version)
+        
+        annotated.append(fileref)
 
     return annotated
     
@@ -105,15 +161,35 @@ def setscripts():
     '''
     setscripts caches the versions for js and css scripts, identified in
     request.SCRIPTS
+
+    files from a CDN are contained in (filename, version, cdn) tuples
+       cdn is host for content data network
+       filename may contain {ver}, {min} as replacement_field {field_name}
+       {min} gets replaced with '.min' if app.config['MINIMIZE_CDN_JAVASCRIPT'] is True
+       {ver} gets replaced with version
+
+    if item in request.SCRIPTS is not a tuple, it is assumed to be the string filename 
+    of a file located in server static directory
     '''
     cssfiles = []
     jsfiles = []
-    for thisfile in SCRIPTS:
+    for scriptitem in SCRIPTS:
+        # handle files from CDN
+        if type(scriptitem) == tuple:
+            thisfile = scriptitem[0]
+        
+        # handle static files
+        else:
+            thisfile = scriptitem
+
         filetype = thisfile.split('.')[-1]  # gets file extension
+
+        # append scriptitem to list, might be cdn tuple
+        # annotatescripts() parses and puts correct filename / version string
         if filetype == 'css':
-            cssfiles.append(thisfile)
+            cssfiles.append(scriptitem)
         elif filetype == 'js':
-            jsfiles.append(thisfile)
+            jsfiles.append(scriptitem)
         else:
             raise invalidScript,'Invalid script filename: {}'.format(thisfile)
     
@@ -129,7 +205,7 @@ def addscripts(scriptlist):
     template to be added to standard scripts. this can be used for js or css files
     but all in the list must be the same
 
-    :param scriptlist: list of filenames to be added to the jsfiles list when template is built
+    :param scriptlist: list of local filenames to be added to the jsfiles list when template is built
     :rtype: list of annotated scripts to be passed to template
     '''
     
