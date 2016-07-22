@@ -58,10 +58,20 @@ dt_datatables_ver = '1.10.12'
 dt_buttons_ver = '1.2.1'
 dt_fixedcolumns_ver = '3.2.2'
 dt_select_ver = '1.2.0'
+dt_editor_plugin_cdn = 'https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q='
+dt_editor_plugin_fieldtype_ver = '?'
 
 # select2
 s2_cdn = 'https://cdnjs.cloudflare.com/ajax/libs'
 s2_ver = '4.0.3'
+
+# selectize
+sz_cdn = 'https://cdnjs.cloudflare.com/ajax/libs'
+sz_ver = '0.12.2'
+
+# yadcf
+yadcf_cdn = 'https://cdn.jsdelivr.net'
+yadcf_ver = '0.8.9'
 
 # selectize
 
@@ -87,6 +97,7 @@ SCRIPTS = [
     ('fixedcolumns/{ver}/js/dataTables.fixedColumns{min}.js', dt_fixedcolumns_ver, dt_cdn),
     ('fixedcolumns/{ver}/css/fixedColumns.jqueryui{min}.css', dt_fixedcolumns_ver, dt_cdn),
 
+    # Editor is not yet available from the dataTables CDN
     'js/DataTables-1.10.11/Editor-1.5.5/js/dataTables.editor.js',
     'js/DataTables-1.10.11/Editor-1.5.5-errorfix/js/editor.jqueryui.js',
     'js/DataTables-1.10.11/Editor-1.5.5/css/editor.jqueryui.css',
@@ -97,16 +108,17 @@ SCRIPTS = [
     ('select2/{ver}/js/select2.full{min}.js', s2_ver, s2_cdn),
     ('select2/{ver}/css/select2{min}.css', s2_ver, s2_cdn),
 
-    'js/selectize.js-0.12.1/css/selectize.css',
-    'js/selectize.js-0.12.1/js/standalone/selectize.js',
+    # selectize is required for use by Editor forms
+    ('selectize.js/{ver}/css/selectize{min}.css', sz_ver, sz_cdn),
+    ('selectize.js/{ver}/js/standalone/selectize{min}.js', sz_ver, sz_cdn),
     # can editor selectize come from here? Why no version?
     #   https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q=field-type/editor.selectize.min.js 
     #   https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q=field-type/editor.selectize.min.css
     'js/DataTables-1.10.11/FieldType-Selectize/editor.selectize.js',
     'js/DataTables-1.10.11/FieldType-Selectize/editor.selectize.css',
 
-    'js/yadcf-0.8.9/jquery.dataTables.yadcf.js',
-    'js/yadcf-0.8.9/jquery.dataTables.yadcf.css',
+    ('yadcf/{ver}/jquery.dataTables.yadcf.js', yadcf_ver, yadcf_cdn),
+    ('yadcf/{ver}/jquery.dataTables.yadcf.css', yadcf_ver, yadcf_cdn),
 
     'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
 
@@ -142,10 +154,23 @@ def annotatescripts(scripts):
         # handle CDN items
         if type(scriptitem) == tuple:
             thisfile, version, cdn = scriptitem
+
+            # maybe get minimized version
             cdnmin = ''
             if 'MINIMIZE_CDN_JAVASCRIPT' in app.config and app.config['MINIMIZE_CDN_JAVASCRIPT']:
                 cdnmin = '.min'
-            fileref = '{}/{}?v={}'.format(cdn,thisfile.format(ver=version,min=cdnmin),version)
+
+            # format based on whether query options are already included
+            # query options not present
+            if '?' not in cdn:
+                # remove any trailing '/' from cdn
+                if cdn[-1] == '/':
+                    cdn = cdn[:-1]
+                fileref = '{}/{}?v={}'.format(cdn,thisfile.format(ver=version,min=cdnmin),version)
+            # query options already present
+            # NOTE: this part of the logic doesn't work because somewhere string is getting url quoted
+            else:
+                fileref = '{}{}&v={}'.format(cdn,thisfile.format(ver=version,min=cdnmin),version)
         
         # handle static file items
         else:
