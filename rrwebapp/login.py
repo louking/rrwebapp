@@ -95,7 +95,6 @@ def login():
             flask.session['logged_in'] = True
             flask.session['user_name'] = user.name
             flask.session.permanent = True
-            app.permanent_session_lifetime = datetime.timedelta(minutes=120)
     
             # Tell Flask-Principal the identity changed
             identity_changed.send(
