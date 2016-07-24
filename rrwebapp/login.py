@@ -108,10 +108,13 @@ def login():
                 db.session.rollback()
                 raise dbConsistencyError,'no clubs found in database'
                 
-            # give user access to the first club in the list
-            club = Club.query.filter_by(id=userclubs[0][0]).first()
-            flask.session['club_id'] = club.id
-            flask.session['club_name'] = club.name
+            # give user access to the first club in the list if no club already chosen
+            # club_choices set in nav module. If this club.id is not in club_choices, 
+            # need to reset to first available
+            if 'club_id' not in flask.session or flask.session['club_id'] not in [c[0] for c in userclubs]:
+                club = Club.query.filter_by(id=userclubs[0][0]).first()
+                flask.session['club_id'] = club.id
+                flask.session['club_name'] = club.name
             
             # set default year to be current year
             today = timeu.epoch2dt(time.time())
@@ -138,7 +141,10 @@ def set_logged_out():
 #----------------------------------------------------------------------
     logout_user()
     
-    for key in ('logged_in','user_name','club_id','club_name','club_choices','year','year_choices'):
+    # don't remove club_id, club_name because same user likely to log in again
+    # use current year each login, though, as most likely this is what user wants
+    # club_choices and year_choices set in nav module
+    for key in ('logged_in','user_name','club_choices','year','year_choices'):
         flask.session.pop(key, None)
         
     for key in ('identity.name', 'identity.auth_type'):
