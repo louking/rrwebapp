@@ -1522,15 +1522,13 @@ class AjaxImportResults(MethodView):
             # format not good enough
             except raceresults.headerError, e:
                 db.session.rollback()
-                rr.close()
                 cause = '{}'.format(e)
                 app.logger.warning(cause)
                 return failure_response(cause=cause)
                 
             # how did this happen?  check allowed_file() for bugs
-            except raceresults.dataError,e:
+            except raceresults.dataError, e:
                 db.session.rollback()
-                rr.close()
                 cause =  'Program Error: {}'.format(e)
                 app.logger.error(cause)
                 return failure_response(cause=cause)
@@ -1543,7 +1541,12 @@ class AjaxImportResults(MethodView):
             return jsonify({'success': True, 'current': 0, 'total':100, 'location': url_for('importresultsstatus', task_id=task.id)}), 202, {}
             #return success_response(redirect=url_for('editparticipants',raceid=raceid))
         
-        except Exception,e:
+        except Exception, e:
+            # close rr if created, otherwise NOP
+            try:
+                rr.close()
+            except UnboundLocalError:
+                pass
             # roll back database updates and close transaction
             db.session.rollback()
             cause = traceback.format_exc()
