@@ -1238,6 +1238,105 @@ class RunnerResults(MethodView):
 app.add_url_rule('/results',view_func=RunnerResults.as_view('results'),methods=['GET'])
 #----------------------------------------------------------------------
 
+#######################################################################
+class RunnerResultsChart(MethodView):
+#######################################################################
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        try:
+            club_shname = request.args.get('club',None)
+            runnerid = request.args.get('participant',None)
+            seriesarg = request.args.get('series',None)
+            # NOTE: session variables are updated in nav.py
+
+            # filter on valid runnerid, if present
+            resultfilter = {}
+            name = None
+            pagename = 'Results Analysis'
+            if runnerid:
+                runner = Runner.query.filter_by(id=runnerid).first()
+                if runner:
+                    resultfilter['runnerid'] = runnerid
+
+            # DataTables options string, data: and buttons: are passed separately
+            dt_options = {
+                'dom': '<"dt-hide"t>',
+                'columns': [
+                    { 'data': 'name',           'name': 'name',             'label': 'Name' },
+                    { 'data': 'series',         'name': 'series',           'label': 'Series' }, 
+                    { 'data': 'date',           'name': 'date',             'label': 'Date',        'className': 'dt-body-center' },
+                    { 'data': 'race',           'name': 'race',             'label': 'Race'},
+                    { 'data': 'miles',          'name': 'miles',            'label': 'Miles',       'className': 'dt-body-center' },
+                    { 'data': 'gender',         'name': 'gender',           'label': 'Gen',         'className': 'dt-body-center' },
+                    { 'data': 'age',            'name': 'age',              'label': 'Age',         'className': 'dt-body-center' },
+                    { 'data': 'genderplace',    'name': 'genderplace',      'label': 'Gen Place',   'className': 'dt-body-center' },
+                    { 'data': 'division',       'name': 'division',         'label': 'Div',         'className': 'dt-body-center' },
+                    { 'data': 'divisionplace',  'name': 'divisionplace',    'label': 'Div Place',   'className': 'dt-body-center' },
+                    { 'data': 'time',           'name': 'time',             'label': 'Time',        'className': 'dt-body-center' },
+                    { 'data': 'pace',           'name': 'pace',             'label': 'Pace',        'className': 'dt-body-center' },
+                    { 'data': 'agtime',         'name': 'agtime',           'label': 'AG Time',     'className': 'dt-body-center' },
+                    { 'data': 'agpercent',      'name': 'agpercent',        'label': 'AG %age',     'className': 'dt-body-center' },
+                ],
+                'ordering': True,
+                'serverSide': True,
+                'order': [2,'asc'],
+                'paging': False,
+            }
+
+            pretablehtml = '''
+                <div class="TextLeft W7emLabel">
+                  <div>
+                    <label class="Label">Name:</label><span id="_rrwebapp_filtername" class="_rrwebapp-filter"></span>
+                    <label class="Label">Series:</label><span id="_rrwebapp_filterseries" class="_rrwebapp-filter"></span>
+                  </div>
+                </div>
+            '''
+            # set up yadcf
+            getcol = lambda name: [col['name'] for col in dt_options['columns']].index(name)
+            yadcf_options = [
+                {
+                    'column_number':getcol('name'),
+                    'filter_container_id':"_rrwebapp_filtername",
+                    'filter_type':"multi_select",
+                    'select_type': 'select2',
+                    'select_type_options': {
+                        'width': '30em',
+                    },
+                    'filter_reset_button_text': 'all',
+                },{
+                    'column_number':getcol('series'),
+                    'filter_container_id':"_rrwebapp_filterseries",
+                    'filter_reset_button_text': 'all',
+                }
+            ]
+            options = {'dtopts': dt_options, 'yadcfopts': yadcf_options}
+
+      
+            # commit database updates and close transaction
+            db.session.commit()
+            return flask.render_template('datatables.html',
+                                         pagename=pagename,
+                                         pretablehtml=pretablehtml,
+                                         chartloc='beforetable',
+                                         pagejsfiles=addscripts(['datatables.js', 'results_scatterplot.js']),
+                                         pagecssfiles=addscripts(['dt_chart.css']),
+                                         # serverSide must be True to pass url
+                                         # add the request args to the ajax function
+                                         tabledata=url_for('_results')+'?'+urlencode(request.args),
+                                         tablebuttons= [],
+                                         options = options,
+                                         inhibityear=True,inhibitclub=True,
+                                         )
+
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+#----------------------------------------------------------------------
+app.add_url_rule('/resultschart',view_func=RunnerResultsChart.as_view('resultschart'),methods=['GET'])
+#----------------------------------------------------------------------
+
 
 #----------------------------------------------------------------------
 def renderdivision(result):

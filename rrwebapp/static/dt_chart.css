@@ -1,0 +1,27 @@
+# css for datatables charts (d3)
+
+.dt-chart-axis path,
+.dt-chart-axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.dt-chart-dot {
+    /*stroke: #000;*/
+    stroke: black;
+    stroke-width: 1;
+}
+
+.dt-chart-tooltip {
+    position: absolute;
+    width: 200px;
+    height: 28px;
+    pointer-events: none;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.8em;
+}
+
+.dt-hide {
+    visibility: hidden;
+}

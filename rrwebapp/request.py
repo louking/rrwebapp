@@ -73,8 +73,10 @@ sz_ver = '0.12.2'
 yadcf_cdn = 'https://cdn.jsdelivr.net'
 yadcf_ver = '0.8.9'
 
-# selectize
-
+# d3
+d3_cdn = 'https://d3js.org'
+d3_ver = 'v4'
+d3_sc_ver = 'v1'    # d3-scale-chromatic
 
 SCRIPTS = [
     ('jquery-{ver}{min}.js', jq_ver, jq_cdn),
@@ -119,6 +121,9 @@ SCRIPTS = [
 
     ('yadcf/{ver}/jquery.dataTables.yadcf.js', yadcf_ver, yadcf_cdn),
     ('yadcf/{ver}/jquery.dataTables.yadcf.css', yadcf_ver, yadcf_cdn),
+
+    ('d3.{ver}{min}.js', d3_ver, d3_cdn),
+    ('d3-scale-chromatic.{ver}{min}.js', d3_sc_ver, d3_cdn),
 
     'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
 

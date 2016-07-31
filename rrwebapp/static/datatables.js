@@ -41,11 +41,11 @@ function datatables(data, buttons, options) {
     };
 
     // define the table
-    var table = $('#datatable').DataTable ( options.dtopts );
+    _dt_table = $('#datatable').DataTable ( options.dtopts );
 
     // any column filtering required? if so, define the filters
     if (options.yadcfopts !== undefined) {
-        yadcf.init(table, options.yadcfopts);
+        yadcf.init(_dt_table, options.yadcfopts);
     }
 
 }
