@@ -1,13 +1,12 @@
 // dtchart is used to create the chart from datatables.js
-function dtchart() {
+function datatables_chart() {
     var margin = {top: 40, right: 80, bottom: 45, left: 50},
-        width = 960 - margin.left - margin.right,
-        height = 500 - margin.top - margin.bottom,
-        viewbox_width = width + margin.left + margin.right,
-        viewbox_height = height + margin.top + margin.bottom,
-        minagegrade = 20,
-        maxagegrade = 100,
-        initialdraw = true;
+        viewbox_width = 960,
+        viewbox_height = 500,
+        width = viewbox_width - margin.left - margin.right,
+        height = viewbox_height - margin.top - margin.bottom;
+    var minagegrade = 20,
+        maxagegrade = 100;
 
     /* 
      * value accessor - returns the value to encode for a given data object.
@@ -46,6 +45,25 @@ function dtchart() {
       .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+    var xaxisg = svg.append("g")
+            .attr("class", "x dt-chart-axis")
+            .attr("transform", "translate(0," + height + ")");
+        
+    var yaxisg =  svg.append("g")
+            .attr("class", "y dt-chart-axis")
+            .call(yAxis)
+          .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Age Grade");
+    
+    var headerg = svg.append("g")
+            .attr("class", "dt-chart-heading")
+          .append("text");
+    
+
     // make responsive, fit within parent
     var aspect = viewbox_width / viewbox_height,
         chart = d3.select(".chart"),
@@ -54,7 +72,7 @@ function dtchart() {
         var targetWidth = parseFloat(entrycontent.style("width"));  // assumes width in px
         chart.attr("width", targetWidth);
         chart.attr("height", targetWidth / aspect);
-    };
+    };  // window.onresize
 
     // dates
     var formatDate = d3.timeFormat("%m/%d/%y"),
@@ -71,26 +89,104 @@ function dtchart() {
         color = function(d) {
             scale = d3.scaleLog().domain([100,1]);
             return d3.interpolateSpectral( scale(d) );
-        };
+        };  // color
 
     // add the tooltip area to the webpage
     var tooltip = d3.select("body").append("div")
         .attr("class", "dt-chart-tooltip")
         .style("opacity", 0);
 
+    function dt_chart_update(data) {
+        // set up transition parameters
+        var t = d3.transition()
+            .duration(750);
+
+        // set up x domain
+        xScale.domain(d3.extent(data, function(d) { return d.date; }));
+
+        // update x axis
+        xaxisg
+          .transition(t)
+            .call(xAxis)
+          .selectAll(".tick text")
+            .style("text-anchor", "end")
+            .attr("dx", "-.8em")
+            .attr("dy", ".15em")
+            .attr("transform", "rotate(-65)");
+
+        // update y axis
+        yaxisg
+          .transition(t)
+            .call(yAxis);
+
+        // update header
+        // can assume that all data is for same person
+        var name = data[0].name;
+        headerg
+          .transition(t)
+            .attr("transform", "translate(" + width/2 + ",-10)")
+            .style("text-anchor", "middle")
+            .text("age grade performance for " + name);
+
+        // JOIN new data with old elements
+        var dots = svg.selectAll("circle")
+            .data(data, function(d) { return d; });
+
+        // EXIT old elements not present in new data
+        dots.exit()
+            .attr("class", "dt-chart-dots-exit")
+          .transition(t)
+            .attr("cy", function(d) { return yMap(d)+60; })
+            .style("fill-opacity", 1e-6)
+            .remove();
+
+        // UPDATE old elements present in new data
+        dots.attr("class", "dt-chart-dots-update dt-chart-dot")
+            .style("fill-opacity", 1)
+          .transition(t)
+            .attr("cx", xMap)
+            .attr("cy", yMap)
+
+        // ENTER new elements present in new data
+        dots.enter().append("circle")
+            .attr("class", "dt-chart-dots-enter dt-chart-dot")
+            .attr("r", 4.5)
+            .attr("cx", xMap)
+            .attr("cy", function(d) { return yMap(d)-60; })
+            .style("fill", function(d) { return color(cValue(d));}) 
+            .style("fill-opacity", 1e-6)
+            .on("mouseover", function(d) {
+                tooltip.transition()
+                     .duration(200)
+                     .style("opacity", .9);
+                tooltip.html(d.race + "<br/>" + formatDate(d.date) + " " + d.time + " " + round(yValue(d),1) + "%")
+                     .style("left", (d3.event.pageX + 5) + "px")
+                     .style("top", (d3.event.pageY - 28) + "px");
+            })  // .on("mouseover"
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                     .duration(500)
+                     .style("opacity", 0);
+            })  // .on("mouseout"
+          .transition(t)
+            .attr("cy", yMap)
+            .style("fill-opacity", 1)
+
+        // need legend
+        // TO BE ADDED
+
+    }   // dt_chart_update
+
     // when any ajax request is received back from the server, update the chart
     _dt_table.on( 'xhr.dt', function ( e, settings, json, xhr ) {
         // add tableselect keys if no xhr error
         if (!json) throw "error response from api";               
 
-        data = json.data;
-
-        // can assume that all data is for same person
-        name = data[0].name;
+        var data = json.data;
 
         // data is list of result objects
         // convert agpercent and miles (distance) to number
-        alldata = []
+        var alldata = []
         for (i = 0; i < data.length; i++) {
             // do deep copy of data[i]. Shallow would probably be ok, but why not do deep?
             d = jQuery.extend(true, {}, data[i]);
@@ -99,65 +195,13 @@ function dtchart() {
             d.agpercent = +d.agpercent.replace(/\%/g,"");
             d.miles = +d.miles;
             alldata.push(d);
-        };
+        };  // for
     
-        // set up x domain, giving buffer so dots don't overlap axis
-        xScale.domain(d3.extent(alldata, function(d) { return d.date; }));
-    
+
         // initial draw or transition to new data
         // see http://bl.ocks.org/d3noob/7030f35b72de721622b8
-        svg.append("g")
-            .attr("class", "dt-chart-axis")
-            .attr("transform", "translate(0," + height + ")")
-            .call(xAxis)
-          .selectAll(".tick text")
-            .style("text-anchor", "end")
-            .attr("dx", "-.8em")
-            .attr("dy", ".15em")
-            .attr("transform", "rotate(-65)");
-    
-        svg.append("g")
-            .attr("class", "dt-chart-axis")
-            .call(yAxis)
-          .append("text")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 6)
-            .attr("dy", ".71em")
-            .style("text-anchor", "end")
-            .text("Age Grade");
-    
-        svg.append("g")
-            .attr("class", "heading")
-          .append("text")
-            .attr("transform", "translate(" + width/2 + ",-10)")
-            .style("text-anchor", "middle")
-            .text("age grade performance for " + name);
-    
-        // draw scatterplot
-        svg.selectAll(".dt-chart-dot")
-            .data(alldata)
-          .enter().append("circle")
-            .attr("class", "dt-chart-dot")
-            .attr("r", 4.5)
-            .attr("cx", xMap)
-            .attr("cy", yMap)
-            .style("fill", function(d) { return color(cValue(d));}) 
-            .on("mouseover", function(d) {
-                tooltip.transition()
-                     .duration(200)
-                     .style("opacity", .9);
-                tooltip.html(d.race + "<br/>" + formatDate(d.date) + " " + d.time + " " + round(yValue(d),1) + "%")
-                     .style("left", (d3.event.pageX + 5) + "px")
-                     .style("top", (d3.event.pageY - 28) + "px");
-            })
-            .on("mouseout", function(d) {
-                tooltip.transition()
-                     .duration(500)
-                     .style("opacity", 0);
-            });
+        dt_chart_update(alldata);
 
-        // need legend
-        // TO BE ADDED
-    });
+    });    // _dt_table.on( 'xhr.dt'
 }
 
