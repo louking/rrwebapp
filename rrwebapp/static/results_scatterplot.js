@@ -1,6 +1,6 @@
 // dtchart is used to create the chart from datatables.js
 function datatables_chart() {
-    var margin = {top: 40, right: 80, bottom: 45, left: 50},
+    var margin = {top: 40, right: 80, bottom: 60, left: 50},
         viewbox_width = 960,
         viewbox_height = 500,
         width = viewbox_width - margin.left - margin.right,
@@ -21,7 +21,7 @@ function datatables_chart() {
         xScale = d3.scaleTime().range([0, width]), // value -> display
         xMap = function(d) { return xScale(xValue(d));}, // data -> display
         xAxis = d3.axisBottom(xScale)
-            .tickFormat(d3.timeFormat("%b '%y"));
+            .tickFormat(d3.timeFormat("%m/%d/%y"));
 
     // set up y
     var yValue = function(d) { return d.agpercent; }, // data -> value
@@ -121,12 +121,16 @@ function datatables_chart() {
 
         // update header
         // can assume that all data is for same person
-        var name = data[0].name;
+        var heading = "please select a name";
+        if (data.length >= 1) {
+            var name = data[0].name;
+            var heading = name;
+        };
         headerg
           .transition(t)
             .attr("transform", "translate(" + width/2 + ",-10)")
             .style("text-anchor", "middle")
-            .text("age grade performance for " + name);
+            .text(heading);
 
         // JOIN new data with old elements
         var dots = svg.selectAll("circle")
@@ -136,7 +140,6 @@ function datatables_chart() {
         dots.exit()
             .attr("class", "dt-chart-dots-exit")
           .transition(t)
-            .attr("cy", function(d) { return yMap(d)+60; })
             .style("fill-opacity", 1e-6)
             .remove();
 
@@ -152,7 +155,7 @@ function datatables_chart() {
             .attr("class", "dt-chart-dots-enter dt-chart-dot")
             .attr("r", 4.5)
             .attr("cx", xMap)
-            .attr("cy", function(d) { return yMap(d)-60; })
+            .attr("cy", yMap)
             .style("fill", function(d) { return color(cValue(d));}) 
             .style("fill-opacity", 1e-6)
             .on("mouseover", function(d) {
@@ -161,7 +164,7 @@ function datatables_chart() {
                      .style("opacity", .9);
                 tooltip.html(d.race + "<br/>" + formatDate(d.date) + " " + d.time + " " + round(yValue(d),1) + "%")
                      .style("left", (d3.event.pageX + 5) + "px")
-                     .style("top", (d3.event.pageY - 28) + "px");
+                     .style("top", (d3.event.pageY - 50) + "px");
             })  // .on("mouseover"
             .on("mouseout", function(d) {
                 tooltip.transition()
@@ -169,7 +172,6 @@ function datatables_chart() {
                      .style("opacity", 0);
             })  // .on("mouseout"
           .transition(t)
-            .attr("cy", yMap)
             .style("fill-opacity", 1)
 
         // need legend
