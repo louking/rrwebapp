@@ -35,14 +35,15 @@ function datatables_chart() {
     // add the graph canvas to the body of the webpage
     var dtchart = d3.select(".dt-chart");
 
-    var svg = dtchart
+    var viewbox = dtchart
       .append("svg")
         .attr("class", "chart")
         .attr("width", viewbox_width)
         .attr("height", viewbox_height)
         .attr("viewBox", "0 0 " + viewbox_width + " " + viewbox_height)
         .attr("preserveAspectRation", "xMidYMid")
-      .append("g")
+
+    var svg = viewbox.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     var xaxisg = svg.append("g")
@@ -51,13 +52,13 @@ function datatables_chart() {
         
     var yaxisg =  svg.append("g")
             .attr("class", "y dt-chart-axis")
-            .call(yAxis)
-          .append("text")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 6)
-            .attr("dy", ".71em")
-            .style("text-anchor", "end")
-            .text("Age Grade");
+            .call(yAxis);
+
+    // y axis label
+    viewbox.append("text")
+        .style("text-anchor", "middle")
+        .attr("transform", "translate("+(margin.left/3)+","+(height/2+margin.top)+")rotate(-90)")
+        .text("age grade %age");
     
     var headerg = svg.append("g")
             .attr("class", "dt-chart-heading")
@@ -83,13 +84,11 @@ function datatables_chart() {
     // colors are logarighmic from blue to red
     // domain is in miles (race distance)
     var cValue = function(d) { return d.miles; },
-        // color = d3.scaleLog()
-        //     .domain([.01,100])
-        //     .range(['green', 'red']);
         color = function(d) {
             scale = d3.scaleLog().domain([100,1]);
             return d3.interpolateSpectral( scale(d) );
         };  // color
+        
 
     // add the tooltip area to the webpage
     var tooltip = d3.select("body").append("div")
