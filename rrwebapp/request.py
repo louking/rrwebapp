@@ -124,6 +124,8 @@ SCRIPTS = [
 
     ('d3.{ver}{min}.js', d3_ver, d3_cdn),
     ('d3-scale-chromatic.{ver}{min}.js', d3_sc_ver, d3_cdn),
+    'd3.legend.js',
+    'd3.legend.css',
 
     'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
 

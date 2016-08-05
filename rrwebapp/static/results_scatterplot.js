@@ -1,12 +1,13 @@
 // dtchart is used to create the chart from datatables.js
 function datatables_chart() {
-    var margin = {top: 40, right: 80, bottom: 60, left: 50},
+    var margin = {top: 40, right: 100, bottom: 60, left: 50},
         viewbox_width = 960,
         viewbox_height = 500,
         width = viewbox_width - margin.left - margin.right,
         height = viewbox_height - margin.top - margin.bottom;
     var minagegrade = 20,
         maxagegrade = 100;
+    var dot_size = 4.5;
 
     /* 
      * value accessor - returns the value to encode for a given data object.
@@ -60,10 +61,30 @@ function datatables_chart() {
         .attr("transform", "translate("+(margin.left/3)+","+(height/2+margin.top)+")rotate(-90)")
         .text("age grade %age");
     
+    // heading
     var headerg = svg.append("g")
             .attr("class", "dt-chart-heading")
           .append("text");
     
+    // return text for legend
+    function legend_text(d) {
+        var meterspermile = 1609.344,
+            epsion = 1e-1;
+        var subs = {401: '400m', 1001: '1000m', 1609:'1M',3219:'2M',4989:'5K',
+                    2993: '3000m', 5000:'5K',8047:'5M',
+                    10000:'10K', 15000:'15K',
+                    16093:'10M',21082:'HM',21097:'HM',42165:'Marathon',42195:'Marathon',
+                    80467:'50M',160934:'100M'};
+
+        var nummeters = Math.round(d.miles*meterspermile);
+        if (nummeters in subs) {
+            return subs[nummeters];
+        } else if (nummeters < 5* meterspermile) {
+            return nummeters + 'm';
+        } else {
+            return d.miles + "M";
+        };
+    };
 
     // make responsive, fit within parent
     var aspect = viewbox_width / viewbox_height,
@@ -88,7 +109,6 @@ function datatables_chart() {
             scale = d3.scaleLog().domain([100,1]);
             return d3.interpolateSpectral( scale(d) );
         };  // color
-        
 
     // add the tooltip area to the webpage
     var tooltip = d3.select("body").append("div")
@@ -148,13 +168,16 @@ function datatables_chart() {
           .transition(t)
             .attr("cx", xMap)
             .attr("cy", yMap)
+            .on("end", function(d,i) {legend.call(d3.legend)});
 
         // ENTER new elements present in new data
         dots.enter().append("circle")
             .attr("class", "dt-chart-dots-enter dt-chart-dot")
-            .attr("r", 4.5)
+            .attr("r", dot_size)
             .attr("cx", xMap)
             .attr("cy", yMap)
+            .attr("data-legend", legend_text)
+            .attr("data-legend-pos", function(d) { return d.miles; })
             .style("fill", function(d) { return color(cValue(d));}) 
             .style("fill-opacity", 1e-6)
             .on("mouseover", function(d) {
@@ -170,11 +193,18 @@ function datatables_chart() {
                      .duration(500)
                      .style("opacity", 0);
             })  // .on("mouseout"
+          // give a little extra on final transition before calling d3.legend
           .transition(t)
             .style("fill-opacity", 1)
+            .on("end", function(d,i) {legend.call(d3.legend)})
 
-        // need legend
-        // TO BE ADDED
+        // update legend after updating dots
+        // remove and replace legend for case where empty
+        viewbox.selectAll(".legend").remove()
+        var legend = viewbox.append("g")
+              .attr("class","legend")
+              .attr("transform","translate(" + (width + margin.left + 25) + "," + margin.top + ")")
+              .style("font-size","12px");
 
     }   // dt_chart_update
 
