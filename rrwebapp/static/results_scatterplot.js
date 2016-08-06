@@ -118,7 +118,7 @@ function datatables_chart() {
     function dt_chart_update(data) {
         // set up transition parameters
         var t = d3.transition()
-            .duration(750);
+            .duration(0);
 
         // set up x domain
         xScale.domain(d3.extent(data, function(d) { return d.date; }));
@@ -140,7 +140,7 @@ function datatables_chart() {
 
         // update header
         // can assume that all data is for same person
-        var heading = "please select a name";
+        var heading = "please make a selection which includes some data";
         if (data.length >= 1) {
             var name = data[0].name;
             var heading = name;

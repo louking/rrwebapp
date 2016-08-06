@@ -1474,6 +1474,9 @@ class RunnerResultsChart(MethodView):
                   <div>
                     <label class="Label">Name (age):</label><span id="_rrwebapp_filtername" class="_rrwebapp-filter"></span>
                     <label class="Label">Series:</label><span id="_rrwebapp_filterseries" class="_rrwebapp-filter"></span>
+                    <br/><br/>
+                    <label class="Label">Date:</label><span id="_rrwebapp_filterdate" class="_rrwebapp-filter"></span>
+                    <label class="Label">Dist (miles):</label><span id="_rrwebapp_filterdistance" class="_rrwebapp-filter"></span>
                   </div>
                 </div>
             '''
@@ -1485,10 +1488,20 @@ class RunnerResultsChart(MethodView):
                     'filter_container_id':"_rrwebapp_filtername",
                     'filter_type':"select",
                     'select_type': 'select2',
-                    'select_type_options': {
-                        # 'width': '30em',
-                    },
                     'filter_reset_button_text': 'clear',
+                },{
+                    'column_number':getcol('date'),
+                    'filter_container_id':"_rrwebapp_filterdate",
+                    'filter_type':'range_date',
+                    'date_format':'yyyy-mm-dd',
+                    'filter_delay': 100,
+                    'filter_reset_button_text': 'all',
+                },{
+                    'column_number':getcol('miles'),
+                    'filter_container_id':"_rrwebapp_filterdistance",
+                    'filter_type': 'range_number',
+                    'filter_delay': 100,
+                    'filter_reset_button_text': 'all',
                 },{
                     'column_number':getcol('series'),
                     'filter_container_id':"_rrwebapp_filterseries",
@@ -1607,11 +1620,13 @@ class AjaxRunnerResultsChart(MethodView):
             names.sort(key=lambda item: item['label'].lower())
 
             series = [row.name for row in db.session.query(Series.name).filter_by(**seriesfilter).distinct().all()]
+            milesrange = [0,100]
 
             # add yadcf filter
             output_result = rowTable.output_result()
             output_result['yadcf_data_{}'.format(getcol('runnerid'))] = names
             output_result['yadcf_data_{}'.format(getcol('series'))] = series
+            output_result['yadcf_data_{}'.format(getcol('miles'))] = milesrange
 
             return jsonify(output_result)
 
