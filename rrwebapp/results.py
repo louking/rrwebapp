@@ -1583,9 +1583,7 @@ class AjaxRunnerResultsChart(MethodView):
                 ColumnDT('runner.name',     mData='name'), 
                 ColumnDT('series.name',     mData='series'),
                 ColumnDT('race.name',       mData='race'),
-                ColumnDT('race.distance',   mData='miles',              searchable=False,
-                         # render integers as integers, 1 decimal less than 1, 2 decimals between 1 and 3 and 1 decimal above 3
-                         filter=lambda c: '{0:.{1}f}'.format(c,0 if int(c)==float(c) else 1 if c > 3 else 3 if c < 1 else 2)),
+                ColumnDT('race.distance',   mData='miles',              searchable=False),
                 ColumnDT('age',             mData='age',                searchable=False,   filterarg='row', filter=renderage),
                 ColumnDT('time',            mData='time',               searchable=False,   filter=lambda c: render.rendertime(c, 0)),
                 ColumnDT('time',            mData='pace',               searchable=False,

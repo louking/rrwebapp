@@ -70,16 +70,16 @@ function datatables_chart() {
     function legend_text(d) {
         var meterspermile = 1609.344,
             epsion = 1e-1;
-        var subs = {401: '400m', 1001: '1000m', 1609:'1M',3219:'2M',4989:'5K',
-                    2993: '3000m', 5000:'5K',8047:'5M',
-                    10000:'10K', 15000:'15K',
-                    16093:'10M',21082:'HM',21097:'HM',42165:'Marathon',42195:'Marathon',
-                    80467:'50M',160934:'100M'};
+        var subs = {1609:'1M', 3001:'3000m', 3219:'2M', 4989:'5K', // 3001 because of data error in scoretility
+                    5000:'5K', 5001:'5K', 8047:'5M', // 5001 because of data error in scoretility
+                    10000:'10K', 10002:'10K', 15000:'15K',  // 10002 because of data error in scoretility
+                    16093:'10M', 21082:'HM', 21097:'HM', 42165:'Marathon', 42195:'Marathon',
+                    80467:'50M', 160934:'100M'};
 
         var nummeters = Math.round(d.miles*meterspermile);
         if (nummeters in subs) {
             return subs[nummeters];
-        } else if (nummeters < 5* meterspermile) {
+        } else if (nummeters < 5000) {
             return nummeters + 'm';
         } else {
             return d.miles + "M";
