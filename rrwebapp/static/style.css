@@ -281,6 +281,7 @@ label.Label
 .W20emLabel label.Label { width: 20em; }
 .W20emLabel .FieldDesc { margin-left: 21em; }
 
+.PL20pxLabel label.Label {padding-left: 20px}
 
 .W9emTextBox input[type="date"],
 .W9emTextBox input[type="email"],

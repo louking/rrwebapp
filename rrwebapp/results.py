@@ -1470,12 +1470,12 @@ class RunnerResultsChart(MethodView):
             }
 
             pretablehtml = '''
-                <div class="TextLeft W7emLabel">
+                <div class="TextLeft PL20pxLabel">
                   <div>
                     <label class="Label">Name (age):</label><span id="_rrwebapp_filtername" class="_rrwebapp-filter"></span>
                     <label class="Label">Series:</label><span id="_rrwebapp_filterseries" class="_rrwebapp-filter"></span>
                     <br/><br/>
-                    <label class="Label">Date:</label><span id="_rrwebapp_filterdate" class="_rrwebapp-filter"></span>
+                    <label class="Label">Date (yyyy-mm-dd):</label><span id="_rrwebapp_filterdate" class="_rrwebapp-filter"></span>
                     <label class="Label">Dist (miles):</label><span id="_rrwebapp_filterdistance" class="_rrwebapp-filter"></span>
                   </div>
                 </div>
