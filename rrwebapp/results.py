@@ -1593,13 +1593,35 @@ class AjaxRunnerResultsChart(MethodView):
             ]
             getcol = lambda name: [col.mData for col in columns].index(name)
 
+            # make copy of args as request.args is immutable and we might want to update
+            args = request.args.copy()
+
             # if no search for runnerid, we shouldn't return anything
-            # kludge this by setting resultsfileter to -1
+            # kludge this by setting resultsfilter to -1
             runneridfield = 'columns[{}][search][value]'.format(getcol('runnerid'))
             if not request.args.get(runneridfield,None):
                 resultfilter['runnerid'] = -1
 
-            rowTable = DataTables(request.args, RaceResult, RaceResult.query.filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race"), columns, dialect='mysql')
+            # preprocess date range to assure proper format
+            datefield = 'columns[{}][search][value]'.format(getcol('date'))
+            # if min or max is missing, prepare to fill in
+            nulldate = [tYmd.epoch2asc(0),tYmd.epoch2asc(time())]
+            datearg = args[datefield]
+            if datearg:
+                daterange = datearg.split('-yadcf_delim-')
+                # sure hope len(daterange) == 2
+                for i in range(2):
+                    if daterange[i] == '':
+                        daterange[i] = nulldate[i]
+                    try:
+                        daterange[i] = tYmd.epoch2asc(tYmd.asc2epoch(daterange[i]))
+                    # if incorrect format, act as if null
+                    except ValueError:
+                        daterange[i] = nulldate[i]
+
+                args[datefield] = '-yadcf_delim-'.join(daterange)
+
+            rowTable = DataTables(args, RaceResult, RaceResult.query.filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race"), columns, dialect='mysql')
 
             # prepare for filters
             # need to use db.session to access query function

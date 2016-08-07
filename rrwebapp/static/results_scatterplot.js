@@ -140,7 +140,7 @@ function datatables_chart() {
 
         // update header
         // can assume that all data is for same person
-        var heading = "please make a selection which includes some data";
+        var heading = "no results found for current selection";
         if (data.length >= 1) {
             var name = data[0].name;
             var heading = name;
