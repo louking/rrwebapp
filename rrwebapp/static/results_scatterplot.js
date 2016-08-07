@@ -165,6 +165,8 @@ function datatables_chart() {
         // UPDATE old elements present in new data
         dots.attr("class", "dt-chart-dots-update dt-chart-dot")
             .style("fill-opacity", 1)
+            .attr("data-legend", legend_text)
+            .attr("data-legend-pos", function(d) { return d.miles; })
           .transition(t)
             .attr("cx", xMap)
             .attr("cy", yMap)
@@ -193,7 +195,6 @@ function datatables_chart() {
                      .duration(500)
                      .style("opacity", 0);
             })  // .on("mouseout"
-          // give a little extra on final transition before calling d3.legend
           .transition(t)
             .style("fill-opacity", 1)
             .on("end", function(d,i) {legend.call(d3.legend)})
