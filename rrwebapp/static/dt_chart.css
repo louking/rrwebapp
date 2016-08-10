@@ -24,6 +24,31 @@
     padding: 4px;
 }
 
+.dt-chart-trendtablehandle {
+    position: absolute;
+}
+
+.dt-chart-trendtable {
+    position: absolute;
+    background: white;
+    border: thin solid black;
+    border-radius: 5px;
+    padding: 4px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.8em;
+}
+
+.dt-chart-trendstat {
+    font-weight: bold;
+    padding: 2px;
+    white-space: nowrap;
+}
+
+.dt-chart-trenddata {
+    text-align: center;
+    padding: 2px;
+}
+
 .dt-hide {
     visibility: hidden;
 }

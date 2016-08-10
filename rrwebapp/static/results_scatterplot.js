@@ -13,8 +13,8 @@ function datatables_chart() {
     var trendlimits = [
             //                             [min, max)
             { name: '<5K',          range: [0,5000],             color: 'blue' },
-            { name: '5K - <HM',     range: [5000,21097.5],       color: 'green' },
-            { name: 'HM - Mara',    range: [21097.5, 42195.001], color: 'orange' },
+            { name: '5K to <HM',     range: [5000,21097],       color: 'green' },
+            { name: 'HM to Mara',    range: [21097, 42195.001], color: 'orange' },
             { name: 'Ultra',        range: [42195.001, 200000],  color: 'red' },
         ],
         trendbucket = {};
@@ -76,94 +76,6 @@ function datatables_chart() {
             .attr("class", "dt-chart-heading")
           .append("text");
     
-    // return text for legend
-    function legend_text(d) {
-        var subs = {1609:'1M', 3001:'3000m', 3219:'2M', 4989:'5K', // 3001 because of data error in scoretility
-                    5000:'5K', 5001:'5K', 8047:'5M', // 5001 because of data error in scoretility
-                    10000:'10K', 10002:'10K', 15000:'15K',  // 10002 because of data error in scoretility
-                    16093:'10M', 21082:'HM', 21097:'HM', 42165:'Marathon', 42195:'Marathon',
-                    80467:'50M', 160934:'100M'};
-
-        var nummeters = Math.round(d.miles*meterspermile);
-        if (nummeters in subs) {
-            return subs[nummeters];
-        } else if (nummeters < 5000) {
-            return nummeters + 'm';
-        } else {
-            return d.miles + "M";
-        };
-    };
-
-    // draw a trend line
-    function drawTrendLine(container, classname, data, color, label) {
-        if (data.length > 0) {
-            var X = data.map( xMap );
-            var Y = data.map( yMap );
-            var lr = linearRegression(Y, X);
-            console.log(label + " slope " + lr.slope + " intercept " + lr.intercept);
-            var minXmap = d3.min(data, xMap);
-            var maxXmap = d3.max(data, xMap);
-            var maxY = d3.max(data, yValue);
-            var meanY = d3.mean(data, yValue);
-            var minY = d3.min(data, yValue);
-            var trendline = container.append("line")
-                .attr("class", classname)
-                .attr("x1", minXmap )
-                .attr("y1", lr.fn(minXmap) )
-                .attr("x2", maxXmap )
-                .attr("y2", lr.fn(maxXmap) )
-                .attr("data-legend", label)
-                .style("stroke", color)
-                .style("stroke-width", 1.5)
-                .on("mouseover", function(d) {
-                    tooltip.transition()
-                         .duration(200)
-                         .style("opacity", 1);
-                    // slope is inverted because (0,0) is top left corner of chart so increasing y goes negative
-                    tooltip.html("<table>\n" 
-                                + "<tr><th colspan='2'>" + htmlEntities(label) + "</th>\n"
-                                + "<tr><td>avg</td><td align=center>" + round(meanY,1) + "%</td></th>\n" 
-                                + "<tr><td>max</td><td align=center>" + round(maxY,1) + "%</td></th>\n" 
-                                + "<tr><td>min</td><td align=center>" + round(minY,1) + "%</td></th>\n" 
-                                + "<tr><td>slope</td><td align=center>" + -round(lr.slope*100,2) + "%</td></th>\n" 
-                                + "</table>"
-                            )
-                         .style("left", (d3.event.pageX + 30) + "px")
-                         .style("top", (d3.event.pageY - 50) + "px");
-                })  // .on("mouseover"
-                .on("mouseout", function(d) {
-                    tooltip.transition()
-                         .duration(500)
-                         .style("opacity", 0);
-                })  // .on("mouseout"
-        };
-    };
-
-    // clear trends
-    function clearTrendBuckets() {
-        trendbucket = {};
-        for (var i=0; i<trendlimits.length; i++) {
-            trendbucket[trendlimits[i].name] = [];
-        }
-    };
-
-    // add point to trendbucket bucket
-    function addResultsToTrendBuckets(data) {
-        for (var i=0; i<data.length; i++) {
-            d = data[i];
-
-            // loop through trend limits
-            for (var j=0; j<trendlimits.length; j++) {
-                // when we find the right bucket, add point to bucket and break out
-                // note bottom of range is greater or equal and top of range is strictly less than
-                if (d.meters >= trendlimits[j].range[0] && d.meters < trendlimits[j].range[1]) {
-                    trendbucket[trendlimits[j].name].push(d);
-                    break
-                }
-            }
-        }
-    }
-
     // make responsive, fit within parent
     var aspect = viewbox_width / viewbox_height,
         chart = d3.select(".chart"),
@@ -192,6 +104,111 @@ function datatables_chart() {
     var tooltip = d3.select("body").append("div")
         .attr("class", "dt-chart-tooltip")
         .style("opacity", 0);
+
+    // add trendtable. draggable
+    var divx = $(chart.node()).position().left+margin.left,
+        divy = $(chart.node()).position().top+height+margin.top-200;
+    var trendtableobj = d3.select("body").append("div")
+        .data( [ {"x": divx, "y": divy} ])
+        .attr("class", "dt-chart-trendtablehandle")
+        .style("left", divx+'px')
+        .style("top",  divy+'px')
+        .style("opacity", 0)
+        .call(dragdiv);
+
+    var trendtable = trendtableobj.append("table")
+        .attr("class", "dt-chart-trendtable")
+        // .style("opacity", 0);
+    var trendtablehdr = trendtable.append("tr");
+    trendtablehdr.append("th").text("")
+    trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("avg")
+    trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("min")
+    trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("max")
+    trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("slope")
+
+    // return text for legend
+    function legend_text(d) {
+        var subs = {1609:'1M', 3001:'3000m', 3219:'2M', 4989:'5K', // 3001 because of data error in scoretility
+                    5000:'5K', 5001:'5K', 8047:'5M', // 5001 because of data error in scoretility
+                    10000:'10K', 10002:'10K', 15000:'15K',  // 10002 because of data error in scoretility
+                    16093:'10M', 21082:'HM', 21097:'HM', 42165:'Marathon', 42195:'Marathon',
+                    80467:'50M', 160934:'100M'};
+
+        var nummeters = Math.round(d.miles*meterspermile);
+        if (nummeters in subs) {
+            return subs[nummeters];
+        } else if (nummeters < 5000) {
+            return nummeters + 'm';
+        } else {
+            return d.miles + "M";
+        };
+    };
+
+    // deduplicate data
+    function deduplicate(data) {
+        // sort by date-distance-time
+        // when distance is within epsilon and time is the same, assume same race
+
+        return data;
+    };
+
+    // draw a trend line
+    function drawTrendLine(container, classname, data, color, label) {
+        var stats = {};
+
+        if (data.length > 0) {
+            var X = data.map( xMap );
+            var Y = data.map( yMap );
+            var lr = linearRegression(Y, X);
+            var minXmap = d3.min(data, xMap);
+            var maxXmap = d3.max(data, xMap);
+            var maxY = d3.max(data, yValue);
+            var meanY = d3.mean(data, yValue);
+            var minY = d3.min(data, yValue);
+            var trendline = container.append("line")
+                .attr("class", classname)
+                .attr("x1", minXmap )
+                .attr("y1", lr.fn(minXmap) )
+                .attr("x2", maxXmap )
+                .attr("y2", lr.fn(maxXmap) )
+                .attr("data-legend", label)
+                .style("stroke", color)
+                .style("stroke-width", 1.5);
+
+            stats.min = minY;
+            stats.max = maxY;
+            stats.mean = meanY;
+            // slope is inverted because y=0 at top
+            stats.slope = -lr.slope;
+        };
+        
+        return stats;
+    };
+
+    // clear trends
+    function clearTrendBuckets() {
+        trendbucket = {};
+        for (var i=0; i<trendlimits.length; i++) {
+            trendbucket[trendlimits[i].name] = [];
+        }
+    };
+
+    // add point to trendbucket bucket
+    function addResultsToTrendBuckets(data) {
+        for (var i=0; i<data.length; i++) {
+            d = data[i];
+
+            // loop through trend limits
+            for (var j=0; j<trendlimits.length; j++) {
+                // when we find the right bucket, add point to bucket and break out
+                // note bottom of range is greater or equal and top of range is strictly less than
+                if (d.meters >= trendlimits[j].range[0] && d.meters < trendlimits[j].range[1]) {
+                    trendbucket[trendlimits[j].name].push(d);
+                    break
+                }
+            }
+        }
+    }
 
     function dt_chart_update(data) {
         // set up transition parameters
@@ -278,12 +295,37 @@ function datatables_chart() {
             .on("end", function(d,i) {legend.call(d3.legend)})
 
         // draw trend lines
-        trendlines = d3.selectAll(".trendline").remove()
-        clearTrendBuckets()
+        trendlines = d3.selectAll(".trendline").remove();
+        clearTrendBuckets();
         addResultsToTrendBuckets(data);
-        drawTrendLine(svg, "trendline", data, "black", "overall");
-        for (var i=0; i<trendlimits.length; i++) {
-            drawTrendLine(svg, "trendline", trendbucket[trendlimits[i].name], trendlimits[i].color, trendlimits[i].name);
+        trendrows = d3.selectAll(".dt-chart-trendrow").remove();
+        trendtableobj.style("opacity", 0);
+
+        var thisdata;
+        if (data.length > 0) {
+            stats = drawTrendLine(svg, "trendline", data, "black", "overall");
+            trendtableobj.style("opacity", 1);
+            var thisrow = trendtable
+                .append("tr")
+                .attr("class", "dt-chart-trendrow");
+            thisrow.append("td").attr("class","dt-chart-trendstat").text("overall");
+            thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.mean,1)+"%");
+            thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.min,1)+"%");
+            thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.max,1)+"%");
+            thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.slope*100,1)+"%");
+            for (var i=0; i<trendlimits.length; i++) {
+                thisdata = trendbucket[trendlimits[i].name];
+                if (thisdata.length > 0) {
+                    stats = drawTrendLine(svg, "trendline", thisdata, trendlimits[i].color, trendlimits[i].name);
+                    thisrow = trendtable.append("tr")
+                        .attr("class", "dt-chart-trendrow");
+                    thisrow.append("td").attr("class","dt-chart-trendstat").text(trendlimits[i].name);
+                    thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.mean,1)+"%");
+                    thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.min,1)+"%");
+                    thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.max,1)+"%");
+                    thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.slope*100,1)+"%");
+                }
+            }
         }
 
         // update legend after updating dots
@@ -316,11 +358,13 @@ function datatables_chart() {
             d.meters = d.miles * meterspermile;
             alldata.push(d);
         };  // for
-    
+
+        // deduplicate data
+        dedupdata = deduplicate(alldata);
 
         // initial draw or transition to new data
         // see http://bl.ocks.org/d3noob/7030f35b72de721622b8
-        dt_chart_update(alldata);
+        dt_chart_update(dedupdata);
 
     });    // _dt_table.on( 'xhr.dt'
 }

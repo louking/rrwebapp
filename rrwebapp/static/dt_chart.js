@@ -29,6 +29,29 @@ function linearRegression(y,x){
 
 };
 
+// escape html in a string
 function htmlEntities(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+// methods to .call to allow element to be dragged by mouse
+// see http://bl.ocks.org/enjalot/1378144
+// to drag div element
+var dragdiv = d3.drag()
+    .on("drag", function(d,i) {
+        d.x += d3.event.dx
+        d.y += d3.event.dy
+        d3.select(this)
+            .style("left", d.x+'px')
+            .style("top", d.y+'px');
+    });
+
+// to drag svg element
+var drag = d3.drag()
+    .on("drag", function(d,i) {
+        d.x += d3.event.dx
+        d.y += d3.event.dy
+        d3.select(this).attr("transform", function(d,i){
+            return "translate(" + [ d.x,d.y ] + ")"
+        })
+    });
