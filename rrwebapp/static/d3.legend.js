@@ -66,7 +66,7 @@ d3.legend = function(g) {
         .attr("cy",function(d,i) { return i-0.25+"em"})
         .attr("cx",0)
         .attr("r","0.4em")
-        .style("fill",function(d) { console.log(d.value.color);return d.value.color});
+        .style("fill",function(d) { return d.value.color});
     
     circleli.enter()
         // .call(function(d) { d.enter().append("circle")})
@@ -75,7 +75,7 @@ d3.legend = function(g) {
         .attr("cy",function(d,i) { return i-0.25+"em"})
         .attr("cx",0)
         .attr("r","0.4em")
-        .style("fill",function(d) { console.log(d.value.color);return d.value.color});
+        .style("fill",function(d) { return d.value.color });
     
     // Reposition and resize the box
     var lbbox = li.node().getBBox();

@@ -8,6 +8,16 @@ function datatables_chart() {
     var minagegrade = 20,
         maxagegrade = 100;
     var dot_size = 4.5;
+    var meterspermile = 1609.344;
+
+    var trendlimits = [
+            //                             [min, max)
+            { name: '<5K',          range: [0,5000],             color: 'blue' },
+            { name: '5K - <HM',     range: [5000,21097.5],       color: 'green' },
+            { name: 'HM - Mara',    range: [21097.5, 42195.001], color: 'orange' },
+            { name: 'Ultra',        range: [42195.001, 200000],  color: 'red' },
+        ],
+        trendbucket = {};
 
     /* 
      * value accessor - returns the value to encode for a given data object.
@@ -68,8 +78,6 @@ function datatables_chart() {
     
     // return text for legend
     function legend_text(d) {
-        var meterspermile = 1609.344,
-            epsion = 1e-1;
         var subs = {1609:'1M', 3001:'3000m', 3219:'2M', 4989:'5K', // 3001 because of data error in scoretility
                     5000:'5K', 5001:'5K', 8047:'5M', // 5001 because of data error in scoretility
                     10000:'10K', 10002:'10K', 15000:'15K',  // 10002 because of data error in scoretility
@@ -85,6 +93,76 @@ function datatables_chart() {
             return d.miles + "M";
         };
     };
+
+    // draw a trend line
+    function drawTrendLine(container, classname, data, color, label) {
+        if (data.length > 0) {
+            var X = data.map( xMap );
+            var Y = data.map( yMap );
+            var lr = linearRegression(Y, X);
+            console.log(label + " slope " + lr.slope + " intercept " + lr.intercept);
+            var minXmap = d3.min(data, xMap);
+            var maxXmap = d3.max(data, xMap);
+            var maxY = d3.max(data, yValue);
+            var meanY = d3.mean(data, yValue);
+            var minY = d3.min(data, yValue);
+            var trendline = container.append("line")
+                .attr("class", classname)
+                .attr("x1", minXmap )
+                .attr("y1", lr.fn(minXmap) )
+                .attr("x2", maxXmap )
+                .attr("y2", lr.fn(maxXmap) )
+                .attr("data-legend", label)
+                .style("stroke", color)
+                .style("stroke-width", 1.5)
+                .on("mouseover", function(d) {
+                    tooltip.transition()
+                         .duration(200)
+                         .style("opacity", 1);
+                    // slope is inverted because (0,0) is top left corner of chart so increasing y goes negative
+                    tooltip.html("<table>\n" 
+                                + "<tr><th colspan='2'>" + htmlEntities(label) + "</th>\n"
+                                + "<tr><td>avg</td><td align=center>" + round(meanY,1) + "%</td></th>\n" 
+                                + "<tr><td>max</td><td align=center>" + round(maxY,1) + "%</td></th>\n" 
+                                + "<tr><td>min</td><td align=center>" + round(minY,1) + "%</td></th>\n" 
+                                + "<tr><td>slope</td><td align=center>" + -round(lr.slope*100,2) + "%</td></th>\n" 
+                                + "</table>"
+                            )
+                         .style("left", (d3.event.pageX + 30) + "px")
+                         .style("top", (d3.event.pageY - 50) + "px");
+                })  // .on("mouseover"
+                .on("mouseout", function(d) {
+                    tooltip.transition()
+                         .duration(500)
+                         .style("opacity", 0);
+                })  // .on("mouseout"
+        };
+    };
+
+    // clear trends
+    function clearTrendBuckets() {
+        trendbucket = {};
+        for (var i=0; i<trendlimits.length; i++) {
+            trendbucket[trendlimits[i].name] = [];
+        }
+    };
+
+    // add point to trendbucket bucket
+    function addResultsToTrendBuckets(data) {
+        for (var i=0; i<data.length; i++) {
+            d = data[i];
+
+            // loop through trend limits
+            for (var j=0; j<trendlimits.length; j++) {
+                // when we find the right bucket, add point to bucket and break out
+                // note bottom of range is greater or equal and top of range is strictly less than
+                if (d.meters >= trendlimits[j].range[0] && d.meters < trendlimits[j].range[1]) {
+                    trendbucket[trendlimits[j].name].push(d);
+                    break
+                }
+            }
+        }
+    }
 
     // make responsive, fit within parent
     var aspect = viewbox_width / viewbox_height,
@@ -185,9 +263,9 @@ function datatables_chart() {
             .on("mouseover", function(d) {
                 tooltip.transition()
                      .duration(200)
-                     .style("opacity", .9);
+                     .style("opacity", 1);
                 tooltip.html(d.race + "<br/>" + formatDate(d.date) + " " + d.time + " " + round(yValue(d),1) + "%")
-                     .style("left", (d3.event.pageX + 5) + "px")
+                     .style("left", (d3.event.pageX + 10) + "px")
                      .style("top", (d3.event.pageY - 50) + "px");
             })  // .on("mouseover"
             .on("mouseout", function(d) {
@@ -198,6 +276,15 @@ function datatables_chart() {
           .transition(t)
             .style("fill-opacity", 1)
             .on("end", function(d,i) {legend.call(d3.legend)})
+
+        // draw trend lines
+        trendlines = d3.selectAll(".trendline").remove()
+        clearTrendBuckets()
+        addResultsToTrendBuckets(data);
+        drawTrendLine(svg, "trendline", data, "black", "overall");
+        for (var i=0; i<trendlimits.length; i++) {
+            drawTrendLine(svg, "trendline", trendbucket[trendlimits[i].name], trendlimits[i].color, trendlimits[i].name);
+        }
 
         // update legend after updating dots
         // remove and replace legend for case where empty
@@ -226,6 +313,7 @@ function datatables_chart() {
             // remove % if present, and convert to number
             d.agpercent = +d.agpercent.replace(/\%/g,"");
             d.miles = +d.miles;
+            d.meters = d.miles * meterspermile;
             alldata.push(d);
         };  // for
     

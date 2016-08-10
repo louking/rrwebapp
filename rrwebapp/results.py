@@ -1510,15 +1510,14 @@ class RunnerResultsChart(MethodView):
             ]
             options = {'dtopts': dt_options, 'yadcfopts': yadcf_options}
 
-      
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('datatables.html',
                                          pagename=pagename,
                                          pretablehtml=pretablehtml,
                                          chartloc='beforetable',
-                                         pagejsfiles=addscripts(['datatables.js', 'results_scatterplot.js']),
-                                         pagecssfiles=addscripts(['dt_chart.css']),
+                                         pagejsfiles=addscripts(['datatables.js', 'dt_chart.js', 'd3.legend.js', 'results_scatterplot.js']),
+                                         pagecssfiles=addscripts(['d3.legend.css', 'dt_chart.css']),
                                          # serverSide must be True to pass url
                                          # add the request args to the ajax function
                                          tabledata=url_for('_resultschart')+'?'+urlencode(request.args),
