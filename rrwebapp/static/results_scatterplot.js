@@ -12,10 +12,10 @@ function datatables_chart() {
 
     var trendlimits = [
             //                             [min, max)
-            { name: '<5K',          range: [0,5000],             color: 'blue' },
-            { name: '5K to <HM',     range: [5000,21097],       color: 'green' },
-            { name: 'HM to Mara',    range: [21097, 42195.001], color: 'orange' },
-            { name: 'Ultra',        range: [42195.001, 200000],  color: 'red' },
+            { name: '<5K',          range: [0,5000],            color: 'blue' },
+            { name: '5K to <HM',    range: [5000,21082],        color: 'green' },
+            { name: 'HM to Mara',   range: [21082, 42195],      color: 'orange' },
+            { name: 'Ultra',        range: [42195, 200000],     color: 'red' },
         ],
         trendbucket = {};
 
@@ -121,6 +121,7 @@ function datatables_chart() {
         // .style("opacity", 0);
     var trendtablehdr = trendtable.append("tr");
     trendtablehdr.append("th").text("")
+    trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("line")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("avg")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("min")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("max")
@@ -148,8 +149,48 @@ function datatables_chart() {
     function deduplicate(data) {
         // sort by date-distance-time
         // when distance is within epsilon and time is the same, assume same race
+        stats = data.slice()
+        stats.sort(function(a,b) {
+            if (a.date < b.date) { return -1; } 
+            if (a.date > b.date) { return 1;  } 
+            // dates are equal
+            if (a.miles < b.miles) { return -1; }
+            if (a.miles > b.miles) { return 1;  }
+            // miles are equal, check time
+            return a.timesecs - b.timesecs;
+        })
 
-        return data;
+        // TODO: add true priority handling
+        // deduplicate stats, paying attention to priority when races determined to be the same
+        var EPS = .1;   // if event distance is within this tolerance, assumed the same
+        var deduped = [];
+        var stat, prio;
+        while (stats.length > 0) {
+            thisstat = stats.shift();
+            var sameraces = [{prio:1, stat:thisstat}];
+
+            // pull races off stats when the race date, distance, time are the same
+            // distance has to be within epsilon to be deduced to be the same
+            while (stats.length > 0
+                    && thisstat.date.getTime() == stats[0].date.getTime()
+                    && Math.abs((thisstat.miles - stats[0].miles) / thisstat.miles) <= EPS
+                    && thisstat.timesecs == stats[0].timesecs) {
+                stat = stats.shift();
+                sameraces.push( {'prio':1, 'stat':stat} );
+            }
+
+            sameraces.sort(function(a,b) { return a.prio - b.prio; });
+            prio = sameraces[0].prio;
+            stat = sameraces[0].stat;
+            deduped.push(stat);
+        }
+
+        var dupremoved = data.length - deduped.length;
+        if (dupremoved > 0) {
+            console.log(dupremoved + ' duplicate points removed');
+        }
+
+        return deduped;
     };
 
     // draw a trend line
@@ -171,7 +212,6 @@ function datatables_chart() {
                 .attr("y1", lr.fn(minXmap) )
                 .attr("x2", maxXmap )
                 .attr("y2", lr.fn(maxXmap) )
-                .attr("data-legend", label)
                 .style("stroke", color)
                 .style("stroke-width", 1.5);
 
@@ -309,6 +349,7 @@ function datatables_chart() {
                 .append("tr")
                 .attr("class", "dt-chart-trendrow");
             thisrow.append("td").attr("class","dt-chart-trendstat").text("overall");
+            thisrow.append("td").attr("class","dt-chart-trenddata").append("hr").style("background-color", "black");
             thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.mean,1)+"%");
             thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.min,1)+"%");
             thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.max,1)+"%");
@@ -320,6 +361,7 @@ function datatables_chart() {
                     thisrow = trendtable.append("tr")
                         .attr("class", "dt-chart-trendrow");
                     thisrow.append("td").attr("class","dt-chart-trendstat").text(trendlimits[i].name);
+                    thisrow.append("td").attr("class","dt-chart-trenddata").append("hr").style("background-color", trendlimits[i].color);
                     thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.mean,1)+"%");
                     thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.min,1)+"%");
                     thisrow.append("td").attr("class","dt-chart-trenddata").text(round(stats.max,1)+"%");
@@ -347,8 +389,9 @@ function datatables_chart() {
 
         // data is list of result objects
         // convert agpercent and miles (distance) to number
-        var alldata = []
-        for (i = 0; i < data.length; i++) {
+        var alldata = [];
+        var timesplit;
+        for (var i = 0; i < data.length; i++) {
             // do deep copy of data[i]. Shallow would probably be ok, but why not do deep?
             d = jQuery.extend(true, {}, data[i]);
             d.date = parseDate(d.date);
@@ -356,6 +399,11 @@ function datatables_chart() {
             d.agpercent = +d.agpercent.replace(/\%/g,"");
             d.miles = +d.miles;
             d.meters = d.miles * meterspermile;
+            d.timesecs = 0;
+            timesplit = d.time.split(':');
+            for (var j=0; j<timesplit.length; j++) {
+                d.timesecs += d.timesecs*60 + (+timesplit[j]);
+            }
             alldata.push(d);
         };  // for
 
