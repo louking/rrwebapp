@@ -170,7 +170,7 @@ function datatables_chart() {
         } else if (nummeters < 5000) {
             return nummeters + 'm';
         } else {
-            return d.miles + "M";
+            return round(d.miles,1) + "M";
         };
     };
 
