@@ -126,7 +126,10 @@ def getnavigation():
         'attr':[{   'name':'_rrwebapp-editor-form',
                     'value': json.dumps({
                             'title' : 'Choose club',
-                            'buttons' : [{'label': 'Go', 'fn': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(flask.url_for('results'))}],
+                            'buttons' : [
+                                {'label': 'table', 'fn': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(flask.url_for('results'))},
+                                {'label': 'chart', 'fn': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(flask.url_for('resultschart'))},
+                            ],
                             'editoropts': {
                                 'fields': [ {
                                     'name': 'club',
