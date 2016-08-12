@@ -129,8 +129,23 @@ function datatables_chart() {
         .style("opacity", 0)
         .call(dragdiv);
 
+    var trendtableopacity = 0;
     var trendtable = trendtableobj.append("table")
         .attr("class", "dt-chart-trendtable")
+        .on("mouseover", function(d) {
+            tooltip.transition()
+                 .duration(200)
+                 .style("opacity", trendtableopacity);
+            tooltip.html("drag me wherever you want")
+                 .style("left", (d3.event.pageX + 10) + "px")
+                 .style("top", (d3.event.pageY - 50) + "px");
+        })  // .on("mouseover"
+        .on("mouseout", function(d) {
+            tooltip.transition()
+                 .duration(500)
+                 .style("opacity", 0);
+        })  // .on("mouseout"
+
         // .style("opacity", 0);
     var trendtablehdr = trendtable.append("tr");
     trendtablehdr.append("th").text("")
@@ -365,12 +380,14 @@ function datatables_chart() {
         clearTrendBuckets();
         addResultsToTrendBuckets(data);
         trendrows = d3.selectAll(".dt-chart-trendrow").remove();
-        trendtableobj.style("opacity", 0);
+        trendtableopacity = 0;
+        trendtableobj.style("opacity", trendtableopacity);
 
         var thisdata;
         if (data.length > 0) {
             stats = drawTrendLine(svg, "trendline", data, "black", "overall");
-            trendtableobj.style("opacity", 1);
+            trendtableopacity = 1;
+            trendtableobj.style("opacity", trendtableopacity);
             var thisrow = trendtable
                 .append("tr")
                 .attr("class", "dt-chart-trendrow");
