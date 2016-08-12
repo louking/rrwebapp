@@ -122,6 +122,7 @@ function datatables_chart() {
     var trendtablehdr = trendtable.append("tr");
     trendtablehdr.append("th").text("")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("line")
+    trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("n")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("avg")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("min")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("max")
@@ -196,8 +197,11 @@ function datatables_chart() {
     // draw a trend line
     function drawTrendLine(container, classname, data, color, label) {
         var stats = {};
+        stats.n = data.length;
 
-        if (data.length > 0) {
+        // calculate states even for one point
+        // but trendline needs to be at least two points
+        if (stats.n > 0) {
             var X = data.map( xMap );
             var Y = data.map( yMap );
             var lr = linearRegression(Y, X);
@@ -206,28 +210,28 @@ function datatables_chart() {
             var maxY = d3.max(data, yValue);
             var meanY = d3.mean(data, yValue);
             var minY = d3.min(data, yValue);
-            var trendline = container.append("line")
-                .attr("class", classname)
-                .attr("x1", minXmap )
-                .attr("y1", lr.fn(minXmap) )
-                .attr("x2", maxXmap )
-                .attr("y2", lr.fn(maxXmap) )
-                .style("stroke", color)
-                .style("stroke-width", 1.5);
+            if (stats.n > 1) {
+                var trendline = container.append("line")
+                    .attr("class", classname)
+                    .attr("x1", minXmap )
+                    .attr("y1", lr.fn(minXmap) )
+                    .attr("x2", maxXmap )
+                    .attr("y2", lr.fn(maxXmap) )
+                    .style("stroke", color)
+                    .style("stroke-width", 1.5);
+            }
 
             stats.min = minY;
             stats.max = maxY;
             stats.mean = meanY;
-            // slope is inverted because y=0 at top
-            stats.slope = -lr.slope;
+            stats.slope = -lr.slope;    // slope is inverted because y=0 at top
 
             // determine improvement, which is percentage per year
-            x1 = d3.min(data, xValue).getTime();
-            y1 = yScale.invert(lr.fn(minXmap));
-            x2 = d3.max(data, xValue).getTime();
-            y2 = yScale.invert(lr.fn(maxXmap));
-            // convert milliseconds to years
-            var years = (x2-x1)/(1000*60*60*24*365);
+            var x1 = d3.min(data, xValue).getTime();
+            var y1 = yScale.invert(lr.fn(minXmap));
+            var x2 = d3.max(data, xValue).getTime();
+            var y2 = yScale.invert(lr.fn(maxXmap));
+            var years = (x2-x1)/(1000*60*60*24*365); // convert milliseconds to year;
             stats.improvement = (y2-y1)/years;  // 100 is 100% improvement per year
         };
         
@@ -359,10 +363,15 @@ function datatables_chart() {
                 .attr("class", "dt-chart-trendrow");
             thisrow.append("td").attr("class","dt-chart-trendstat").text("overall");
             thisrow.append("td").attr("class","dt-chart-trenddata").append("hr").style("background-color", "black");
+            thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.n);
             thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.mean.toFixed(1)+"%");
             thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.min.toFixed(1)+"%");
             thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.max.toFixed(1)+"%");
-            thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.improvement.toFixed(1)+"%/yr");
+            if (stats.n > 1) {
+                thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.improvement.toFixed(1)+"%/yr");
+            } else {
+                thisrow.append("td").attr("class","dt-chart-trenddata").text("");
+            }
             for (var i=0; i<trendlimits.length; i++) {
                 thisdata = trendbucket[trendlimits[i].name];
                 if (thisdata.length > 0) {
@@ -371,10 +380,15 @@ function datatables_chart() {
                         .attr("class", "dt-chart-trendrow");
                     thisrow.append("td").attr("class","dt-chart-trendstat").text(trendlimits[i].name);
                     thisrow.append("td").attr("class","dt-chart-trenddata").append("hr").style("background-color", trendlimits[i].color);
+                    thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.n);
                     thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.mean.toFixed(1)+"%");
                     thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.min.toFixed(1)+"%");
                     thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.max.toFixed(1)+"%");
-                    thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.improvement.toFixed(1)+"%/yr");
+                    if (stats.n > 1) {
+                        thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.improvement.toFixed(1)+"%/yr");
+                    } else {
+                        thisrow.append("td").attr("class","dt-chart-trenddata").text("");
+                    }
                 }
             }
         }
