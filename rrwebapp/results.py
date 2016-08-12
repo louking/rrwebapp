@@ -1603,13 +1603,16 @@ class AjaxRunnerResultsChart(MethodView):
             if not request.args.get(runneridfield,None):
                 resultfilter['runnerid'] = -1
 
+            # delimiter for string operations 
+            delim = '-yadcf_delim-'
+
             # preprocess date range to assure proper format
             datefield = 'columns[{}][search][value]'.format(getcol('date'))
             # if min or max is missing, prepare to fill in
             nulldate = [tYmd.epoch2asc(0),tYmd.epoch2asc(time())]
             datearg = args[datefield]
             if datearg:
-                daterange = datearg.split('-yadcf_delim-')
+                daterange = datearg.split(delim)
                 # sure hope len(daterange) == 2
                 for i in range(2):
                     if daterange[i] == '':
@@ -1620,7 +1623,20 @@ class AjaxRunnerResultsChart(MethodView):
                     except ValueError:
                         daterange[i] = nulldate[i]
 
-                args[datefield] = '-yadcf_delim-'.join(daterange)
+                args[datefield] = delim.join(daterange)
+
+            # preprocess distance range to allow min only or max only
+            milesrange = [0,100]
+            distfield = 'columns[{}][search][value]'.format(getcol('miles'))
+            distarg = args[distfield]
+            if distarg:
+                distrange = distarg.split(delim)
+                print "before distrange = {}".format(distrange)
+                for i in range(2):
+                    if distrange[i] == '':
+                        distrange[i] = str(milesrange[i])
+                args[distfield] = delim.join(distrange)
+                print "after distfield = {}".format(args[distfield])
 
             rowTable = DataTables(args, RaceResult, RaceResult.query.filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race"), columns, dialect='mysql')
 
@@ -1641,7 +1657,6 @@ class AjaxRunnerResultsChart(MethodView):
             names.sort(key=lambda item: item['label'].lower())
 
             series = [row.name for row in db.session.query(Series.name).filter_by(**seriesfilter).distinct().all()]
-            milesrange = [0,100]
 
             # add yadcf filter
             output_result = rowTable.output_result()
