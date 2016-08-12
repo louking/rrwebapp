@@ -55,3 +55,24 @@ var drag = d3.drag()
             return "translate(" + [ d.x,d.y ] + ")"
         })
     });
+
+// set up chart and table handling
+// table should be initially hidden with dom = '<"dt-chart-table dt-chart-tabledisplay dt-hide"t>'
+
+// table / chart button
+// $( ".dt-chart-display-button" ).button();
+$( ".dt-chart-display-button" ).click( function( event ) {
+    // if currently displaying chart
+    if ($(this).text() == "table") {
+        $(".dt-chart-chartdisplay").toggleClass("dt-hide",true);
+        $(".dt-chart-tabledisplay").toggleClass("dt-hide",false);
+        $(this).text("chart")
+
+
+    // if currently displaying table
+    } else {
+        $(".dt-chart-chartdisplay").toggleClass("dt-hide",false);
+        $(".dt-chart-tabledisplay").toggleClass("dt-hide",true);
+        $(this).text("table")
+    }
+} );

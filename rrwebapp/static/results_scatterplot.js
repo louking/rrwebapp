@@ -1,4 +1,4 @@
-// dtchart is used to create the chart from datatables.js
+// datatables_chart is used to create the chart from datatables.js
 function datatables_chart() {
     var margin = {top: 40, right: 100, bottom: 60, left: 50},
         viewbox_width = 960,
@@ -44,11 +44,24 @@ function datatables_chart() {
     yScale.domain([minagegrade, maxagegrade])
 
     // add the graph canvas to the body of the webpage
-    var dtchart = d3.select(".dt-chart");
+    var dtchart = d3.select(".dt-chart")
+        .attr("class", "chart dt-chart-chart dt-chart-chartdisplay");
+
+    // table is in same position as chart
+    var chartposition = $(".dt-chart-chart").position();
+
+    $('#datatable').on( 'init.dt', function (e, settings, json) {
+        // following code doesn't work for some reason, putting in dt_chart.css for now
+        $(".dataTables_wrapper")
+            .css("position", "absolute")
+            .css("top", 0);
+        $(".dt-chart-table")
+            .css("left", chartposition.left)
+            .css("top", chartposition.top+5);
+    } );
 
     var viewbox = dtchart
       .append("svg")
-        .attr("class", "chart")
         .attr("width", viewbox_width)
         .attr("height", viewbox_height)
         .attr("viewBox", "0 0 " + viewbox_width + " " + viewbox_height)
@@ -79,7 +92,7 @@ function datatables_chart() {
     // make responsive, fit within parent
     var aspect = viewbox_width / viewbox_height,
         chart = d3.select(".chart"),
-        entrycontent = d3.select(".dt-chart");
+        entrycontent = d3.select(".dt-chart-chart");
     window.onresize = function() {
         var targetWidth = parseFloat(entrycontent.style("width"));  // assumes width in px
         chart.attr("width", targetWidth);
@@ -102,15 +115,15 @@ function datatables_chart() {
 
     // add the tooltip area to the webpage
     var tooltip = d3.select("body").append("div")
-        .attr("class", "dt-chart-tooltip")
+        .attr("class", "dt-chart-tooltip dt-chart-chartdisplay")
         .style("opacity", 0);
 
     // add trendtable. draggable
-    var divx = $(chart.node()).position().left+margin.left,
-        divy = $(chart.node()).position().top+height+margin.top-200;
+    var divx = $(entrycontent.node()).position().left+margin.left,
+        divy = $(entrycontent.node()).position().top+height+margin.top-200;
     var trendtableobj = d3.select("body").append("div")
         .data( [ {"x": divx, "y": divy} ])
-        .attr("class", "dt-chart-trendtablehandle")
+        .attr("class", "dt-chart-trendtablehandle dt-chart-chartdisplay")
         .style("left", divx+'px')
         .style("top",  divy+'px')
         .style("opacity", 0)
@@ -437,6 +450,7 @@ function datatables_chart() {
         // see http://bl.ocks.org/d3noob/7030f35b72de721622b8
         dt_chart_update(dedupdata);
 
-    });    // _dt_table.on( 'xhr.dt'
+    });     // _dt_table.on( 'xhr.dt'
+
 }
 

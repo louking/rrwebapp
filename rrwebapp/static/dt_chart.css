@@ -26,11 +26,11 @@
 }
 
 .dt-chart-trendtablehandle {
-    position: absolute;
+    position: relative;
 }
 
 .dt-chart-trendtable {
-    position: absolute;
+    /*position: absolute;*/
     background: white;
     border: thin solid black;
     border-radius: 5px;
@@ -45,6 +45,10 @@
     white-space: nowrap;
 }
 
+.dt-chart-nowrap {
+    white-space: nowrap;
+}
+
 .dt-chart-trenddata {
     text-align: center;
     padding: 2px;
@@ -55,6 +59,19 @@
     height: 2px;
     width: 25px;
     border: none;
+}
+
+.dt-chart-display-button {
+    padding: .4em 1em;
+}
+
+.dt-chart-table {
+    position: absolute;
+}
+
+.dataTables_wrapper {
+    position: absolute;
+    top: 0;
 }
 
 .dt-hide {

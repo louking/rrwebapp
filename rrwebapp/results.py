@@ -1449,13 +1449,13 @@ class RunnerResultsChart(MethodView):
 
             # DataTables options string, data: and buttons: are passed separately
             dt_options = {
-                'dom': '<"dt-hide"t>',
+                'dom': '<"dt-chart-table dt-chart-tabledisplay dt-hide"<"H"lBpr>t<"F"i>>',
                 'columns': [
-                    { 'data': 'date',           'name': 'date',             'label': 'Date',        'className': 'dt-body-center' },
-                    { 'data': 'runnerid',       'name': 'runnerid',         'label': 'Runner ID' },
-                    { 'data': 'name',           'name': 'name',             'label': 'Name' },
+                    { 'data': 'date',           'name': 'date',             'label': 'Date',        'className': 'dt-body-center dt-chart-nowrap'},
+                    { 'data': 'runnerid',       'name': 'runnerid',         'label': 'Runner ID',   'visible': False },
+                    { 'data': 'name',           'name': 'name',             'label': 'Name',        'visible': False },
                     { 'data': 'series',         'name': 'series',           'label': 'Series' }, 
-                    { 'data': 'race',           'name': 'race',             'label': 'Race'},
+                    { 'data': 'race',           'name': 'race',             'label': 'Race',        'className': 'dt-chart-nowrap'},
                     { 'data': 'miles',          'name': 'miles',            'label': 'Miles',       'className': 'dt-body-center' },
                     { 'data': 'age',            'name': 'age',              'label': 'Age',         'className': 'dt-body-center' },
                     { 'data': 'time',           'name': 'time',             'label': 'Time',        'className': 'dt-body-center' },
@@ -1477,6 +1477,8 @@ class RunnerResultsChart(MethodView):
                     <br/><br/>
                     <label class="Label">Date (yyyy-mm-dd):</label><span id="_rrwebapp_filterdate" class="_rrwebapp-filter"></span>
                     <label class="Label">Dist (miles):</label><span id="_rrwebapp_filterdistance" class="_rrwebapp-filter"></span>
+                    <br/><br/>
+                    <button class="dt-chart-display-button" type="button">table</button>
                   </div>
                 </div>
             '''
