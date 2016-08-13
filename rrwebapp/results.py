@@ -1477,6 +1477,7 @@ class RunnerResultsChart(MethodView):
                     <br/><br/>
                     <label class="Label">Date (yyyy-mm-dd):</label><span id="_rrwebapp_filterdate" class="_rrwebapp-filter"></span>
                     <label class="Label">Dist (miles):</label><span id="_rrwebapp_filterdistance" class="_rrwebapp-filter"></span>
+                    <label class="Label">Age Grade %age:</label><span id="_rrwebapp_filteragpercent" class="_rrwebapp-filter"></span>
                     <br/><br/>
                     <button class="dt-chart-display-button" type="button">table</button>
                   </div>
@@ -1484,6 +1485,7 @@ class RunnerResultsChart(MethodView):
             '''
             # set up yadcf
             getcol = lambda name: [col['name'] for col in dt_options['columns']].index(name)
+            filterdelay = 500
             yadcf_options = [
                 {
                     'column_number':getcol('runnerid'),
@@ -1496,13 +1498,19 @@ class RunnerResultsChart(MethodView):
                     'filter_container_id':"_rrwebapp_filterdate",
                     'filter_type':'range_date',
                     'date_format':'yyyy-mm-dd',
-                    'filter_delay': 100,
+                    'filter_delay': filterdelay,
                     'filter_reset_button_text': 'all',
                 },{
                     'column_number':getcol('miles'),
                     'filter_container_id':"_rrwebapp_filterdistance",
                     'filter_type': 'range_number',
-                    'filter_delay': 100,
+                    'filter_delay': filterdelay,
+                    'filter_reset_button_text': 'all',
+                },{
+                    'column_number':getcol('agpercent'),
+                    'filter_container_id':"_rrwebapp_filteragpercent",
+                    'filter_type': 'range_number',
+                    'filter_delay': filterdelay,
                     'filter_reset_button_text': 'all',
                 },{
                     'column_number':getcol('series'),
@@ -1622,21 +1630,22 @@ class AjaxRunnerResultsChart(MethodView):
                     # if incorrect format, act as if null
                     except ValueError:
                         daterange[i] = nulldate[i]
-
                 args[datefield] = delim.join(daterange)
 
-            # preprocess distance range to allow min only or max only
-            milesrange = [0,100]
-            distfield = 'columns[{}][search][value]'.format(getcol('miles'))
-            distarg = args[distfield]
-            if distarg:
-                distrange = distarg.split(delim)
-                print "before distrange = {}".format(distrange)
-                for i in range(2):
-                    if distrange[i] == '':
-                        distrange[i] = str(milesrange[i])
-                args[distfield] = delim.join(distrange)
-                print "after distfield = {}".format(args[distfield])
+            # preprocess range for some fields to allow min only or max only
+            statranges = {'miles': [0,100], 'agpercent': [0,100]}
+            for stat in statranges:
+                statrange = statranges[stat]
+                statfield = 'columns[{}][search][value]'.format(getcol(stat))
+                statarg = args[statfield]
+                if statarg:
+                    print 'before: stat='+stat+ ' statfield='+statfield+' args='+args[statfield]
+                    argsrange = statarg.split(delim)
+                    for i in range(2):
+                        if argsrange[i] == '':
+                            argsrange[i] = str(statrange[i])
+                    args[statfield] = delim.join(argsrange)
+                    print 'after: stat='+stat+ ' statfield='+statfield+' args='+args[statfield]
 
             rowTable = DataTables(args, RaceResult, RaceResult.query.filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race"), columns, dialect='mysql')
 
@@ -1662,7 +1671,8 @@ class AjaxRunnerResultsChart(MethodView):
             output_result = rowTable.output_result()
             output_result['yadcf_data_{}'.format(getcol('runnerid'))] = names
             output_result['yadcf_data_{}'.format(getcol('series'))] = series
-            output_result['yadcf_data_{}'.format(getcol('miles'))] = milesrange
+            output_result['yadcf_data_{}'.format(getcol('miles'))] = statranges['miles']
+            output_result['yadcf_data_{}'.format(getcol('agpercent'))] = statranges['agpercent']
 
             return jsonify(output_result)
 

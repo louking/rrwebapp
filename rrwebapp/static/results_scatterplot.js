@@ -14,8 +14,8 @@ function datatables_chart() {
             //                             [min, max)
             { name: '<5K',          range: [0,5000],            color: 'blue' },
             { name: '5K to <HM',    range: [5000,21082],        color: 'green' },
-            { name: 'HM to Mara',   range: [21082, 42195],      color: 'orange' },
-            { name: 'Ultra',        range: [42195, 200000],     color: 'red' },
+            { name: 'HM to Mara',   range: [21082, 42196],      color: 'orange' },
+            { name: 'Ultra',        range: [42196, 200000],     color: 'red' },
         ],
         trendbucket = {};
 
