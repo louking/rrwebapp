@@ -52,6 +52,7 @@ div.DTE_Field input._rrwebapp_CRUD_input_short {
 /* jqueryui progressbar */
 .ui-progressbar {
   position: relative;
+  z-index: 100
 }
 .progress-label {
   position: absolute;
@@ -59,6 +60,7 @@ div.DTE_Field input._rrwebapp_CRUD_input_short {
   top: 4px;
   font-weight: bold;
   text-shadow: 1px 1px 0 #fff;
+  z-index: 101
 }
 
 /*body            { font-family: sans-serif; background: #eee; } */
