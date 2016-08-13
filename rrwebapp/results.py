@@ -1454,7 +1454,7 @@ class RunnerResultsChart(MethodView):
                     { 'data': 'date',           'name': 'date',             'label': 'Date',        'className': 'dt-body-center dt-chart-nowrap'},
                     { 'data': 'runnerid',       'name': 'runnerid',         'label': 'Runner ID',   'visible': False },
                     { 'data': 'name',           'name': 'name',             'label': 'Name',        'visible': False },
-                    { 'data': 'series',         'name': 'series',           'label': 'Series' }, 
+                    { 'data': 'series',         'name': 'series',           'label': 'Series',      'className': 'dt-chart-nowrap' }, 
                     { 'data': 'race',           'name': 'race',             'label': 'Race',        'className': 'dt-chart-nowrap'},
                     { 'data': 'miles',          'name': 'miles',            'label': 'Miles',       'className': 'dt-body-center' },
                     { 'data': 'age',            'name': 'age',              'label': 'Age',         'className': 'dt-body-center' },
