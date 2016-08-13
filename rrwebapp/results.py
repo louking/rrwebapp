@@ -1463,6 +1463,10 @@ class RunnerResultsChart(MethodView):
                     { 'data': 'agtime',         'name': 'agtime',           'label': 'AG Time',     'className': 'dt-body-center' },
                     { 'data': 'agpercent',      'name': 'agpercent',        'label': 'AG %age',     'className': 'dt-body-center' },
                 ],
+                'language' : {
+                    'emptyTable': 'no results found for current selection',
+                    'zeroRecords': 'no results found for current selection',
+                },
                 'ordering': True,
                 'serverSide': True,
                 'order': [0,'asc'],
