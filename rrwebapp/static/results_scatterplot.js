@@ -10,6 +10,11 @@ function datatables_chart() {
     var dot_size = 4.5;
     var meterspermile = 1609.344;
 
+    var progressbar = $("#progressbar");
+    progressbar.css("width", viewbox_width);
+    var inprogress = 0,
+        progressbarcreated = false;
+
     var trendlimits = [
             //                             [min, max)
             { name: '<5K',          range: [0,5000],            color: 'blue' },
@@ -433,8 +438,28 @@ function datatables_chart() {
 
     }   // dt_chart_update
 
+    // when any ajax request is sent to the server, show progress is happening
+    _dt_table.on( 'preXhr.dt', function ( e, settings, data ) {
+        console.log('preXhr Date.now()='+Date.now())
+        progressbar.progressbar({value:false, disabled:false})
+        inprogress += 1;
+        if (inprogress == 1) {
+            d3.selectAll("#progressbar").append("div").attr("class","progress-label").text("Loading");
+        }
+        progressbarcreated = true;
+    });
+
     // when any ajax request is received back from the server, update the chart
     _dt_table.on( 'xhr.dt', function ( e, settings, json, xhr ) {
+        // done processing
+        console.log('xhr Date.now()='+Date.now())
+        if (inprogress > 0) { inprogress -= 1; }
+        if (progressbarcreated && inprogress == 0) {
+            progressbar.progressbar("destroy");
+            d3.selectAll(".progress-label").remove();
+            progressbarcreated = false;
+        }
+
         // add tableselect keys if no xhr error
         if (!json) throw "error response from api";               
 

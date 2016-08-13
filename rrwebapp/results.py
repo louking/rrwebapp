@@ -1475,7 +1475,7 @@ class RunnerResultsChart(MethodView):
 
             pretablehtml = '''
                 <div class="TextLeft PL20pxLabel">
-                  <div>
+                  <div class="dt-chart-filters">
                     <label class="Label">Name (age):</label><span id="_rrwebapp_filtername" class="_rrwebapp-filter"></span>
                     <label class="Label">Series:</label><span id="_rrwebapp_filterseries" class="_rrwebapp-filter"></span>
                     <br/><br/>
@@ -1484,6 +1484,7 @@ class RunnerResultsChart(MethodView):
                     <label class="Label">Age Grade %age:</label><span id="_rrwebapp_filteragpercent" class="_rrwebapp-filter"></span>
                     <br/><br/>
                     <button class="dt-chart-display-button" type="button">table</button>
+                    <div id="progressbar"></div>
                   </div>
                 </div>
             '''
