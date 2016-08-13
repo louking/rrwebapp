@@ -136,17 +136,18 @@ function datatables_chart() {
         .style("opacity", 0)
         .call(dragdiv)
         .on("mouseover", function(d) {
+            thispos = $(trendtable.node()).position()
             tooltip.transition()
                  .duration(200)
                  .style("opacity", trendtableopacity);
             tooltip.html("drag me wherever you want")
-                 .style("left", (d3.event.pageX + 10) + "px")
-                 .style("top", (d3.event.pageY - 50) + "px");
+                 .style("left", (thispos.left + 70) + "px")
+                 .style("top", (thispos.top - 30) + "px");
         })  // .on("mouseover"
         .on("mouseout", function(d) {
             tooltip.transition()
                  .duration(500)
-                 .style("opacity", 0);
+                 .style("opacity", 0)
         }); // .on("mouseout"
 
         // .style("opacity", 0);
