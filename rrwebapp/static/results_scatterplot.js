@@ -126,17 +126,15 @@ function datatables_chart() {
     // add trendtable. draggable
     var divx = $(entrycontent.node()).position().left+margin.left,
         divy = $(entrycontent.node()).position().top+height+margin.top-200;
-    var trendtableobj = d3.select("body").append("div")
+
+    var trendtableopacity = 0;
+    var trendtable = d3.select("body").append("table")
+        .attr("class", "dt-chart-trendtable dt-chart-trendtablehandle dt-chart-chartdisplay")
         .data( [ {"x": divx, "y": divy} ])
-        .attr("class", "dt-chart-trendtablehandle dt-chart-chartdisplay")
         .style("left", divx+'px')
         .style("top",  divy+'px')
         .style("opacity", 0)
-        .call(dragdiv);
-
-    var trendtableopacity = 0;
-    var trendtable = trendtableobj.append("table")
-        .attr("class", "dt-chart-trendtable")
+        .call(dragdiv)
         .on("mouseover", function(d) {
             tooltip.transition()
                  .duration(200)
@@ -149,7 +147,7 @@ function datatables_chart() {
             tooltip.transition()
                  .duration(500)
                  .style("opacity", 0);
-        })  // .on("mouseout"
+        }); // .on("mouseout"
 
         // .style("opacity", 0);
     var trendtablehdr = trendtable.append("tr");
@@ -386,13 +384,13 @@ function datatables_chart() {
         addResultsToTrendBuckets(data);
         trendrows = d3.selectAll(".dt-chart-trendrow").remove();
         trendtableopacity = 0;
-        trendtableobj.style("opacity", trendtableopacity);
+        trendtable.style("opacity", trendtableopacity);
 
         var thisdata;
         if (data.length > 0) {
             stats = drawTrendLine(svg, "trendline", data, "black", "overall");
             trendtableopacity = 1;
-            trendtableobj.style("opacity", trendtableopacity);
+            trendtable.style("opacity", trendtableopacity);
             var thisrow = trendtable
                 .append("tr")
                 .attr("class", "dt-chart-trendrow");
