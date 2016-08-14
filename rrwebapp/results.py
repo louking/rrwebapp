@@ -1478,6 +1478,7 @@ class RunnerResultsChart(MethodView):
                   <div class="dt-chart-filters">
                     <label class="Label">Name (age):</label><span id="_rrwebapp_filtername" class="_rrwebapp-filter"></span>
                     <label class="Label">Series:</label><span id="_rrwebapp_filterseries" class="_rrwebapp-filter"></span>
+                    <a class="dt-chart-age-grade-link" href="http://www.usatfmasters.org/fa_agegrading.htm" target=_blank>learn about age grading</a>
                     <br/><br/>
                     <label class="Label">Date (yyyy-mm-dd):</label><span id="_rrwebapp_filterdate" class="_rrwebapp-filter"></span>
                     <label class="Label">Dist (miles):</label><span id="_rrwebapp_filterdistance" class="_rrwebapp-filter"></span>
