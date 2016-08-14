@@ -37,7 +37,7 @@ pycrypto==2.6.1
 pyreadline==2.0
 pytz==2013.9
 six==1.10.0
-sqlalchemy-datatables==0.4.1lk
+sqlalchemy-datatables==0.4.1lk3
 tzlocal==1.0
 unicodecsv==0.14.1
 wheel==0.29.0
