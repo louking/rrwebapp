@@ -114,8 +114,18 @@ function datatables_chart() {
     // domain is in miles (race distance)
     var cValue = function(d) { return d.miles; },
         color = function(d) {
-            scale = d3.scaleLog().domain([100,1]);
-            return d3.interpolateSpectral( scale(d) );
+            var scale = d3.scaleLog().domain([0.1,1,5,10,13,26,100]);
+            scale.range([
+                    d3.rgb(0,0,255),
+                    d3.rgb(0,140,255),
+                    d3.rgb(140,255,0),
+                    d3.rgb(255,255,0),
+                    d3.rgb(255,150,0),
+                    d3.rgb(255,0,140),
+                    d3.rgb(255,0,255)
+                ]);
+            // return d3.interpolateSpectral( scale(d) );
+            return scale(d);
         };  // color
 
     // add the tooltip area to the webpage
@@ -154,7 +164,7 @@ function datatables_chart() {
     var trendtablehdr = trendtable.append("tr");
     trendtablehdr.append("th").text("")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("line")
-    trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("n")
+    trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("num")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("avg")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("min")
     trendtablehdr.append("th").attr("class","dt-chart-trenddata").text("max")
@@ -380,7 +390,7 @@ function datatables_chart() {
             .on("end", function(d,i) {legend.call(d3.legend)})
 
         // draw trend lines
-        trendlines = d3.selectAll(".trendline").remove();
+        trendlines = d3.selectAll(".dt-chart-trendline").remove();
         clearTrendBuckets();
         addResultsToTrendBuckets(data);
         trendrows = d3.selectAll(".dt-chart-trendrow").remove();
@@ -389,7 +399,7 @@ function datatables_chart() {
 
         var thisdata;
         if (data.length > 0) {
-            stats = drawTrendLine(svg, "trendline", data, "black", "overall");
+            stats = drawTrendLine(svg, "dt-chart-trendline", data, "black", "overall");
             trendtableopacity = 1;
             trendtable.style("opacity", trendtableopacity);
             var thisrow = trendtable
@@ -409,7 +419,7 @@ function datatables_chart() {
             for (var i=0; i<trendlimits.length; i++) {
                 thisdata = trendbucket[trendlimits[i].name];
                 if (thisdata.length > 0) {
-                    stats = drawTrendLine(svg, "trendline", thisdata, trendlimits[i].color, trendlimits[i].name);
+                    stats = drawTrendLine(svg, "dt-chart-trendline", thisdata, trendlimits[i].color, trendlimits[i].name);
                     thisrow = trendtable.append("tr")
                         .attr("class", "dt-chart-trendrow");
                     thisrow.append("td").attr("class","dt-chart-trendstat").text(trendlimits[i].name);

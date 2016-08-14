@@ -7,8 +7,9 @@
     shape-rendering: crispEdges;
 }
 
-.dt-chart-dot {
-    /*stroke: #000;*/
+/* make sure legend has same style as dots */
+.dt-chart-dot,
+.legend circle {
     stroke: black;
     stroke-width: 1;
 }
@@ -77,3 +78,4 @@
 .dt-hide {
     visibility: hidden;
 }
+
