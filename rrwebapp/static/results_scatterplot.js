@@ -172,9 +172,10 @@ function datatables_chart() {
 
     // return text for legend
     function legend_text(d) {
-        var subs = {1609:'1M', 3001:'3000m', 3219:'2M', 4989:'5K', // 3001 because of data error in scoretility
-                    5000:'5K', 5001:'5K', 8047:'5M', // 5001 because of data error in scoretility
-                    10000:'10K', 10002:'10K', 15000:'15K',  // 10002 because of data error in scoretility
+        var subs = {1609:'1M', 3001:'3000m', 3219:'2M', 4989:'5K',  // 3001 because of data error in scoretility
+                    5000:'5K', 5001:'5K', 8047:'5M',                // 5001 because of data error in scoretility
+                    9978:'10K',                                     // 9978 because of data error in scoretility
+                    10000:'10K', 10002:'10K', 15000:'15K',          // 10002 because of data error in scoretility
                     16093:'10M', 21082:'HM', 21097:'HM', 42165:'Marathon', 42195:'Marathon',
                     80467:'50M', 160934:'100M'};
 
@@ -341,6 +342,56 @@ function datatables_chart() {
             .style("text-anchor", "middle")
             .text(heading);
 
+        // draw trend lines before circles so circles show over the trend lines
+        // see http://stackoverflow.com/questions/17786618/how-to-use-z-index-in-svg-elements
+        // and 
+        trendlines = d3.selectAll(".dt-chart-trendline").remove();
+        clearTrendBuckets();
+        addResultsToTrendBuckets(data);
+        trendrows = d3.selectAll(".dt-chart-trendrow").remove();
+        trendtableopacity = 0;
+        trendtable.style("opacity", trendtableopacity);
+
+        var thisdata;
+        if (data.length > 0) {
+            stats = drawTrendLine(svg, "dt-chart-trendline", data, "black", "overall");
+            trendtableopacity = 1;
+            trendtable.style("opacity", trendtableopacity);
+            var thisrow = trendtable
+                .append("tr")
+                .attr("class", "dt-chart-trendrow");
+            thisrow.append("td").attr("class","dt-chart-trendstat").text("overall");
+            thisrow.append("td").attr("class","dt-chart-trenddata").append("hr").style("background-color", "black");
+            thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.n);
+            thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.mean.toFixed(1)+"%");
+            thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.min.toFixed(1)+"%");
+            thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.max.toFixed(1)+"%");
+            if (stats.n > 1) {
+                thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.improvement.toFixed(1)+"%/yr");
+            } else {
+                thisrow.append("td").attr("class","dt-chart-trenddata").text("");
+            }
+            for (var i=0; i<trendlimits.length; i++) {
+                thisdata = trendbucket[trendlimits[i].name];
+                if (thisdata.length > 0) {
+                    stats = drawTrendLine(svg, "dt-chart-trendline", thisdata, trendlimits[i].color, trendlimits[i].name);
+                    thisrow = trendtable.append("tr")
+                        .attr("class", "dt-chart-trendrow");
+                    thisrow.append("td").attr("class","dt-chart-trendstat").text(trendlimits[i].name);
+                    thisrow.append("td").attr("class","dt-chart-trenddata").append("hr").style("background-color", trendlimits[i].color);
+                    thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.n);
+                    thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.mean.toFixed(1)+"%");
+                    thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.min.toFixed(1)+"%");
+                    thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.max.toFixed(1)+"%");
+                    if (stats.n > 1) {
+                        thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.improvement.toFixed(1)+"%/yr");
+                    } else {
+                        thisrow.append("td").attr("class","dt-chart-trenddata").text("");
+                    }
+                }
+            }
+        }
+
         // JOIN new data with old elements
         var dots = svg.selectAll("circle")
             .data(data, function(d) { return d; });
@@ -388,54 +439,6 @@ function datatables_chart() {
           .transition(t)
             .style("fill-opacity", 1)
             .on("end", function(d,i) {legend.call(d3.legend)})
-
-        // draw trend lines
-        trendlines = d3.selectAll(".dt-chart-trendline").remove();
-        clearTrendBuckets();
-        addResultsToTrendBuckets(data);
-        trendrows = d3.selectAll(".dt-chart-trendrow").remove();
-        trendtableopacity = 0;
-        trendtable.style("opacity", trendtableopacity);
-
-        var thisdata;
-        if (data.length > 0) {
-            stats = drawTrendLine(svg, "dt-chart-trendline", data, "black", "overall");
-            trendtableopacity = 1;
-            trendtable.style("opacity", trendtableopacity);
-            var thisrow = trendtable
-                .append("tr")
-                .attr("class", "dt-chart-trendrow");
-            thisrow.append("td").attr("class","dt-chart-trendstat").text("overall");
-            thisrow.append("td").attr("class","dt-chart-trenddata").append("hr").style("background-color", "black");
-            thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.n);
-            thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.mean.toFixed(1)+"%");
-            thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.min.toFixed(1)+"%");
-            thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.max.toFixed(1)+"%");
-            if (stats.n > 1) {
-                thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.improvement.toFixed(1)+"%/yr");
-            } else {
-                thisrow.append("td").attr("class","dt-chart-trenddata").text("");
-            }
-            for (var i=0; i<trendlimits.length; i++) {
-                thisdata = trendbucket[trendlimits[i].name];
-                if (thisdata.length > 0) {
-                    stats = drawTrendLine(svg, "dt-chart-trendline", thisdata, trendlimits[i].color, trendlimits[i].name);
-                    thisrow = trendtable.append("tr")
-                        .attr("class", "dt-chart-trendrow");
-                    thisrow.append("td").attr("class","dt-chart-trendstat").text(trendlimits[i].name);
-                    thisrow.append("td").attr("class","dt-chart-trenddata").append("hr").style("background-color", trendlimits[i].color);
-                    thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.n);
-                    thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.mean.toFixed(1)+"%");
-                    thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.min.toFixed(1)+"%");
-                    thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.max.toFixed(1)+"%");
-                    if (stats.n > 1) {
-                        thisrow.append("td").attr("class","dt-chart-trenddata").text(stats.improvement.toFixed(1)+"%/yr");
-                    } else {
-                        thisrow.append("td").attr("class","dt-chart-trenddata").text("");
-                    }
-                }
-            }
-        }
 
         // update legend after updating dots
         // remove and replace legend for case where empty
