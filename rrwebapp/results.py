@@ -1499,6 +1499,7 @@ class RunnerResultsChart(MethodView):
                     'filter_type':"select",
                     'select_type': 'select2',
                     'filter_reset_button_text': 'clear',
+                    'sort_as': 'none',
                 },{
                     'column_number':getcol('date'),
                     'filter_container_id':"_rrwebapp_filterdate",
