@@ -674,10 +674,10 @@ class AjaxCopySeries(MethodView):
             
             # copy each entry from "copyyear"
             for series in Series.query.filter_by(club_id=club_id,active=True,year=copyyear).all():
-                newseries = Series(series.club_id,thisyear,series.name,series.membersonly,
-                                   series.calcoverall,series.calcdivisions,series.calcagegrade,
-                                   series.orderby,series.hightolow,series.averagetie,
-                                   series.maxraces,series.multiplier,series.maxgenpoints,series.maxdivpoints, series.maxbynumrunners)
+                newseries = Series(series.club_id, thisyear, series.name, series.membersonly,
+                                   series.calcoverall, series.calcdivisions, series.calcagegrade,
+                                   series.orderby, series.hightolow, series.allowties, series.averagetie,
+                                   series.maxraces, series.multiplier, series.maxgenpoints, series.maxdivpoints, series.maxbynumrunners, series.hint)
                 racedb.insert_or_update(db.session,Series,newseries,name=newseries.name,year=thisyear,club_id=club_id,skipcolumns=['id'])
                 
                 # any series we updated is not obsolete

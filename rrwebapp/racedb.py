@@ -452,6 +452,7 @@ class Series(Base):
     calcagegrade = Column(Boolean)
     orderby = Column(String(15))
     hightolow = Column(Boolean)
+    allowties = Column(Boolean)
     averagetie = Column(Boolean)
     maxraces = Column(Integer)
     multiplier = Column(Integer)
@@ -465,7 +466,7 @@ class Series(Base):
     results = relationship("RaceResult", backref='series', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id, year, name=None, membersonly=None, overall=None, divisions=None, agegrade=None, orderby=None, hightolow=None, averagetie=None, maxraces=None, multiplier=None, maxgenpoints=None, maxdivpoints=None, maxbynumrunners=None, hint=None):
+    def __init__(self, club_id, year, name=None, membersonly=None, overall=None, divisions=None, agegrade=None, orderby=None, hightolow=None, allowties=None, averagetie=None, maxraces=None, multiplier=None, maxgenpoints=None, maxdivpoints=None, maxbynumrunners=None, hint=None):
     #----------------------------------------------------------------------
         
         self.club_id = club_id
@@ -477,6 +478,7 @@ class Series(Base):
         self.calcagegrade = agegrade
         self.orderby = orderby
         self.hightolow = hightolow
+        self.allowties = allowties
         self.averagetie = averagetie
         self.maxraces = maxraces
         self.multiplier = multiplier
