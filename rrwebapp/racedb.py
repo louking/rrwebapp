@@ -433,12 +433,14 @@ class Series(Base):
     :param agegrade: True if age graded results are to be calculated
     :param orderby: text name of RaceResult field to order results by
     :param hightolow: True if results should be ordered high to low based on orderby field
+    :param allowties: True if ties are allowed
     :param averagetie: True if points for ties are to be averaged, else higher points awarded to all tied results
     :param maxraces: if set, maximum number of races which are included in total (if not set, all races are included)
     :param multiplier: multiply base point total by this value
     :param maxgenpoints: if set, this is the max points for first place within a gender (before multiplier)
     :param maxdivpoints: if set, this is the max points for first place within a division (before multiplier)
     :param maxbynumrunners: if True, max points is set based on number of runners
+    :param hint: text hint shown to describe series
     '''
     __tablename__ = 'series'
     __table_args__ = (UniqueConstraint('name','year','club_id'),)
