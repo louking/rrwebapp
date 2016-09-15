@@ -585,6 +585,9 @@ class RaceResult(Base):
     :param genderplace: runner's place in race within gender
     :param runnername: only used if runner is not in 'runner' table - if used, set runnerid to 0
     :param divisionplace: runner's place in race within division (see division table) - default None
+    :param overallpoints: runner's points in race overall
+    :param genderpoints: runner's points in race within gender
+    :param divisionpoints: runner's points in race within division (see division table) - default None
     :param agtime: age grade time in seconds - default None
     :param agpercent: age grade percentage - default None
     :param instandings: boolean - default False
@@ -608,12 +611,16 @@ class RaceResult(Base):
     overallplace = Column(Float)
     genderplace = Column(Float)
     divisionplace = Column(Float)
+    overallpoints = Column(Float)
+    genderpoints = Column(Float)
+    divisionpoints = Column(Float)
     agtimeplace = Column(Float)
     instandings = Column(Boolean)   # *** always True
 
     #----------------------------------------------------------------------
     def __init__(self, club_id, runnerid, raceid, seriesid, time, gender, agage, divisionlow=None, divisionhigh=None,
                  overallplace=None, genderplace=None, runnername=None, divisionplace=None,
+                 overallpoints=None, genderpoints=None, divisionpoints=None,
                  agtimeplace=None, agfactor=None, agtime=None, agpercent=None, instandings=False):
     #----------------------------------------------------------------------
         
@@ -630,6 +637,9 @@ class RaceResult(Base):
         self.overallplace = overallplace
         self.genderplace = genderplace
         self.divisionplace = divisionplace
+        self.overallpoints = overallpoints
+        self.genderpoints = genderpoints
+        self.divisionpoints = divisionpoints
         self.agtimeplace = agtimeplace
         self.agfactor = agfactor
         self.agtime = agtime
