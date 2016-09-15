@@ -459,12 +459,13 @@ class Series(Base):
     maxdivpoints = Column(Integer)
     maxbynumrunners = Column(Boolean)
     active = Column(Boolean)
+    hint = Column(String(20))
     divisions = relationship("Divisions", backref='series', cascade="all, delete, delete-orphan")
     races = relationship("RaceSeries", backref='series', cascade="all, delete, delete-orphan")
     results = relationship("RaceResult", backref='series', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id, year, name=None, membersonly=None, overall=None, divisions=None, agegrade=None, orderby=None, hightolow=None, averagetie=None, maxraces=None, multiplier=None, maxgenpoints=None, maxdivpoints=None, maxbynumrunners=None):
+    def __init__(self, club_id, year, name=None, membersonly=None, overall=None, divisions=None, agegrade=None, orderby=None, hightolow=None, averagetie=None, maxraces=None, multiplier=None, maxgenpoints=None, maxdivpoints=None, maxbynumrunners=None, hint=None):
     #----------------------------------------------------------------------
         
         self.club_id = club_id
@@ -483,6 +484,7 @@ class Series(Base):
         self.maxdivpoints = maxdivpoints
         self.maxbynumrunners = maxbynumrunners
         self.active = True
+        self.hint = hint
 
     #----------------------------------------------------------------------
     def __repr__(self):
