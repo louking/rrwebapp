@@ -485,7 +485,7 @@ class Series(Base):
     :param maxgenpoints: if set, this is the max points for first place within a gender (before multiplier)
     :param maxdivpoints: if set, this is the max points for first place within a division (before multiplier)
     :param maxbynumrunners: if True, max points is set based on number of runners
-    :param hint: text hint shown to describe series
+    :param description: describes series
     '''
     __tablename__ = 'series'
     __table_args__ = (UniqueConstraint('name','year','club_id'),)
@@ -507,13 +507,13 @@ class Series(Base):
     maxdivpoints = Column(Integer)
     maxbynumrunners = Column(Boolean)
     active = Column(Boolean)
-    hint = Column(String(20))
+    description = Column(String(20))
     divisions = relationship("Divisions", backref='series', cascade="all, delete, delete-orphan")
     races = relationship("RaceSeries", backref='series', cascade="all, delete, delete-orphan")
     results = relationship("RaceResult", backref='series', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id, year, name=None, membersonly=None, overall=None, divisions=None, agegrade=None, orderby=None, hightolow=None, allowties=None, averagetie=None, maxraces=None, multiplier=None, maxgenpoints=None, maxdivpoints=None, maxbynumrunners=None, hint=None):
+    def __init__(self, club_id, year, name=None, membersonly=None, overall=None, divisions=None, agegrade=None, orderby=None, hightolow=None, allowties=None, averagetie=None, maxraces=None, multiplier=None, maxgenpoints=None, maxdivpoints=None, maxbynumrunners=None, description=None):
     #----------------------------------------------------------------------
         
         self.club_id = club_id
@@ -533,7 +533,7 @@ class Series(Base):
         self.maxdivpoints = maxdivpoints
         self.maxbynumrunners = maxbynumrunners
         self.active = True
-        self.hint = hint
+        self.description = description
 
     #----------------------------------------------------------------------
     def __repr__(self):
