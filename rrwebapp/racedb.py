@@ -159,6 +159,49 @@ def find_user(userid):
     return None
 
 ########################################################################
+class ApiCredentials(Base):
+########################################################################
+    __tablename__ = 'apicredentials'
+    id = Column(Integer, Sequence('apicredentials_id_seq'), primary_key=True)
+    name = Column(String(20), unique=True)
+    key = Column(String(1024))
+    secret = Column(String(1024))
+
+    #----------------------------------------------------------------------
+    def __init__(self, name=None, key=None, secret=None):
+    #----------------------------------------------------------------------
+        self.name = name
+        self.key = key
+        self.secret = secret
+        
+    #----------------------------------------------------------------------
+    def __repr__(self):
+    #----------------------------------------------------------------------
+        return '<ApiCredentials %s %s %s>' % (self.name, self.key, self.secret)
+
+########################################################################
+class UserAccessToken(Base):
+########################################################################
+    __tablename__ = 'useraccesstoken'
+    __table_args__ = (UniqueConstraint('user_id', 'apicredentials_id'),)
+    id = Column(Integer, Sequence('useraccesstoken_id_seq'), primary_key=True)
+    user_id = Column(Integer, ForeignKey(user.id))
+    apicredentials_id = Column(Integer, ForeignKey(apicredentials.id))
+    accesstoken = Column(String(1024))
+
+    #----------------------------------------------------------------------
+    def __init__(self, user_id=None, apicredentials_id=None, accesstoken=None):
+    #----------------------------------------------------------------------
+        self.user_id = User_id
+        self.apicredentials_id = apicredentials_id
+        self.accesstoken = accesstoken
+        
+    #----------------------------------------------------------------------
+    def __repr__(self):
+    #----------------------------------------------------------------------
+        return '<UserAccessToken %s %s %s>' % (self.user_id, self.apicredentials_id, self.accesstoken)
+
+########################################################################
 # userrole associates user with their roles
 ########################################################################
 # TODO: can't this be declared as a class using Base?
@@ -273,6 +316,7 @@ class Club(Base):
     id = Column(Integer, Sequence('club_id_seq'), primary_key=True)
     shname = Column(String(10), unique=True)
     name = Column(String(40), unique=True)
+    memberapi = Column(String(20))  # name from apicredentials table, None if no api configured
     roles = relationship('Role',backref='club',cascade="all, delete")
     runners = relationship('Runner',backref='club',cascade="all, delete")
     races = relationship('Race',backref='club',cascade="all, delete")
@@ -282,15 +326,16 @@ class Club(Base):
     exclusions = relationship('Exclusion',backref='club',cascade="all, delete")
 
     #----------------------------------------------------------------------
-    def __init__(self,shname=None,name=None):
+    def __init__(self, shname=None, name=None, memberapi=None):
     #----------------------------------------------------------------------
         self.shname = shname
         self.name = name
+        self.memberapi = memberapi
         
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
-        return '<Club %s %s>' % (self.shname,self.name)
+        return '<Club %s %s %s>' % (self.shname, self.name, self.memberapi)
 
 ########################################################################
 class Runner(Base):
