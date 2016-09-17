@@ -316,7 +316,8 @@ class Club(Base):
     id = Column(Integer, Sequence('club_id_seq'), primary_key=True)
     shname = Column(String(10), unique=True)
     name = Column(String(40), unique=True)
-    memberapi = Column(String(20))  # name from apicredentials table, None if no api configured
+    memberserviceapi = Column(String(20))  # name from apicredentials table, None if no api configured
+    memberserviceid = Column(String(64))  # identifies club to the member service
     roles = relationship('Role',backref='club',cascade="all, delete")
     runners = relationship('Runner',backref='club',cascade="all, delete")
     races = relationship('Race',backref='club',cascade="all, delete")
@@ -326,16 +327,17 @@ class Club(Base):
     exclusions = relationship('Exclusion',backref='club',cascade="all, delete")
 
     #----------------------------------------------------------------------
-    def __init__(self, shname=None, name=None, memberapi=None):
+    def __init__(self, shname=None, name=None, memberserviceapi=None):
     #----------------------------------------------------------------------
         self.shname = shname
         self.name = name
-        self.memberapi = memberapi
+        self.memberserviceapi = memberserviceapi
+        self.memberserviceid = memberserviceid
         
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
-        return '<Club %s %s %s>' % (self.shname, self.name, self.memberapi)
+        return '<Club %s %s %s %s>' % (self.shname, self.name, self.memberserviceapi, self.memberserviceid)
 
 ########################################################################
 class Runner(Base):
