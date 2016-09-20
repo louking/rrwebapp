@@ -430,6 +430,8 @@ class Race(Base):
     :param starttime: hh:mm start of race
     :param distance: race distance in miles
     :param surface: 'road','track','trail'
+    :param location: location race took place City, ST (may have country information)
+    :param external: True if race is from an external source
     '''
     __tablename__ = 'race'
     __table_args__ = (UniqueConstraint('name', 'year', 'club_id'),)
@@ -442,12 +444,14 @@ class Race(Base):
     starttime = Column(String(5))
     distance = Column(Float)
     surface = Column(Enum('road','track','trail',name='SurfaceType'))
+    location = Column(String(64))
+    external = Column(Boolean)
     active = Column(Boolean)
     results = relationship("RaceResult", backref='race', cascade="all, delete, delete-orphan")
     series = relationship("RaceSeries", backref='race', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id, year, name=None, racenum=None, date=None, starttime=None, distance=None, surface=None):
+    def __init__(self, club_id, year, name=None, racenum=None, date=None, starttime=None, distance=None, surface=None, location=None, external=False):
     #----------------------------------------------------------------------
 
         self.club_id = club_id
@@ -458,12 +462,14 @@ class Race(Base):
         self.starttime = starttime
         self.distance = distance
         self.surface = surface
+        self.location = location
+        self.external = external
         self.active = True
 
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
-        return "<Race('%s','%s','%s','%s','%s','%s','%s','%s',active='%s')>" % (self.club_id, self.name, self.year, self.racenum, self.date, self.starttime, self.distance, self.surface, self.active)
+        return "<Race('%s','%s','%s','%s','%s','%s','%s','%s','%s',active='%s')>" % (self.club_id, self.name, self.year, self.racenum, self.date, self.starttime, self.distance, self.surface, self.location, self.active)
     
 ########################################################################
 class Series(Base):
@@ -617,9 +623,29 @@ class ManagedResult(Base):
         return "<ManagedResult('%s','%s','%s','%s')>" % (self.raceid, self.place, self.name, self.time)
 
 ########################################################################
+class RaceResultService(Base):
+########################################################################
+    __tablename__ = 'raceresultservice'
+    id = Column(Integer, Sequence('raceresultservice_id_seq'), primary_key=True)
+    club_id = Column(Integer, ForeignKey('club.id'))
+    apicredentials_id = Column(Integer, ForeignKey(apicredentials.id))
+
+    #----------------------------------------------------------------------
+    def __init__(self, club_id=None, apicredentials_id=None):
+    #----------------------------------------------------------------------
+        self.club_id = club_id
+        self.apicredentials_id = apicredentials_id
+        
+    #----------------------------------------------------------------------
+    def __repr__(self):
+    #----------------------------------------------------------------------
+        return '<RaceResultService %s %s>' % (self.club_id, self.apicredentials_id)
+
+########################################################################
 class RaceResult(Base):
 ########################################################################
     '''
+    :param club_id: club.id
     :param runnerid: runner.id
     :param raceid: race.id
     :param seriesid: series.id
@@ -637,6 +663,9 @@ class RaceResult(Base):
     :param divisionpoints: runner's points in race within division (see division table) - default None
     :param agtime: age grade time in seconds - default None
     :param agpercent: age grade percentage - default None
+    :param source: references source of result data - name not id
+    :param sourceid: references runner within source
+    :param fuzzyage: set to 'y' if age math is "fuzzy", for sources which only have 5 year age groups listed
     :param instandings: boolean - default False
     '''
     __tablename__ = 'raceresult'
@@ -662,13 +691,18 @@ class RaceResult(Base):
     genderpoints = Column(Float)
     divisionpoints = Column(Float)
     agtimeplace = Column(Float)
+    source = Column(String(20))
+    sourceid = Column(String(128))
+    fuzzyage = Column(Boolean)
     instandings = Column(Boolean)   # *** always True
 
     #----------------------------------------------------------------------
     def __init__(self, club_id, runnerid, raceid, seriesid, time, gender, agage, divisionlow=None, divisionhigh=None,
                  overallplace=None, genderplace=None, runnername=None, divisionplace=None,
                  overallpoints=None, genderpoints=None, divisionpoints=None,
-                 agtimeplace=None, agfactor=None, agtime=None, agpercent=None, instandings=False):
+                 agtimeplace=None, agfactor=None, agtime=None, agpercent=None, 
+                 source=None, sourceid=None, fuzzyage=None,
+                 instandings=False):
     #----------------------------------------------------------------------
         
         self.club_id = club_id
@@ -691,15 +725,19 @@ class RaceResult(Base):
         self.agfactor = agfactor
         self.agtime = agtime
         self.agpercent = agpercent
+        self.source = source
+        self.sourceid = sourceid
+        self.fuzzyage = fuzzyage
         self.instandings = instandings
 
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
         # TODO: too many unlabeled fields -- need to make this clearer
-        return "<RaceResult('%s','%s','%s','%s','%s','%s',div='(%s,%s)','%s','%s','%s','%s','%s','%s','%s','%s','%s')>" % (
+        return "<RaceResult('%s','%s','%s','%s','%s','%s',div='(%s,%s)','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')>" % (
             self.runnerid, self.runnername, self.raceid, self.seriesid, self.gender, self.agage, self.divisionlow, self.divisionhigh,
             self.time, self.overallplace, self.genderplace, self.divisionplace, self.agtimeplace, self.agfactor, self.agtime, self.agpercent,
+            self.source, self.sourceid, 
             self.instandings)
     
 ########################################################################
