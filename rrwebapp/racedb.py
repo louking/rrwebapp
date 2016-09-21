@@ -166,6 +166,8 @@ class ApiCredentials(Base):
     name = Column(String(20), unique=True)
     key = Column(String(1024))
     secret = Column(String(1024))
+    useraccesstokens = relationship('UserAccessToken',backref='apicredentials',cascade="all, delete")
+    raceresultservices = relationship('RaceResultService',backref='apicredentials',cascade="all, delete")
 
     #----------------------------------------------------------------------
     def __init__(self, name=None, key=None, secret=None):
@@ -185,8 +187,8 @@ class UserAccessToken(Base):
     __tablename__ = 'useraccesstoken'
     __table_args__ = (UniqueConstraint('user_id', 'apicredentials_id'),)
     id = Column(Integer, Sequence('useraccesstoken_id_seq'), primary_key=True)
-    user_id = Column(Integer, ForeignKey(user.id))
-    apicredentials_id = Column(Integer, ForeignKey(apicredentials.id))
+    user_id = Column(Integer, ForeignKey('user.id'))
+    apicredentials_id = Column(Integer, ForeignKey('apicredentials.id'))
     accesstoken = Column(String(1024))
 
     #----------------------------------------------------------------------
@@ -226,6 +228,7 @@ class User(Base):
     #roles = relationship('Role', backref='users', secondary='userrole', cascade="all, delete")
     roles = relationship('Role', backref='users', secondary='userrole')
         # many to many pattern - see http://docs.sqlalchemy.org/en/rel_0_8/orm/relationships.html
+    useraccesstokens = relationship('UserAccessToken',backref='user',cascade="all, delete")
 
     #----------------------------------------------------------------------
     def __init__(self,email,name,password,pwresetrequired=False):
@@ -628,7 +631,7 @@ class RaceResultService(Base):
     __tablename__ = 'raceresultservice'
     id = Column(Integer, Sequence('raceresultservice_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))
-    apicredentials_id = Column(Integer, ForeignKey(apicredentials.id))
+    apicredentials_id = Column(Integer, ForeignKey('apicredentials.id'))
 
     #----------------------------------------------------------------------
     def __init__(self, club_id=None, apicredentials_id=None):
