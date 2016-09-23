@@ -661,9 +661,9 @@ class RaceResult(Base):
     :param genderplace: runner's place in race within gender
     :param runnername: only used if runner is not in 'runner' table - if used, set runnerid to 0
     :param divisionplace: runner's place in race within division (see division table) - default None
-    :param overallpoints: runner's points in race overall
-    :param genderpoints: runner's points in race within gender
-    :param divisionpoints: runner's points in race within division (see division table) - default None
+    :param overallpoints: runner's point score from place overall, adjusted for rendering by series rules
+    :param genderpoints: runner's point score from place within gender, adjusted for rendering by series rules
+    :param divisionpoints: runner's point score from place within division, adjusted for rendering by series rules
     :param agtime: age grade time in seconds - default None
     :param agpercent: age grade percentage - default None
     :param source: references source of result data - name not id
