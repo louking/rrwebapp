@@ -29,7 +29,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 # other
 
 # home grown
-from . import app
+from rrwebapp import app
 #app = Flask('rrwebapp')
 
 # build database name, details kept in apikey database
