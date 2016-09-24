@@ -39,6 +39,14 @@ from datatables_editor import DataTablesEditor, dt_editor_response, get_request_
 class ServiceCredentials(MethodView):
 #######################################################################
     decorators = [login_required]
+
+    # set up mapping between database and editor form
+    dbattrs = 'id,name,key,secret'.split(',')
+    formfields = 'rowid,name,key,secret'.split(',')
+    dbmapping = OrderedDict(zip(dbattrs,formfields))
+    formmapping = OrderedDict(zip(formfields,dbattrs))
+    dte = DataTablesEditor(dbmapping, formmapping)
+
     #----------------------------------------------------------------------
     def get(self):
     #----------------------------------------------------------------------
@@ -54,17 +62,12 @@ class ServiceCredentials(MethodView):
                 flask.abort(403)
             
             # retrieve apicredentials table
-            apicredentials = ApiCredentials.query.all()
+            dbrecords = ApiCredentials.query.all()
 
             # build table data
             tabledata = []
-            for apicredential in apicredentials:
-                thisentry = {
-                    'rowid'     : apicredential.id,
-                    'name'      : apicredential.name,
-                    'key'       : apicredential.key,
-                    'secret'    : apicredential.secret,
-                }
+            for dbrecord in dbrecords:
+                thisentry = self.dte.get_response_data(dbrecord)
                 tabledata.append(thisentry)
 
             # DataTables options string, data: and buttons: are passed separately
@@ -88,7 +91,7 @@ class ServiceCredentials(MethodView):
 
             ed_options = {
                 'idSrc': 'rowid',
-                'ajax': url_for('_servicecredentials'),
+                'ajax': url_for('servicecredentials'),
                 'fields': [
                     { 'label': 'Service Name:',  'name': 'name' },
                     { 'label': 'Key:',  'name': 'key' },
@@ -115,14 +118,7 @@ class ServiceCredentials(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-#----------------------------------------------------------------------
-app.add_url_rule('/servicecredentials',view_func=ServiceCredentials.as_view('servicecredentials'),methods=['GET'])
-#----------------------------------------------------------------------
 
-#######################################################################
-class AjaxServiceCredentials(MethodView):
-#######################################################################
-    decorators = [login_required]
     #----------------------------------------------------------------------
     def post(self):
     #----------------------------------------------------------------------
@@ -156,13 +152,6 @@ class AjaxServiceCredentials(MethodView):
                 app.logger.warning(cause)
                 return dt_editor_response(error=cause)
 
-            # set up ApiCredentials mapping between database and editor form
-            dbattrs = 'id,name,key,secret'.split(',')
-            formfields = 'rowid,name,key,secret'.split(',')
-            dbmapping = OrderedDict(zip(dbattrs,formfields))
-            formmapping = OrderedDict(zip(formfields,dbattrs))
-            dte = DataTablesEditor(dbmapping, formmapping)
-
             # loop through data
             responsedata = []
             for thisid in data:
@@ -170,8 +159,8 @@ class AjaxServiceCredentials(MethodView):
                 
                 # create item
                 if action == 'create':
-                    dbitem = ApiCredentials(club_id)
-                    dte.set_dbrow(thisdata, dbitem)
+                    dbitem = ApiCredentials()
+                    self.dte.set_dbrow(thisdata, dbitem)
                     app.logger.debug('creating id={}, name={}'.format(thisid,dbitem.name))
                     db.session.add(dbitem)
                     db.session.flush()
@@ -180,7 +169,7 @@ class AjaxServiceCredentials(MethodView):
                 elif action == 'edit':
                     dbitem = ApiCredentials.query.filter_by(id=thisid).first()
                     app.logger.debug('editing id={}, name={}'.format(thisid,dbitem.name))
-                    dte.set_dbrow(thisdata, dbitem)
+                    self.dte.set_dbrow(thisdata, dbitem)
                     app.logger.debug('after edit id={}, name={}'.format(thisid,dbitem.name))
 
                 # remove item
@@ -192,7 +181,7 @@ class AjaxServiceCredentials(MethodView):
 
                 # prepare response
                 if action != 'remove':
-                    thisrow = dte.get_response_data(dbitem)
+                    thisrow = self.dte.get_response_data(dbitem)
                     responsedata.append(thisrow)
                     app.logger.debug('thisrow={}'.format(thisrow))
 
@@ -211,6 +200,8 @@ class AjaxServiceCredentials(MethodView):
                 cause = traceback.format_exc()
                 app.logger.error(traceback.format_exc())
             return dt_editor_response(data=[], error=cause, fieldErrors=fielderrors)
+
 #----------------------------------------------------------------------
-app.add_url_rule('/_servicecredentials',view_func=AjaxServiceCredentials.as_view('_servicecredentials'),methods=['POST'])
+app.add_url_rule('/servicecredentials',view_func=ServiceCredentials.as_view('servicecredentials'),methods=['GET', 'POST'])
 #----------------------------------------------------------------------
+
