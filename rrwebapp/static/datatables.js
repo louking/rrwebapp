@@ -10,6 +10,7 @@
 //     yadcfopts:    yadcf options to be passed to yadcf 
 //                   if not present, yadcf will not be configured
 
+
 function datatables(data, buttons, options) {
 
     // configure editor if requested
@@ -22,7 +23,7 @@ function datatables(data, buttons, options) {
     var button_options = [];
     for (i=0; i<buttons.length; i++) {
         button = buttons[i];
-        if ($.inArray(button, ['create', 'edit', 'remove'])) {
+        if ($.inArray(button, ['create', 'edit', 'remove']) >= 0) {
             button_options.push({extend:button, editor:editor});
         } else {
             button_options.push(button);
@@ -39,6 +40,18 @@ function datatables(data, buttons, options) {
     } else {
         $.extend(options.dtopts, { data: data });
     };
+
+    // convert rendering to javascript, // kludge for text rendering
+    if (options.dtopts.hasOwnProperty('columns')) {
+        for (i=0; i<options.dtopts.columns.length; i++) {
+            if (options.dtopts.columns[i].hasOwnProperty('render')) {
+                // if (options.dtopts.columns[i].render == 'text') {
+                //     options.dtopts.columns[i].render = $.fn.dataTable.render.text();
+                // }
+                options.dtopts.columns[i].render = eval(options.dtopts.columns[i].render)
+            }
+        }        
+    }
 
     // define the table
     _dt_table = $('#datatable').DataTable ( options.dtopts );

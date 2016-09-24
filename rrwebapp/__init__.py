@@ -63,6 +63,7 @@ tu = timeu.asctime('%Y-%m-%d %H:%M:%S')
 app.configtime = tu.epoch2asc(time.time())
 
 # import all views
+import services
 import request
 import index
 import login
