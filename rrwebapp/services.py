@@ -91,7 +91,21 @@ class ServiceCredentials(MethodView):
 
             ed_options = {
                 'idSrc': 'rowid',
-                'ajax': url_for('servicecredentials'),
+                'ajax': {
+                    'create': {
+                        'type': 'POST',
+                        'url':  url_for('servicecredentials'),
+                    },
+                    'edit': {
+                        'type': 'PUT',
+                        'url':  '{}/{}'.format(url_for('servicecredentials'),'_id_'),
+                    },
+                    'remove': {
+                        'type': 'DELETE',
+                        'url':  '{}/{}'.format(url_for('servicecredentials'),'_id_'),
+                    },
+                },
+                
                 'fields': [
                     { 'label': 'Service Name:',  'name': 'name' },
                     { 'label': 'Key:',  'name': 'key' },
@@ -146,7 +160,7 @@ class ServiceCredentials(MethodView):
             data = get_request_data(request.form)
             app.logger.debug('action={}, data={}, form={}'.format(action, data, request.form))
 
-            if action not in ['create', 'edit', 'remove']:
+            if action not in ['create']:
                 db.session.rollback()
                 cause = 'unknown action "{}"'.format(action)
                 app.logger.warning(cause)
@@ -154,36 +168,142 @@ class ServiceCredentials(MethodView):
 
             # loop through data
             responsedata = []
-            for thisid in data:
-                thisdata = data[thisid]
-                
-                # create item
-                if action == 'create':
-                    dbitem = ApiCredentials()
-                    self.dte.set_dbrow(thisdata, dbitem)
-                    app.logger.debug('creating id={}, name={}'.format(thisid,dbitem.name))
-                    db.session.add(dbitem)
-                    db.session.flush()
+            thisdata = data[0]
+            
+            # create item
+            dbitem = ApiCredentials()
+            self.dte.set_dbrow(thisdata, dbitem)
+            app.logger.debug('creating name={}'.format(dbitem.name))
+            db.session.add(dbitem)
+            db.session.flush()
 
-                # edit item
-                elif action == 'edit':
-                    dbitem = ApiCredentials.query.filter_by(id=thisid).first()
-                    app.logger.debug('editing id={}, name={}'.format(thisid,dbitem.name))
-                    self.dte.set_dbrow(thisdata, dbitem)
-                    app.logger.debug('after edit id={}, name={}'.format(thisid,dbitem.name))
+            # prepare response
+            thisrow = self.dte.get_response_data(dbitem)
+            responsedata.append(thisrow)
+            app.logger.debug('thisrow={}'.format(thisrow))
 
-                # remove item
-                elif action == 'remove':
-                    resultid = thisdata['rowid']
-                    dbitem = ApiCredentials.query.filter_by(id=thisid).first()
-                    app.logger.debug('deleting id={}, name={}'.format(thisid,dbitem.name))
-                    db.session.delete(dbitem)
+            # commit database updates and close transaction
+            db.session.commit()
+            return dt_editor_response(data=responsedata)
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            if fielderrors:
+                cause = 'please check indicated fields'
+            elif error:
+                cause = error
+            else:
+                cause = traceback.format_exc()
+                app.logger.error(traceback.format_exc())
+            return dt_editor_response(data=[], error=cause, fieldErrors=fielderrors)
 
-                # prepare response
-                if action != 'remove':
-                    thisrow = self.dte.get_response_data(dbitem)
-                    responsedata.append(thisrow)
-                    app.logger.debug('thisrow={}'.format(thisrow))
+    #----------------------------------------------------------------------
+    def delete(self, thisid):
+    #----------------------------------------------------------------------
+        # prepare for possible errors
+        error = ''
+        fielderrors = []
+
+
+        try:
+            club_id = flask.session['club_id']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+
+            # verify user can write the data, otherwise abort
+            if not owner_permission.can():
+                db.session.rollback()
+                cause = 'operation not permitted for user'
+                return dt_editor_response(error=cause)
+            
+            # handle create, edit, remove
+            # action = get_request_action(request.form)
+            action = request.args.get('action')
+
+            # get data from form
+            # data = get_request_data(request.form)
+            # app.logger.debug('action={}, data={}, form={}'.format(action, data, request.form))
+            app.logger.debug('action={}, thisid={}'.format(action, thisid))
+
+            if action not in ['remove']:
+                db.session.rollback()
+                cause = 'unknown action "{}"'.format(action)
+                app.logger.warning(cause)
+                return dt_editor_response(error=cause)
+
+            # empty response for
+            responsedata = []
+            
+            # remove item
+            dbitem = ApiCredentials.query.filter_by(id=thisid).first()
+            app.logger.debug('deleting id={}, name={}'.format(thisid,dbitem.name))
+            db.session.delete(dbitem)
+
+            # commit database updates and close transaction
+            db.session.commit()
+            return dt_editor_response(data=responsedata)
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            if fielderrors:
+                cause = 'please check indicated fields'
+            elif error:
+                cause = error
+            else:
+                cause = traceback.format_exc()
+                app.logger.error(traceback.format_exc())
+            return dt_editor_response(data=[], error=cause, fieldErrors=fielderrors)
+
+    #----------------------------------------------------------------------
+    def put(self, thisid):
+    #----------------------------------------------------------------------
+        # prepare for possible errors
+        error = ''
+        fielderrors = []
+
+
+        try:
+            club_id = flask.session['club_id']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+
+            # verify user can write the data, otherwise abort
+            if not owner_permission.can():
+                db.session.rollback()
+                cause = 'operation not permitted for user'
+                return dt_editor_response(error=cause)
+            
+            # handle create, edit, remove
+            action = get_request_action(request.form)
+
+            # get data from form
+            data = get_request_data(request.form)
+            app.logger.debug('action={}, data={}, form={}'.format(action, data, request.form))
+
+            if action not in ['edit']:
+                db.session.rollback()
+                cause = 'unknown action "{}"'.format(action)
+                app.logger.warning(cause)
+                return dt_editor_response(error=cause)
+
+            # loop through data
+            responsedata = []
+            thisdata = data[thisid]
+            
+            # edit item
+            dbitem = ApiCredentials.query.filter_by(id=thisid).first()
+            app.logger.debug('editing id={}, name={}'.format(thisid,dbitem.name))
+            self.dte.set_dbrow(thisdata, dbitem)
+            app.logger.debug('after edit id={}, name={}'.format(thisid,dbitem.name))
+
+            # prepare response
+            thisrow = self.dte.get_response_data(dbitem)
+            responsedata.append(thisrow)
+            app.logger.debug('thisrow={}'.format(thisrow))
 
             # commit database updates and close transaction
             db.session.commit()
@@ -202,6 +322,8 @@ class ServiceCredentials(MethodView):
             return dt_editor_response(data=[], error=cause, fieldErrors=fielderrors)
 
 #----------------------------------------------------------------------
-app.add_url_rule('/servicecredentials',view_func=ServiceCredentials.as_view('servicecredentials'),methods=['GET', 'POST'])
+servicecredentials_view = ServiceCredentials.as_view('servicecredentials')
+app.add_url_rule('/servicecredentials',view_func=servicecredentials_view,methods=['GET', 'POST'])
+app.add_url_rule('/servicecredentials/<int:thisid>',view_func=servicecredentials_view,methods=['PUT', 'DELETE'])
 #----------------------------------------------------------------------
 
