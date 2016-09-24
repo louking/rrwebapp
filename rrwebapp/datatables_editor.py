@@ -78,7 +78,7 @@ class DataTablesEditor():
     handle CRUD request from dataTables Editor
 
     dbmapping is dict like {'dbattr_n':'inkey_n', 'dbattr_m':f(inrow), ...}
-    inmapping is dict like {'inkey_n':'dbattr_n', 'inkey_m':f(dbrow), ...}
+    formmapping is dict like {'inkey_n':'dbattr_n', 'inkey_m':f(dbrow), ...}
     if order of operation is importand use OrderedDict
 
     :param dbmapping: mapping dict with key for each db field
