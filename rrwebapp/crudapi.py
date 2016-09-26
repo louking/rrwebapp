@@ -149,6 +149,9 @@ class CrudApi(MethodView):
     #----------------------------------------------------------------------
         app.logger.debug('CrudApi object = {}'.format(self))
 
+        # the args dict has all the defined parameters to CrudApi
+        # caller supplied keyword args are used to update the defaults
+        # all arguments are made into attributes for self
         self.kwargs = kwargs
         args = dict(pagename = None, 
                     endpoint = None, 
@@ -161,20 +164,12 @@ class CrudApi(MethodView):
                     byclub = True,        # NOTE: prevents common CrudApi
                     idSrc = 'DT_RowId', 
                     buttons = ['create', 'edit', 'remove', 'csv'])
-        args.update(kwargs)
-
-        self.pagename = args['pagename']
-        self.endpoint = args['endpoint']
-        self.writepermission = args['writepermission']
-        self.dbtable = args['dbtable']
-        self.byclub = args['byclub']
-        self.clientcolumns = args['clientcolumns']
-        self.servercolumns = args['servercolumns']
-        self.idSrc = args['idSrc']
-        self.buttons = args['buttons']
+        args.update(kwargs)        
+        for key in args:
+            setattr(self, key, args[key])
 
         # set up mapping between database and editor form
-        self.dte = DataTablesEditor(args['dbmapping'], args['formmapping'])
+        self.dte = DataTablesEditor(self.dbmapping, self.formmapping)
 
         app.logger.debug('endpoint={}'.format(self.endpoint))
 
@@ -186,7 +181,6 @@ class CrudApi(MethodView):
         app.add_url_rule('/{}'.format(self.endpoint),view_func=my_view,methods=['GET',])
         app.add_url_rule('/{}/rest'.format(self.endpoint),view_func=my_view,methods=['GET', 'POST'])
         app.add_url_rule('/{}/rest/<int:thisid>'.format(self.endpoint),view_func=my_view,methods=['PUT', 'DELETE'])
-        # makes url_for include /rest
 
     #----------------------------------------------------------------------
     def _renderpage(self):
