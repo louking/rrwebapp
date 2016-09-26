@@ -183,13 +183,13 @@ class CrudApi(MethodView):
     #----------------------------------------------------------------------
         # create supported endpoints
         my_view = self.as_view(self.endpoint, **self.kwargs)
-        app.add_url_rule('/{}'.format(self.endpoint),view_func=self.renderpage,methods=['GET',])
+        app.add_url_rule('/{}'.format(self.endpoint),view_func=my_view,methods=['GET',])
         app.add_url_rule('/{}/rest'.format(self.endpoint),view_func=my_view,methods=['GET', 'POST'])
         app.add_url_rule('/{}/rest/<int:thisid>'.format(self.endpoint),view_func=my_view,methods=['PUT', 'DELETE'])
         # makes url_for include /rest
 
     #----------------------------------------------------------------------
-    def renderpage(self):
+    def _renderpage(self):
     #----------------------------------------------------------------------
         app.logger.debug('CrudApi object = {}'.format(self))
 
@@ -205,16 +205,6 @@ class CrudApi(MethodView):
             queryparms = {}
             if self.byclub:
                 queryparms['club_id'] = club_id
-
-            # build table data
-            if self.servercolumns == None:
-                dbrecords = self.dbtable.query.all(**queryparms)
-                tabledata = []
-                for dbrecord in dbrecords:
-                    thisentry = self.dte.get_response_data(dbrecord)
-                    tabledata.append(thisentry)
-            else:
-                tabledata = url_rule('/{}/rest'.format(self.endpoint))
 
             # DataTables options string, data: and buttons: are passed separately
             dt_options = {
@@ -234,21 +224,33 @@ class CrudApi(MethodView):
             for column in self.clientcolumns:
                 dt_options['columns'].append(column)
 
+            # build table data
+            if self.servercolumns == None:
+                dt_options['serverSide'] = False
+                dbrecords = self.dbtable.query.all(**queryparms)
+                tabledata = []
+                for dbrecord in dbrecords:
+                    thisentry = self.dte.get_response_data(dbrecord)
+                    tabledata.append(thisentry)
+            else:
+                dt_options['serverSide'] = True
+                tabledata = '{}/rest'.format(url_for(self.endpoint))
+
             app.logger.debug('self.endpoint={} url_for(self.endpoint)={}'.format(self.endpoint, url_for(self.endpoint)))
             ed_options = {
                 'idSrc': self.idSrc,
                 'ajax': {
                     'create': {
                         'type': 'POST',
-                        'url':  '{}'.format(url_for(self.endpoint)),
+                        'url':  '{}/rest'.format(url_for(self.endpoint)),
                     },
                     'edit': {
                         'type': 'PUT',
-                        'url':  '{}/{}'.format(url_for(self.endpoint),'_id_'),
+                        'url':  '{}/rest/{}'.format(url_for(self.endpoint),'_id_'),
                     },
                     'remove': {
                         'type': 'DELETE',
-                        'url':  '{}/{}'.format(url_for(self.endpoint),'_id_'),
+                        'url':  '{}/rest/{}'.format(url_for(self.endpoint),'_id_'),
                     },
                 },
                 
@@ -280,7 +282,7 @@ class CrudApi(MethodView):
             raise
 
     #----------------------------------------------------------------------
-    def get(self):
+    def _retrieverows(self):
     #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
@@ -299,7 +301,7 @@ class CrudApi(MethodView):
             columns = self.servercolumns
 
             # get data from database
-            rowTable = DataTables(request.args, self.dbtable, self.dbtable.query.filter_by(queryparms), columns, dialect='mysql')
+            rowTable = DataTables(request.args, self.dbtable, self.dbtable.query.filter_by(**queryparms), columns, dialect='mysql')
             output_result = rowTable.output_result()
 
             # back to client
@@ -309,6 +311,16 @@ class CrudApi(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
+
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        app.logger.debug('request.path={}'.format(request.path))
+
+        if request.path[-4:] != 'rest':
+            return self._renderpage()
+        else:
+            return self._retrieverows()
 
     #----------------------------------------------------------------------
     @_editormethod(checkaction='create', formrequest=True)
