@@ -30,9 +30,13 @@ def dt_editor_response(**respargs):
 
     return flask.jsonify(**respargs)
 
+
 #----------------------------------------------------------------------
 def get_request_action(form):
 #----------------------------------------------------------------------
+    # TODO: modify get_request_action and get_request_data to allow either request object or form object, 
+    # and remove if/else for formrequest, e.g., action = get_request_action(request)
+    # (allowing form object deprecated for legacy code)
     '''
     return dict list with data from request.form
 
@@ -44,6 +48,9 @@ def get_request_action(form):
 #----------------------------------------------------------------------
 def get_request_data(form):
 #----------------------------------------------------------------------
+    # TODO: modify get_request_action and get_request_data to allow either request object or form object, 
+    # and remove if/else for formrequest, e.g., action = get_request_action(request)
+    # (allowing form object deprecated for legacy code)
     '''
     return dict list with data from request.form
 
@@ -77,12 +84,12 @@ class DataTablesEditor():
     '''
     handle CRUD request from dataTables Editor
 
-    dbmapping is dict like {'dbattr_n':'inkey_n', 'dbattr_m':f(inrow), ...}
-    formmapping is dict like {'inkey_n':'dbattr_n', 'inkey_m':f(dbrow), ...}
+    dbmapping is dict like {'dbattr_n':'formfield_n', 'dbattr_m':f(form), ...}
+    formmapping is dict like {'formfield_n':'dbattr_n', 'formfield_m':f(dbrow), ...}
     if order of operation is importand use OrderedDict
 
-    :param dbmapping: mapping dict with key for each db field
-    :param formmapping: mapping dict with key for each form row
+    :param dbmapping: mapping dict with key for each db field, value is key in form or function(dbentry)
+    :param formmapping: mapping dict with key for each form row, value is key in db row or function(form)
     '''
 
     #----------------------------------------------------------------------
