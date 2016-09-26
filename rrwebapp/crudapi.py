@@ -36,79 +36,84 @@ class CrudApi(MethodView):
     provides initial render and RESTful CRUD api
 
     usage:
-        instancename = CrudApi():
-        instancename.register([registerargs])
+        instancename = CrudApi([arguments]):
+        instancename.register()
 
+    dbmapping is dict like {'dbattr_n':'formfield_n', 'dbattr_m':f(form), ...}
+    formmapping is dict like {'formfield_n':'dbattr_n', 'formfield_m':f(dbrow), ...}
+    if order of operation is importand use OrderedDict
+
+    clientcolumns should be like the following. See https://datatables.net/reference/option/columns and 
+    https://editor.datatables.net/reference/option/fields for more information
+
+        [
+            { 'data': 'name', 'name': 'name', 'label': 'Service Name' },
+            { 'data': 'key', 'name': 'key', 'label': 'Key', 'render':'$.fn.dataTable.render.text()' }, 
+            { 'data': 'secret', 'name': 'secret', 'label': 'Secret', 'render':'$.fn.dataTable.render.text()' },
+        ]
+
+    * name - describes the column and is used within javascript
+    * data - used on server-client interface and should be used in the formmapping key and dbmapping value
+    * label - used for the DataTable table column and the Editor form label 
+    * optional render key is eval'd into javascript
+    * id - is specified by idSrc, and should be in the mapping function but not columns
+    
+    servercolumns - if present table will be displayed through ajax get calls
+
+    :param pagename: name to be displayed at top of html page
+    :param endpoint: endpoint parameter used by flask.url_for()
+    :param dbmapping: mapping dict with key for each db field, value is key in form or function(dbentry)
+    :param formmapping: mapping dict with key for each form row, value is key in db row or function(form)
+    :param writepermission: function to check write permission for api access
+    :param dbtable: db model class for table being updated
+    :param byclub: True if results are to be limited by club_id
+    :param clientcolumns: list of dicts for input to dataTables and Editor
+    :param servercolumns: list of ColumnDT for input to sqlalchemy-datatables.DataTables
+    :param idSrc: idSrc for use by Editor
+    :param buttons: list of buttons for DataTable, from ['create', 'remove', 'edit', 'csv']
     '''
+
     decorators = [login_required]
 
     #----------------------------------------------------------------------
-    def register(self,
-                 pagename = None, 
-                 endpoint = None, 
-                 dbmapping = {}, 
-                 formmapping = {}, 
-                 writepermission = lambda: False, 
-                 dbtable = None, 
-                 clientcolumns = None, 
-                 servercolumns = None, 
-                 byclub = True,        # NOTE: prevents common CrudApi
-                 idSrc = 'DT_RowId', 
-                 buttons = ['create', 'edit', 'remove', 'csv']):
+    def __init__(self, **kwargs):
     #----------------------------------------------------------------------
-        '''
-        dbmapping is dict like {'dbattr_n':'formfield_n', 'dbattr_m':f(form), ...}
-        formmapping is dict like {'formfield_n':'dbattr_n', 'formfield_m':f(dbrow), ...}
-        if order of operation is importand use OrderedDict
-
-        clientcolumns should be like the following. See https://datatables.net/reference/option/columns and 
-        https://editor.datatables.net/reference/option/fields for more information
-
-            [
-                { 'data': 'name', 'name': 'name', 'label': 'Service Name' },
-                { 'data': 'key', 'name': 'key', 'label': 'Key', 'render':'$.fn.dataTable.render.text()' }, 
-                { 'data': 'secret', 'name': 'secret', 'label': 'Secret', 'render':'$.fn.dataTable.render.text()' },
-            ]
-
-        * name - describes the column and is used within javascript
-        * data - used on server-client interface and should be used in the formmapping key and dbmapping value
-        * label - used for the DataTable table column and the Editor form label 
-        * optional render key is eval'd into javascript
-        * id - is specified by idSrc, and should be in the mapping function but not columns
-        
-        servercolumns - if present table will be displayed through ajax get calls
-
-        :param pagename: name to be displayed at top of html page
-        :param endpoint: endpoint parameter used by flask.url_for()
-        :param dbmapping: mapping dict with key for each db field, value is key in form or function(dbentry)
-        :param formmapping: mapping dict with key for each form row, value is key in db row or function(form)
-        :param writepermission: function to check write permission for api access
-        :param dbtable: db model class for table being updated
-        :param byclub: True if results are to be limited by club_id
-        :param clientcolumns: list of dicts for input to dataTables and Editor
-        :param servercolumns: list of ColumnDT for input to sqlalchemy-datatables.DataTables
-        :param idSrc: idSrc for use by Editor
-        :param buttons: list of buttons for DataTable, from ['create', 'remove', 'edit', 'csv']
-        '''
-
         app.logger.debug('CrudApi object = {}'.format(self))
 
-        self.pagename = pagename
-        self.endpoint = endpoint
-        app.logger.debug('endpoint={}'.format(self.endpoint))
-        self.writepermission = writepermission
-        self.dbtable = dbtable
-        self.byclub = byclub
-        self.clientcolumns = clientcolumns
-        self.servercolumns = servercolumns
-        self.idSrc = idSrc
-        self.buttons = buttons
+        self.kwargs = kwargs
+        args = dict(pagename = None, 
+                    endpoint = None, 
+                    dbmapping = {}, 
+                    formmapping = {}, 
+                    writepermission = lambda: False, 
+                    dbtable = None, 
+                    clientcolumns = None, 
+                    servercolumns = None, 
+                    byclub = True,        # NOTE: prevents common CrudApi
+                    idSrc = 'DT_RowId', 
+                    buttons = ['create', 'edit', 'remove', 'csv'])
+        args.update(kwargs)
+
+        self.pagename = args['pagename']
+        self.endpoint = args['endpoint']
+        self.writepermission = args['writepermission']
+        self.dbtable = args['dbtable']
+        self.byclub = args['byclub']
+        self.clientcolumns = args['clientcolumns']
+        self.servercolumns = args['servercolumns']
+        self.idSrc = args['idSrc']
+        self.buttons = args['buttons']
 
         # set up mapping between database and editor form
-        self.dte = DataTablesEditor(dbmapping, formmapping)
+        self.dte = DataTablesEditor(args['dbmapping'], args['formmapping'])
 
+        app.logger.debug('endpoint={}'.format(self.endpoint))
+
+    #----------------------------------------------------------------------
+    def register(self):
+    #----------------------------------------------------------------------
         # create supported endpoints
-        my_view = self.as_view(self.endpoint)   
+        my_view = self.as_view(self.endpoint, **self.kwargs)
         app.add_url_rule('/{}'.format(self.endpoint),view_func=self.renderpage,methods=['GET',])
         app.add_url_rule('/{}/rest'.format(self.endpoint),view_func=my_view,methods=['GET', 'POST'])
         app.add_url_rule('/{}/rest/<int:thisid>'.format(self.endpoint),view_func=my_view,methods=['PUT', 'DELETE'])
@@ -270,7 +275,7 @@ class CrudApi(MethodView):
                 action = get_request_action(request.form)
                 self._data = get_request_data(request.form)
             else:
-                action = request.args('action')
+                action = request.args['action']
 
             if checkaction and action != checkaction:
                 db.session.rollback()
@@ -336,10 +341,10 @@ class CrudApi(MethodView):
         def methodcore():
             # retrieve data from request
             self._responsedata = []
-            thisdata = data[thisid]
+            thisdata = self._data[thisid]
             
             # edit item
-            dbitem = ApiCredentials.query.filter_by(id=thisid).first()
+            dbitem = self.dbtable.query.filter_by(id=thisid).first()
             app.logger.debug('editing id={} dbrow={}'.format(thisid, dbitem))
             self.dte.set_dbrow(thisdata, dbitem)
             app.logger.debug('after edit id={} dbrow={}'.format(thisid, dbitem))
@@ -355,7 +360,7 @@ class CrudApi(MethodView):
     #----------------------------------------------------------------------
         def methodcore():
             # remove item
-            dbitem = self.dbtable.query.filter_by(id=thisid).first(self._dbparms)
+            dbitem = self.dbtable.query.filter_by(id=thisid).first()
             app.logger.debug('deleting id={} dbrow={}'.format(thisid, dbitem))
             db.session.delete(dbitem)
 
