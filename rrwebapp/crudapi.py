@@ -29,6 +29,75 @@ from . import app
 from database_flask import db   # this is ok because this module only runs under flask
 from request import addscripts
 
+#----------------------------------------------------------------------
+def _editormethod(checkaction='', formrequest=True):
+#----------------------------------------------------------------------
+    '''
+    decorator for CrudApi methods used by Editor
+
+    :param methodcore: function() containing core of method to execute
+    :param checkaction: Editor name of action which is used by the decorated method, one of 'create', 'edit', 'remove' or '' if no check required
+    :param formrequest: True if request action, data is in form (False for 'remove' action)
+    '''
+    # see http://python-3-patterns-idioms-test.readthedocs.io/en/latest/PythonDecorators.html
+    def wrap(f):
+        def wrapped_f(self, *args, **kwargs):
+            self._club_id = flask.session['club_id']
+
+            # prepare for possible errors
+            self._error = ''
+            self._fielderrors = []
+
+            try:
+                # verify user can write the data, otherwise abort
+                if not self.writepermission():
+                    db.session.rollback()
+                    cause = 'operation not permitted for user'
+                    return dt_editor_response(error=cause)
+                
+                # get action
+                # TODO: modify get_request_action and get_request_data to allow either request object or form object, 
+                # and remove if/else for formrequest, e.g., action = get_request_action(request)
+                # (allowing form object deprecated for legacy code)
+                if formrequest:
+                    action = get_request_action(request.form)
+                    self._data = get_request_data(request.form)
+                else:
+                    action = request.args['action']
+
+                if checkaction and action != checkaction:
+                    db.session.rollback()
+                    cause = 'unknown action "{}"'.format(action)
+                    app.logger.warning(cause)
+                    return dt_editor_response(error=cause)
+
+                # set up parameters to query, based on whether results are limited to club
+                self._dbparms = {}
+                if self.byclub:
+                    self._dbparms['club_id'] = self._club_id
+
+                # execute core of method
+                f(self,*args, **kwargs)
+
+                # commit database updates and close transaction
+                db.session.commit()
+                return dt_editor_response(data=self._responsedata)
+            
+            except:
+                # roll back database updates and close transaction
+                db.session.rollback()
+                if self._fielderrors:
+                    cause = 'please check indicated fields'
+                elif self._error:
+                    cause = self._error
+                else:
+                    cause = traceback.format_exc()
+                    app.logger.error(traceback.format_exc())
+                return dt_editor_response(data=[], error=cause, fieldErrors=self._fielderrors)
+        return wrapped_f
+    return wrap
+
+
 #######################################################################
 class CrudApi(MethodView):
 #######################################################################
@@ -242,129 +311,56 @@ class CrudApi(MethodView):
             raise
 
     #----------------------------------------------------------------------
-    def _editormethod(self, methodcore, checkaction='', formrequest=True):
-    #----------------------------------------------------------------------
-        '''
-        decorator for CrudApi methods used by Editor
-
-        :param methodcore: function() containing core of method to execute
-        :param checkaction: Editor name of action which is used by the decorated method, one of 'create', 'edit', 'remove' or '' if no check required
-        :param formrequest: True if request action, data is in form (False for 'remove' action)
-        '''
-        # see http://python-3-patterns-idioms-test.readthedocs.io/en/latest/PythonDecorators.html
-        # def wrap(f):
-        #     def wrapped_f(self, *args):
-        self._club_id = flask.session['club_id']
-
-        # prepare for possible errors
-        self._error = ''
-        self._fielderrors = []
-
-        try:
-            # verify user can write the data, otherwise abort
-            if not self.writepermission():
-                db.session.rollback()
-                cause = 'operation not permitted for user'
-                return dt_editor_response(error=cause)
-            
-            # get action
-            # TODO: modify get_request_action and get_request_data to allow either request object or form object, 
-            # and remove if/else for formrequest, e.g., action = get_request_action(request)
-            # (allowing form object deprecated for legacy code)
-            if formrequest:
-                action = get_request_action(request.form)
-                self._data = get_request_data(request.form)
-            else:
-                action = request.args['action']
-
-            if checkaction and action != checkaction:
-                db.session.rollback()
-                cause = 'unknown action "{}"'.format(action)
-                app.logger.warning(cause)
-                return dt_editor_response(error=cause)
-
-            # set up parameters to query, based on whether results are limited to club
-            self._dbparms = {}
-            if self.byclub:
-                self._dbparms['club_id'] = self._club_id
-
-            # execute core of method
-            methodcore()
-
-            # commit database updates and close transaction
-            db.session.commit()
-            return dt_editor_response(data=self._responsedata)
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            if self._fielderrors:
-                cause = 'please check indicated fields'
-            elif self._error:
-                cause = self._error
-            else:
-                cause = traceback.format_exc()
-                app.logger.error(traceback.format_exc())
-            return dt_editor_response(data=[], error=cause, fieldErrors=self._fielderrors)
-        #     return wrapped_f
-        # return wrap
-
-    #----------------------------------------------------------------------
+    @_editormethod(checkaction='create', formrequest=True)
     def post(self):
     #----------------------------------------------------------------------
         app.logger.debug('CrudApi object = {}'.format(self))
 
-        def methodcore():
-            # retrieve data from request
-            thisdata = self._data[0]
-            
-            # create item
-            dbitem = self.dbtable(self._dbparms)
-            self.dte.set_dbrow(thisdata, dbitem)
-            app.logger.debug('creating dbrow={}'.format(dbitem))
-            db.session.add(dbitem)
-            db.session.flush()
+        # retrieve data from request
+        thisdata = self._data[0]
+        
+        # create item
+        dbitem = self.dbtable(self._dbparms)
+        self.dte.set_dbrow(thisdata, dbitem)
+        app.logger.debug('creating dbrow={}'.format(dbitem))
+        db.session.add(dbitem)
+        db.session.flush()
 
-            # prepare response
-            thisrow = self.dte.get_response_data(dbitem)
-            self._responsedata = [thisrow]
-
-        return self._editormethod(methodcore, checkaction='create', formrequest=True)
-
+        # prepare response
+        thisrow = self.dte.get_response_data(dbitem)
+        self._responsedata = [thisrow]
 
 
     #----------------------------------------------------------------------
+    @_editormethod(checkaction='edit', formrequest=True)
     def put(self, thisid):
     #----------------------------------------------------------------------
         app.logger.debug('CrudApi object = {}'.format(self))
 
-        def methodcore():
-            # retrieve data from request
-            self._responsedata = []
-            thisdata = self._data[thisid]
-            
-            # edit item
-            dbitem = self.dbtable.query.filter_by(id=thisid).first()
-            app.logger.debug('editing id={} dbrow={}'.format(thisid, dbitem))
-            self.dte.set_dbrow(thisdata, dbitem)
-            app.logger.debug('after edit id={} dbrow={}'.format(thisid, dbitem))
+        # retrieve data from request
+        self._responsedata = []
+        thisdata = self._data[thisid]
+        
+        # edit item
+        dbitem = self.dbtable.query.filter_by(id=thisid).first()
+        app.logger.debug('editing id={} dbrow={}'.format(thisid, dbitem))
+        self.dte.set_dbrow(thisdata, dbitem)
+        app.logger.debug('after edit id={} dbrow={}'.format(thisid, dbitem))
 
-            # prepare response
-            thisrow = self.dte.get_response_data(dbitem)
-            self._responsedata = [thisrow]
+        # prepare response
+        thisrow = self.dte.get_response_data(dbitem)
+        self._responsedata = [thisrow]
 
-        return self._editormethod(methodcore, checkaction='edit', formrequest=True)
 
     #----------------------------------------------------------------------
+    @_editormethod(checkaction='remove', formrequest=False)
     def delete(self, thisid):
     #----------------------------------------------------------------------
-        def methodcore():
-            # remove item
-            dbitem = self.dbtable.query.filter_by(id=thisid).first()
-            app.logger.debug('deleting id={} dbrow={}'.format(thisid, dbitem))
-            db.session.delete(dbitem)
+        # remove item
+        dbitem = self.dbtable.query.filter_by(id=thisid).first()
+        app.logger.debug('deleting id={} dbrow={}'.format(thisid, dbitem))
+        db.session.delete(dbitem)
 
-            # prepare response
-            self._responsedata = []
+        # prepare response
+        self._responsedata = []
 
-        return self._editormethod(methodcore, checkaction='remove', formrequest=False)
