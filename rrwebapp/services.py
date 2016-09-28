@@ -10,12 +10,14 @@
 ###########################################################################################
 
 # pypi
+from flask import url_for
 from collections import OrderedDict
+from datatables import ColumnDT
 
 # homegrown
-from crudapi import CrudApi
+from crudapi import CrudApi, DbQueryApi
 from accesscontrol import owner_permission
-from racedb import ApiCredentials
+from racedb import ApiCredentials, RaceResultService
 
 
 #----------------------------------------------------------------------
@@ -40,5 +42,46 @@ sc = CrudApi(pagename = 'Service Credentials',
              servercolumns = None,  # no ajax
              byclub = False, 
              idSrc = 'rowid', 
-             buttons = ['create', 'edit', 'remove', 'csv'])
+             buttons = ['create', 'edit', 'remove'])
 sc.register()
+
+rrs_services = DbQueryApi(endpoint = 'services',
+                          permission = owner_permission.can,
+                          byclub = False,
+                          dbtable = ApiCredentials,
+                          jsonmapping = {'label':'name', 'value':'id'}
+                         )
+rrs_services.register()
+
+rrs_dbattrs = 'id,apicredentials_id'.split(',')
+rrs_formfields = 'rowid,service'.split(',')
+rrs_dbmapping = OrderedDict(zip(rrs_dbattrs, rrs_formfields))
+rrs_formmapping = OrderedDict(zip(rrs_formfields, rrs_dbattrs))
+rrs_formmapping['service'] = lambda rrsrow: ApiCredentials.query.filter_by(id=rrsrow.apicredentials_id).first().name
+rrs_apicredentials = ApiCredentials.query.all()
+rrs = CrudApi(pagename = 'Race Result Services', 
+             endpoint = 'raceresultservices', 
+             dbmapping = rrs_dbmapping, 
+             formmapping = rrs_formmapping, 
+             writepermission = owner_permission.can, 
+             dbtable = RaceResultService, 
+             clientcolumns = [
+                { 'data': 'service', 'name': 'service', 'label': 'Service Name',
+                  'type': 'selectize', 'options': [],
+                  'opts': { 
+                    'searchField': 'label',
+                    'openOnFocus': False
+                   },
+                  '_update': {
+                    'endpoint': 'services',
+                    'wrapper' : {'options': {'service':'_response_'} },
+                    'on': 'open',
+                  }
+                },
+             ], 
+             servercolumns = None,  # no ajax
+             byclub = True, 
+             idSrc = 'rowid', 
+             buttons = ['create', 'edit', 'remove'])
+rrs.register()
+
