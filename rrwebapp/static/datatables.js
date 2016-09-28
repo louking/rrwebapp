@@ -7,6 +7,8 @@
 //                   except for data: and buttons: options, passed in tabledata, tablebuttons
 //     editoropts:   options to be passed to Editor instance, 
 //                   if not present, Editor will not be configured
+//     updateopts:   options to configure Editor select fields with
+//                   see crudapi.py for more details
 //     yadcfopts:    yadcf options to be passed to yadcf 
 //                   if not present, yadcf will not be configured
 
@@ -17,6 +19,16 @@ function datatables(data, buttons, options) {
     if (options.editoropts !== undefined) {
         $.extend(options.editoropts,{table:'#datatable'})
         var editor = new $.fn.dataTable.Editor ( options.editoropts );
+
+        if (options.updateopts !== undefined) {
+            for (i=0; i<options.updateopts.length; i++) {
+                if (options.updateopts[i].on == 'open') {
+                    editor.dependent( options.updateopts[i].name, options.updateopts[i].url, {event:'focus'} )
+                } else if (options.updateopts[i].on == 'change') {
+                    editor.dependent( options.updateopts[i].name, options.updateopts[i].url, {event:'change'} )
+                }
+            }
+        }
     }
 
     // set up buttons, special care for editor buttons
