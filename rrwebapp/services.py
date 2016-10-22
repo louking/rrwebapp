@@ -45,6 +45,10 @@ sc = CrudApi(pagename = 'Service Credentials',
              buttons = ['create', 'edit', 'remove'])
 sc.register()
 
+#----------------------------------------------------------------------
+# raceresultservices endpoint
+#----------------------------------------------------------------------
+
 rrs_services = DbQueryApi(endpoint = 'services',
                           permission = owner_permission.can,
                           byclub = False,

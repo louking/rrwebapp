@@ -72,6 +72,7 @@ import userrole
 import race
 import member
 import results
+import resultsanalysis
 import standings
 import tools
 import sysinfo

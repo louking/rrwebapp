@@ -47,10 +47,12 @@ t = timeu.asctime(DBDATEFMT)
 dbdate = timeu.asctime(DBDATEFMT)
 
 class dbConsistencyError(Exception): pass
+class parameterError(Exception): pass
 
 rolenames = ['admin','viewer']
 
-class parameterError(Exception): pass
+MAX_RACENAME_LEN = 50
+MAX_LOCATION_LEN = 64
 
 #----------------------------------------------------------------------
 def getunique(session, model, **kwargs):
@@ -440,14 +442,14 @@ class Race(Base):
     __table_args__ = (UniqueConstraint('name', 'year', 'club_id'),)
     id = Column(Integer, Sequence('race_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))
-    name = Column(String(50))
+    name = Column(String(MAX_RACENAME_LEN))
     year = Column(Integer)
     racenum = Column(Integer)   # deprecated, ignored
     date = Column(String(10))
     starttime = Column(String(5))
     distance = Column(Float)
     surface = Column(Enum('road','track','trail',name='SurfaceType'))
-    location = Column(String(64))
+    location = Column(String(MAX_LOCATION_LEN))
     external = Column(Boolean)
     active = Column(Boolean)
     results = relationship("RaceResult", backref='race', cascade="all, delete, delete-orphan")
@@ -473,6 +475,51 @@ class Race(Base):
     def __repr__(self):
     #----------------------------------------------------------------------
         return "<Race('%s','%s','%s','%s','%s','%s','%s','%s','%s',active='%s')>" % (self.club_id, self.name, self.year, self.racenum, self.date, self.starttime, self.distance, self.surface, self.location, self.active)
+    
+########################################################################
+class Course(Base):
+########################################################################
+    '''
+    Defines course
+    
+    :param source: source of course - name not id
+    :param sourceid: id of course within source
+    :param name: course name
+    :param distmiles: race distance in miles
+    :param distkm: race distance in km
+    :param surface: 'road','track','trail'
+    :param location: location race took place City, ST (may have country information)
+    '''
+    __tablename__ = 'course'
+    __table_args__ = (UniqueConstraint('source','sourceid'),)
+    id = Column(Integer, Sequence('course_id_seq'), primary_key=True)
+    source = Column(String(20))
+    sourceid = Column(String(128))
+    name = Column(String(MAX_RACENAME_LEN))
+    date = Column(String(10))
+    distmiles = Column(Float)
+    distkm = Column(Float)
+    surface = Column(Enum('road','track','trail',name='SurfaceType'))
+    location = Column(String(MAX_LOCATION_LEN))
+    raceid = Column(Integer)
+
+    #----------------------------------------------------------------------
+    def __init__(self, source=None, sourceid=None, name=None, date=None, distmiles=None, distkm=None, surface=None, location=None):
+    #----------------------------------------------------------------------
+
+        self.source = source
+        self.sourceid = sourceid
+        self.name = name
+        self.date = date
+        self.distmiles = distmiles
+        self.distkm = distkm
+        self.surface = surface
+        self.location = location
+
+    #----------------------------------------------------------------------
+    def __repr__(self):
+    #----------------------------------------------------------------------
+        return "<Course('%s','%s','%s','%s','%s','%s','%s','%s')>" % (self.source, self.sourceid, self.name, self.date, self.distmiles, self.distkm, self.surface, self.location)
     
 ########################################################################
 class Series(Base):
@@ -632,17 +679,19 @@ class RaceResultService(Base):
     id = Column(Integer, Sequence('raceresultservice_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))
     apicredentials_id = Column(Integer, ForeignKey('apicredentials.id'))
+    attrs = Column(String(200)) # json object with attribute items
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id=None, apicredentials_id=None):
+    def __init__(self, club_id=None, apicredentials_id=None, attrs=None):
     #----------------------------------------------------------------------
         self.club_id = club_id
         self.apicredentials_id = apicredentials_id
+        self.attrs = attrs
         
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
-        return '<RaceResultService %s %s>' % (self.club_id, self.apicredentials_id)
+        return '<RaceResultService %s %s %s>' % (self.club_id, self.apicredentials_id, self.attrs)
 
 ########################################################################
 class RaceResult(Base):
@@ -696,6 +745,7 @@ class RaceResult(Base):
     agtimeplace = Column(Float)
     source = Column(String(20))
     sourceid = Column(String(128))
+    sourceresultid = Column(String(128))
     fuzzyage = Column(Boolean)
     instandings = Column(Boolean)   # *** always True
 
@@ -704,7 +754,7 @@ class RaceResult(Base):
                  overallplace=None, genderplace=None, runnername=None, divisionplace=None,
                  overallpoints=None, genderpoints=None, divisionpoints=None,
                  agtimeplace=None, agfactor=None, agtime=None, agpercent=None, 
-                 source=None, sourceid=None, fuzzyage=None,
+                 source=None, sourceid=None, sourceresultid=None, fuzzyage=None,
                  instandings=False):
     #----------------------------------------------------------------------
         
@@ -730,6 +780,7 @@ class RaceResult(Base):
         self.agpercent = agpercent
         self.source = source
         self.sourceid = sourceid
+        self.sourceresultid = sourceresultid
         self.fuzzyage = fuzzyage
         self.instandings = instandings
 
@@ -737,10 +788,10 @@ class RaceResult(Base):
     def __repr__(self):
     #----------------------------------------------------------------------
         # TODO: too many unlabeled fields -- need to make this clearer
-        return "<RaceResult('%s','%s','%s','%s','%s','%s',div='(%s,%s)','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')>" % (
+        return "<RaceResult('%s','%s','%s','%s','%s','%s',div='(%s,%s)','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')>" % (
             self.runnerid, self.runnername, self.raceid, self.seriesid, self.gender, self.agage, self.divisionlow, self.divisionhigh,
             self.time, self.overallplace, self.genderplace, self.divisionplace, self.agtimeplace, self.agfactor, self.agtime, self.agpercent,
-            self.source, self.sourceid, 
+            self.source, self.sourceid, self.sourceresultid,
             self.instandings)
     
 ########################################################################
