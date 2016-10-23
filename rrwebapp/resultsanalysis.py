@@ -13,6 +13,8 @@
 import csv
 from collections import OrderedDict
 import traceback
+import os
+import os.path
 
 # pypi
 import flask
@@ -122,7 +124,31 @@ class ResultsAnalysisStatus(MethodView):
     def _retrieverows(self):
     #----------------------------------------------------------------------
 
-        task_id = request.args.get('task_id')
+        task_id = request.args.get('task_id', None)
+
+        # maybe we are being asked if task is already running
+        if not task_id:
+            club_id = flask.session['club_id']
+            clubslug = Club.query.filter_by(id=club_id).first().shname
+            
+            # taskfile is used to indicate a task is currently running
+            # this file gets created at start (here), 
+            # and deleted at finish (by analyzeresultstask) or cancel (here)
+            taskfile = '{}/{}-task.id'.format(app.config['MEMBERSHIP_DIR'], clubslug)
+            
+            # if task is running, get task id from taskfile
+            try:
+                with open(taskfile) as tf:
+                    task_id = tf.read()
+            
+            # if taskfile doesn't exist, task isn't running, tell caller without further processing
+            except IOError:
+                response = {
+                    'state': 'IDLE',
+                    'progress': {}
+                }
+                return jsonify(response)
+
         task = analyzeresultstask.AsyncResult(task_id)
         # app.logger.debug('task.state={} task.info={}'.format(task.state, task.info))
 
@@ -130,12 +156,14 @@ class ResultsAnalysisStatus(MethodView):
             # job did not start yet
             response = {
                 'state': task.state,
-                'progress': {},
+                'progress': {'starting': { 'status': 'starting', 'lastname':'', 'processed': '', 'total': ''} },
+                'task_id': task_id,
             }
         elif task.state != 'FAILURE':
             response = {
                 'state': task.state,
-                'progress': task.info.get('progress', {})
+                'progress': task.info.get('progress', {}),
+                'task_id': task_id,
             }
 
             # task is finished, check for traceback, which indicates an error occurred
@@ -149,6 +177,7 @@ class ResultsAnalysisStatus(MethodView):
             response = {
                 'state': task.state,
                 'progress': task.info.get('progress', {}),
+                'task_id': task_id,
                 'cause': str(task.info),  # this is the exception raised
             }
         return jsonify(response)
@@ -171,18 +200,37 @@ class ResultsAnalysisStatus(MethodView):
     #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
+            clubslug = Club.query.filter_by(id=club_id).first().shname
             
             # verify user can write the data, otherwise abort
             if not owner_permission.can():
                 db.session.rollback()
                 flask.abort(403)
             
+            # taskfile is used to indicate a task is currently running
+            # this file gets created at start (here), 
+            # and deleted at finish (by analyzeresultstask) or cancel (here)
+            taskfile = '{}/{}-task.id'.format(app.config['MEMBERSHIP_DIR'], clubslug)
+
             # check action
             action = request.args.get('action')
+
+            # start task
             if action == 'start':
+                # if taskfile exists, make believe it was just started and return
+                try:
+                    with open(taskfile) as tf:
+                        task_id = tf.read()
+                    db.session.commit()
+                    return jsonify({'success': True, 'task_id': task_id}), 202, {}
+
+                # taskfile doesn't exist. this is the normal path -- ignore the exception
+                except IOError:
+                    pass
+
                 # TODO: do proper oauth to get user access token
                 rakey = ApiCredentials.query.filter_by(name='raprivuser').first().key
-                clubslug = Club.query.filter_by(id=club_id).first().shname
+
                 # note extra set of {{service}} brackets, which will be replace by service name
                 detailfile = '{}/{}-{{service}}-detail.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
 
@@ -209,19 +257,28 @@ class ResultsAnalysisStatus(MethodView):
                     OUT.writerow(filerow)
 
                 # kick off analysis task
-                task = analyzeresultstask.apply_async((club_id, memberfile, detailfile, racefile), queue='longtask')
+                task = analyzeresultstask.apply_async((club_id, memberfile, detailfile, taskfile, racefile), queue='longtask')
 
-                # commit database updates and close transaction
+                # save taskfile
+                with open(taskfile,'w') as tf:
+                    tf.write(task.id)
+
+                # we've started
                 db.session.commit()
                 return jsonify({'success': True, 'task_id': task.id}), 202, {}
 
+            # cancel indicated task
             elif action == 'cancel':
                 task_id = request.args.get('task_id')
+                os.remove(taskfile)
                 celery.control.revoke(task_id, terminate=True)
+                db.session.commit()
                 return jsonify({'success': True, 'task_id': task_id})
 
         except:
             # roll back database updates and close transaction
+            if os.path.isfile(taskfile):
+                os.remove(taskfile)
             db.session.rollback()
             raise
 
@@ -277,7 +334,7 @@ def getservicekey(service):
 
 #----------------------------------------------------------------------
 @celery.task(bind=True)
-def analyzeresultstask(self, club_id, memberfile, detailfile, racefile):
+def analyzeresultstask(self, club_id, memberfile, detailfile, taskfile, racefile):
 #----------------------------------------------------------------------
     
     try:
@@ -316,11 +373,17 @@ def analyzeresultstask(self, club_id, memberfile, detailfile, racefile):
         for service in clubservices:
             status[getservicename(service)]['status'] = 'completed'
 
+        # not in a task any more
+        os.remove(taskfile)
+        
         # save all our work
         db.session.commit()
         return {'progress':status}
 
     except:
+        # not in a task any more
+        os.remove(taskfile)
+
         # roll back database updates and close transaction
         db.session.rollback()
 

@@ -96,3 +96,16 @@ function ajax_update_progress(status_url) {
     });
 }
 
+
+// wait until DOM is ready before checking if task already in progress
+$( function() {
+    var status_url = window.location.pathname + '/rest';
+    $.getJSON(status_url, function(data) {
+        if (data.state != 'IDLE') {
+            task_id = data.task_id;
+            _dt_table.button('cancel:name').enable();
+            _dt_table.button('start:name').disable();
+            ajax_update_progress(status_url + '?task_id=' + data.task_id);
+        }
+    });
+});
