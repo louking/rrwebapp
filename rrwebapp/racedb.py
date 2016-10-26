@@ -439,7 +439,7 @@ class Race(Base):
     :param external: True if race is from an external source
     '''
     __tablename__ = 'race'
-    __table_args__ = (UniqueConstraint('name', 'year', 'club_id'),)
+    __table_args__ = (UniqueConstraint('name', 'year', 'club_id', 'fixeddist'),)
     id = Column(Integer, Sequence('race_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))
     name = Column(String(MAX_RACENAME_LEN))
@@ -448,6 +448,7 @@ class Race(Base):
     date = Column(String(10))
     starttime = Column(String(5))
     distance = Column(Float)
+    fixeddist = Column(String(10))   # null or coerced with "{:.4g}".format(distance)
     surface = Column(Enum('road','track','trail',name='SurfaceType'))
     location = Column(String(MAX_LOCATION_LEN))
     external = Column(Boolean)
@@ -456,7 +457,7 @@ class Race(Base):
     series = relationship("RaceSeries", backref='race', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id, year, name=None, racenum=None, date=None, starttime=None, distance=None, surface=None, location=None, external=False):
+    def __init__(self, club_id, year, name=None, racenum=None, date=None, starttime=None, distance=None, surface=None, location=None, external=False, fixeddist=None):
     #----------------------------------------------------------------------
 
         self.club_id = club_id
@@ -466,6 +467,7 @@ class Race(Base):
         self.date = date
         self.starttime = starttime
         self.distance = distance
+        self.fixeddist = fixeddist
         self.surface = surface
         self.location = location
         self.external = external
@@ -747,7 +749,7 @@ class RaceResult(Base):
     sourceid = Column(String(128))
     sourceresultid = Column(String(128))
     fuzzyage = Column(Boolean)
-    instandings = Column(Boolean)   # *** always True
+    instandings = Column(Boolean)   
 
     #----------------------------------------------------------------------
     def __init__(self, club_id, runnerid, raceid, seriesid, time, gender, agage, divisionlow=None, divisionhigh=None,

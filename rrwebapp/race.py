@@ -37,6 +37,17 @@ from loutilities.csvu import DictReaderStr2Num
 # acceptable surfaces
 SURFACES = 'road,track,trail'.split(',')
 
+#----------------------------------------------------------------------
+def race_fixeddist(distance):
+#----------------------------------------------------------------------
+    '''
+    return fixeddist value for distance
+
+    :param distance: distance of the race (miles)
+    :rtype: string containing value for race.fixeddist field
+    '''
+    return '{:.4g}'.format(float(distance))
+
 #######################################################################
 class ManageRaces(MethodView):
 #######################################################################
@@ -138,6 +149,7 @@ class RaceSettings(MethodView):
             # raceid != 0 means update
             else:
                 race = Race.query.filter_by(club_id=club_id,year=thisyear,active=True,id=raceid).first()
+                print 'race={}'.format(race)
     
                 # copy source attributes to form
                 params = {}
@@ -229,6 +241,8 @@ class RaceSettings(MethodView):
                     # only copy attributes which are in the form class already
                     if field in form.data:
                         setattr(race,field,form.data[field])
+                    # and set fixeddist based on distance
+                    race.fixeddist = race_fixeddist(race.distance) if race.distance else None
                 
                 # add
                 if request.form['whichbutton'] == 'Add':
@@ -373,6 +387,7 @@ class AjaxImportRaces(MethodView):
 
                 # add or update race in database
                 race = Race(club_id,thisrace['year'],thisrace['race'],None,thisrace['date'],thisrace['time'],thisrace['distance'],thisrace['surface'])
+                race.fixeddist = race_fixeddist(race.distance)
                 added = racedb.insert_or_update(db.session,Race,race,skipcolumns=['id'],club_id=club_id,name=race.name,year=race.year)
                 
                 # remove this race from collection of races which should be deleted in database
