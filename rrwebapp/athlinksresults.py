@@ -50,6 +50,7 @@ from loutilities import agegrade
 from running import athlinks
 from database_flask import db   # this is ok because this module only runs under flask
 from racedb import Course, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
+from race import race_fixeddist
 
 # see http://api.athlinks.com/Enums/RaceCategories
 CAT_RUNNING = 2
@@ -59,19 +60,19 @@ ag = agegrade.AgeGrade()
 class invalidParameter(Exception): pass
 
 # resultfilehdr needs to associate 1:1 with resultattrs
-resultfilehdr = 'GivenName,FamilyName,name,DOB,Gender,athlmember,athlid,race,date,loc,age,fuzzyage,miles,km,category,time,ag'.split(',')
-resultattrs = 'firstname,lastname,name,dob,gender,member,id,racename,racedate,raceloc,age,fuzzyage,distmiles,distkm,racecategory,resulttime,resultagegrade'.split(',')
+resultfilehdr = 'GivenName,FamilyName,name,DOB,Gender,athlid,race,date,loc,age,fuzzyage,miles,km,category,time,ag,entryid'.split(',')
+resultattrs = 'firstname,lastname,name,dob,gender,id,racename,racedate,raceloc,age,fuzzyage,distmiles,distkm,racecategory,resulttime,resultagegrade,entryid'.split(',')
 resultdates = 'dob,racedate'.split(',')
 hdrtransform = dict(zip(resultfilehdr,resultattrs))
 ftime = timeu.asctime('%Y-%m-%d')
 
 #----------------------------------------------------------------------
-def collect(self, club_id, searchfile, outfile, coursefile, status, begindate=ftime.asc2epoch('1970-01-01'), enddate=ftime.asc2epoch('2999-12-31'), key=None):
+def collect(thistask, club_id, searchfile, outfile, coursefile, status, begindate=ftime.asc2epoch('1970-01-01'), enddate=ftime.asc2epoch('2999-12-31'), key=None):
 #----------------------------------------------------------------------
     '''
     collect race results from athlinks
     
-    :param self: this is required for task self.update_state()
+    :param thistask: this is required for task thistask.update_state()
     :param club_id: club id for club being operated on
     :param searchfile: path to file containing names, genders, birth dates to search for
     :param outfile: detailed output file path
@@ -141,13 +142,14 @@ def collect(self, club_id, searchfile, outfile, coursefile, status, begindate=ft
                 outrec = {}
                 for field in commonfields:
                     outrec[field] = runner[field]
-                    
+                
                 # skip result if runner's age doesn't match the age within the result
                 # sometimes athlinks stores the age group of the runner, not exact age,
                 # so also check if this runner's age is within the age group, and indicate if so
                 dt_racedate = timeu.epoch2dt(e_racedate)
                 racedateage = timeu.age(dt_racedate,dt_dob)
                 resultage = int(result['Age'])
+                outrec['fuzzyage'] = False
                 if resultage != racedateage:
                     # if results are not stored as age group, skip this result
                     if (resultage/5)*5 != resultage:
@@ -156,7 +158,7 @@ def collect(self, club_id, searchfile, outfile, coursefile, status, begindate=ft
                     else:
                         # if runner's age consistent with race age, use result, but mark "fuzzy"
                         if (racedateage/5)*5 == resultage:
-                            outrec['fuzzyage'] = 'Y'
+                            outrec['fuzzyage'] = True
                         # otherwise skip result
                         else:
                             continue
@@ -210,19 +212,21 @@ def collect(self, club_id, searchfile, outfile, coursefile, status, begindate=ft
 
                     # retrieve or add race
                     # flush should allow subsequent query per http://stackoverflow.com/questions/4201455/sqlalchemy-whats-the-difference-between-flush-and-commit
-                    # Race has uniqueconstraint for club_id/name/year. It's been seen that there are additional races in athlinks, 
+                    # Race has uniqueconstraint for club_id/name/year/fixeddist. It's been seen that there are additional races in athlinks, 
                     # but just assume the first is the correct one.
                     raceyear = ftime.asc2dt(course.date).year
-                    race = Race.query.filter_by(club_id=club_id, name=course.name, year=raceyear).first()
+                    race = Race.query.filter_by(club_id=club_id, name=course.name, year=raceyear, fixeddist=race_fixeddist(course.distmiles)).first()
                     ### TODO: should the above be .all() then check for first race within epsilon distance?
                     if not race:
                         racecached = False
                         race = Race(club_id, raceyear)
                         race.name = course.name
                         race.distance = course.distmiles
+                        race.fixeddist = race_fixeddist(race.distance)
                         race.date = course.date
                         race.active = True
                         race.external = True
+                        race.surface = course.surface
                         db.session.add(race)
                         db.session.flush()  # force id to be created
 
@@ -249,11 +253,13 @@ def collect(self, club_id, searchfile, outfile, coursefile, status, begindate=ft
                 outrec['name'] = '{} {}'.format(runner['GivenName'],runner['FamilyName'])
                 outrec['age'] = result['Age']
 
-                # leave athlmember and athlid blank if result not from an athlink member
+                # leave athlid blank if result not from an athlink member
                 athlmember = result['IsMember']
                 if athlmember:
-                    outrec['athlmember'] = 'Y'
                     outrec['athlid'] = result['RacerID']
+
+                # remember the entryid, high water mark of which can be used to limit the work here
+                outrec['entryid'] = result['EntryID']
 
                 # race name, location; convert from unicode if necessary
                 # TODO: make function to do unicode translation -- apply to runner name as well (or should csv just store unicode?)
@@ -272,6 +278,9 @@ def collect(self, club_id, searchfile, outfile, coursefile, status, begindate=ft
                 while resulttime.count(':') < 2:
                     resulttime = '0:'+resulttime
                 outrec['time'] = resulttime
+                
+                # strange case of 0 time, causes ZeroDivisionError and is clearly not valid
+                if timeu.timesecs(resulttime) == 0: continue
 
                 # leave out age grade if exception occurs, skip results which have outliers
                 try:
@@ -286,7 +295,7 @@ def collect(self, club_id, searchfile, outfile, coursefile, status, begindate=ft
             # update status
             status['athlinks']['lastname'] = name
             status['athlinks']['processed'] += 1
-            self.update_state(state='PROGRESS', meta={'progress':status})
+            thistask.update_state(state='PROGRESS', meta={'progress':status})
 
     finally:
         _OUT.close()
@@ -351,10 +360,16 @@ class AthlinksResultFile():
         
         :param mode: 'rb' or 'wb' -- TODO: support 'wb'
         '''
-        if mode[0] not in 'r':
+        if mode[0] not in ['r']:
             raise invalidParameter, 'mode {} not currently supported'.format(mode)
     
         self._fh = open(self.filename,mode)
+
+        # count the number of lines then reset the file pointer -- don't count header
+        self._numlines = sum(1 for line in self._fh) - 1
+        self._fh.seek(0)
+
+        # create the DictXxxx object
         if mode[0] == 'r':
             self._csv = csv.DictReader(self._fh)
         else:
@@ -370,7 +385,13 @@ class AthlinksResultFile():
             self._fh.close()
             delattr(self,'_fh')
             delattr(self,'_csv')
+            delattr(self,'_numlines')
         
+    #----------------------------------------------------------------------
+    def count(self):
+    #----------------------------------------------------------------------
+        return self._numlines
+    
     #----------------------------------------------------------------------
     def next(self):
     #----------------------------------------------------------------------

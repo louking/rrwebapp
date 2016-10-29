@@ -26,6 +26,8 @@ $.fn.dataTable.ext.buttons.cancel = {
             _dt_table.rows().remove().draw();
             // alert ( 'Canceled task ' + task_id );
         } )
+
+        // reset buttons
         _dt_table.button('cancel:name').disable();
         _dt_table.button('start:name').enable();
     }
@@ -85,6 +87,10 @@ function ajax_update_progress(status_url) {
                         }
                     ],
                 });
+
+                // reset buttons
+                _dt_table.button('cancel:name').disable();
+                _dt_table.button('start:name').enable();
             }
         }
         else {
@@ -103,6 +109,7 @@ $( function() {
     $.getJSON(status_url, function(data) {
         if (data.state != 'IDLE') {
             task_id = data.task_id;
+            // set buttons and start updating progress
             _dt_table.button('cancel:name').enable();
             _dt_table.button('start:name').disable();
             ajax_update_progress(status_url + '?task_id=' + data.task_id);

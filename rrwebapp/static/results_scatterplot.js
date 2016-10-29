@@ -15,6 +15,7 @@ function datatables_chart() {
     var inprogress = 0,
         progressbarcreated = false;
 
+    // must match TRENDLIMITS in resultssummarize.py
     var trendlimits = [
             //                             [min, max)
             { name: '<5K',          range: [0,5000],            color: 'blue' },

@@ -30,15 +30,30 @@ from racedb import ApiCredentials, Club, Runner, RaceResultService, Course
 from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
 from database_flask import db   # this is ok because this module only runs under flask
+from nav import productname
 from apicommon import failure_response, success_response
 from loutilities.csvwt import wlist
 from request import addscripts
 from crudapi import CrudApi
+from resultsutils import StoreServiceResults
+from resultssummarize import summarize
+from loutilities.timeu import asctime, timesecs
+ftime = asctime('%Y-%m-%d')
 
-# set up services to collect data from
+# set up services to collect and store data from
+normstoreattrs = 'runnername,dob,gender,sourceid,sourceresultid,racename,date,raceloc,raceage,distmiles,time'.split(',')
 collectservices = {}
+storeservices = {}
 import athlinksresults
 collectservices['athlinks'] = athlinksresults.collect
+athlinksattrs = 'name,dob,gender,id,entryid,racename,racedate,raceloc,age,distmiles,resulttime'.split(',')
+athlinkstransform = dict(zip(normstoreattrs,athlinksattrs))
+athlinkstransform['fuzzyage'] = 'fuzzyage'
+# dates come in as datetime, reset to ascii
+athlinkstransform['dob'] = lambda row: ftime.dt2asc(getattr(row, 'dob'))
+athlinkstransform['date'] = lambda row: ftime.dt2asc(getattr(row, 'racedate'))
+athlinkstransform['timesecs'] = lambda row: timesecs(getattr(row, 'resulttime'))
+storeservices['athlinks'] = StoreServiceResults('athlinks', athlinksresults.AthlinksResultFile, athlinkstransform)
 
 #######################################################################
 class ResultsAnalysisStatus(MethodView):
@@ -212,6 +227,9 @@ class ResultsAnalysisStatus(MethodView):
             # and deleted at finish (by analyzeresultstask) or cancel (here)
             taskfile = '{}/{}-task.id'.format(app.config['MEMBERSHIP_DIR'], clubslug)
 
+            # summaryfile is used to save the summary information for individual members
+            summaryfile = '{}/{}-summary.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
+
             # check action
             action = request.args.get('action')
 
@@ -257,7 +275,7 @@ class ResultsAnalysisStatus(MethodView):
                     OUT.writerow(filerow)
 
                 # kick off analysis task
-                task = analyzeresultstask.apply_async((club_id, memberfile, detailfile, taskfile, racefile), queue='longtask')
+                task = analyzeresultstask.apply_async((club_id, url_for('resultschart'), memberfile, detailfile, summaryfile, taskfile, racefile), queue='longtask')
 
                 # save taskfile
                 with open(taskfile,'w') as tf:
@@ -334,20 +352,23 @@ def getservicekey(service):
 
 #----------------------------------------------------------------------
 @celery.task(bind=True)
-def analyzeresultstask(self, club_id, memberfile, detailfile, taskfile, racefile):
+def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summaryfile, taskfile, racefile):
 #----------------------------------------------------------------------
     
     try:
         # how many members? Note memberfile always comes as list, with a header line
         nummembers = len(memberfile) - 1
 
+        # special processing for scoretility service
+        rrs_rrwebapp_id = ApiCredentials.query.filter_by(name=productname).first().id
+        rrs_rrwebapp = RaceResultService(club_id,rrs_rrwebapp_id)
+
         # collect all the data
         # each service creates a detailed file
         clubservices = RaceResultService.query.filter_by(club_id = club_id).all()
         status = {}
-        for service in clubservices:
-            # TODO: read memberfile to see how many members there are
-            status[getservicename(service)] = {'status': 'not started', 'lastname': '', 'processed': 0, 'total': nummembers}
+        for service in clubservices + [rrs_rrwebapp]:
+            status[getservicename(service)] = {'status': 'starting', 'lastname': '', 'processed': 0, 'total': nummembers}
 
         for service in clubservices:
             servicename = getservicename(service)
@@ -363,18 +384,32 @@ def analyzeresultstask(self, club_id, memberfile, detailfile, taskfile, racefile
             status[servicename]['status'] = 'collecting'
             collectservices[servicename](self, club_id, memberfile, thisdetailfile, thisracefile, status, key=key)
 
-        # add data to database from all the services which were collected
+        # add results to database from all the services which were collected
+        # add new entries, update existing entries
+        for service in clubservices:
+            servicename = getservicename(service)
+            thisdetailfile = detailfile.format(service=servicename)
+            status[servicename]['status'] = 'saving results'
+            status[servicename]['total'] = storeservices[servicename].get_count(thisdetailfile)
+            status[servicename]['processed'] = 0
+            status[servicename]['lastname'] = ''
+        for service in clubservices:
+            servicename = getservicename(service)
+            thisdetailfile = detailfile.format(service=servicename)
+            storeservices[servicename].storeresults(self, status, club_id, thisdetailfile)
 
         # compile the data into summary from database, deduplicating for the summary information
         # NOTE: because this is a summary, this cannot be filtered, e.g., by date range
         #       so this is fixed a three year window
+        servicenames = [s.apicredentials.name for s in clubservices] + [getservicename(rrs_rrwebapp)]
+        summarize(self, club_id, servicenames, status, summaryfile, resultsurl)
 
-
-        for service in clubservices:
-            status[getservicename(service)]['status'] = 'completed'
+        for service in servicenames:
+            status[service]['status'] = 'completed'
 
         # not in a task any more
         os.remove(taskfile)
+        # TODO: save last status for initial status on resultsanalysisstatus view
         
         # save all our work
         db.session.commit()
@@ -388,7 +423,7 @@ def analyzeresultstask(self, club_id, memberfile, detailfile, taskfile, racefile
         db.session.rollback()
 
         # tell the admins that this happened
-        celery.mail_admins('[scoretility] importtaskresults: exception occurred', traceback.format_exc())
+        celery.mail_admins('[scoretility] analyzeresultstask: exception occurred', traceback.format_exc())
 
         # report this as success, but since traceback is present, server will tell user
         app.logger.error(traceback.format_exc())
