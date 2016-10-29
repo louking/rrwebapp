@@ -49,7 +49,7 @@ from apicommon import MapDict
 import raceresults
 import clubmember
 from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, Series, Divisions, Club, dbdate
-from datatables_editor import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
+from datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 from forms import SeriesResultForm, RunnerResultForm
 from loutilities.namesplitter import split_full_name
 import loutilities.renderrun as render
