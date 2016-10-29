@@ -261,17 +261,21 @@ class AnalyzeAgeGrade():
         self.stats = deduped
 
     #-------------------------------------------------------------------------------
-    def set_runner(self, who, gender, dob, runnerid):
+    def set_runner(self, who, fname, lname, gender, dob, runnerid):
     #-------------------------------------------------------------------------------
         '''
         set runner parameters required for age grade analysis
         
         :param who: name of runner
+        :param fname: first name of runner
+        :param lname: last name of runner
         :param gender: M or F
         :param dob: datetime date of birth
         :param runnerid: runner.id
         '''
         self.who = who
+        self.fname = fname
+        self.lname = lname
         self.gender = gender
         self.dob = dob
         self.runnerid = runnerid
@@ -282,9 +286,9 @@ class AnalyzeAgeGrade():
         '''
         return runner data
         
-        :rtype: name,gender,dob,runnerid
+        :rtype: name,fname,lname,gender,dob,runnerid
         '''
-        return self.who, self.gender, self.dob, self.runnerid
+        return self.who, self.fname, self.lname, self.gender, self.dob, self.runnerid
     
     #-------------------------------------------------------------------------------
     def get_source(self):

@@ -72,20 +72,22 @@ def mean(items):
     return float(sum(items))/len(items) if len(items) > 0 else float('nan')
 
 #----------------------------------------------------------------------
-def initaagrunner(aag, thisrunner, gender, dob, runnerid):
+def initaagrunner(aag, thisrunner, fname, lname, gender, dob, runnerid):
 #----------------------------------------------------------------------
     '''
     initializaze :class:`AnalyzeAgeGrade` object, if not already initialized
     
     :param aag: :class:`AnalyzeAgeGrade` objects, by runner name
     :param thisrunner: key for aag structure: (runnername, asciidob)
+    :param fname: first name for runner
+    :param lname: last name for runner
     :param gender: M or F
     :param dob: datetime date of birth
     :param runnerid: runner.id
     '''
     if thisrunner not in aag:
         aag[thisrunner] = analyzeagegrade.AnalyzeAgeGrade()
-        aag[thisrunner].set_runner(thisrunner[0], gender, dob, runnerid)
+        aag[thisrunner].set_runner(thisrunner[0], fname, lname, gender, dob, runnerid)
     
         
 #----------------------------------------------------------------------
@@ -137,7 +139,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
     aag = {}
     for result in results:
         thisname = (result.runner.name.lower(), result.runner.dateofbirth)
-        initaagrunner(aag, thisname, result.runner.gender, ftime.asc2dt(result.runner.dateofbirth), result.runner.id)
+        initaagrunner(aag, thisname, result.runner.fname, result.runner.lname, result.runner.gender, ftime.asc2dt(result.runner.dateofbirth), result.runner.id)
         aag[thisname].add_stat(ftime.asc2dt(result.race.date), result.race.distance*METERSPERMILE, result.time, race=result.race.name,
                                loc=result.race.location, fuzzyage=result.fuzzyage,
                                source=result.source, priority=priority[result.source])
@@ -153,15 +155,15 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
             for year in yearrange:
                 summfields.append('{}\n{}'.format(stattype,year))
     
-    summaryfname = summaryfile.format(date=ftime.epoch2asc(time.time()))
+    summaryfname = summaryfile
     _SUMM = open(summaryfname,'wb')
     SUMM = csv.DictWriter(_SUMM,summfields)
     SUMM.writeheader()
     
     # loop through each member we've recorded information about
     for thisname in aag:
-        runnername, gender, dob, runnerid = aag[thisname].get_runner()
-        rendername = runnername.title()
+        fullname, fname, lname, gender, dob, runnerid = aag[thisname].get_runner()
+        rendername = fullname.title()
         
         # check stats before deduplicating
         statcount = {}
@@ -193,7 +195,6 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
         
         # fill in row for summary output
         summout = {}
-        name, gender, dob, runnerid = aag[thisname].get_runner()
 
         # get link for this runner's results chart
         # see http://stackoverflow.com/questions/2506379/add-params-to-given-url-in-python
@@ -204,6 +205,8 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
         resultslink = urlunparse(url_parts)
 
         summout['name'] = '<a href={} target=_blank>{}</a>'.format(resultslink, rendername)
+        summout['fname'] = fname
+        summout['lname'] = lname
         summout['age'] = runnerage
         summout['gender'] = gender
         
