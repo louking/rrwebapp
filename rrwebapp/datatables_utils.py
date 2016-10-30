@@ -10,10 +10,17 @@
 
 # standard
 from collections import defaultdict
+from csv import DictReader
 
 # pypi
 import flask
+from flask.views import MethodView
+
+# homegrown
 from . import app
+from database_flask import db   # this is ok because this module only runs under flask
+from request import addscripts
+from loutilities.transform import Transform
 
 class ParameterError(Exception): pass;
 
@@ -146,6 +153,130 @@ class DataTablesEditor():
                 else:
                     # ignore -- leave dbrow unchanged for this dbattr
                     pass
+
+#######################################################################
+class DatatablesCsv(MethodView):
+#######################################################################
+    '''
+    provides render for csv file as dataTables table
+
+    usage:
+        instancename = DatatablesCsv([arguments]):
+        instancename.register()
+
+    **columns** should be like the following. See https://datatables.net/reference/option/columns and 
+    https://editor.datatables.net/reference/option/fields for more information
+
+        [
+            { 'data': 'name', 'name': 'name', 'label': 'Service Name' },
+            { 'data': 'key', 'name': 'key', 'label': 'Key' }, 
+            { 'data': 'secret', 'name': 'secret', 'label': 'Secret', 'render':'$.fn.dataTable.render.text()' },
+        ]
+
+        * name - describes the column and is used within javascript
+        * data - used on server-client interface 
+        * label - used for the DataTable table column. CSV file headers must match this
+        * optional render key is eval'd into javascript
+    
+    :param pagename: name to be displayed at top of html page
+    :param endpoint: endpoint parameter used by flask.url_for()
+    :param csvfile: csv file path, or function to retrieve path of csv file which contains data
+    :param readpermission: function to check write permission for page access
+    :param columns: list of dicts for input to dataTables, or function to get this list
+    :param buttons: list of buttons for DataTable
+    '''
+
+    #----------------------------------------------------------------------
+    def __init__(self, **kwargs):
+    #----------------------------------------------------------------------
+        # the args dict has all the defined parameters to 
+        # caller supplied keyword args are used to update the defaults
+        # all arguments are made into attributes for self
+        self.kwargs = kwargs
+        args = dict(pagename = None, 
+                    endpoint = None, 
+                    dtoptions = {},
+                    csvfile = None,
+                    readpermission = lambda: False, 
+                    columns = None, 
+                    buttons = ['csv'])
+        args.update(kwargs)        
+        for key in args:
+            setattr(self, key, args[key])
+
+    #----------------------------------------------------------------------
+    def register(self):
+    #----------------------------------------------------------------------
+        # create supported endpoints
+        my_view = self.as_view(self.endpoint, **self.kwargs)
+        app.add_url_rule('/{}'.format(self.endpoint),view_func=my_view,methods=['GET',])
+
+    #----------------------------------------------------------------------
+    def get(self):
+    #----------------------------------------------------------------------
+        try:
+            # verify user can read the data, otherwise abort
+            if not self.readpermission():
+                db.session.rollback()
+                flask.abort(403)
+            
+            # DataTables options string, data: and buttons: are passed separately
+            dt_options = {
+                'dom': '<"H"lBpfr>t<"F"i>',
+                'columns': [],
+                'ordering': True,
+                'serverSide': False,
+            }
+            dt_options.update(self.dtoptions)
+
+            # set up columns
+            if hasattr(self.columns, '__call__'):
+                columns = self.columns()
+            else:
+                columns = self.columns
+            for column in columns:
+                dt_options['columns'].append(column)
+
+            # set up buttons
+            if hasattr(self.buttons, '__call__'):
+                buttons = self.buttons()
+            else:
+                buttons = self.buttons
+
+            # set up column transformation from header items to data items
+            mapping = { c['data']:c['label'] for c in columns }
+            headers2data = Transform(mapping, sourceattr=False, targetattr=False)
+
+            # build table data
+            if hasattr(self.csvfile, '__call__'):
+                csvfile = self.csvfile()
+            else:
+                csvfile = self.csvfile
+            with open(csvfile, 'rb') as _CSV:
+                tabledata = []
+                CSV = DictReader(_CSV)
+                for csvrow in CSV:
+                    datarow = {}
+                    headers2data.transform(csvrow, datarow)
+                    tabledata.append(datarow)
+
+            # commit database updates and close transaction
+            db.session.commit()
+
+            # render page
+            return flask.render_template('datatables.html', 
+                                         pagename = self.pagename,
+                                         pagejsfiles = addscripts(['datatables.js', 'buttons.colvis.js']),
+                                         tabledata = tabledata, 
+                                         tablebuttons = buttons,
+                                         options = {'dtopts': dt_options},
+                                         inhibityear = True,    # NOTE: prevents common DatatablesCsv
+                                        )
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
 
 
 
