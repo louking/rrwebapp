@@ -26,6 +26,8 @@ import collections
 import time
 from urlparse import urlparse, parse_qsl, urlunparse
 from urllib import urlencode
+from copy import copy
+import json
 
 # pypi
 
@@ -45,10 +47,10 @@ METERSPERMILE = 1609.344
 # table for driving trend plotting
 # *** must match trendlimits in results_scatterplot.js
 TRENDLIMITS = collections.OrderedDict([
-               ((0,4999.99),         ('<5K','b')),
-               ((5000.00,21097.50),  ('5K - <HM','g')),
-               ((21097.51,42194.99), ('HM - Mara','orange')),
-               ((42195.00,200000),   ('Ultra','r')),
+               ((0,4999.99),         ('<5K','to5k')),
+               ((5000.00,21097.50),  ('5K - <HM','5ktohm')),
+               ((21097.51,42194.99), ('HM - Mara','hmtomara')),
+               ((42195.00,200000),   ('Ultra','ultra')),
               ])
 
 # priorities for deduplication
@@ -147,14 +149,27 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
 
     # initialize summary file
     summfields = ['name', 'lname', 'fname', 'age', 'gender']
+    datafields = copy(summfields)
     distcategories = ['overall'] + [TRENDLIMITS[tlimit][0] for tlimit in TRENDLIMITS]
-    for stattype in ['1yr agegrade','avg agegrade','trend','numraces','stderr','r-squared','pvalue']:
-        for distcategory in distcategories:
-            summfields.append('{}\n{}'.format(stattype,distcategory))
+    datacategories = ['overall'] + [TRENDLIMITS[tlimit][1] for tlimit in TRENDLIMITS]
+    stattypes = ['1yr agegrade','avg agegrade','trend','numraces','stderr','r-squared','pvalue']
+    statdatatypes = ['1yr-agegrade','avg-agegrade','trend','numraces','stderr','r-squared','pvalue']
+    for stattype, statdatatype in zip(stattypes, statdatatypes):
+        for distcategory, datacategory in zip(distcategories, datacategories):
+            summfields.append('{}\n{}'.format(stattype, distcategory))
+            datafields.append('{}-{}'.format(statdatatype, datacategory))
         if stattype == 'numraces':
             for year in yearrange:
-                summfields.append('{}\n{}'.format(stattype,year))
-    
+                summfields.append('{}\n{}'.format(stattype, year))
+                datafields.append('{}-{}'.format(statdatatype, lastyear-year))
+
+    # save summary file columns for resultsanalysissummary
+    dtcolumns = json.dumps([{ 'data':d, 'name':d, 'label':l } for d,l in zip(datafields, summfields)])
+    columnsfilename = summaryfile + '.cols'
+    with open(columnsfilename, 'w') as cols:
+        cols.write(dtcolumns)
+
+    # set up summary file
     summaryfname = summaryfile
     _SUMM = open(summaryfname,'wb')
     SUMM = csv.DictWriter(_SUMM,summfields)
@@ -223,7 +238,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
             summout['1yr agegrade\noverall'] = mean(oneyrstats)
         summout['avg agegrade\noverall'] = avg['overall']
         if len(allstats) >= mintrend:
-            summout['trend\noverall'] = trend.slope
+            summout['trend\noverall'] = trend.improvement
             summout['stderr\noverall'] = trend.stderr
             summout['r-squared\noverall'] = trend.r2**2
             summout['pvalue\noverall'] = trend.pvalue
@@ -241,7 +256,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
             if len(oneyrcategory) > 0:
                 summout['1yr agegrade\n{}'.format(distcategory)] = mean(oneyrcategory)
             summout['avg agegrade\n{}'.format(distcategory)] = avg[distcategory]
-            summout['trend\n{}'.format(distcategory)] = trend.slope
+            summout['trend\n{}'.format(distcategory)] = trend.improvement
             summout['stderr\n{}'.format(distcategory)] = trend.stderr
             summout['r-squared\n{}'.format(distcategory)] = trend.r2
             summout['pvalue\n{}'.format(distcategory)] = trend.pvalue

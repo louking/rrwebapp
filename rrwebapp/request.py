@@ -56,6 +56,7 @@ jq_ui_ver = '1.10.4'
 dt_cdn = 'https://cdn.datatables.net'
 dt_datatables_ver = '1.10.12'
 dt_buttons_ver = '1.2.1'
+dt_colvis_ver = '1.2.2'
 dt_fixedcolumns_ver = '3.2.2'
 dt_select_ver = '1.2.0'
 dt_editor_plugin_cdn = 'https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q='
@@ -95,6 +96,8 @@ SCRIPTS = [
 
     ('buttons/{ver}/js/buttons.html5{min}.js', dt_buttons_ver, dt_cdn),
     ('buttons/{ver}/css/buttons.jqueryui{min}.css', dt_buttons_ver, dt_cdn),
+
+    ('buttons/{ver}/js/buttons.colVis{min}.js', dt_colvis_ver, dt_cdn), 
 
     ('fixedcolumns/{ver}/js/dataTables.fixedColumns{min}.js', dt_fixedcolumns_ver, dt_cdn),
     ('fixedcolumns/{ver}/css/fixedColumns.jqueryui{min}.css', dt_fixedcolumns_ver, dt_cdn),

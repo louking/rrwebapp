@@ -47,23 +47,23 @@ def distmap(dist):
     return dist/100
 
 #-------------------------------------------------------------------------------
-def linear_regression(y,x):
+def linear_regression(Y,X):
 #-------------------------------------------------------------------------------
 
-    n = len(y)
+    n = len(Y)
     sum_x = 0
     sum_y = 0
     sum_xy = 0
     sum_xx = 0
     sum_yy = 0
 
-    for i in range(len(y)):
+    for i in range(len(Y)):
 
-        sum_x += x[i]
-        sum_y += y[i]
-        sum_xy += (x[i]*y[i])
-        sum_xx += (x[i]*x[i])
-        sum_yy += (y[i]*y[i])
+        sum_x += X[i]
+        sum_y += Y[i]
+        sum_xy += (X[i]*Y[i])
+        sum_xx += (X[i]*X[i])
+        sum_yy += (Y[i]*Y[i])
     
 
     lr = TrendLine()
@@ -130,19 +130,20 @@ class TrendLine():
     '''
     
     #-------------------------------------------------------------------------------
-    def __init__(self, slope=None, intercept=None, r2=None, pvalue=None, stderr=None):
+    def __init__(self, slope=None, intercept=None, r2=None, pvalue=None, stderr=None, improvement=None):
     #-------------------------------------------------------------------------------
         self.slope = slope
         self.intercept = intercept
         self.r2 = r2
         self.pvalue = pvalue
         self.stderr = stderr
+        self.improvement = improvement
         
     #-------------------------------------------------------------------------------
     def __repr__(self):
     #-------------------------------------------------------------------------------
-        retval = 'analyzeagegrade.TrendLine(slope {:0.2f}, intercept {:0.2f}, r2 {:0.2f}, pvalue {:0.2f}, stderr {:0.2f})'.format(
-            self.slope, self.intercept, self.r2, self.pvalue, self.stderr)
+        retval = 'analyzeagegrade.TrendLine(slope {:0.2f}, intercept {:0.2f}, improvement {:0.2f}, r2 {:0.2f}, pvalue {:0.2f}, stderr {:0.2f})'.format(
+            self.slope, self.intercept, self.improvement, self.r2, self.pvalue, self.stderr)
         return retval
     
 ########################################################################
@@ -468,10 +469,17 @@ class AnalyzeAgeGrade():
         if not thesestats:
             thesestats = self.stats
         
-        x = [timeu.dt2epoch(s.date) for s in thesestats]
-        y = [s.ag for s in thesestats]
+        X = [timeu.dt2epoch(s.date) for s in thesestats]
+        Y = [s.ag for s in thesestats]
         
-        lr = linear_regression(y, x)
-        yline = [lr.slope*thisx+lr.intercept for thisx in x]
+        lr = linear_regression(Y, X)
+        yline = [lr.slope*thisx+lr.intercept for thisx in X]
+
+        x1 = min(X)
+        y1 = lr.slope*x1+lr.intercept
+        x2 = max(X)
+        y2 = lr.slope*x2+lr.intercept
+        years = (x2-x1)/(60*60*24*365)      # convert seconds to years
+        lr.improvement = (y2-y1) / years    # 100 is 100% improvement per year
         
         return lr

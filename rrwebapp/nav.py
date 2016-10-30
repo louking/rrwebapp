@@ -93,8 +93,9 @@ def getnavigation():
             navigation.append({'display':'Service Credentials','url':flask.url_for('servicecredentials')})
 
             navigation.append({'display':'Results Analysis','list':[]})
-            navigation[-1]['list'].append({'display':'Services','url':flask.url_for('raceresultservices')})
+            navigation[-1]['list'].append({'display':'Summary','url':flask.url_for('resultsanalysissummary')})
             navigation[-1]['list'].append({'display':'Status','url':flask.url_for('resultsanalysisstatus')})
+            navigation[-1]['list'].append({'display':'Services','url':flask.url_for('raceresultservices')})
             navigation[-1]['list'].append({'display':'Courses','url':flask.url_for('courses')})
             
         if club and readcheck.can():
@@ -102,6 +103,10 @@ def getnavigation():
             navigation.append({'display':'Races','url':flask.url_for('manageraces')})
             navigation.append({'display':'Series','url':flask.url_for('manageseries')})
             navigation.append({'display':'Divisions','url':flask.url_for('managedivisions')})
+
+            # owner check to avoid duplicate navigation
+            if not owner_permission.can():
+                navigation.append({'display':'Results Summary','url':flask.url_for('resultsanalysissummary')})
 
         if club and writecheck.can():
             navigation.append({'display':'Exclusions','url':flask.url_for('editexclusions')})

@@ -15,6 +15,7 @@ from collections import OrderedDict
 import traceback
 import os
 import os.path
+import json
 
 # pypi
 import flask
@@ -35,10 +36,14 @@ from apicommon import failure_response, success_response
 from loutilities.csvwt import wlist
 from request import addscripts
 from crudapi import CrudApi
+from datatables_utils import DatatablesCsv
 from resultsutils import StoreServiceResults
 from resultssummarize import summarize
 from loutilities.timeu import asctime, timesecs
 ftime = asctime('%Y-%m-%d')
+
+# set up summary file name template
+summaryfiletemplate = '{}/{{clubslug}}-summary.csv'.format(app.config['MEMBERSHIP_DIR'])
 
 # set up services to collect and store data from
 normstoreattrs = 'runnername,dob,gender,sourceid,sourceresultid,racename,date,raceloc,raceage,distmiles,time'.split(',')
@@ -228,7 +233,7 @@ class ResultsAnalysisStatus(MethodView):
             taskfile = '{}/{}-task.id'.format(app.config['MEMBERSHIP_DIR'], clubslug)
 
             # summaryfile is used to save the summary information for individual members
-            summaryfile = '{}/{}-summary.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
+            summaryfile = summaryfiletemplate.format(clubslug=clubslug)
 
             # check action
             action = request.args.get('action')
@@ -335,6 +340,86 @@ course = CrudApi(pagename = 'Courses',
              idSrc = 'rowid', 
              buttons = ['create', 'edit', 'remove'])
 course.register()
+
+
+#----------------------------------------------------------------------
+# resultsanalysissummary endpoint
+#----------------------------------------------------------------------
+
+def ras_readpermission():
+    club_id = flask.session['club_id']
+    readcheck = ViewClubDataPermission(club_id)
+    return readcheck.can()
+
+def ras_csvfile():
+    club_id = flask.session['club_id']
+    clubslug = Club.query.filter_by(id=club_id).first().shname
+    return summaryfiletemplate.format(clubslug=clubslug)
+
+# items are name:label. use label for for button text. use OrderedDict so buttons are in same order as headers
+ras_statnames = OrderedDict([('1yr-agegrade', '1yr agegrade'), ('avg-agegrade', 'avg agegrade'), ('trend', 'trend'), ('numraces', 'numraces')])
+def ras_columns():
+    club_id = flask.session['club_id']
+    clubslug = Club.query.filter_by(id=club_id).first().shname
+    colfile = summaryfiletemplate.format(clubslug=clubslug) + '.cols'
+    with open(colfile, 'r') as cols:
+        cols = json.loads(cols.read())
+    
+    invisiblecols = ['lname', 'fname', 'r-squared', 'stderr', 'pvalue']
+    for col in cols:
+        if col['name'] in ['age', 'gender']:
+            col['className'] = 'dt-body-center'
+
+        for invisiblename in invisiblecols:
+            if invisiblename in col['name']:
+                col['visible'] = False
+
+        for statname in ras_statnames:
+            if statname in col['name']:
+                if 'overall' in col['name']:
+                    col['className'] = 'dt-body-center _rrwebapp-ras-summary'
+                else:
+                    col['className'] = 'dt-body-center _rrwebapp-ras-{}-detail'.format(statname)
+
+            if 'agegrade' in col['name']:
+                # note need () around function for this to be eval'd correctly
+                col['render'] = '(function (data) { return (data != "") ? parseFloat(data).toFixed(1) : "" })'
+
+            if 'trend' in col['name']:
+                col['render'] = '(function (data) { return (data != "") ? parseFloat(data).toFixed(1)+"%/yr" : "" })'
+
+
+    return cols
+
+def ras_buttons():
+    buttons = ['csv']
+    for statname in ras_statnames:
+        buttons.append({
+                'extend' : 'colvisToggleGroup',
+                'visibletext' : '{} -'.format(ras_statnames[statname]),
+                'hiddentext' : '{} +'.format(ras_statnames[statname]),
+                'columns' : '._rrwebapp-ras-{}-detail'.format(statname),
+                'visible' : False,
+            })
+    return buttons
+
+ras = DatatablesCsv(pagename = 'Results Analysis Summary', 
+                    endpoint = 'resultsanalysissummary', 
+                    dtoptions =  {
+                                   'stateSave' : True,
+                                   'fixedColumns' : { 'leftColumns': 1 },
+                                   'scrollX' : True,
+                                   'scrollXInner' : '100%', 
+                                   'autoWidth' : False,
+                                 },
+                    readpermission = ras_readpermission, 
+                    csvfile = ras_csvfile,
+                    # columns labels must match labels in resultssummarize.summarize
+                    columns = ras_columns, 
+                    buttons = ras_buttons,
+                   )
+ras.register()
+
 
 #----------------------------------------------------------------------
 def getservicename(service):
