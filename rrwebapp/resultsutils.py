@@ -104,62 +104,56 @@ class StoreServiceResults():
         status[self.servicename]['processed'] = 0
 
         # loop through all results and store in database
-        try:
-            while True:
-                filerecord = self.accessor.next()
-                if not filerecord: break
+        while True:
+            filerecord = self.accessor.next()
+            if not filerecord: break
 
-                # transform to result attributes
-                result = Record()
-                result.source = self.servicename
-                # app.logger.debug('filerecord = {}'.format(filerecord.__dict__))
-                self.service2norm.transform(filerecord, result)
-                # app.logger.debug('result = {}'.format(result.__dict__))
+            # transform to result attributes
+            result = Record()
+            result.source = self.servicename
+            # app.logger.debug('filerecord = {}'.format(filerecord.__dict__))
+            self.service2norm.transform(filerecord, result)
+            # app.logger.debug('result = {}'.format(result.__dict__))
 
-                # maybe we have a record in the database which matches this one, if so update the record
-                # otherwise create a new database record
-                ## first get runner
-                runner = Runner.query.filter_by(club_id=club_id, name=result.runnername, dateofbirth=result.dob, gender=result.gender).first()
-                if not runner:
-                    raise ParameterError, "could not find runner in database: {} line {} {} {} {}".format(filename, status[self.servicename]['processed']+2, result.runnername, result.dob, result.gender)
+            # maybe we have a record in the database which matches this one, if so update the record
+            # otherwise create a new database record
+            ## first get runner
+            runner = Runner.query.filter_by(club_id=club_id, name=result.runnername, dateofbirth=result.dob, gender=result.gender).first()
+            if not runner:
+                raise ParameterError, "could not find runner in database: {} line {} {} {} {}".format(filename, status[self.servicename]['processed']+2, result.runnername, result.dob, result.gender)
 
-                ## next get race
-                ### Race has uniqueconstraint for club_id/name/year/fixeddist. It's been seen that there are additional races in athlinks, 
-                ### but just assume the first is the correct one.
-                raceyear = ftime.asc2dt(result.date).year
-                race = Race.query.filter_by(club_id=club_id, name=result.racename, year=raceyear, fixeddist=race_fixeddist(result.distmiles)).first()
-                # races = Race.query.filter_by(club_id=club_id, name=result.racename, date=result.date, fixeddist=race_fixeddist(result.distmiles)).all()
-                # race = None
-                # for thisrace in races:
-                #     if abs(thisrace.distance - result.distmiles) < RACEEPSILON:
-                #         race = thisrace
-                #         break
-                if not race:
-                    raise ParameterError, "could not find race in database: {} line {} {} {} {}".format(filename, status[self.servicename]['processed']+2, result.racename, result.date, result.distmiles)
- 
-                ## update or create result in database
-                agage = age(ftime.asc2dt(race.date), ftime.asc2dt(runner.dateofbirth))
-                result.agpercent, result.agtime, result.agfactor = ag.agegrade(agage, runner.gender, result.distmiles, result.timesecs)
+            ## next get race
+            ### Race has uniqueconstraint for club_id/name/year/fixeddist. It's been seen that there are additional races in athlinks, 
+            ### but just assume the first is the correct one.
+            raceyear = ftime.asc2dt(result.date).year
+            race = Race.query.filter_by(club_id=club_id, name=result.racename, year=raceyear, fixeddist=race_fixeddist(result.distmiles)).first()
+            # races = Race.query.filter_by(club_id=club_id, name=result.racename, date=result.date, fixeddist=race_fixeddist(result.distmiles)).all()
+            # race = None
+            # for thisrace in races:
+            #     if abs(thisrace.distance - result.distmiles) < RACEEPSILON:
+            #         race = thisrace
+            #         break
+            if not race:
+                raise ParameterError, "could not find race in database: {} line {} {} {} {}".format(filename, status[self.servicename]['processed']+2, result.racename, result.date, result.distmiles)
 
-                dbresult = RaceResult(club_id, runner.id, race.id, None, result.timesecs, runner.gender, agage, instandings=False)
-                for attr in ['agfactor', 'agtime', 'agpercent', 'source', 'sourceid', 'sourceresultid', 'fuzzyage']:
-                    setattr(dbresult,attr,getattr(result,attr))
+            ## update or create result in database
+            agage = age(ftime.asc2dt(race.date), ftime.asc2dt(runner.dateofbirth))
+            result.agpercent, result.agtime, result.agfactor = ag.agegrade(agage, runner.gender, result.distmiles, result.timesecs)
 
-                insert_or_update(db.session, RaceResult, dbresult, skipcolumns=['id'], 
-                                 club_id=club_id, source=self.servicename, runnerid=runner.id, raceid=race.id)
+            dbresult = RaceResult(club_id, runner.id, race.id, None, result.timesecs, runner.gender, agage, instandings=False)
+            for attr in ['agfactor', 'agtime', 'agpercent', 'source', 'sourceid', 'sourceresultid', 'fuzzyage']:
+                setattr(dbresult,attr,getattr(result,attr))
 
-                # update the number of results processed and pass back the status
-                status[self.servicename]['lastname'] = result.runnername
-                status[self.servicename]['processed'] += 1
-                thistask.update_state(state='PROGRESS', meta={'progress':status})
+            insert_or_update(db.session, RaceResult, dbresult, skipcolumns=['id'], 
+                             club_id=club_id, source=self.servicename, runnerid=runner.id, raceid=race.id)
 
-            # finished reading results
-            status[self.servicename]['status'] = 'completed'
+            # update the number of results processed and pass back the status
+            status[self.servicename]['lastname'] = result.runnername
+            status[self.servicename]['processed'] += 1
             thistask.update_state(state='PROGRESS', meta={'progress':status})
-        
-        # close input file
-        finally:
-            self.accessor.close()
-            self.accessor = None
+
+        # finished reading results, close input file
+        self.accessor.close()
+        self.accessor = None
 
 
