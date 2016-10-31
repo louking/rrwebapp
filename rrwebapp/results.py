@@ -44,6 +44,7 @@ from apicommon import failure_response, success_response
 from request import addscripts, crossdomain
 from appldirs import UPLOAD_TEMP_DIR
 from apicommon import MapDict
+from nav import productname
 
 # module specific needs
 import raceresults
@@ -1107,6 +1108,9 @@ class RunnerResults(MethodView):
                     name = runner.name
                     pagename = '{} Results'.format(name)
 
+            # limit results to those recorded by rrwebapp
+            resultfilter['source'] = productname
+
             # DataTables options string, data: and buttons: are passed separately
             dt_options = {
                 'dom': '<"H"lBpfr>t<"F"i>',
@@ -1294,6 +1298,22 @@ def rendermembertype(result):
 
     return this
 
+#----------------------------------------------------------------------
+def renderseries(cell):
+#----------------------------------------------------------------------
+    # if there's something in this cell, it must be series id
+    if cell:
+        series = Series.query.filter_by(id=cell).first()
+        if series:
+            seriesname = series.name
+        else:
+            seriesname = ''
+    else:
+        seriesname = ''
+
+    return seriesname
+
+
 
 #######################################################################
 class AjaxRunnerResults(MethodView):
@@ -1335,6 +1355,9 @@ class AjaxRunnerResults(MethodView):
                 if series:
                     seriesfilter['name'] = series.name
                     app.logger.debug('filter by series {}'.format(seriesarg))
+
+            # limit results to that recorded by rrwebapp
+            resultfilter['source'] = productname
 
             columns = [
                 ColumnDT('runner.name',     mData='name'), 
@@ -1392,6 +1415,10 @@ class RunnerResultsChart(MethodView):
     def get(self):
     #----------------------------------------------------------------------
         try:
+            club_id = flask.session['club_id']
+            readcheck = ViewClubDataPermission(club_id)
+            adminuser = readcheck.can()
+
             club_shname = request.args.get('club',None)
             runnerid = request.args.get('participant',None)
             seriesarg = request.args.get('series',None)
@@ -1430,6 +1457,12 @@ class RunnerResultsChart(MethodView):
                 'order': [0,'asc'],
                 'paging': False,
             }
+
+            if adminuser:
+                dt_options['columns'] += [
+                            { 'data': 'source',      'name': 'source',        'label': 'Source',     'className': 'dt-body-center' },
+                            { 'data': 'sourceid',    'name': 'sourceid',      'label': 'Source ID',  'className': 'dt-body-center' },
+                        ]
 
             pretablehtml = '''
                 <div class="TextLeft PL20pxLabel">
@@ -1516,6 +1549,10 @@ class AjaxRunnerResultsChart(MethodView):
     def get(self):
     #----------------------------------------------------------------------
         try:
+            club_id = flask.session['club_id']
+            readcheck = ViewClubDataPermission(club_id)
+            adminuser = readcheck.can()
+
             club_shname = request.args.get('club',None)
             runnerid = request.args.get('participant',None)
             seriesarg = request.args.get('series',None)
@@ -1542,20 +1579,45 @@ class AjaxRunnerResultsChart(MethodView):
                     namesfilter['club_id'] = club.id
                     resultfilter['club_id'] = club.id
                     runnerfilter['club_id'] = club.id
-                    seriesfilter['club_id'] = club.id
 
-            # need to filter after the fact for series, because the seriesid is different for different years
-            if seriesarg:
-                series = Series.query.filter_by(name=seriesarg).first()
-                if series:
-                    seriesfilter['name'] = series.name
-                    app.logger.debug('filter by series {}'.format(seriesarg))
+            # if not admin, limit source to rrwebapp product name
+            if not adminuser:
+                resultfilter['source'] = productname
 
+            getcol = lambda name: [col.mData for col in columns].index(name)
+
+            # create columns dynamically because full results have seriesid = None, and this returns empty list
+            ## trick here is to to the following when series is not filtered
+            ##    retrieve seriesid and do not join('series') [filter disabled]
+            ## otherwise
+            ##    retrieve series.name and join('series') [filter enabled]
             columns = [
                 ColumnDT('race.date',       mData='date'),
                 ColumnDT('runnerid',        mData='runnerid',           search_like=False), 
                 ColumnDT('runner.name',     mData='name'), 
-                ColumnDT('series.name',     mData='series'),
+
+                # may need to pop this off just below, but needed for getcol('series') 
+                ColumnDT('seriesid',        mData='series',             searchable=False,   filter=renderseries),
+            ]
+
+            # set up columns differently if series is being searched for, as if so it's ok to join('series') in query
+            seriesfield = 'columns[{}][search][value]'.format(getcol('series'))
+            seriessearch = request.args.get(seriesfield, None)
+            if seriesarg or seriessearch:
+                # give preference to seriesarg
+                seriesname = seriesarg or seriessearch
+
+                if club_shname:
+                    seriesfilter['club_id'] = club.id
+
+                # pop the last element (mData='series') off the end, as we're replacing it
+                columns.pop()
+                columns += [
+                    ColumnDT('series.name',        mData='series'),
+                ]
+
+
+            columns += [
                 ColumnDT('race.name',       mData='race'),
                 ColumnDT('race.distance',   mData='miles',              searchable=False),
                 ColumnDT('age',             mData='age',                searchable=False,   filterarg='row', filter=renderage),
@@ -1565,7 +1627,13 @@ class AjaxRunnerResultsChart(MethodView):
                 ColumnDT('agtime',          mData='agtime',             searchable=False,   filter=lambda c: render.rendertime(c, 0)),
                 ColumnDT('agpercent',       mData='agpercent',          searchable=False,   filter=lambda c: '{:.2f}%'.format(c)),
             ]
-            getcol = lambda name: [col.mData for col in columns].index(name)
+
+            # give extra columns to the admin
+            if adminuser:
+                columns += [
+                        ColumnDT('source',    mData='source'),
+                        ColumnDT('sourceid',  mData='sourceid'),
+                    ]
 
             # make copy of args as request.args is immutable and we might want to update
             args = request.args.copy()
@@ -1612,7 +1680,15 @@ class AjaxRunnerResultsChart(MethodView):
                     args[statfield] = delim.join(argsrange)
                     print 'after: stat='+stat+ ' statfield='+statfield+' args='+args[statfield]
 
-            rowTable = DataTables(args, RaceResult, RaceResult.query.filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race"), columns, dialect='mysql')
+            # add series filters to query
+            q = RaceResult.query.filter_by(**resultfilter).join("runner")
+            if seriesfilter:
+                q = q.join("series").filter_by(**seriesfilter)
+            q = q.join("race")
+            # app.logger.debug('resultfilter = {}, seriesfilter = {}'.format(resultfilter, seriesfilter))
+            # app.logger.debug('query = \n{}'.format(q))
+
+            rowTable = DataTables(args, RaceResult, q, columns, dialect='mysql')
 
             # prepare for filters
             # need to use db.session to access query function
@@ -1630,7 +1706,7 @@ class AjaxRunnerResultsChart(MethodView):
                     names.append(name)
             names.sort(key=lambda item: item['label'].lower())
 
-            series = [row.name for row in db.session.query(Series.name).filter_by(**seriesfilter).distinct().all()]
+            series = [row.name for row in db.session.query(Series.name).filter_by(club_id=club.id).distinct().all()]
 
             # add yadcf filter
             output_result = rowTable.output_result()
