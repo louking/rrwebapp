@@ -187,6 +187,23 @@
           return ((a < b) ? 1 : ((a > b) ? -1 : 0));
       }
     } );
+
+    // sort extension for 'agtrend'(nn%/yr)
+    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
+        "agtrend-pre": function ( a ) {
+            if (!a || a == '') {return -100};
+            var x = (a == "-") ? 0 : a.replace( /%\/yr/, "" );
+            return parseFloat( x );
+        },
+     
+        "agtrend-asc": function ( a, b ) {
+            return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+        },
+     
+        "agtrend-desc": function ( a, b ) {
+            return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+        }
+    } );
     
     // retrieve filter used for table at indicated column (per https://groups.google.com/forum/#!topic/daniels_code/j6xFhWin38U)
     function getFilterValue(table_arg, column_number){

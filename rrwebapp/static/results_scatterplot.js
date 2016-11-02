@@ -211,7 +211,9 @@ function datatables_chart() {
 
         // TODO: add true priority handling
         // deduplicate stats, paying attention to priority when races determined to be the same
-        var EPS = .1;   // if event distance is within this tolerance, assumed the same
+        // dedup function must match analyzeagegrade.AnalyzeAgeGrade.deduplicate
+        var DIST_EPS = 2;   // if event distance is within this tolerance (%age), assumed the same
+        var TIME_EPS = 1;   // if time is within this tolerance (seconds), assumed to be the same
         var deduped = [];
         var stat, prio;
         while (stats.length > 0) {
@@ -222,8 +224,8 @@ function datatables_chart() {
             // distance has to be within epsilon to be deduced to be the same
             while (stats.length > 0
                     && thisstat.date.getTime() == stats[0].date.getTime()
-                    && Math.abs((thisstat.miles - stats[0].miles) / thisstat.miles) <= EPS
-                    && thisstat.timesecs == stats[0].timesecs) {
+                    && Math.abs((thisstat.miles - stats[0].miles) / thisstat.miles) <= DIST_EPS/100
+                    && Math.abs(thisstat.timesecs - stats[0].timesecs) <= TIME_EPS) {
                 stat = stats.shift();
                 sameraces.push( {'prio':1, 'stat':stat} );
             }

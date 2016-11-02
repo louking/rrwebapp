@@ -94,7 +94,7 @@ def getnavigation():
 
             navigation.append({'display':'Results Analysis','list':[]})
             navigation[-1]['list'].append({'display':'Summary','url':flask.url_for('resultsanalysissummary')})
-            navigation[-1]['list'].append({'display':'Status','url':flask.url_for('resultsanalysisstatus')})
+            navigation[-1]['list'].append({'display':'Status/Control','url':flask.url_for('resultsanalysisstatus')})
             navigation[-1]['list'].append({'display':'Services','url':flask.url_for('raceresultservices')})
             navigation[-1]['list'].append({'display':'Courses','url':flask.url_for('courses')})
             

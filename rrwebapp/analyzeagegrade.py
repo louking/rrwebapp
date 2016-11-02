@@ -186,10 +186,13 @@ class AnalyzeAgeGrade():
         :param dist: distance in meters
         :param time: time in seconds
         :param kwargs: keyword arguments, must match AgeGradeState attrs
+        :rtype: the newly created stat
         '''
         
-        self.stats.append(AgeGradeStat(date,dist,time,**kwargs))
+        thisstat = AgeGradeStat(date,dist,time,**kwargs)
+        self.stats.append(thisstat)
         self.dists.add(round(dist))
+        return thisstat
         
     #-------------------------------------------------------------------------------
     def del_stat(self, stat):
@@ -227,7 +230,8 @@ class AnalyzeAgeGrade():
             return
 
         # collect unique statistics, within epsilon distance
-        EPS = .1   # epsilon -- if event distance is within this tolerance, it is considered the same
+        DIST_EPS = 2.0   # if event distance is within this tolerance (%age), assumed the same
+        TIME_EPS = 1.0   # if time is within this tolerance (seconds), assumed to be the same
 
         # sort self.stats into stats, by date,distance
         decstats = [((s.date,s.dist),s) for s in self.stats]
@@ -245,7 +249,8 @@ class AnalyzeAgeGrade():
             # distance has to be within epsilon to be deduced to be the same
             while   len(stats) > 0 \
                     and thisstat.date == stats[0].date \
-                    and abs((thisstat.dist - stats[0].dist) / thisstat.dist) <= EPS:
+                    and abs((thisstat.dist - stats[0].dist) / thisstat.dist) <= DIST_EPS/100.0 \
+                    and abs(thisstat.time - stats[0].time) <= TIME_EPS:
                 stat = stats.pop(0)
                 sameraces.append((stat.priority,stat))
             
@@ -472,14 +477,23 @@ class AnalyzeAgeGrade():
         X = [timeu.dt2epoch(s.date) for s in thesestats]
         Y = [s.ag for s in thesestats]
         
-        lr = linear_regression(Y, X)
+        try:
+            lr = linear_regression(Y, X)
+        except ZeroDivisionError:
+            app.logger.error(('ZeroDivisionError\n   len(thesestats)={}\n   X={}\n   Y={}\n' +
+                              '   thesestats[0].date={}').format(len(thesestats), X, Y, thesestats[0].date))
+            raise
+
         yline = [lr.slope*thisx+lr.intercept for thisx in X]
 
         x1 = min(X)
         y1 = lr.slope*x1+lr.intercept
         x2 = max(X)
         y2 = lr.slope*x2+lr.intercept
-        years = (x2-x1)/(60*60*24*365)      # convert seconds to years
-        lr.improvement = (y2-y1) / years    # 100 is 100% improvement per year
+        years = (x2-x1)*1.0/(60*60*24*365)      # convert seconds to years (1.0 make sure we're floating point)
+        if years > 0:
+            lr.improvement = (y2-y1) / years    # 100 is 100% improvement per year
+        else:
+            lr.improvement = -9999              # how did this happen?
         
         return lr

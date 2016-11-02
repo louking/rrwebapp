@@ -73,7 +73,7 @@ class ResultsAnalysisStatus(MethodView):
         # caller supplied keyword args are used to update the defaults
         # all arguments are made into attributes for self
         self.kwargs = kwargs
-        args = dict(pagename = 'Results Analysis Status',
+        args = dict(pagename = 'Results Analysis Status / Control',
                     endpoint = 'resultsanalysisstatus', 
                     )
         args.update(kwargs)        
@@ -256,6 +256,7 @@ class ResultsAnalysisStatus(MethodView):
 
                 # note extra set of {{service}} brackets, which will be replace by service name
                 detailfile = '{}/{}-{{service}}-detail.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
+                fulldetailfile = '{}/{}-detail.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
 
                 # set debugrace to False if not debugging
                 debugrace = True
@@ -280,7 +281,7 @@ class ResultsAnalysisStatus(MethodView):
                     OUT.writerow(filerow)
 
                 # kick off analysis task
-                task = analyzeresultstask.apply_async((club_id, url_for('resultschart'), memberfile, detailfile, summaryfile, taskfile, racefile), queue='longtask')
+                task = analyzeresultstask.apply_async((club_id, url_for('resultschart'), memberfile, detailfile, summaryfile, fulldetailfile, taskfile, racefile), queue='longtask')
 
                 # save taskfile
                 with open(taskfile,'w') as tf:
@@ -387,6 +388,7 @@ def ras_columns():
 
             if 'trend' in col['name']:
                 col['render'] = '(function (data) { return (data != "") ? parseFloat(data).toFixed(1)+"%/yr" : "" })'
+                col['type'] = 'agtrend'
 
 
     return cols
@@ -437,7 +439,7 @@ def getservicekey(service):
 
 #----------------------------------------------------------------------
 @celery.task(bind=True)
-def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summaryfile, taskfile, racefile):
+def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summaryfile, fulldetailfile, taskfile, racefile):
 #----------------------------------------------------------------------
     
     try:
@@ -487,7 +489,7 @@ def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summar
         # NOTE: because this is a summary, this cannot be filtered, e.g., by date range
         #       so this is fixed a three year window
         servicenames = [s.apicredentials.name for s in clubservices] + [getservicename(rrs_rrwebapp)]
-        summarize(self, club_id, servicenames, status, summaryfile, resultsurl)
+        summarize(self, club_id, servicenames, status, summaryfile, fulldetailfile, resultsurl)
 
         for service in servicenames:
             status[service]['status'] = 'completed'

@@ -1238,6 +1238,46 @@ def renderage(result):
     return thisage
 
 #----------------------------------------------------------------------
+def renderagtime(result):
+#----------------------------------------------------------------------
+    '''
+    render age grade time for result
+    any exceptions returns empty string - probably bad dateofbirth
+
+    :param result: result from RaceResult joined with Runner, Race
+    :rtype: string for rendering
+    '''
+
+    try:
+        thisage = timeu.age(tYmd.asc2dt(result.race.date),tYmd.asc2dt(result.runner.dateofbirth))
+        agpercent, agtime, agfactor = ag.agegrade(thisage, result.runner.gender, result.race.distance, result.time)
+        agtime = render.rendertime(agtime,0)
+    except:
+        agtime = ''
+
+    return agtime
+
+#----------------------------------------------------------------------
+def renderagpercent(result):
+#----------------------------------------------------------------------
+    '''
+    render age grade percentage for result
+    any exceptions returns empty string - probably bad dateofbirth
+
+    :param result: result from RaceResult joined with Runner, Race
+    :rtype: string for rendering
+    '''
+
+    try:
+        thisage = timeu.age(tYmd.asc2dt(result.race.date),tYmd.asc2dt(result.runner.dateofbirth))
+        agpercent, agtime, agfactor = ag.agegrade(thisage, result.runner.gender, result.race.distance, result.time)
+        agpercent = '{:.2f}%'.format(agpercent)
+    except:
+        agpercent = ''
+
+    return agpercent
+
+#----------------------------------------------------------------------
 def renderintstr(cell):
 #----------------------------------------------------------------------
     '''
@@ -1605,7 +1645,6 @@ class AjaxRunnerResultsChart(MethodView):
                     ColumnDT('series.name',        mData='series'),
                 ]
 
-
             columns += [
                 ColumnDT('race.name',       mData='race'),
                 ColumnDT('race.distance',   mData='miles',              searchable=False),
@@ -1613,8 +1652,8 @@ class AjaxRunnerResultsChart(MethodView):
                 ColumnDT('time',            mData='time',               searchable=False,   filter=lambda c: render.rendertime(c, 0)),
                 ColumnDT('time',            mData='pace',               searchable=False,
                          filterarg='row', filter=lambda r: render.rendertime(r.time / r.race.distance, 0, useceiling=False)),
-                ColumnDT('agtime',          mData='agtime',             searchable=False,   filter=lambda c: render.rendertime(c, 0)),
-                ColumnDT('agpercent',       mData='agpercent',          searchable=False,   filter=lambda c: '{:.2f}%'.format(c)),
+                ColumnDT('agtime',          mData='agtime',             searchable=False,   filterarg='row', filter=renderagtime),
+                ColumnDT('agpercent',       mData='agpercent',          searchable=False,   filterarg='row', filter=renderagpercent),
             ]
 
             # give extra columns to the admin

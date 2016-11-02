@@ -38,6 +38,7 @@ import analyzeagegrade
 from loutilities import timeu
 from racedb import Club, RaceResult, Race, Runner
 from nav import productname
+from loutilities.renderrun import rendertime
 
 ftime = timeu.asctime('%Y-%m-%d')
 
@@ -47,10 +48,11 @@ METERSPERMILE = 1609.344
 # table for driving trend plotting
 # *** must match trendlimits in results_scatterplot.js
 TRENDLIMITS = collections.OrderedDict([
-               ((0,4999.99),         ('<5K','to5k')),
-               ((5000.00,21097.50),  ('5K - <HM','5ktohm')),
-               ((21097.51,42194.99), ('HM - Mara','hmtomara')),
-               ((42195.00,200000),   ('Ultra','ultra')),
+            #   [min,      max)
+               ((0,        5000.00), ('<5K','to5k')),
+               ((5000.00,  21082),   ('5K - <HM','5ktohm')),
+               ((21082,    42196),   ('HM - Mara','hmtomara')),
+               ((42196,    200000),  ('Ultra','ultra')),
               ])
 
 # priorities for deduplication
@@ -93,7 +95,7 @@ def initaagrunner(aag, thisrunner, fname, lname, gender, dob, runnerid):
     
         
 #----------------------------------------------------------------------
-def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minage=12, minagegrade=20, minraces=3 , mintrend=5, numyears=3, begindate=None, enddate=None):
+def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resultsurl, minage=12, minagegrade=20, minraces=3 , mintrend=2, numyears=3, begindate=None, enddate=None):
 #----------------------------------------------------------------------
     '''
     render collected results
@@ -101,7 +103,8 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
     :param thistask: this is required for task thistask.update_state()
     :param club_id: identifies club for which results are to be stored
     :param sources: list of sources / services we're keeping status for
-    :param summaryfile: summary file name template (.csv), may include {date} field
+    :param summaryfile: summary file name (.csv)
+    :param detailfile: detail file name (.csv)
     :param resultsurl: base url to send results to, for link in summary table
     :param minage: minimum age to keep track of stats
     :param minagegrade: minimum age grade
@@ -125,9 +128,10 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
     lastyear = enddate.year
     yearrange = range(firstyear,lastyear+1)
     
-    # get all the requested result data from the database
+    # get all the requested result data from the database and save in a data structure indexed by runner
     ## first get the data from the database
-    results = RaceResult.query.join(Race).join(Runner).filter(RaceResult.club_id==club_id, Race.date.between(begindate, enddate), Runner.active==True).order_by(Runner.lname, Runner.fname).all()
+    results = RaceResult.query.join(Race).join(Runner).filter(RaceResult.club_id==club_id, 
+                Race.date.between(ftime.dt2asc(begindate), ftime.dt2asc(enddate)), Runner.active==True).order_by(Runner.lname, Runner.fname).all()
 
     ## then set up our status and pass to the front end
     for source in sources:
@@ -137,15 +141,43 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
         status[source]['total'] = sum([1 for result in results if result.source==source])
     thistask.update_state(state='PROGRESS', meta={'progress':status})
     
+    ## prepare to save detail file, for debugging
+    detlfields = 'runnername,runnerid,dob,gender,resultid,racename,racedate,series,distmiles,distkm,time,timesecs,agpercent,source,sourceid'.split(',')
+    detailfname = detailfile
+    _DETL = open(detailfname,'wb')
+    DETL = csv.DictWriter(_DETL,detlfields)
+    DETL.writeheader()
+
     ## then fill in data structure to hold AnalyzeAgeGrade objects
-    aag = {}
+    ## use OrderedDict to force aag to be in same order as DETL file, for debugging
+    aag = collections.OrderedDict()
     for result in results:
         thisname = (result.runner.name.lower(), result.runner.dateofbirth)
         initaagrunner(aag, thisname, result.runner.fname, result.runner.lname, result.runner.gender, ftime.asc2dt(result.runner.dateofbirth), result.runner.id)
-        aag[thisname].add_stat(ftime.asc2dt(result.race.date), result.race.distance*METERSPERMILE, result.time, race=result.race.name,
+        thisstat = aag[thisname].add_stat(ftime.asc2dt(result.race.date), result.race.distance*METERSPERMILE, result.time, race=result.race.name,
                                loc=result.race.location, fuzzyage=result.fuzzyage,
                                source=result.source, priority=priority[result.source])
+        ### TODO: store result's agpercent, in AgeGrade.crunch() skip agegrade calculation if already present
+        DETL.writerow(dict(
+                runnername = result.runner.name,
+                runnerid = result.runner.id,
+                dob = result.runner.dateofbirth,
+                gender = result.runner.gender,
+                resultid = result.id,
+                racename = result.race.name,
+                racedate = result.race.date,
+                series = result.series.name if result.seriesid else None,
+                distmiles = result.race.distance,
+                distkm = result.race.distance*(METERSPERMILE/1000),
+                timesecs = result.time,
+                time = rendertime(result.time,0),
+                agpercent = result.agpercent,
+                source = result.source,
+                sourceid = result.sourceid,
+            ))
 
+    ## close detail file
+    _DETL.close()
 
     # initialize summary file
     summfields = ['name', 'lname', 'fname', 'age', 'gender']
@@ -230,13 +262,15 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
 
         # draw trendlines, write output
         allstats = aag[thisname].get_stats()
-        avg['overall'] = mean([s.ag for s in allstats])
+        if len(allstats) > 0:
+            avg['overall'] = mean([s.ag for s in allstats])
         trend = aag[thisname].get_trendline()
 
         oneyrstats = [s.ag for s in allstats if s.date.year == lastyear]
         if len(oneyrstats) > 0:
             summout['1yr agegrade\noverall'] = mean(oneyrstats)
-        summout['avg agegrade\noverall'] = avg['overall']
+        if len(allstats) > 0:
+            summout['avg agegrade\noverall'] = avg['overall']
         if len(allstats) >= mintrend:
             summout['trend\noverall'] = trend.improvement
             summout['stderr\noverall'] = trend.stderr
@@ -247,20 +281,20 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
             summout['numraces\n{}'.format(year)] = len([s for s in allstats if s.date.year==year])
         for tlimit in TRENDLIMITS:
             distcategory,distcolor = TRENDLIMITS[tlimit]
-            tstats = [s for s in allstats if s.dist >= tlimit[0] and s.dist <= tlimit[1]]
-            if len(tstats) < mintrend: continue
-            avg[distcategory] = mean([s.ag for s in tstats])
-            trend = aag[thisname].get_trendline(thesestats=tstats)
-            
+            tstats = [s for s in allstats if s.dist >= tlimit[0] and s.dist < tlimit[1]]
+            if len(tstats) > 0:
+                avg[distcategory] = mean([s.ag for s in tstats])
+                summout['avg agegrade\n{}'.format(distcategory)] = avg[distcategory]
+            summout['numraces\n{}'.format(distcategory)] = len(tstats)
             oneyrcategory = [s.ag for s in tstats if s.date.year == lastyear]
             if len(oneyrcategory) > 0:
                 summout['1yr agegrade\n{}'.format(distcategory)] = mean(oneyrcategory)
-            summout['avg agegrade\n{}'.format(distcategory)] = avg[distcategory]
-            summout['trend\n{}'.format(distcategory)] = trend.improvement
-            summout['stderr\n{}'.format(distcategory)] = trend.stderr
-            summout['r-squared\n{}'.format(distcategory)] = trend.r2
-            summout['pvalue\n{}'.format(distcategory)] = trend.pvalue
-            summout['numraces\n{}'.format(distcategory)] = len(tstats)
+            if len(tstats) >= mintrend:
+                trend = aag[thisname].get_trendline(thesestats=tstats)
+                summout['trend\n{}'.format(distcategory)] = trend.improvement
+                summout['stderr\n{}'.format(distcategory)] = trend.stderr
+                summout['r-squared\n{}'.format(distcategory)] = trend.r2
+                summout['pvalue\n{}'.format(distcategory)] = trend.pvalue
         SUMM.writerow(summout)
 
         # update status
