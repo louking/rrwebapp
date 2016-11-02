@@ -1427,10 +1427,6 @@ class RunnerResultsChart(MethodView):
             resultfilter = {}
             name = None
             pagename = 'Results Analysis'
-            if runnerid:
-                runner = Runner.query.filter_by(id=runnerid).first()
-                if runner:
-                    resultfilter['runnerid'] = runnerid
 
             # DataTables options string, data: and buttons: are passed separately
             dt_options = {
@@ -1529,7 +1525,7 @@ class RunnerResultsChart(MethodView):
                                          # serverSide must be True to pass url
                                          # add the request args to the ajax function
                                          tabledata=url_for('_resultschart')+'?'+urlencode(request.args),
-                                         tablebuttons= [],
+                                         tablebuttons= ['csv'],
                                          options = options,
                                          inhibityear=True,inhibitclub=True,
                                          )
@@ -1554,23 +1550,17 @@ class AjaxRunnerResultsChart(MethodView):
             adminuser = readcheck.can()
 
             club_shname = request.args.get('club',None)
-            runnerid = request.args.get('participant',None)
+            runnerid = request.args.get('runnerid',None)
             seriesarg = request.args.get('series',None)
+            datefromarg = request.args.get('begindate','')
+            datetoarg = request.args.get('enddate','')
 
             # filter on valid runnerid, if present
             namesfilter = {'member':True}   # only support members because this means dateofbirth is known
             resultfilter = {}
-            runnerfilter = {}
             seriesfilter = {}
             name = None
             pagename = 'Results'
-            if runnerid:
-                runner = Runner.query.filter_by(id=runnerid).first()
-                if runner:
-                    resultfilter['runnerid'] = runnerid
-                    runnerfilter['id'] = runnerid
-                    name = runner.name
-                    pagename = '{} Results'.format(name)
 
             # filter on club, if present
             if club_shname:
@@ -1578,7 +1568,6 @@ class AjaxRunnerResultsChart(MethodView):
                 if club:
                     namesfilter['club_id'] = club.id
                     resultfilter['club_id'] = club.id
-                    runnerfilter['club_id'] = club.id
 
             # if not admin, limit source to rrwebapp product name
             if not adminuser:
@@ -1638,10 +1627,11 @@ class AjaxRunnerResultsChart(MethodView):
             # make copy of args as request.args is immutable and we might want to update
             args = request.args.copy()
 
-            # if no search for runnerid, we shouldn't return anything
+            # if no search for runnerid, we return no records, expecting user to make a selection later
             # kludge this by setting resultsfilter to -1
             runneridfield = 'columns[{}][search][value]'.format(getcol('runnerid'))
-            if not request.args.get(runneridfield,None):
+            runneridsearch = args[runneridfield]
+            if not runneridsearch:
                 resultfilter['runnerid'] = -1
 
             # delimiter for string operations 
@@ -1651,9 +1641,9 @@ class AjaxRunnerResultsChart(MethodView):
             datefield = 'columns[{}][search][value]'.format(getcol('date'))
             # if min or max is missing, prepare to fill in
             nulldate = [tYmd.epoch2asc(0),tYmd.epoch2asc(time())]
-            datearg = args[datefield]
-            if datearg:
-                daterange = datearg.split(delim)
+            datesearch = args[datefield]
+            if datesearch:
+                daterange = datesearch.split(delim)
                 # sure hope len(daterange) == 2
                 for i in range(2):
                     if daterange[i] == '':
@@ -1714,6 +1704,21 @@ class AjaxRunnerResultsChart(MethodView):
             output_result['yadcf_data_{}'.format(getcol('series'))] = series
             output_result['yadcf_data_{}'.format(getcol('miles'))] = statranges['miles']
             output_result['yadcf_data_{}'.format(getcol('agpercent'))] = statranges['agpercent']
+
+            # set up filters from client side, 
+            # but only if we don't already have the filter
+            # else there will be infinite loop
+            ## for runnerid
+            if runnerid and not runneridsearch:
+                runner = Runner.query.filter_by(id=runnerid).first()
+                if runner:
+                    output_result['yadcf_default_{}'.format(getcol('runnerid'))] = runnerid
+                else:
+                    app.logger.warning('runnerid {} not found'.format(runnerid))
+
+            ## for date
+            if (datefromarg or datetoarg) and not datesearch:
+                output_result['yadcf_default_{}'.format(getcol('date'))] = {'from':datefromarg, 'to':datetoarg}
 
             return jsonify(output_result)
 

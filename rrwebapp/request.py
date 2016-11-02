@@ -71,8 +71,8 @@ sz_cdn = 'https://cdnjs.cloudflare.com/ajax/libs'
 sz_ver = '0.12.2'
 
 # yadcf
-yadcf_cdn = 'https://cdn.jsdelivr.net'
-yadcf_ver = '0.8.9'
+yadcf_cdn = 'https://cdnjs.cloudflare.com/ajax/libs'
+yadcf_ver = '0.9.0'
 
 # d3
 d3_cdn = 'https://d3js.org'
@@ -122,8 +122,9 @@ SCRIPTS = [
     'js/DataTables-1.10.11/FieldType-Selectize/editor.selectize.js',
     'js/DataTables-1.10.11/FieldType-Selectize/editor.selectize.css',
 
-    ('yadcf/{ver}/jquery.dataTables.yadcf.js', yadcf_ver, yadcf_cdn),
-    ('yadcf/{ver}/jquery.dataTables.yadcf.css', yadcf_ver, yadcf_cdn),
+    # ('yadcf/{ver}/jquery.dataTables.yadcf{min}.js', yadcf_ver, yadcf_cdn),
+    'jquery.dataTables.yadcf-0.9.1-beta.6.js',
+    ('yadcf/{ver}/jquery.dataTables.yadcf{min}.css', yadcf_ver, yadcf_cdn),
 
     ('d3.{ver}{min}.js', d3_ver, d3_cdn),
     ('d3-scale-chromatic.{ver}{min}.js', d3_sc_ver, d3_cdn),

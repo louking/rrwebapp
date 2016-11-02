@@ -215,7 +215,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, resultsurl, minag
         # see http://stackoverflow.com/questions/2506379/add-params-to-given-url-in-python
         url_parts = list(urlparse(resultsurl))
         query = dict(parse_qsl(url_parts[4]))
-        query.update({'club': clubslug, 'runnerid':runnerid})
+        query.update({'club': clubslug, 'runnerid': runnerid, 'begindate': ftime.dt2asc(begindate), 'enddate': ftime.dt2asc(enddate)})
         url_parts[4] = urlencode(query)
         resultslink = urlunparse(url_parts)
 

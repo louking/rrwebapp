@@ -509,6 +509,65 @@ function datatables_chart() {
         // see http://bl.ocks.org/d3noob/7030f35b72de721622b8
         dt_chart_update(dedupdata);
 
+        // update filter defaults if received from the server
+        var default_key = "yadcf_default_"
+        var filters = [];
+        for (key in json) {
+            if (key.startsWith(default_key)) {
+                var col = parseInt(key.slice(default_key.length));
+                var value = json[key];
+
+                // *** save this code just in case, but with yadcf 0.9.1 beta 6 this causes infinite loop
+                // *** this is because for select with number values, string labels exGetColumnFilterVal always returns ''
+                // *** instead check for search is made on the server side and yadcf_default_ is not sent
+                // var oldvalue = yadcf.exGetColumnFilterVal(_dt_table, col);
+                //
+                // // must jump through some hoops to check if we're changing anything
+                // changed = false;
+                // // check scalar values
+                // if (typeof(value) != 'object' && value != oldvalue) {
+                //     changed = true;
+                // // check array values
+                // } else if (Array.isArray(value)) {
+                //     if (value.length != oldvalue.length) {
+                //         changed = true;
+                //     } else {
+                //         var newvalue = value.slice(0);
+                //         newvalue.sort();
+                //         oldvalue.sort();
+                //         for (i=0; i<newvalue.length; i++) {
+                //             if (newvalue[i] != oldvalue[i]) {
+                //                 changed = true;
+                //                 break;
+                //             }
+                //         }
+                //     }
+                // // check object values
+                // } else {
+                //     if (Object.keys(value).length != Object.keys(oldvalue).length) {
+                //         changed = true;
+                //     } else {
+                //         for (key in value) {
+                //             if (value[key] != oldvalue[key]) {
+                //                 changed = true;
+                //                 break;
+                //             }
+                //         }
+                //     }
+                // }
+                var changed = true;
+
+                if (changed) {
+                    filters.push([col, value])
+                }
+            }
+        }
+
+        // only filter if something has changed, else infinite loop
+        if (filters.length != 0) {
+            yadcf.exFilterColumn(_dt_table, filters);
+            console.log('filters='+filters)
+        }
     });     // _dt_table.on( 'xhr.dt'
 
 }
