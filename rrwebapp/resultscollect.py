@@ -27,6 +27,7 @@ import time
 
 # home grown
 from . import app
+from loutilities.transform import Transform
 from loutilities import timeu
 ftime = timeu.asctime('%Y-%m-%d')
 
@@ -198,33 +199,18 @@ class ServiceResult():
     represents single result from service
     '''
 
-
-    #----------------------------------------------------------------------
-    def __init__(self, servicename, resultattrs, myattrs):
-    #----------------------------------------------------------------------
-
-        self.servicename = servicename
-
-        for attr in resultattrs:
-            setattr(self,attr,None)
-            
-        for attr in myattrs:
-            if attr not in resultattrs:
-                raise invalidParameter,'unknown attribute: {}'.format(attr)
-            setattr(self,attr,myattrs[attr])
-    
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
         
-        reprstr = '{}result('.format(self.servicename)
+        reprstr = 'ServiceResult('
         for attr in resultattrs:
             reprstr += '{}={},'.format(attr,getattr(self,attr))
         reprstr = reprstr[:-1] + ')'
         return reprstr
     
 ########################################################################
-class ServiceResultFile():
+class ServiceResultFile(object):
 ########################################################################
     '''
     represents file of athlinks results collected from athlinks
@@ -233,12 +219,14 @@ class ServiceResultFile():
     '''
    
     #----------------------------------------------------------------------
-    def __init__(self, filename):
+    def __init__(self, servicename, mapping):
     #----------------------------------------------------------------------
-        self.filename = filename
+        self.servicename = servicename
+        self.mapping = mapping
+        self.transform = Transform(mapping, sourceattr=False, targetattr=True).transform
         
     #----------------------------------------------------------------------
-    def open(self,mode='rb'):
+    def open(self, filename, mode='rb'):
     #----------------------------------------------------------------------
         '''
         open athlinks result file
@@ -248,17 +236,14 @@ class ServiceResultFile():
         if mode[0] not in ['r']:
             raise invalidParameter, 'mode {} not currently supported'.format(mode)
     
-        self._fh = open(self.filename,mode)
+        self._fh = open(filename,mode)
 
         # count the number of lines then reset the file pointer -- don't count header
         self._numlines = sum(1 for line in self._fh) - 1
         self._fh.seek(0)
 
-        # create the DictXxxx object
-        if mode[0] == 'r':
-            self._csv = csv.DictReader(self._fh)
-        else:
-            pass
+        # create the DictReader object
+        self._csv = csv.DictReader(self._fh)
         
     #----------------------------------------------------------------------
     def close(self):
@@ -291,27 +276,8 @@ class ServiceResultFile():
         except StopIteration:
             return None
         
-        aresultargs = {}
-        for fattr in self.hdrtransform:
-            aattr = self.hdrtransform[fattr]
-            
-            # special handling for gender
-            if aattr == 'gender':
-                aresultargs[aattr] = fresult[fattr][0]
+        serviceresult = ServiceResult()
+        self.transform(fresult, serviceresult)
                 
-            # special handling for dates
-            elif aattr in resultdates:
-                aresultargs[aattr] = ftime.asc2dt(fresult[fattr])
-                
-            else:
-                # convert numbers
-                try:
-                    aresultargs[aattr] = int(fresult[fattr])
-                except ValueError:
-                    try:
-                        aresultargs[aattr] = float(fresult[fattr])
-                    except ValueError:
-                        aresultargs[aattr] = fresult[fattr]
-                
-        return ServiceResult(**aresultargs)
+        return serviceresult
     

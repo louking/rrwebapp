@@ -34,6 +34,7 @@ import json
 # github
 
 # home grown
+from . import app
 import analyzeagegrade
 from loutilities import timeu
 from racedb import Club, RaceResult, Race, Runner
@@ -271,7 +272,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
             summout['1yr agegrade\noverall'] = mean(oneyrstats)
         if len(allstats) > 0:
             summout['avg agegrade\noverall'] = avg['overall']
-        if len(allstats) >= mintrend:
+        if len(allstats) >= mintrend and allstats[0].date != allstats[-1].date:
             summout['trend\noverall'] = trend.improvement
             summout['stderr\noverall'] = trend.stderr
             summout['r-squared\noverall'] = trend.r2**2
@@ -289,8 +290,12 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
             oneyrcategory = [s.ag for s in tstats if s.date.year == lastyear]
             if len(oneyrcategory) > 0:
                 summout['1yr agegrade\n{}'.format(distcategory)] = mean(oneyrcategory)
-            if len(tstats) >= mintrend:
-                trend = aag[thisname].get_trendline(thesestats=tstats)
+            if len(tstats) >= mintrend and tstats[0].date != tstats[-1].date:
+                try:
+                    trend = aag[thisname].get_trendline(thesestats=tstats)
+                except ZeroDivisionError:
+                    app.logger.error('ZeroDivisionError - processing {}'.format(rendername))
+                    raise
                 summout['trend\n{}'.format(distcategory)] = trend.improvement
                 summout['stderr\n{}'.format(distcategory)] = trend.stderr
                 summout['r-squared\n{}'.format(distcategory)] = trend.r2

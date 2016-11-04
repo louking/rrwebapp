@@ -46,21 +46,35 @@ ftime = asctime('%Y-%m-%d')
 summaryfiletemplate = '{}/{{clubslug}}-summary.csv'.format(app.config['MEMBERSHIP_DIR'])
 
 # set up services to collect and store data from
-normstoreattrs = 'runnername,dob,gender,sourceid,sourceresultid,racename,date,raceloc,raceage,distmiles,time'.split(',')
+normstoreattrs = 'runnername,dob,gender,sourceid,sourceresultid,racename,date,raceloc,raceage,distmiles,time,timesecs,fuzzyage'.split(',')
 collectservices = {}
 storeservices = {}
-from athlinksresults import AthlinksCollect
+
+## athlinks handling
+from athlinksresults import AthlinksCollect, AthlinksResultFile
 athl = AthlinksCollect()
 collectservices['athlinks'] = athl.collect
-athlinksattrs = 'name,dob,gender,id,entryid,racename,racedate,raceloc,age,distmiles,resulttime'.split(',')
-athlinkstransform = dict(zip(normstoreattrs,athlinksattrs))
-athlinkstransform['fuzzyage'] = 'fuzzyage'
+athlinksattrs = 'name,dob,gender,id,entryid,racename,racedate,raceloc,age,distmiles,resulttime,timesecs,fuzzyage'.split(',')
+athlinkstransform = dict(zip(normstoreattrs, athlinksattrs))
 # dates come in as datetime, reset to ascii
-athlinkstransform['dob'] = lambda row: ftime.dt2asc(getattr(row, 'dob'))
-athlinkstransform['date'] = lambda row: ftime.dt2asc(getattr(row, 'racedate'))
-athlinkstransform['timesecs'] = lambda row: timesecs(getattr(row, 'resulttime'))
-from athlinksresults import AthlinksResultFile  # REMOVE THIS
-storeservices['athlinks'] = StoreServiceResults('athlinks', AthlinksResultFile, athlinkstransform)
+# athlinkstransform['dob'] = lambda row: ftime.dt2asc(getattr(row, 'dob'))
+# athlinkstransform['date'] = lambda row: ftime.dt2asc(getattr(row, 'racedate'))
+athlinkstransform['timesecs'] = lambda row: timesecs(getattr(row, 'resulttime'))    # not provided by athlinks
+athlresults = AthlinksResultFile()
+storeservices['athlinks'] = StoreServiceResults('athlinks', athlresults, athlinkstransform)
+
+## ultrasignup handling
+from ultrasignupresults import UltraSignupCollect, UltraSignupResultFile
+us = UltraSignupCollect()
+collectservices['ultrasignup'] = us.collect
+usattrs = 'name,dob,gender,sourceid,sourceresultid,race,date,loc,age,miles,time,timesecs,fuzzyage'.split(',')
+ustransform = dict(zip(normstoreattrs, usattrs))
+ustransform['sourceid'] = lambda row: None
+ustransform['sourceresultid'] = lambda row: None
+ustransform['fuzzyage'] = lambda row: False
+usresults = UltraSignupResultFile()
+storeservices['ultrasignup'] = StoreServiceResults('ultrasignup', usresults, ustransform)
+
 
 #######################################################################
 class ResultsAnalysisStatus(MethodView):

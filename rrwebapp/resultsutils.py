@@ -51,18 +51,16 @@ class StoreServiceResults():
             runnername, dob, gender, racename, raceloc, date, distmiles, serviceentryid
 
     :param servicename: name of service
-    :param serviceaccessclass: class to access result from service file
+    :param serviceaccessor: instance of ServiceResultFile
     :param xservice2norm: {'normattr_n':'serviceattr_n', 'normattr_m':f(servicerow), ...}
     '''
 
     #----------------------------------------------------------------------
-    def __init__(self, servicename, serviceaccessclass, xservice2norm):
+    def __init__(self, servicename, serviceaccessor, xservice2norm):
     #----------------------------------------------------------------------
         self.servicename = servicename
-        self.serviceaccessclass = serviceaccessclass
+        self.serviceaccessor = serviceaccessor
         self.service2norm = Transform(xservice2norm, sourceattr=True, targetattr=True)
-
-        self.accessor = None
 
     #----------------------------------------------------------------------
     def get_count(self, filename):
@@ -73,10 +71,9 @@ class StoreServiceResults():
         :param filename: name of the file
         :rtype: number of lines in the file
         '''
-        accessor = self.serviceaccessclass(filename)
-        accessor.open()
-        numlines = accessor.count()
-        accessor.close()
+        self.serviceaccessor.open(filename)
+        numlines = self.serviceaccessor.count()
+        self.serviceaccessor.close()
 
         return numlines
 
@@ -97,15 +94,14 @@ class StoreServiceResults():
         '''
 
         # create service accessor and open file
-        self.accessor = self.serviceaccessclass(filename)
-        self.accessor.open()
+        self.serviceaccessor.open(filename)
 
-        status[self.servicename]['total'] = self.accessor.count()
+        status[self.servicename]['total'] = self.serviceaccessor.count()
         status[self.servicename]['processed'] = 0
 
         # loop through all results and store in database
         while True:
-            filerecord = self.accessor.next()
+            filerecord = self.serviceaccessor.next()
             if not filerecord: break
 
             # transform to result attributes
@@ -153,7 +149,6 @@ class StoreServiceResults():
             thistask.update_state(state='PROGRESS', meta={'progress':status})
 
         # finished reading results, close input file
-        self.accessor.close()
-        self.accessor = None
+        self.serviceaccessor.close()
 
 

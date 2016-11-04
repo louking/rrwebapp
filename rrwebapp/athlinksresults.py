@@ -32,7 +32,7 @@ from . import app
 from loutilities import timeu
 from loutilities import csvu
 from loutilities import agegrade
-from resultscollect import ResultsCollect
+from resultscollect import ResultsCollect, ServiceResultFile
 from running import athlinks
 from database_flask import db   # this is ok because this module only runs under flask
 from racedb import ApiCredentials, Club, Course, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
@@ -49,9 +49,19 @@ class invalidParameter(Exception): pass
 # resultfilehdr needs to associate 1:1 with resultattrs
 resultfilehdr = 'GivenName,FamilyName,name,DOB,Gender,athlid,race,date,loc,age,fuzzyage,miles,km,category,time,ag,entryid'.split(',')
 resultattrs = 'firstname,lastname,name,dob,gender,id,racename,racedate,raceloc,age,fuzzyage,distmiles,distkm,racecategory,resulttime,resultagegrade,entryid'.split(',')
-resultdates = 'dob,racedate'.split(',')
-hdrtransform = dict(zip(resultfilehdr,resultattrs))
+hdrtransform = dict(zip(resultattrs, resultfilehdr))
 ftime = timeu.asctime('%Y-%m-%d')
+
+
+########################################################################
+class AthlinksResultFile(ServiceResultFile): 
+########################################################################
+    #----------------------------------------------------------------------
+    def __init__(self):
+    #----------------------------------------------------------------------
+        super(AthlinksResultFile, self).__init__('athlinks', hdrtransform)
+
+
 
 ########################################################################
 class AthlinksCollect(ResultsCollect):
@@ -349,133 +359,3 @@ class AthlinksCollect(ResultsCollect):
         if self.racefile:
             self._RACE.close()
 
-
-
-
-
-
-
-
-    
-########################################################################
-class AthlinksResult():
-########################################################################
-    '''
-    represents single result from athlinks
-    '''
-
-
-    #----------------------------------------------------------------------
-    def __init__(self,**myattrs):
-    #----------------------------------------------------------------------
-
-        for attr in resultattrs:
-            setattr(self,attr,None)
-            
-        for attr in myattrs:
-            if attr not in resultattrs:
-                raise invalidParameter,'unknown attribute: {}'.format(attr)
-            setattr(self,attr,myattrs[attr])
-    
-    #----------------------------------------------------------------------
-    def __repr__(self):
-    #----------------------------------------------------------------------
-        
-        reprstr = 'athlinksresult.AthlinksResult('
-        for attr in resultattrs:
-            reprstr += '{}={},'.format(attr,getattr(self,attr))
-        reprstr = reprstr[:-1] + ')'
-        return reprstr
-    
-########################################################################
-class AthlinksResultFile():
-########################################################################
-    '''
-    represents file of athlinks results collected from athlinks
-    
-    TODO:: add write methods, and update :func:`collect` to use :class:`AthlinksResult` class
-    '''
-   
-    #----------------------------------------------------------------------
-    def __init__(self,filename):
-    #----------------------------------------------------------------------
-        self.filename = filename
-        
-    #----------------------------------------------------------------------
-    def open(self,mode='rb'):
-    #----------------------------------------------------------------------
-        '''
-        open athlinks result file
-        
-        :param mode: 'rb' or 'wb' -- TODO: support 'wb'
-        '''
-        if mode[0] not in ['r']:
-            raise invalidParameter, 'mode {} not currently supported'.format(mode)
-    
-        self._fh = open(self.filename,mode)
-
-        # count the number of lines then reset the file pointer -- don't count header
-        self._numlines = sum(1 for line in self._fh) - 1
-        self._fh.seek(0)
-
-        # create the DictXxxx object
-        if mode[0] == 'r':
-            self._csv = csv.DictReader(self._fh)
-        else:
-            pass
-        
-    #----------------------------------------------------------------------
-    def close(self):
-    #----------------------------------------------------------------------
-        '''
-        close athlinks result file
-        '''
-        if hasattr(self,'_fh'):
-            self._fh.close()
-            delattr(self,'_fh')
-            delattr(self,'_csv')
-            delattr(self,'_numlines')
-        
-    #----------------------------------------------------------------------
-    def count(self):
-    #----------------------------------------------------------------------
-        return self._numlines
-    
-    #----------------------------------------------------------------------
-    def next(self):
-    #----------------------------------------------------------------------
-        '''
-        get next :class:`AthlinksResult`
-        
-        :rtype: :class:`AthlinksResult`, or None when end of file reached
-        '''
-        try:
-            fresult = self._csv.next()
-            
-        except StopIteration:
-            return None
-        
-        aresultargs = {}
-        for fattr in hdrtransform:
-            aattr = hdrtransform[fattr]
-            
-            # special handling for gender
-            if aattr == 'gender':
-                aresultargs[aattr] = fresult[fattr][0]
-                
-            # special handling for dates
-            elif aattr in resultdates:
-                aresultargs[aattr] = ftime.asc2dt(fresult[fattr])
-                
-            else:
-                # convert numbers
-                try:
-                    aresultargs[aattr] = int(fresult[fattr])
-                except ValueError:
-                    try:
-                        aresultargs[aattr] = float(fresult[fattr])
-                    except ValueError:
-                        aresultargs[aattr] = fresult[fattr]
-                
-        return AthlinksResult(**aresultargs)
-    
