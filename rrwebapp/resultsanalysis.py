@@ -49,8 +49,9 @@ summaryfiletemplate = '{}/{{clubslug}}-summary.csv'.format(app.config['MEMBERSHI
 normstoreattrs = 'runnername,dob,gender,sourceid,sourceresultid,racename,date,raceloc,raceage,distmiles,time'.split(',')
 collectservices = {}
 storeservices = {}
-import athlinksresults
-collectservices['athlinks'] = athlinksresults.collect
+from athlinksresults import AthlinksCollect
+athl = AthlinksCollect()
+collectservices['athlinks'] = athl.collect
 athlinksattrs = 'name,dob,gender,id,entryid,racename,racedate,raceloc,age,distmiles,resulttime'.split(',')
 athlinkstransform = dict(zip(normstoreattrs,athlinksattrs))
 athlinkstransform['fuzzyage'] = 'fuzzyage'
@@ -58,7 +59,8 @@ athlinkstransform['fuzzyage'] = 'fuzzyage'
 athlinkstransform['dob'] = lambda row: ftime.dt2asc(getattr(row, 'dob'))
 athlinkstransform['date'] = lambda row: ftime.dt2asc(getattr(row, 'racedate'))
 athlinkstransform['timesecs'] = lambda row: timesecs(getattr(row, 'resulttime'))
-storeservices['athlinks'] = StoreServiceResults('athlinks', athlinksresults.AthlinksResultFile, athlinkstransform)
+from athlinksresults import AthlinksResultFile  # REMOVE THIS
+storeservices['athlinks'] = StoreServiceResults('athlinks', AthlinksResultFile, athlinkstransform)
 
 #######################################################################
 class ResultsAnalysisStatus(MethodView):
@@ -258,13 +260,6 @@ class ResultsAnalysisStatus(MethodView):
                 detailfile = '{}/{}-{{service}}-detail.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
                 fulldetailfile = '{}/{}-detail.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
 
-                # set debugrace to False if not debugging
-                debugrace = True
-                if debugrace:
-                    racefile = '{}/{}-{{service}}-race.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
-                else:
-                    racefile = None
-
                 # convert members to file-like list
                 # filefields and dbattrs are used to convert db to file format
                 filefields = 'GivenName,FamilyName,DOB,Gender'.split(',')
@@ -281,7 +276,7 @@ class ResultsAnalysisStatus(MethodView):
                     OUT.writerow(filerow)
 
                 # kick off analysis task
-                task = analyzeresultstask.apply_async((club_id, url_for('resultschart'), memberfile, detailfile, summaryfile, fulldetailfile, taskfile, racefile), queue='longtask')
+                task = analyzeresultstask.apply_async((club_id, url_for('resultschart'), memberfile, detailfile, summaryfile, fulldetailfile, taskfile), queue='longtask')
 
                 # save taskfile
                 with open(taskfile,'w') as tf:
@@ -439,7 +434,7 @@ def getservicekey(service):
 
 #----------------------------------------------------------------------
 @celery.task(bind=True)
-def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summaryfile, fulldetailfile, taskfile, racefile):
+def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summaryfile, fulldetailfile, taskfile):
 #----------------------------------------------------------------------
     
     try:
@@ -462,14 +457,8 @@ def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summar
             key = getservicekey(service)
             thisdetailfile = detailfile.format(service=servicename)
 
-            # debug file with race information
-            if racefile:
-                thisracefile = racefile.format(service=servicename)
-            else:
-                thisracefile = None
-            
             status[servicename]['status'] = 'collecting'
-            collectservices[servicename](self, club_id, memberfile, thisdetailfile, thisracefile, status, key=key)
+            collectservices[servicename](self, club_id, memberfile, thisdetailfile, status)
 
         # add results to database from all the services which were collected
         # add new entries, update existing entries
