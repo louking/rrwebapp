@@ -58,6 +58,7 @@ TRENDLIMITS = collections.OrderedDict([
 
 # priorities for deduplication
 # lowest priority value of duplicate entries is kept
+# must match priorities in results_scatterplot.js
 PRIO_CLUBRACES = 1
 PRIO_ULTRASIGNUP = 2
 PRIO_ATHLINKS = 3

@@ -231,7 +231,7 @@ class AnalyzeAgeGrade():
 
         # collect unique statistics, within epsilon distance
         DIST_EPS = 2.0   # if event distance is within this tolerance (%age), assumed the same
-        TIME_EPS = 1.0   # if time is within this tolerance (seconds), assumed to be the same
+        TIME_EPS = 2.0   # if time is within this tolerance (seconds), assumed to be the same
 
         # sort self.stats into stats, by date,distance
         decstats = [((s.date,s.dist),s) for s in self.stats]

@@ -1,3 +1,18 @@
+// priorities must match that defined in resultssummarize.py
+var PRIO_CLUBRACES = 1,
+    PRIO_ULTRASIGNUP = 2,
+    PRIO_ATHLINKS = 3,
+    PRIO_RUNNINGAHEAD = 4,
+    PRIO_STRAVA = 5;
+var priority = {
+    'ultrasignup':  PRIO_ULTRASIGNUP,
+    'athlinks':     PRIO_ATHLINKS,
+    'runningahead': PRIO_RUNNINGAHEAD,
+    'strava':       PRIO_STRAVA,
+};
+priority[_rrwebapp_productname] = PRIO_CLUBRACES;
+
+
 // datatables_chart is used to create the chart from datatables.js
 function datatables_chart() {
     var margin = {top: 40, right: 100, bottom: 60, left: 50},
@@ -213,12 +228,22 @@ function datatables_chart() {
         // deduplicate stats, paying attention to priority when races determined to be the same
         // dedup function must match analyzeagegrade.AnalyzeAgeGrade.deduplicate
         var DIST_EPS = 2;   // if event distance is within this tolerance (%age), assumed the same
-        var TIME_EPS = 1;   // if time is within this tolerance (seconds), assumed to be the same
+        var TIME_EPS = 2;   // if time is within this tolerance (seconds), assumed to be the same
         var deduped = [];
-        var stat, prio;
+        var thisstat, stat, prio, thisprio;
         while (stats.length > 0) {
             thisstat = stats.shift();
-            var sameraces = [{prio:1, stat:thisstat}];
+            thisprio = ('source' in thisstat) ? priority[thisstat.source] : 1;
+            var sameraces = [{prio:thisprio, stat:thisstat}];
+
+            // hang debug here
+            // var yyyy = thisstat.date.getFullYear().toString(),
+            //     mm   = (thisstat.date.getMonth()+1).toString(),
+            //     dd   = thisstat.date.getDate().toString(),
+            //     checkdate = yyyy + '-' + (mm[1]?mm:"0"+mm[0]) + '-' + (dd[1]?dd:"0"+dd[0]);
+            // if (checkdate == '2016-03-13') {
+            //     var stophere = 3;
+            // }
 
             // pull races off stats when the race date, distance, time are the same
             // distance has to be within epsilon to be deduced to be the same
@@ -227,7 +252,8 @@ function datatables_chart() {
                     && Math.abs((thisstat.miles - stats[0].miles) / thisstat.miles) <= DIST_EPS/100
                     && Math.abs(thisstat.timesecs - stats[0].timesecs) <= TIME_EPS) {
                 stat = stats.shift();
-                sameraces.push( {'prio':1, 'stat':stat} );
+                thisprio = ('source' in stat) ? priority[stat.source] : 1;
+                sameraces.push( {'prio':thisprio, 'stat':stat} );
             }
 
             sameraces.sort(function(a,b) { return a.prio - b.prio; });

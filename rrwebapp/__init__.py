@@ -35,7 +35,9 @@ from loutilities.configparser import getitems
 app = Flask('rrwebapp')
 
 # define product name (don't import nav until after app.jinja_env.globals['_rrwebapp_productname'] set)
+# TODO: this really should be set in rrwebapp.cfg
 app.jinja_env.globals['_rrwebapp_productname'] = '<span class="brand-all"><span class="brand-left">score</span><span class="brand-right">tility</span></span>'
+app.jinja_env.globals['_rrwebapp_productname_text'] = 'scoretility'
 #from nav import productname
 
 # must set up logging after setting configuration

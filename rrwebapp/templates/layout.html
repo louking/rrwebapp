@@ -117,6 +117,7 @@
 {% block css %}
 {% endblock %}
 
+<script>var _rrwebapp_productname = "{{ _rrwebapp_productname_text|safe }}";</script>
 {% for js in _rrwebapp_jsfiles %}
   <script type="text/javascript" src="{{ js }}"></script>
 {% endfor %}
