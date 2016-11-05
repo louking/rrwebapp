@@ -32,7 +32,7 @@ from . import app
 from loutilities import timeu
 from loutilities import csvu
 from loutilities import agegrade
-from resultscollect import ResultsCollect, ServiceResultFile
+from resultsutils import CollectServiceResults, ServiceResultFile
 from running import athlinks
 from database_flask import db   # this is ok because this module only runs under flask
 from racedb import ApiCredentials, Club, Course, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
@@ -64,7 +64,7 @@ class AthlinksResultFile(ServiceResultFile):
 
 
 ########################################################################
-class AthlinksCollect(ResultsCollect):
+class AthlinksCollect(CollectServiceResults):
 ########################################################################
 
     #----------------------------------------------------------------------
