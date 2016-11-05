@@ -75,6 +75,19 @@ ustransform['fuzzyage'] = lambda row: False
 usresults = UltraSignupResultFile()
 storeservices['ultrasignup'] = StoreServiceResults('ultrasignup', usresults, ustransform)
 
+## runningahead handling
+from runningaheadresults import RunningAHEADCollect, RunningAHEADResultFile
+ra = RunningAHEADCollect()
+collectservices['runningahead'] = ra.collect
+raattrs = 'name,dob,gender,sourceid,sourceresultid,race,date,loc,age,miles,time,timesecs,fuzzyage'.split(',')
+ratransform = dict(zip(normstoreattrs, raattrs))
+ratransform['sourceid'] = lambda row: ''
+ratransform['sourceresultid'] = lambda row: ''
+ratransform['fuzzyage'] = lambda row: False
+ratransform['loc'] = lambda row: ''
+raresults = RunningAHEADResultFile()
+storeservices['runningahead'] = StoreServiceResults('runningahead', raresults, ratransform)
+
 
 #######################################################################
 class ResultsAnalysisStatus(MethodView):
@@ -266,9 +279,6 @@ class ResultsAnalysisStatus(MethodView):
                 # taskfile doesn't exist. this is the normal path -- ignore the exception
                 except IOError:
                     pass
-
-                # TODO: do proper oauth to get user access token
-                rakey = ApiCredentials.query.filter_by(name='raprivuser').first().key
 
                 # note extra set of {{service}} brackets, which will be replace by service name
                 detailfile = '{}/{}-{{service}}-detail.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
