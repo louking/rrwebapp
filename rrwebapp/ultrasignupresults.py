@@ -236,7 +236,7 @@ class UltraSignupCollect(CollectServiceResults):
             # sometimes athlinks stores the age group of the runner, not exact age,
             # so also check if this runner's age is within the age group, and indicate if so
             resultgen = result.gender[0]
-            dt_racedate = timeu.asc2dt(result.racedate)
+            dt_racedate = ftime.asc2dt(result.racedate)
             racedateage = timeu.age(dt_racedate, self.dt_dob)
             agpercent,agresult,agfactor = ag.agegrade(racedateage, resultgen, distmiles, timeu.timesecs(resulttime))
             outrec['ag'] = agpercent

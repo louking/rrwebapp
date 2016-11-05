@@ -98,9 +98,9 @@ class RunningAHEADCollect(CollectServiceResults):
 
         # open service
         # TODO: use proper oauth to get runningahead auth key
-        raprivuser = ApiCredentials.query.filter_by(name='raprivuser').first()
-        key = raprivuser.key
-        secret = raprivuser.secret
+        racredentials = ApiCredentials.query.filter_by(name='runningahead').first()
+        key = racredentials.key
+        secret = racredentials.secret
         self.service = runningahead.RunningAhead(debug=True, key=key, secret=secret)
 
         # collect runningahead users who have given access
@@ -264,7 +264,7 @@ class RunningAHEADCollect(CollectServiceResults):
         dt_racedate = ftime.asc2dt(race.date)
         racedateage = timeu.age(dt_racedate, self.dt_dob)
         outrec['age'] = racedateage
-        
+
         # leave out age grade if exception occurs, skip results which have outliers
         try:
             resultgen = result['Gender'][0].upper()
