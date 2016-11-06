@@ -4,7 +4,7 @@
 #   Date        Author      Reason
 #   ----        ------      ------
 #   11/13/13    Lou King    Create
-#   11/05/16    Lou King    Copied from running/runningaheadnupresults.py
+#   11/05/16    Lou King    Copied from running/runningaheadresults.py
 #
 #   Copyright 2013, 2016 Lou King
 ###########################################################################################
@@ -47,7 +47,7 @@ class invalidParameter(Exception): pass
 
 # resultfilehdr needs to associate 1:1 with resultattrs
 resultfilehdr = 'GivenName,FamilyName,name,DOB,Gender,race,date,loc,age,miles,km,time,timesecs,ag'.split(',')
-resultattrs = attrs = 'firstname,lastname,name,dob,gender,race,date,loc,age,miles,km,time,timesecs,ag'.split(',')
+resultattrs = 'firstname,lastname,name,dob,gender,race,date,loc,age,miles,km,time,timesecs,ag'.split(',')
 
 hdrtransform = dict(zip(resultattrs,resultfilehdr))
 ftime = timeu.asctime('%Y-%m-%d')
