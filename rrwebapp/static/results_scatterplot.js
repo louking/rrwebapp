@@ -343,13 +343,20 @@ function datatables_chart() {
         }
     }
 
-    function dt_chart_update(data) {
+    function dt_chart_update(data, daterange) {
         // set up transition parameters
         var t = d3.transition()
             .duration(0);
 
         // set up x domain
-        xScale.domain(d3.extent(data, function(d) { return d.date; }));
+        // daterange determined from yadcf filter by caller
+        if (typeof(daterange) == 'undefined' || (daterange.from == "" && daterange.to == "")) {
+            xScale.domain(d3.extent(data, function(d) { return d.date; }));
+        } else {
+            minX = (daterange.from == "") ? d3.min(data, function(d) { return d.date; }) : toDate(daterange.from);
+            maxX = (daterange.to == "") ? d3.max(data, function(d) { return d.date; }) : toDate(daterange.to);
+            xScale.domain( [minX, maxX] );
+        }
 
         // update x axis
         xaxisg
@@ -539,7 +546,8 @@ function datatables_chart() {
 
         // initial draw or transition to new data
         // see http://bl.ocks.org/d3noob/7030f35b72de721622b8
-        dt_chart_update(dedupdata);
+        var daterange = yadcf.exGetColumnFilterVal(_dt_table, getColIndex('Date'));
+        dt_chart_update(dedupdata, daterange);
 
         // update filter defaults if received from the server
         var default_key = "yadcf_default_"

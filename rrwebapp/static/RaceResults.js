@@ -217,6 +217,14 @@
                 return $(this).text() == searchtext;
             }).index();
     }
+
+    // return date for yyyy-mm-dd string
+    function toDate(dateStr) {
+        var parts = dateStr.split("-");
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
+    
     // common functions
     
     // special link processing
