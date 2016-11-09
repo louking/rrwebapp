@@ -19,6 +19,7 @@ from time import time
 import traceback
 from collections import defaultdict, OrderedDict
 from urllib import urlencode
+import xml.etree.ElementTree as ET
 
 # pypi
 import flask
@@ -81,6 +82,7 @@ DISP_NOTUSED = ''               # not used for results
 
 class BooleanError(Exception): pass
 class ParameterError(Exception): pass
+
 
 #----------------------------------------------------------------------
 def filtermissed(club_id,missed,racedate,resultage):
@@ -1084,6 +1086,65 @@ class SeriesResults(MethodView):
 app.add_url_rule('/seriesresults/<int:raceid>',view_func=SeriesResults.as_view('seriesresults'),methods=['GET'])
 #----------------------------------------------------------------------
 
+#######################################################################
+# following functions used to set up pretablehtml
+#######################################################################
+
+#----------------------------------------------------------------------
+def indent(elem, level=0):
+#----------------------------------------------------------------------
+# in-place prettyprint formatter
+# see http://effbot.org/zone/element-lib.htm#prettyprint
+    i = "\n" + level*"  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            indent(elem, level+1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+
+#----------------------------------------------------------------------
+def addfilters(filters, filterlines):
+#----------------------------------------------------------------------
+    '''
+    add filters and other elements to an html element
+
+    filterlines = [line_n_elements, ...]
+
+        where line_n_elements = [element_i, ...]
+
+            where element_i =
+                {'id':filter_j_id, 'text':filter_j_text}
+                        OR
+                ET.Element
+
+    :param filters: html element to add filters and other elements
+    :param filterlines: list of lines, each a list of elements as above
+    '''
+
+    # loop once for each line, use i as index so we can detect last one
+    for i in range(len(filterlines)):
+        line = filterlines[i]
+
+        # loop once for each element on the line
+        for el in line:
+            if type(el) == dict:
+                thisel = ET.SubElement(filters, 'label', attrib={'class' : 'Label'})
+                thisel.text = el['text']
+                spanel = ET.SubElement(filters, 'span', attrib={'id' : el['id'], 'class' : '_rrwebapp-filter'})
+            else:
+                filters.append(el)
+        
+        # add two breaks to each line except for last line
+        if i < len(filterlines)-1:
+            ET.SubElement(filters, 'br')
+            ET.SubElement(filters, 'br')
 
 #######################################################################
 class RunnerResults(MethodView):
@@ -1494,28 +1555,54 @@ class RunnerResultsChart(MethodView):
                 'paging': False,
             }
 
+            # some columns only available if user is logged in and has visibility to this club
             if adminuser:
                 dt_options['columns'] += [
                             { 'data': 'source',      'name': 'source',        'label': 'Source',     'className': 'dt-body-center' },
                             { 'data': 'sourceid',    'name': 'sourceid',      'label': 'Source ID',  'className': 'dt-body-center' },
                         ]
 
-            pretablehtml = '''
-                <div class="TextLeft PL20pxLabel">
-                  <div class="dt-chart-filters">
-                    <label class="Label">Name (age):</label><span id="_rrwebapp_filtername" class="_rrwebapp-filter"></span>
-                    <label class="Label">Series:</label><span id="_rrwebapp_filterseries" class="_rrwebapp-filter"></span>
-                    <a class="dt-chart-age-grade-link" href="http://www.usatfmasters.org/fa_agegrading.htm" target=_blank>learn about age grading</a>
-                    <br/><br/>
-                    <label class="Label">Date (yyyy-mm-dd):</label><span id="_rrwebapp_filterdate" class="_rrwebapp-filter"></span>
-                    <label class="Label">Dist (miles):</label><span id="_rrwebapp_filterdistance" class="_rrwebapp-filter"></span>
-                    <label class="Label">Age Grade %age:</label><span id="_rrwebapp_filteragpercent" class="_rrwebapp-filter"></span>
-                    <br/><br/>
-                    <button class="dt-chart-display-button" type="button">table</button>
-                    <div id="progressbar"></div>
-                  </div>
-                </div>
-            '''
+            # set up pretablehtml
+            ## set up some html elements to be used pretable
+            aglink = ET.Element('a', attrib={'class' : "dt-chart-age-grade-link", 'href' : "http://www.usatfmasters.org/fa_agegrading.htm", 
+                                'target' : '_blank'})
+            aglink.text = 'learn about age grading'
+            charttablebutton = ET.Element('button', attrib={'class' : 'dt-chart-display-button', 'type' : 'button'})
+            charttablebutton.text = 'table'
+            progressbar = ET.Element('div', attrib={'id' : 'progressbar'})
+
+            ## list of lines for filters, each are represented with list of dicts having id, text;
+            ## or ET.ElementTree instances to be placed on line
+            filterlines = []
+            filterlines.append([
+                {'id' : "_rrwebapp_filtername", 'text' : 'Name (age):'},
+                {'id' : "_rrwebapp_filterseries", 'text' : 'Series:'},
+                aglink,
+            ])
+            filterlines.append([
+                {'id' : "_rrwebapp_filterdate", 'text' : 'Date (yyyy-mm-dd):'},
+                {'id' : "_rrwebapp_filterdistance", 'text' : 'Dist (miles):'},
+                {'id' : "_rrwebapp_filteragpercent", 'text' : 'Age Grade %age:'},
+            ])
+            if adminuser:
+                filterlines.append([
+                    {'id' : "_rrwebapp_filtersource", 'text' : 'Source:'},
+                    {'id' : "_rrwebapp_filtersourceid", 'text' : 'Source ID:'},
+                ])
+            filterlines.append([
+                charttablebutton,
+                progressbar,
+            ])
+
+            ## use ElementTree to set up html, based on filterlines configured above
+            pretable = ET.Element('div', attrib={'class' : 'TextLeft PL20pxLabel'})
+            filters = ET.SubElement(pretable, 'div', attrib={'class' : "dt-chart-filters"})
+            addfilters(filters, filterlines)
+
+            ## render the html nicely
+            indent(pretable)
+            pretablehtml = ET.tostring(pretable, method='html')
+
             # set up yadcf
             getcol = lambda name: [col['name'] for col in dt_options['columns']].index(name)
             filterdelay = 500
@@ -1552,6 +1639,23 @@ class RunnerResultsChart(MethodView):
                     'filter_reset_button_text': 'all',
                 }
             ]
+
+            # add admin columns
+            if adminuser:
+                yadcf_options += [
+                    {
+                        'column_number':getcol('source'),
+                        'filter_container_id':"_rrwebapp_filtersource",
+                        'filter_type':"select",
+                        'select_type': 'select2',
+                        'filter_reset_button_text': 'all',
+                    },{
+                        'column_number':getcol('sourceid'),
+                        'filter_container_id':"_rrwebapp_filtersourceid",
+                        'filter_type':'select',
+                        'filter_reset_button_text': 'all',
+                    },
+                ]
             options = {'dtopts': dt_options, 'yadcfopts': yadcf_options}
 
             # commit database updates and close transaction
@@ -1735,16 +1839,32 @@ class AjaxRunnerResultsChart(MethodView):
                     names.append(name)
             names.sort(key=lambda item: item['label'].lower())
 
-            series = [row.name for row in db.session.query(Series.name).filter_by(club_id=club.id).distinct().all()]
+            # avoid exception if club not specified in query
+            if club:
+                series = [row.name for row in db.session.query(Series.name).filter_by(club_id=club.id).distinct().all()]
 
-            # add yadcf filter
+            # add yadcf filters
             output_result = rowTable.output_result()
             output_result['yadcf_data_{}'.format(getcol('runnerid'))] = names
             output_result['yadcf_data_{}'.format(getcol('series'))] = series
             output_result['yadcf_data_{}'.format(getcol('miles'))] = statranges['miles']
             output_result['yadcf_data_{}'.format(getcol('agpercent'))] = statranges['agpercent']
 
-            # set up filters from client side, 
+            # add select options to admin fields source and sourceid, from runner's data
+            if adminuser:
+                # only fill in these selects if runner is being shown, from runner's results
+                if runneridsearch:
+                    sources = [row.source for row in db.session.query(RaceResult.source).filter_by(club_id=club.id, runnerid=runneridsearch).distinct().all()]
+                    sourceids = [row.sourceid for row in db.session.query(RaceResult.sourceid).filter_by(club_id=club.id, runnerid=runneridsearch).distinct().all()]
+                    output_result['yadcf_data_{}'.format(getcol('source'))] = sources
+                    # output_result['yadcf_data_{}'.format(getcol('sourceid'))] = sourceids
+                else:
+                    output_result['yadcf_data_{}'.format(getcol('source'))] = []
+                    # output_result['yadcf_data_{}'.format(getcol('sourceid'))] = []
+
+
+
+            # initialize filters from server side, 
             # but only if we don't already have the filter
             # else there will be infinite loop
             ## for runnerid
