@@ -133,7 +133,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
     # get all the requested result data from the database and save in a data structure indexed by runner
     ## first get the data from the database
     results = RaceResult.query.join(Race).join(Runner).filter(RaceResult.club_id==club_id, 
-                Race.date.between(ftime.dt2asc(begindate), ftime.dt2asc(enddate)), Runner.active==True).order_by(Runner.lname, Runner.fname).all()
+                Race.date.between(ftime.dt2asc(begindate), ftime.dt2asc(enddate)), Runner.member==True, Runner.active==True).order_by(Runner.lname, Runner.fname).all()
 
     ## then set up our status and pass to the front end
     for source in sources:

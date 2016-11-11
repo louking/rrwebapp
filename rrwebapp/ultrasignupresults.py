@@ -178,8 +178,8 @@ class UltraSignupCollect(CollectServiceResults):
         outrec['DOB'] = self.dob
         outrec['Gender'] = self.gender
 
-        # race name, location; convert from unicode if necessary
-        racename = result.racename
+        # get race name, strip white space
+        racename = result.racename.strip()
         # maybe truncate to FIRST part of race name
         if len(racename) > MAX_RACENAME_LEN:
             racename = racename[:MAX_RACENAME_LEN]

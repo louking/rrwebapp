@@ -13,6 +13,7 @@
 import csv
 from datetime import datetime
 import time
+import traceback
 
 # pypi
 
@@ -136,15 +137,19 @@ class StoreServiceResults():
                 raise ParameterError, "could not find race in database: {} line {} {} {} {}".format(filename, status[self.servicename]['processed']+2, result.racename, result.date, result.distmiles)
 
             ## update or create result in database
-            agage = age(ftime.asc2dt(race.date), ftime.asc2dt(runner.dateofbirth))
-            result.agpercent, result.agtime, result.agfactor = ag.agegrade(agage, runner.gender, result.distmiles, result.timesecs)
+            try:
+                agage = age(ftime.asc2dt(race.date), ftime.asc2dt(runner.dateofbirth))
+                result.agpercent, result.agtime, result.agfactor = ag.agegrade(agage, runner.gender, result.distmiles, result.timesecs)
 
-            dbresult = RaceResult(club_id, runner.id, race.id, None, result.timesecs, runner.gender, agage, instandings=False)
-            for attr in ['agfactor', 'agtime', 'agpercent', 'source', 'sourceid', 'sourceresultid', 'fuzzyage']:
-                setattr(dbresult,attr,getattr(result,attr))
+                dbresult = RaceResult(club_id, runner.id, race.id, None, result.timesecs, runner.gender, agage, instandings=False)
+                for attr in ['agfactor', 'agtime', 'agpercent', 'source', 'sourceid', 'sourceresultid', 'fuzzyage']:
+                    setattr(dbresult,attr,getattr(result,attr))
 
-            insert_or_update(db.session, RaceResult, dbresult, skipcolumns=['id'], 
-                             club_id=club_id, source=self.servicename, runnerid=runner.id, raceid=race.id)
+                insert_or_update(db.session, RaceResult, dbresult, skipcolumns=['id'], 
+                                 club_id=club_id, source=self.servicename, runnerid=runner.id, raceid=race.id)
+
+            except: 
+                app.logger.warning('exception for "{}", result ignored, processing {} result {}\n{}'.format(runner.name, self.servicename, result.__dict__, traceback.format_exc()))
 
             # update the number of results processed and pass back the status
             status[self.servicename]['lastname'] = result.runnername
@@ -296,7 +301,13 @@ class CollectServiceResults(object):
                 
                 # loop through each result
                 for result in results:
-                    outrec = self.convertserviceresult(result)
+                    # protect against bad data, just ignore the result and log the error
+                    try:
+                        outrec = self.convertserviceresult(result)
+                    except:
+                        app.logger.warning('exception for "{}", result ignored, processing {} result {}\n{}'.format(name, self.servicename, result, traceback.format_exc()))
+                        outrec = None
+
                     # only save if service wanted to save
                     if outrec:
                         OUT.writerow(outrec)

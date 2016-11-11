@@ -356,7 +356,7 @@ course = CrudApi(pagename = 'Courses',
                 { 'data': 'raceid', 'name': 'raceid', 'label': 'Race ID' },
              ], 
              servercolumns = None,  # no ajax
-             byclub = False, 
+             byclub = True, 
              idSrc = 'rowid', 
              buttons = ['create', 'edit', 'remove'])
 course.register()

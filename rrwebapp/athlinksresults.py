@@ -219,7 +219,7 @@ class AthlinksCollect(CollectServiceResults):
 
         # get course used for this result
         courseid = '{}/{}'.format(result['Race']['RaceID'], result['CourseID'])
-        course = Course.query.filter_by(source='athlinks', sourceid=courseid).first()
+        course = Course.query.filter_by(club_id=self.club_id, source='athlinks', sourceid=courseid).first()
         if not course:
             coursecached = False
 
@@ -234,11 +234,13 @@ class AthlinksCollect(CollectServiceResults):
             if thiscategory not in race_category: return None
         
             course = Course()
+            course.club_id = self.club_id
             course.source = 'athlinks'
             course.sourceid = courseid
 
-            racename = csvu.unicode2ascii(coursedata['RaceName'])
-            coursename = csvu.unicode2ascii(coursedata['Courses'][0]['CourseName'])
+            # strip racename and coursename here to make sure detail file matches what is stored in database
+            racename = csvu.unicode2ascii(coursedata['RaceName']).strip()
+            coursename = csvu.unicode2ascii(coursedata['Courses'][0]['CourseName']).strip()
             course.name = '{} / {}'.format(racename,coursename)
             # maybe truncate to FIRST part of race name
             if len(course.name) > MAX_RACENAME_LEN:
