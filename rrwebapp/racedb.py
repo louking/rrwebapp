@@ -216,16 +216,27 @@ userrole_table = Table('userrole',metadata,
     )
 
 ########################################################################
+# NOTE: for flask-security see https://pythonhosted.org/Flask-Security/quickstart.html#id1
 class User(Base):
 ########################################################################
     __tablename__ = 'user'
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
-    email = Column(String(120), unique=True)
+    email = Column(String(255), unique=True)
     name = Column(String(120))
     pw_hash = Column(String(80))  # finding 66 characters on a couple of tests
+    password = Column(String(255))
     active = Column(Boolean)
-    #authenticated = Column(Boolean) # TODO: is this needed?
-    pwresetrequired = Column(Boolean)
+
+    # for Confirmable (see https://pythonhosted.org/Flask-Security/models.html)
+    confirmed_at = Column(DateTime())
+
+    # for Trackable (see https://pythonhosted.org/Flask-Security/models.html)
+    last_login_at = Column(DateTime())
+    current_login_at = Column(DateTime())
+    last_login_ip = Column(String(39))  # allow for IPv6
+    current_login_ip = Column(String(39))  # allow for IPv6
+    login_count = Column(Integer)
+
     #roles = relationship('userrole', backref='users', cascade="all, delete")
     #roles = relationship('Role', backref='users', secondary='userrole', cascade="all, delete")
     roles = relationship('Role', backref='users', secondary='userrole')
@@ -233,15 +244,19 @@ class User(Base):
     useraccesstokens = relationship('UserAccessToken',backref='user',cascade="all, delete")
 
     #----------------------------------------------------------------------
-    def __init__(self,email,name,password,pwresetrequired=False):
+    def __init__(self, email, name, password, confirmed_at=None, last_login_at=None, current_login_at=None, last_login_ip=None, current_login_ip=None, login_count=0):
     #----------------------------------------------------------------------
         self.email = email
         self.name = name
         self.set_password(password)
         self.active = True
-        self.authenticated = False      # not sure how this should be handled
-        self.pwresetrequired = pwresetrequired
-        
+        self.confirmed_at = confirmed_at
+        self.last_login_at = last_login_at
+        self.current_login_at = current_login_at
+        self.last_login_ip = last_login_ip
+        self.current_login_ip = current_login_ip
+        self.login_count = login_count
+
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
@@ -296,18 +311,21 @@ class User(Base):
     ## end of methods used by flask-login
     
 ########################################################################
+# NOTE: for flask-security see https://pythonhosted.org/Flask-Security/quickstart.html#id1
 class Role(Base):
 ########################################################################
     __tablename__ = 'role'
-    id = Column(Integer, Sequence('role_id_seq'), primary_key=True)
-    name = Column(String(10))
-    club_id = Column(Integer, ForeignKey('club.id'))
     __table_args__ = (UniqueConstraint('name', 'club_id'),)
+    id = Column(Integer, Sequence('role_id_seq'), primary_key=True)
+    club_id = Column(Integer, ForeignKey('club.id'))
+    name = Column(String(80))
+    description = Column(db.String(255))
 
     #----------------------------------------------------------------------
-    def __init__(self,name):
+    def __init__(self,name,description=None):
     #----------------------------------------------------------------------
         self.name = name
+        self.description = description
         
     #----------------------------------------------------------------------
     def __repr__(self):
@@ -374,6 +392,7 @@ class Runner(Base):
     member = Column(Boolean)
     active = Column(Boolean)
     results = relationship("RaceResult", backref='runner', cascade="all, delete, delete-orphan")
+    aliases = relationship("RunnerAlias", backref='runner', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
     def __init__(self, club_id, name=None, dateofbirth=None, gender=None, hometown=None, member=True, renewdate=None, expdate=None, fname=None, lname=None):
@@ -421,6 +440,27 @@ class Runner(Base):
             dispactive = 'inactive'
         return "<Runner('%s','%s','%s','%s','%s','%s','%s')>" % (self.club_id, self.name, self.dateofbirth, self.gender, self.hometown, dispmem, dispactive)
     
+########################################################################
+class RunnerAlias(Base):
+########################################################################
+    __tablename__ = 'runneralias'
+    __table_args__ = (UniqueConstraint('name', 'club_id'),)
+    id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
+    club_id = Column(Integer, ForeignKey('club.id'))
+    name = Column(String(50))
+    runnerid = Column(Integer, ForeignKey('runner.id'))
+
+    #----------------------------------------------------------------------
+    def __init__(self, club_id, name=None, runnerid=None):
+    #----------------------------------------------------------------------
+        self.name = name
+        self.runnerid = runnerid    
+
+    #----------------------------------------------------------------------
+    def __repr__(self):
+    #----------------------------------------------------------------------
+        return '<RunnerAlias %s %s>' % (self.name, self.runnerid)
+
 ########################################################################
 class Race(Base):
 ########################################################################
@@ -484,6 +524,7 @@ class Course(Base):
     '''
     Defines course
     
+    :param club_id: club.id
     :param source: source of course - name not id
     :param sourceid: id of course within source
     :param name: course name
@@ -493,8 +534,9 @@ class Course(Base):
     :param location: location race took place City, ST (may have country information)
     '''
     __tablename__ = 'course'
-    __table_args__ = (UniqueConstraint('source','sourceid'),)
+    __table_args__ = (UniqueConstraint('club_id', 'source','sourceid'),)
     id = Column(Integer, Sequence('course_id_seq'), primary_key=True)
+    club_id = Column(Integer, ForeignKey('club.id'))
     source = Column(String(20))
     sourceid = Column(String(128))
     name = Column(String(MAX_RACENAME_LEN))
@@ -506,9 +548,10 @@ class Course(Base):
     raceid = Column(Integer)
 
     #----------------------------------------------------------------------
-    def __init__(self, source=None, sourceid=None, name=None, date=None, distmiles=None, distkm=None, surface=None, location=None):
+    def __init__(self, club_id=None, source=None, sourceid=None, name=None, date=None, distmiles=None, distkm=None, surface=None, location=None):
     #----------------------------------------------------------------------
 
+        self.club_id = club_id
         self.source = source
         self.sourceid = sourceid
         self.name = name
@@ -521,7 +564,7 @@ class Course(Base):
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
-        return "<Course('%s','%s','%s','%s','%s','%s','%s','%s')>" % (self.source, self.sourceid, self.name, self.date, self.distmiles, self.distkm, self.surface, self.location)
+        return "<Course('%s','%s','%s','%s','%s','%s','%s','%s','%s')>" % (self.club_id, self.source, self.sourceid, self.name, self.date, self.distmiles, self.distkm, self.surface, self.location)
     
 ########################################################################
 class Series(Base):
@@ -721,6 +764,7 @@ class RaceResult(Base):
     :param sourceid: references runner within source
     :param fuzzyage: set to 'y' if age math is "fuzzy", for sources which only have 5 year age groups listed
     :param instandings: boolean - default False
+    :param hidden: boolean - true if hidden from raceresults analysis
     '''
     __tablename__ = 'raceresult'
     __table_args__ = (UniqueConstraint('runnerid', 'runnername', 'raceid', 'seriesid', 'club_id'),)
@@ -750,6 +794,7 @@ class RaceResult(Base):
     sourceresultid = Column(String(128))
     fuzzyage = Column(Boolean)
     instandings = Column(Boolean)   
+    hidden = Column(Boolean)
 
     #----------------------------------------------------------------------
     def __init__(self, club_id, runnerid, raceid, seriesid, time, gender, agage, divisionlow=None, divisionhigh=None,
@@ -757,7 +802,7 @@ class RaceResult(Base):
                  overallpoints=None, genderpoints=None, divisionpoints=None,
                  agtimeplace=None, agfactor=None, agtime=None, agpercent=None, 
                  source=None, sourceid=None, sourceresultid=None, fuzzyage=None,
-                 instandings=False):
+                 instandings=False, hidden=False):
     #----------------------------------------------------------------------
         
         self.club_id = club_id
@@ -785,16 +830,17 @@ class RaceResult(Base):
         self.sourceresultid = sourceresultid
         self.fuzzyage = fuzzyage
         self.instandings = instandings
+        self.hidden = hidden
 
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
         # TODO: too many unlabeled fields -- need to make this clearer
-        return "<RaceResult('%s','%s','%s','%s','%s','%s',div='(%s,%s)','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')>" % (
+        return "<RaceResult('%s','%s','%s','%s','%s','%s',div='(%s,%s)','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s', '%s')>" % (
             self.runnerid, self.runnername, self.raceid, self.seriesid, self.gender, self.agage, self.divisionlow, self.divisionhigh,
             self.time, self.overallplace, self.genderplace, self.divisionplace, self.agtimeplace, self.agfactor, self.agtime, self.agpercent,
             self.source, self.sourceid, self.sourceresultid,
-            self.instandings)
+            self.instandings, self.hidden)
     
 ########################################################################
 class RaceSeries(Base):

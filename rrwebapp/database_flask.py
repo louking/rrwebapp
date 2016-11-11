@@ -58,6 +58,7 @@ Float = db.Float
 Boolean = db.Boolean
 String = db.String
 Date = db.Date
+DateTime = db.DateTime
 Sequence = db.Sequence
 Enum = db.Enum
 UniqueConstraint = db.UniqueConstraint
