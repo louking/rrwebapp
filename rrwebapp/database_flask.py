@@ -47,7 +47,8 @@ dbserver = config.get('database', 'dbserver')
 dbname = config.get('database', 'dbname')
 app.logger.debug('using mysql://{uname}:*******@{server}/{dbname}'.format(uname=dbuser,server=dbserver,dbname=dbname))
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://{uname}:{pw}@{server}/{dbname}'.format(uname=dbuser,pw=password,server=dbserver,dbname=dbname)
+db_uri = 'mysql://{uname}:{pw}@{server}/{dbname}'.format(uname=dbuser,pw=password,server=dbserver,dbname=dbname)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 #app.config['SQLALCHEMY_POOL_RECYCLE'] = 3200  # try to fix "MySQL server has gone away" error
 
 db = SQLAlchemy(app)

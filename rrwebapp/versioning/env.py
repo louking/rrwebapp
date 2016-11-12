@@ -33,16 +33,21 @@ import os, sys
 sys.path.append(os.getcwd())
 
 # get the app model
-from rrwebapp import app
+# from rrwebapp import app
+
 import racedb   # needs to be before database_flask imported
-from database_flask import db
+from database_flask import db, db_uri
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
 # Overwrite the sqlalchemy.url in the alembic.ini file.
-config.set_main_option('sqlalchemy.url', app.config['SQLALCHEMY_DATABASE_URI'])
+# config.set_main_option('sqlalchemy.url', app.config['SQLALCHEMY_DATABASE_URI'])
+# configpath = os.path.join(os.path.sep.join(os.getcwd().split(os.path.sep)[:-2]), 'rrwebapp.cfg')
+# print 'os.getcwd()="{}", configpath="{}"'.format(os.getcwd(),configpath)
+# appconfig = getitems(configpath, 'app')
+config.set_main_option('sqlalchemy.url', db_uri)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
