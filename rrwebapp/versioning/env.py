@@ -35,8 +35,8 @@ sys.path.append(os.getcwd())
 # get the app model
 # from rrwebapp import app
 
-import racedb   # needs to be before database_flask imported
-from database_flask import db, db_uri
+from rrwebapp import racedb   # needs to be before database_flask imported
+from rrwebapp.database_flask import db, db_uri
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
