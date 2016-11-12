@@ -62,7 +62,6 @@ rrs_formfields = 'rowid,service'.split(',')
 rrs_dbmapping = OrderedDict(zip(rrs_dbattrs, rrs_formfields))
 rrs_formmapping = OrderedDict(zip(rrs_formfields, rrs_dbattrs))
 rrs_formmapping['service'] = lambda rrsrow: ApiCredentials.query.filter_by(id=rrsrow.apicredentials_id).first().name
-rrs_apicredentials = ApiCredentials.query.all()
 rrs = CrudApi(pagename = 'Race Result Services', 
              endpoint = 'raceresultservices', 
              dbmapping = rrs_dbmapping, 
