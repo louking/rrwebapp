@@ -148,6 +148,11 @@ class StoreServiceResults():
                 insert_or_update(db.session, RaceResult, dbresult, skipcolumns=['id'], 
                                  club_id=club_id, source=self.servicename, runnerid=runner.id, raceid=race.id)
 
+            # maybe user is trying to cancel
+            except SystemExit:
+                raise
+
+            # otherwise just log and ignore result
             except: 
                 app.logger.warning('exception for "{}", result ignored, processing {} result {}\n{}'.format(runner.name, self.servicename, result.__dict__, traceback.format_exc()))
 
@@ -304,6 +309,12 @@ class CollectServiceResults(object):
                     # protect against bad data, just ignore the result and log the error
                     try:
                         outrec = self.convertserviceresult(result)
+
+                    # maybe user is trying to cancel
+                    except SystemExit:
+                        raise
+
+                    # otherwise just log and ignore result
                     except:
                         app.logger.warning('exception for "{}", result ignored, processing {} result {}\n{}'.format(name, self.servicename, result, traceback.format_exc()))
                         outrec = None

@@ -508,7 +508,12 @@ def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summar
             status[service]['status'] = 'completed'
 
         # not in a task any more
-        os.remove(taskfile)
+        try:
+            os.remove(taskfile)
+        # maybe it was already deleted
+        except OSError:
+            pass
+            
         # TODO: save last status for initial status on resultsanalysisstatus view
         
         # save all our work
