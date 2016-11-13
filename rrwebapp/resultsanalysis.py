@@ -508,11 +508,8 @@ def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summar
             status[service]['status'] = 'completed'
 
         # not in a task any more
-        try:
+        if os.path.isfile(taskfile):
             os.remove(taskfile)
-        # maybe it was already deleted
-        except OSError:
-            pass
 
         # TODO: save last status for initial status on resultsanalysisstatus view
         
@@ -522,10 +519,8 @@ def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summar
 
     except:
         # not in a task any more
-        try:
+        if os.path.isfile(taskfile):
             os.remove(taskfile)
-        except OSError:
-            pass
 
         # roll back database updates and close transaction
         db.session.rollback()
