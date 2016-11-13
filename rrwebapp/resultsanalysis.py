@@ -513,7 +513,7 @@ def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summar
         # maybe it was already deleted
         except OSError:
             pass
-            
+
         # TODO: save last status for initial status on resultsanalysisstatus view
         
         # save all our work
@@ -522,7 +522,10 @@ def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summar
 
     except:
         # not in a task any more
-        os.remove(taskfile)
+        try:
+            os.remove(taskfile)
+        except OSError:
+            pass
 
         # roll back database updates and close transaction
         db.session.rollback()
