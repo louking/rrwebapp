@@ -36,7 +36,7 @@ from apicommon import failure_response, success_response
 from loutilities.csvwt import wlist
 from request import addscripts
 from crudapi import CrudApi
-from datatables_utils import DatatablesCsv
+from datatables_utils import AdminDatatablesCsv
 from resultsutils import StoreServiceResults
 from resultssummarize import summarize
 from loutilities.timeu import asctime, timesecs
@@ -389,7 +389,7 @@ def ras_columns():
     for col in cols:
         if col['name'] in ['name']:
             col['className'] = ' _rrwebapp-table-nowrap'
-            
+
         if col['name'] in ['age', 'gender']:
             col['className'] = 'dt-body-center'
 
@@ -427,21 +427,21 @@ def ras_buttons():
             })
     return buttons
 
-ras = DatatablesCsv(pagename = 'Results Analysis Summary', 
-                    endpoint = 'resultsanalysissummary', 
-                    dtoptions =  {
-                                   'stateSave' : True,
-                                   'fixedColumns' : { 'leftColumns': 1 },
-                                   'scrollX' : True,
-                                   'scrollXInner' : '100%', 
-                                   'autoWidth' : False,
-                                 },
-                    readpermission = ras_readpermission, 
-                    csvfile = ras_csvfile,
-                    # columns labels must match labels in resultssummarize.summarize
-                    columns = ras_columns, 
-                    buttons = ras_buttons,
-                   )
+ras = AdminDatatablesCsv(pagename = 'Results Analysis Summary', 
+                         endpoint = 'resultsanalysissummary', 
+                         dtoptions =  {
+                                        'stateSave' : True,
+                                        'fixedColumns' : { 'leftColumns': 1 },
+                                        'scrollX' : True,
+                                        'scrollXInner' : '100%', 
+                                        'autoWidth' : False,
+                                      },
+                         readpermission = ras_readpermission, 
+                         csvfile = ras_csvfile,
+                         # columns labels must match labels in resultssummarize.summarize
+                         columns = ras_columns, 
+                         buttons = ras_buttons,
+                        )
 ras.register()
 
 

@@ -15,6 +15,7 @@ from csv import DictReader
 # pypi
 import flask
 from flask.views import MethodView
+from flask_login import login_required
 
 # homegrown
 from . import app
@@ -154,6 +155,7 @@ class DataTablesEditor():
                     # ignore -- leave dbrow unchanged for this dbattr
                     pass
 
+
 #######################################################################
 class DatatablesCsv(MethodView):
 #######################################################################
@@ -278,5 +280,10 @@ class DatatablesCsv(MethodView):
             db.session.rollback()
             raise
 
+
+#######################################################################
+class AdminDatatablesCsv(DatatablesCsv):
+#######################################################################
+    decorators = [login_required]
 
 
