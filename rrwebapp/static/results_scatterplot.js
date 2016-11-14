@@ -471,7 +471,12 @@ function datatables_chart() {
                 tooltip.transition()
                      .duration(200)
                      .style("opacity", 1);
-                tooltip.html(d.race + "<br/>" + formatDate(d.date) + " " + d.time + " " + round(yValue(d),1) + "%")
+                tooltiphtml = d.race + "<br/>" + formatDate(d.date) + " " + legend_text(d) + " " + d.time + " " + round(yValue(d),1) + "%";
+                // if _rrwebapp_filtersource on page, then means this is admin user, show source in tooltip
+                if ($('#_rrwebapp_filtersource').length) {
+                    tooltiphtml += '<br/>' + d.source;
+                }
+                tooltip.html(tooltiphtml)
                      .style("left", (d3.event.pageX + 10) + "px")
                      .style("top", (d3.event.pageY - 50) + "px");
             })  // .on("mouseover"
