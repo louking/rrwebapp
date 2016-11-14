@@ -13,6 +13,10 @@
   display: inline-block;
 }
 
+._rrwebapp-table-nowrap {
+    white-space: nowrap;
+}
+
 /* override JQuery.dataTables padding */
 /*table.dataTable thead th {
   padding: 0px;

@@ -387,6 +387,9 @@ def ras_columns():
     
     invisiblecols = ['lname', 'fname', 'r-squared', 'stderr', 'pvalue']
     for col in cols:
+        if col['name'] in ['name']:
+            col['className'] = ' _rrwebapp-table-nowrap'
+            
         if col['name'] in ['age', 'gender']:
             col['className'] = 'dt-body-center'
 
