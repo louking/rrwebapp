@@ -40,10 +40,6 @@ app.jinja_env.globals['_rrwebapp_productname'] = '<span class="brand-all"><span 
 app.jinja_env.globals['_rrwebapp_productname_text'] = 'scoretility'
 #from nav import productname
 
-# must set up logging after setting configuration
-import applogging
-applogging.setlogging()
-
 # tell jinja to remove linebreaks
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
@@ -63,6 +59,10 @@ import time
 from loutilities import timeu
 tu = timeu.asctime('%Y-%m-%d %H:%M:%S')
 app.configtime = tu.epoch2asc(time.time())
+
+# must set up logging after setting configuration
+import applogging
+applogging.setlogging()
 
 # import all views
 import services

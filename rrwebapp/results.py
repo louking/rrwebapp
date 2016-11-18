@@ -1700,7 +1700,7 @@ class AjaxRunnerResultsChart(MethodView):
             datetoarg = request.args.get('enddate','')
 
             # filter on valid runnerid, if present
-            namesfilter = {'member':True}   # only support members because this means dateofbirth is known
+            namesfilter = {'member':True, 'active':True}   # only support active members because this means dateofbirth is known
             resultfilter = {}
             seriesfilter = {}
             name = None
@@ -1823,14 +1823,28 @@ class AjaxRunnerResultsChart(MethodView):
 
             rowTable = DataTables(args, RaceResult, q, columns, dialect='mysql')
 
+            # app.logger.debug('after race results filtered query')
+
             # prepare for filters
             # need to use db.session to access query function
             # see http://stackoverflow.com/questions/2175355/selecting-distinct-column-values-in-sqlalchemy-elixir
             # see http://stackoverflow.com/questions/22275412/sqlalchemy-return-all-distinct-column-values
             # see http://stackoverflow.com/questions/11175519/how-to-query-distinct-on-a-joined-column
             # format depends on type of select
-            resultnames = [{'value':row.runnerid, 'label': '{} ({})'.format(row.runner.name,timeu.age(timeu.epoch2dt(time()),tYmd.asc2dt(row.runner.dateofbirth)))} 
-                        for row in db.session.query(RaceResult).join(Runner).filter_by(**namesfilter).all()]
+            namesq = Runner.query.filter_by(**namesfilter)
+            # *** debug
+            # app.logger.debug('names query = {}'.format(namesq))
+            # allrunners = namesq.all()
+            # resultnames = []
+            # for row in allrunners:
+            #     try:
+            #         resultnames.append({'value':row.id, 'label': '{} ({})'.format(row.name,timeu.age(timeu.epoch2dt(time()),tYmd.asc2dt(row.dateofbirth)))})
+            #     except ValueError:
+            #         app.logger.error('error on date of birth for runner.id {} dateofbirth {}'.format(row.id, row.dateofbirth))
+            # *** debug
+            resultnames = [{'value':row.id, 'label': '{} ({})'.format(row.name,timeu.age(timeu.epoch2dt(time()),tYmd.asc2dt(row.dateofbirth)))} 
+                        for row in namesq.all()]
+            # app.logger.debug('after result names query')
             
             # only return distinct names, sorted
             names = []
@@ -1838,6 +1852,7 @@ class AjaxRunnerResultsChart(MethodView):
                 if name not in names:
                     names.append(name)
             names.sort(key=lambda item: item['label'].lower())
+            # app.logger.debug('after names sort')
 
             # avoid exception if club not specified in query
             if club:
@@ -1856,6 +1871,7 @@ class AjaxRunnerResultsChart(MethodView):
                 if runneridsearch:
                     sources = [row.source for row in db.session.query(RaceResult.source).filter_by(club_id=club.id, runnerid=runneridsearch).distinct().all()]
                     sourceids = [row.sourceid for row in db.session.query(RaceResult.sourceid).filter_by(club_id=club.id, runnerid=runneridsearch).distinct().all()]
+                    # app.logger.debug('after source and source id queries')
                     output_result['yadcf_data_{}'.format(getcol('source'))] = sources
                     # output_result['yadcf_data_{}'.format(getcol('sourceid'))] = sourceids
                 else:
