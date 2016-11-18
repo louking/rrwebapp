@@ -575,27 +575,26 @@ class Location(Base):
     cache for race location and distance from club location
     '''
     __tablename__ = 'location'
-    __table_args__ = (UniqueConstraint('club_id', 'name'),)
     id = Column(Integer, Sequence('location_id_seq'), primary_key=True)
-    club_id = Column(Integer, ForeignKey('club.id'))
-    name = Column(String(MAX_LOCATION_LEN))
+    name = Column(String(MAX_LOCATION_LEN), unique=True)
     latitude = Column(Float)
     longitude = Column(Float)
-    distmiles = Column(Float)   # distance from club center
+    cached_at = Column(DateTime)   # when location was cached
+    lookuperror = Column(Boolean)
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id=None, name=None, latitude=None, longitude=None, distmiles=None):
+    def __init__(self, name=None, latitude=None, longitude=None, cached_at=None, lookuperror=False):
     #----------------------------------------------------------------------
-        self.club_id = club_id
         self.name = name
         self.latitude = latitude
         self.longitude = longitude
-        self.distmiles = distmiles
+        self.cached_at = cached_at
+        self.lookuperror = lookuperror
         
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
-        return '<Location %s %s %s %s %s>' % (self.club_id, self.name, self.distmiles, self.latitude, self.longitude)
+        return '<Location %s %s %s %s>' % (self.name, self.latitude, self.longitude, self.cached_at)
 
 ########################################################################
 class Series(Base):
