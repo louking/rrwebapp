@@ -341,6 +341,7 @@ class Club(Base):
     name = Column(String(40), unique=True)
     memberserviceapi = Column(String(20))  # name from apicredentials table, None if no api configured
     memberserviceid = Column(String(64))  # identifies club to the member service
+    location = Column(String(MAX_LOCATION_LEN))
     roles = relationship('Role',backref='club',cascade="all, delete")
     runners = relationship('Runner',backref='club',cascade="all, delete")
     races = relationship('Race',backref='club',cascade="all, delete")
@@ -350,17 +351,18 @@ class Club(Base):
     exclusions = relationship('Exclusion',backref='club',cascade="all, delete")
 
     #----------------------------------------------------------------------
-    def __init__(self, shname=None, name=None, memberserviceapi=None):
+    def __init__(self, shname=None, name=None, memberserviceapi=None, location=None):
     #----------------------------------------------------------------------
         self.shname = shname
         self.name = name
         self.memberserviceapi = memberserviceapi
         self.memberserviceid = memberserviceid
+        self.location = location
         
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
-        return '<Club %s %s %s %s>' % (self.shname, self.name, self.memberserviceapi, self.memberserviceid)
+        return '<Club %s %s %s %s %s>' % (self.shname, self.name, self.memberserviceapi, self.memberserviceid, self.location)
 
 ########################################################################
 class Runner(Base):
@@ -475,7 +477,7 @@ class Race(Base):
     :param starttime: hh:mm start of race
     :param distance: race distance in miles
     :param surface: 'road','track','trail'
-    :param location: location race took place City, ST (may have country information)
+    :param locationid: location.id
     :param external: True if race is from an external source
     '''
     __tablename__ = 'race'
@@ -490,14 +492,14 @@ class Race(Base):
     distance = Column(Float)
     fixeddist = Column(String(10))   # null or coerced with "{:.4g}".format(distance)
     surface = Column(Enum('road','track','trail',name='SurfaceType'))
-    location = Column(String(MAX_LOCATION_LEN))
+    locationid = Column(Integer, ForeignKey('location.id'))
     external = Column(Boolean)
     active = Column(Boolean)
     results = relationship("RaceResult", backref='race', cascade="all, delete, delete-orphan")
     series = relationship("RaceSeries", backref='race', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
-    def __init__(self, club_id, year, name=None, racenum=None, date=None, starttime=None, distance=None, surface=None, location=None, external=False, fixeddist=None):
+    def __init__(self, club_id, year, name=None, racenum=None, date=None, starttime=None, distance=None, surface=None, locationid=None, external=False, fixeddist=None):
     #----------------------------------------------------------------------
 
         self.club_id = club_id
@@ -509,7 +511,7 @@ class Race(Base):
         self.distance = distance
         self.fixeddist = fixeddist
         self.surface = surface
-        self.location = location
+        self.locationid = locationid
         self.external = external
         self.active = True
 
@@ -566,6 +568,35 @@ class Course(Base):
     #----------------------------------------------------------------------
         return "<Course('%s','%s','%s','%s','%s','%s','%s','%s','%s')>" % (self.club_id, self.source, self.sourceid, self.name, self.date, self.distmiles, self.distkm, self.surface, self.location)
     
+########################################################################
+class Location(Base):
+########################################################################
+    '''
+    cache for race location and distance from club location
+    '''
+    __tablename__ = 'location'
+    __table_args__ = (UniqueConstraint('club_id', 'name'),)
+    id = Column(Integer, Sequence('location_id_seq'), primary_key=True)
+    club_id = Column(Integer, ForeignKey('club.id'))
+    name = Column(String(MAX_LOCATION_LEN))
+    latitude = Column(Float)
+    longitude = Column(Float)
+    distmiles = Column(Float)   # distance from club center
+
+    #----------------------------------------------------------------------
+    def __init__(self, club_id=None, name=None, latitude=None, longitude=None, distmiles=None):
+    #----------------------------------------------------------------------
+        self.club_id = club_id
+        self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
+        self.distmiles = distmiles
+        
+    #----------------------------------------------------------------------
+    def __repr__(self):
+    #----------------------------------------------------------------------
+        return '<Location %s %s %s %s %s>' % (self.club_id, self.name, self.distmiles, self.latitude, self.longitude)
+
 ########################################################################
 class Series(Base):
 ########################################################################
@@ -770,7 +801,7 @@ class RaceResult(Base):
     __table_args__ = (UniqueConstraint('runnerid', 'runnername', 'raceid', 'seriesid', 'club_id'),)
     id = Column(Integer, Sequence('raceresult_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))
-    runnerid = Column(Integer, ForeignKey('runner.id'))
+    runnerid = Column(Integer, ForeignKey('runner.id'), index=True)
     runnername = Column(String(50)) # *** do not use!
     raceid = Column(Integer, ForeignKey('race.id'))
     seriesid = Column(Integer, ForeignKey('series.id'))
