@@ -351,7 +351,7 @@ class Club(Base):
     exclusions = relationship('Exclusion',backref='club',cascade="all, delete")
 
     #----------------------------------------------------------------------
-    def __init__(self, shname=None, name=None, memberserviceapi=None, location=None):
+    def __init__(self, shname=None, name=None, memberserviceapi=None, memberserviceid=None, location=None):
     #----------------------------------------------------------------------
         self.shname = shname
         self.name = name
