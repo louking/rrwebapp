@@ -42,6 +42,9 @@ from resultssummarize import summarize
 from loutilities.timeu import asctime, timesecs
 ftime = asctime('%Y-%m-%d')
 
+# define exceptions
+class invalidParameter(Exception): pass
+
 # set up summary file name template
 summaryfiletemplate = '{}/{{clubslug}}-summary.csv'.format(app.config['MEMBERSHIP_DIR'])
 
@@ -67,7 +70,7 @@ storeservices['athlinks'] = StoreServiceResults('athlinks', athlresults, athlink
 from ultrasignupresults import UltraSignupCollect, UltraSignupResultFile
 us = UltraSignupCollect()
 collectservices['ultrasignup'] = us.collect
-usattrs = 'name,dob,gender,sourceid,sourceresultid,race,date,loc,age,miles,time,timesecs,fuzzyage'.split(',')
+usattrs = 'name,dob,gender,sourceid,sourceresultid,race,date,raceloc,age,miles,time,timesecs,fuzzyage'.split(',')
 ustransform = dict(zip(normstoreattrs, usattrs))
 ustransform['sourceid'] = lambda row: None
 ustransform['sourceresultid'] = lambda row: None
@@ -142,8 +145,12 @@ class ResultsAnalysisStatus(MethodView):
 
             # buttons just names the buttons to be included, in what order
             buttons = [ 
-                        { 'extend':'start', 
-                          'url': '{}/rest?action=start'.format(url_for('resultsanalysisstatus')),
+                        { 'extend':'collect', 
+                          'url': '{}/rest?action=collect'.format(url_for('resultsanalysisstatus')),
+                          'statusurl': '{}/rest'.format(url_for('resultsanalysisstatus')) 
+                        },
+                        { 'extend':'summarize', 
+                          'url': '{}/rest?action=summarize'.format(url_for('resultsanalysisstatus')),
                           'statusurl': '{}/rest'.format(url_for('resultsanalysisstatus')) 
                         },
                         { 'extend':'cancel', 
@@ -268,7 +275,7 @@ class ResultsAnalysisStatus(MethodView):
             action = request.args.get('action')
 
             # start task
-            if action == 'start':
+            if action in ['collect', 'summarize']:
                 # if taskfile exists, make believe it was just started and return
                 try:
                     with open(taskfile) as tf:
@@ -300,7 +307,7 @@ class ResultsAnalysisStatus(MethodView):
                     OUT.writerow(filerow)
 
                 # kick off analysis task
-                task = analyzeresultstask.apply_async((club_id, url_for('resultschart'), memberfile, detailfile, summaryfile, fulldetailfile, taskfile), queue='longtask')
+                task = analyzeresultstask.apply_async((club_id, action, url_for('resultschart'), memberfile, detailfile, summaryfile, fulldetailfile, taskfile), queue='longtask')
 
                 # save taskfile
                 with open(taskfile,'w') as tf:
@@ -461,54 +468,71 @@ def getservicekey(service):
 
 #----------------------------------------------------------------------
 @celery.task(bind=True)
-def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summaryfile, fulldetailfile, taskfile):
+def analyzeresultstask(self, club_id, action, resultsurl, memberfile, detailfile, summaryfile, fulldetailfile, taskfile):
 #----------------------------------------------------------------------
     
     try:
-        # how many members? Note memberfile always comes as list, with a header line
-        nummembers = len(memberfile) - 1
-
         # special processing for scoretility service
         rrs_rrwebapp_id = ApiCredentials.query.filter_by(name=productname).first().id
         rrs_rrwebapp = RaceResultService(club_id,rrs_rrwebapp_id)
 
-        # collect all the data
-        # each service creates a detailed file
+        # remember servicenames for status update
         clubservices = RaceResultService.query.filter_by(club_id = club_id).all()
+        servicenames = [s.apicredentials.name for s in clubservices] + [getservicename(rrs_rrwebapp)]
+
+        # no status yet
         status = {}
-        for service in clubservices + [rrs_rrwebapp]:
-            status[getservicename(service)] = {'status': 'starting', 'lastname': '', 'processed': 0, 'total': nummembers}
 
-        for service in clubservices:
-            servicename = getservicename(service)
-            key = getservicekey(service)
-            thisdetailfile = detailfile.format(service=servicename)
+        # collect results and store in database
+        if action == 'collect':
+            # how many members? Note memberfile always comes as list, with a header line
+            nummembers = len(memberfile) - 1
 
-            status[servicename]['status'] = 'collecting'
-            collectservices[servicename](self, club_id, memberfile, thisdetailfile, status)
+            # collect all the data
+            # each service creates a detailed file
+            for service in clubservices + [rrs_rrwebapp]:
+                status[getservicename(service)] = {'status': 'starting', 'lastname': '', 'processed': 0, 'total': nummembers}
 
-        # add results to database from all the services which were collected
-        # add new entries, update existing entries
-        for service in clubservices:
-            servicename = getservicename(service)
-            thisdetailfile = detailfile.format(service=servicename)
-            status[servicename]['status'] = 'saving results'
-            status[servicename]['total'] = storeservices[servicename].get_count(thisdetailfile)
-            status[servicename]['processed'] = 0
-            status[servicename]['lastname'] = ''
-        for service in clubservices:
-            servicename = getservicename(service)
-            thisdetailfile = detailfile.format(service=servicename)
-            storeservices[servicename].storeresults(self, status, club_id, thisdetailfile)
+            for service in clubservices:
+                servicename = getservicename(service)
+                key = getservicekey(service)
+                thisdetailfile = detailfile.format(service=servicename)
 
+                status[servicename]['status'] = 'collecting'
+                collectservices[servicename](self, club_id, memberfile, thisdetailfile, status)
+
+            # add results to database from all the services which were collected
+            # add new entries, update existing entries
+            for service in clubservices:
+                servicename = getservicename(service)
+                thisdetailfile = detailfile.format(service=servicename)
+                status[servicename]['status'] = 'saving results'
+                status[servicename]['total'] = storeservices[servicename].get_count(thisdetailfile)
+                status[servicename]['processed'] = 0
+                status[servicename]['lastname'] = ''
+            for service in clubservices:
+                servicename = getservicename(service)
+                thisdetailfile = detailfile.format(service=servicename)
+                storeservices[servicename].storeresults(self, status, club_id, thisdetailfile)
+
+            for service in servicenames:
+                status[service]['status'] = 'done collecting'
+
+        elif action == 'summarize':
         # compile the data into summary from database, deduplicating for the summary information
         # NOTE: because this is a summary, this cannot be filtered, e.g., by date range
         #       so this is fixed a three year window
-        servicenames = [s.apicredentials.name for s in clubservices] + [getservicename(rrs_rrwebapp)]
-        summarize(self, club_id, servicenames, status, summaryfile, fulldetailfile, resultsurl)
+            for service in clubservices + [rrs_rrwebapp]:
+                status[getservicename(service)] = {'status': 'starting', 'lastname': '', 'processed': 0, 'total': 0}
 
-        for service in servicenames:
-            status[service]['status'] = 'completed'
+            summarize(self, club_id, servicenames, status, summaryfile, fulldetailfile, resultsurl)
+
+            for service in servicenames:
+                status[service]['status'] = 'completed'
+
+        # unknown action
+        else:
+            raise invalidParameter, 'unknown action "{}"" received'.format(action)
 
         # not in a task any more
         if os.path.isfile(taskfile):
@@ -521,6 +545,12 @@ def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summar
         return {'progress':status}
 
     except:
+        # log the exception first in case there's any subsequent error
+        app.logger.error(traceback.format_exc())
+
+        # tell the admins that this happened
+        celery.mail_admins('[scoretility] analyzeresultstask: exception occurred', traceback.format_exc())
+
         # not in a task any more
         if os.path.isfile(taskfile):
             os.remove(taskfile)
@@ -528,11 +558,7 @@ def analyzeresultstask(self, club_id, resultsurl, memberfile, detailfile, summar
         # roll back database updates and close transaction
         db.session.rollback()
 
-        # tell the admins that this happened
-        celery.mail_admins('[scoretility] analyzeresultstask: exception occurred', traceback.format_exc())
-
         # report this as success, but since traceback is present, server will tell user
-        app.logger.error(traceback.format_exc())
         return {'progress':status, 'traceback': traceback.format_exc()}
 
 

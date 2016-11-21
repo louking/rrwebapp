@@ -36,9 +36,11 @@ import json
 # home grown
 from . import app
 import analyzeagegrade
-from loutilities import timeu
-from racedb import Club, RaceResult, Race, Runner
+from services import ServiceAttributes
+from racedb import Club, RaceResultService, ApiCredentials, RaceResult, Race, Location, Runner
+from location import LocationServer, get_distance
 from nav import productname
+from loutilities import timeu
 from loutilities.renderrun import rendertime
 
 ftime = timeu.asctime('%Y-%m-%d')
@@ -116,8 +118,23 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
     :param enddate: render races between begindate and enddate, datetime
     '''
     
-    # get club slug for later
-    clubslug = Club.query.filter_by(id=club_id).first().shname
+    # get club slug and location for later
+    club = Club.query.filter_by(id=club_id).first()
+    clubslug = club.shname
+    locsvr = LocationServer()
+    clublocation = locsvr.getlocation(club.location)
+
+    # get maxdistance by service
+    services = RaceResultService.query.filter_by(club_id=club_id).join(ApiCredentials).all()
+    maxdistance = {}
+    for service in services:
+        attrs = ServiceAttributes(club_id, service.apicredentials.name)
+        # app.logger.debug('service {} attrs {}'.format(service, attrs.__dict__))
+        if attrs.maxdistance:
+            maxdistance[service.apicredentials.name] = attrs.maxdistance
+        else:
+            maxdistance[service.apicredentials.name] = None
+    maxdistance[productname] = None
 
     # set up date range. begindate and enddate take precedence, else use numyears from today
     if not (begindate and enddate):
@@ -154,11 +171,28 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
     ## use OrderedDict to force aag to be in same order as DETL file, for debugging
     aag = collections.OrderedDict()
     for result in results:
+        # skip results which are too far away, if a maxdistance is defined for this source
+        if maxdistance[result.source]:
+            locationid = result.race.locationid
+            if not locationid: continue
+            racelocation = Location.query.filter_by(id=locationid).first()
+            distance = get_distance(clublocation, racelocation)
+            if distance == None or distance > maxdistance[result.source]: continue
+
         thisname = (result.runner.name.lower(), result.runner.dateofbirth)
         initaagrunner(aag, thisname, result.runner.fname, result.runner.lname, result.runner.gender, ftime.asc2dt(result.runner.dateofbirth), result.runner.id)
+        
+        # determine location name. any error gets null string
+        locationname = ''
+        if result.race.locationid:
+            location = Location.query.filter_by(id=result.race.locationid).first()
+            if location: 
+                locationname = location.name
+
         thisstat = aag[thisname].add_stat(ftime.asc2dt(result.race.date), result.race.distance*METERSPERMILE, result.time, race=result.race.name,
-                               loc=result.race.location, fuzzyage=result.fuzzyage,
+                               loc=locationname, fuzzyage=result.fuzzyage,
                                source=result.source, priority=priority[result.source])
+
         ### TODO: store result's agpercent, in AgeGrade.crunch() skip agegrade calculation if already present
         DETL.writerow(dict(
                 runnername = result.runner.name,

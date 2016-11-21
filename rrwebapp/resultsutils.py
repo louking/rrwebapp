@@ -86,6 +86,7 @@ class StoreServiceResults():
     #----------------------------------------------------------------------
         '''
         create service accessor and open file
+        get location if known
         loop through all results in accessor file, and store in database
         close file
 

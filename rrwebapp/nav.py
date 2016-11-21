@@ -97,6 +97,7 @@ def getnavigation():
             navigation[-1]['list'].append({'display':'Summary','url':flask.url_for('resultsanalysissummary')})
             navigation[-1]['list'].append({'display':'Services','url':flask.url_for('raceresultservices')})
             navigation[-1]['list'].append({'display':'Courses','url':flask.url_for('courses')})
+            navigation[-1]['list'].append({'display':'Locations','url':flask.url_for('locations')})
             
         if club and readcheck.can():
             navigation.append({'display':'Members','url':flask.url_for('managemembers')})

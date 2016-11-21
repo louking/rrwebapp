@@ -76,6 +76,7 @@ import member
 import results
 import resultsanalysis
 import standings
+import location
 import tools
 import sysinfo
 import docs

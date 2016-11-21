@@ -44,7 +44,7 @@ class invalidParameter(Exception): pass
 
 # resultfilehdr needs to associate 1:1 with resultattrs
 resultfilehdr = 'GivenName,FamilyName,name,DOB,Gender,race,date,loc,age,miles,km,time,timesecs,ag'.split(',')
-resultattrs = attrs = 'firstname,lastname,name,dob,gender,race,date,loc,age,miles,km,time,timesecs,ag'.split(',')
+resultattrs = 'firstname,lastname,name,dob,gender,race,date,raceloc,age,miles,km,time,timesecs,ag'.split(',')
 
 hdrtransform = dict(zip(resultattrs,resultfilehdr))
 ftime = timeu.asctime('%Y-%m-%d')
@@ -180,6 +180,10 @@ class UltraSignupCollect(CollectServiceResults):
 
         # get race name, strip white space
         racename = result.racename.strip()
+
+        # filter out names that end in "hrs" as we don't do timed races
+        if racename[-3:] == 'hrs': return None   
+
         # maybe truncate to FIRST part of race name
         if len(racename) > MAX_RACENAME_LEN:
             racename = racename[:MAX_RACENAME_LEN]

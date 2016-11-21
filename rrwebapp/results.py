@@ -19,6 +19,7 @@ from time import time
 import traceback
 from collections import defaultdict, OrderedDict
 from urllib import urlencode
+from copy import copy
 import xml.etree.ElementTree as ET
 
 # pypi
@@ -50,7 +51,10 @@ from nav import productname
 # module specific needs
 import raceresults
 import clubmember
-from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Exclusion, Series, Divisions, Club, dbdate
+from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Location, Exclusion, Series, Divisions, Club, dbdate
+from services import ServiceAttributes
+from racedb import RaceResultService, ApiCredentials
+from location import LocationServer, get_distance
 from datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 from forms import SeriesResultForm, RunnerResultForm
 from loutilities.namesplitter import split_full_name
@@ -1414,6 +1418,19 @@ def renderseries(cell):
 
     return seriesname
 
+#----------------------------------------------------------------------
+def renderlocation(result):
+#----------------------------------------------------------------------
+    # get location from raceid
+    if not result.raceid: return ' '
+
+    race = Race.query.filter_by(id=result.raceid).first()
+    if not race: return ' '
+
+    location = Location.query.filter_by(id=race.locationid).first()
+    if not location: return ' '
+
+    return location.name
 
 
 #######################################################################
@@ -1552,12 +1569,14 @@ class RunnerResultsChart(MethodView):
                 'ordering': True,
                 'serverSide': True,
                 'order': [0,'asc'],
+                # NOTE: cannot use paging because we need to display all points on the chart
                 'paging': False,
             }
 
             # some columns only available if user is logged in and has visibility to this club
             if adminuser:
                 dt_options['columns'] += [
+                            { 'data': 'location',    'name': 'location',      'label': 'Location'},
                             { 'data': 'source',      'name': 'source',        'label': 'Source',     'className': 'dt-body-center' },
                             { 'data': 'sourceid',    'name': 'sourceid',      'label': 'Source ID',  'className': 'dt-body-center' },
                         ]
@@ -1763,8 +1782,10 @@ class AjaxRunnerResultsChart(MethodView):
             # give extra columns to the admin
             if adminuser:
                 columns += [
-                        ColumnDT('source',    mData='source'),
-                        ColumnDT('sourceid',  mData='sourceid'),
+                        # ColumnDT('race.location.name',   mData='location',        searchable=False,   filter=lambda c: c if c else ' '), 
+                        ColumnDT('location',   mData='location',        searchable=False,   filterarg='row', filter=renderlocation), 
+                        ColumnDT('source',          mData='source'),
+                        ColumnDT('sourceid',        mData='sourceid'),
                     ]
 
             # make copy of args as request.args is immutable and we might want to update
@@ -1821,11 +1842,38 @@ class AjaxRunnerResultsChart(MethodView):
             # app.logger.debug('resultfilter = {}, seriesfilter = {}'.format(resultfilter, seriesfilter))
             # app.logger.debug('query = \n{}'.format(q))
 
+
+            # note there's no paging (see RunnerResultsChart) so can do some filtering after retrieval of all results from database
             rowTable = DataTables(args, RaceResult, q, columns, dialect='mysql')
+            output_result = rowTable.output_result()
 
             # app.logger.debug('after race results filtered query')
 
-            # prepare for filters
+            # filter by service / maxdistance
+            ## get maxdistance by service
+            if adminuser:
+                services = RaceResultService.query.filter_by(club_id=club_id).join(ApiCredentials).all()
+                maxdistance = {}
+                for service in services:
+                    attrs = ServiceAttributes(club_id, service.apicredentials.name)
+                    if attrs.maxdistance:
+                        maxdistance[service.apicredentials.name] = attrs.maxdistance
+                    else:
+                        maxdistance[service.apicredentials.name] = None
+                maxdistance[productname] = None
+
+                ## update data
+                locsvr = LocationServer()
+                clublocation = locsvr.getlocation(club.location)
+                rows = copy(output_result['data'])
+                output_result['data'] = []
+                for row in rows:
+                    if maxdistance[row['source']]:
+                        distance = get_distance(clublocation, locsvr.getlocation(row['location']))
+                        if distance == None or distance > maxdistance[row['source']]: continue
+                    output_result['data'].append(row)
+
+            # prepare for page filters
             # need to use db.session to access query function
             # see http://stackoverflow.com/questions/2175355/selecting-distinct-column-values-in-sqlalchemy-elixir
             # see http://stackoverflow.com/questions/22275412/sqlalchemy-return-all-distinct-column-values
@@ -1859,7 +1907,6 @@ class AjaxRunnerResultsChart(MethodView):
                 series = [row.name for row in db.session.query(Series.name).filter_by(club_id=club.id).distinct().all()]
 
             # add yadcf filters
-            output_result = rowTable.output_result()
             output_result['yadcf_data_{}'.format(getcol('runnerid'))] = names
             output_result['yadcf_data_{}'.format(getcol('series'))] = series
             output_result['yadcf_data_{}'.format(getcol('miles'))] = statranges['miles']

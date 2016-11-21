@@ -29,13 +29,14 @@ import traceback
 
 # home grown
 from . import app
+from location import LocationServer
 from loutilities import timeu
 from loutilities import csvu
 from loutilities import agegrade
 from resultsutils import CollectServiceResults, ServiceResultFile
 from running import athlinks
 from database_flask import db   # this is ok because this module only runs under flask
-from racedb import ApiCredentials, Club, Course, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
+from racedb import ApiCredentials, Club, Course, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN, insert_or_update
 from race import race_fixeddist
 
 
@@ -80,6 +81,7 @@ class AthlinksCollect(CollectServiceResults):
         
         super(AthlinksCollect, self).__init__('athlinks', resultfilehdr, resultattrs)
 
+
     #----------------------------------------------------------------------
     def openservice(self, club_id):
     #----------------------------------------------------------------------
@@ -91,6 +93,9 @@ class AthlinksCollect(CollectServiceResults):
 
         :param club_id: club.id for club this service is operating on
         '''
+        # create location server
+        self.locsvr = LocationServer()
+
         # remember club id we're working on
         self.club_id = club_id
 
@@ -220,6 +225,9 @@ class AthlinksCollect(CollectServiceResults):
         # get course used for this result
         courseid = '{}/{}'.format(result['Race']['RaceID'], result['CourseID'])
         course = Course.query.filter_by(club_id=self.club_id, source='athlinks', sourceid=courseid).first()
+
+        # cache course if not done already
+        race = None
         if not course:
             coursecached = False
 
@@ -242,6 +250,7 @@ class AthlinksCollect(CollectServiceResults):
             racename = csvu.unicode2ascii(coursedata['RaceName']).strip()
             coursename = csvu.unicode2ascii(coursedata['Courses'][0]['CourseName']).strip()
             course.name = '{} / {}'.format(racename,coursename)
+
             # maybe truncate to FIRST part of race name
             if len(course.name) > MAX_RACENAME_LEN:
                 course.name = course.name[:MAX_RACENAME_LEN]
@@ -275,12 +284,28 @@ class AthlinksCollect(CollectServiceResults):
                 race.active = True
                 race.external = True
                 race.surface = course.surface
+                loc = self.locsvr.getlocation(course.location)
+                race.locationid = loc.id
                 db.session.add(race)
                 db.session.flush()  # force id to be created
 
             course.raceid = race.id
             db.session.add(course)
             db.session.flush()      # force id to be created
+
+        # maybe course was cached but location of race wasn't
+        # update location of result race, if needed, and if supplied
+        # this is here to clean up old database data
+        if not race:
+            race = Race.query.filter_by(club_id=self.club_id, name=course.name, year=ftime.asc2dt(course.date).year, fixeddist=race_fixeddist(course.distmiles)).first()
+        if not race.locationid and course.location:
+            # app.logger.debug('updating race with location {}'.format(course.location))
+            loc = self.locsvr.getlocation(course.location)
+            race.locationid = loc.id
+            insert_or_update(db.session, Race, race, skipcolumns=['id'], 
+                             club_id=self.club_id, name=course.name, year=ftime.asc2dt(course.date).year, fixeddist=race_fixeddist(course.distmiles))
+        # else:
+        #     app.logger.debug('race.locationid={} course.location="{}"'.format(race.locationid, course.location))
 
         # debug races
         if self.racefile:

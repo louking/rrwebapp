@@ -1,15 +1,31 @@
-// define start, cancel button handling for resultanalysis
+// define collect, summarize cancel button handling for resultanalysis
 
 var task_id = null;
 
-$.fn.dataTable.ext.buttons.start = {
-    text: 'Start',
-    name: 'start',
+$.fn.dataTable.ext.buttons.collect = {
+    text: 'Collect',
+    name: 'collect',
     action: function ( e, dt, node, config ) {
         $.post( config.url, function( data ) { 
             task_id = data.task_id;
             _dt_table.button('cancel:name').enable();
-            _dt_table.button('start:name').disable();
+            _dt_table.button('collect:name').disable();
+            _dt_table.button('summarize:name').disable();
+            ajax_update_progress(config.statusurl + '?task_id=' + data.task_id);
+            // alert ( 'Started task ' + data.task_id);
+        } )
+    }
+};
+
+$.fn.dataTable.ext.buttons.summarize = {
+    text: 'Summarize',
+    name: 'summarize',
+    action: function ( e, dt, node, config ) {
+        $.post( config.url, function( data ) { 
+            task_id = data.task_id;
+            _dt_table.button('cancel:name').enable();
+            _dt_table.button('collect:name').disable();
+            _dt_table.button('summarize:name').disable();
             ajax_update_progress(config.statusurl + '?task_id=' + data.task_id);
             // alert ( 'Started task ' + data.task_id);
         } )
@@ -29,7 +45,8 @@ $.fn.dataTable.ext.buttons.cancel = {
 
         // reset buttons
         _dt_table.button('cancel:name').disable();
-        _dt_table.button('start:name').enable();
+        _dt_table.button('collect:name').enable();
+        _dt_table.button('summarize:name').enable();
     }
 };
 
@@ -70,7 +87,8 @@ function ajax_update_progress(status_url) {
             if (data.state == 'SUCCESS' && data.cause == '') {
                 // we're done, desensitize Cancel, sensitize Start
                 _dt_table.button('cancel:name').disable();
-                _dt_table.button('start:name').enable();
+                _dt_table.button('collect:name').enable();
+                _dt_table.button('summarize:name').enable();
             }
             // assumes 'cause' in data, but
             // what does it mean if data.state != 'SUCCESS'?
@@ -90,7 +108,8 @@ function ajax_update_progress(status_url) {
 
                 // reset buttons
                 _dt_table.button('cancel:name').disable();
-                _dt_table.button('start:name').enable();
+                _dt_table.button('collect:name').enable();
+                _dt_table.button('summarize:name').enable();
             }
         }
         else {
@@ -111,7 +130,8 @@ $( function() {
             task_id = data.task_id;
             // set buttons and start updating progress
             _dt_table.button('cancel:name').enable();
-            _dt_table.button('start:name').disable();
+            _dt_table.button('collect:name').enable();
+            _dt_table.button('summarize:name').enable();
             ajax_update_progress(status_url + '?task_id=' + data.task_id);
         }
     });
