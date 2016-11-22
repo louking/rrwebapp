@@ -472,6 +472,9 @@ def analyzeresultstask(self, club_id, action, resultsurl, memberfile, detailfile
 #----------------------------------------------------------------------
     
     try:
+        # no status yet
+        status = {}
+
         # special processing for scoretility service
         rrs_rrwebapp_id = ApiCredentials.query.filter_by(name=productname).first().id
         rrs_rrwebapp = RaceResultService(club_id,rrs_rrwebapp_id)
@@ -479,9 +482,6 @@ def analyzeresultstask(self, club_id, action, resultsurl, memberfile, detailfile
         # remember servicenames for status update
         clubservices = RaceResultService.query.filter_by(club_id = club_id).all()
         servicenames = [s.apicredentials.name for s in clubservices] + [getservicename(rrs_rrwebapp)]
-
-        # no status yet
-        status = {}
 
         # collect results and store in database
         if action == 'collect':
