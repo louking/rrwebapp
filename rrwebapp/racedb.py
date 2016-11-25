@@ -518,7 +518,7 @@ class Race(Base):
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------
-        return "<Race('%s','%s','%s','%s','%s','%s','%s','%s','%s',active='%s')>" % (self.club_id, self.name, self.year, self.racenum, self.date, self.starttime, self.distance, self.surface, self.location, self.active)
+        return "<Race('%s','%s','%s','%s','%s','%s','%s','%s','%s',active='%s')>" % (self.club_id, self.name, self.year, self.racenum, self.date, self.starttime, self.distance, self.surface, self.locationid, self.active)
     
 ########################################################################
 class Course(Base):

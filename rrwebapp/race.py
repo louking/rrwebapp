@@ -149,7 +149,6 @@ class RaceSettings(MethodView):
             # raceid != 0 means update
             else:
                 race = Race.query.filter_by(club_id=club_id,year=thisyear,active=True,id=raceid).first()
-                print 'race={}'.format(race)
     
                 # copy source attributes to form
                 params = {}
