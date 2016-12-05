@@ -1533,13 +1533,26 @@ class RunnerResultsChart(MethodView):
     def get(self):
     #----------------------------------------------------------------------
         try:
-            club_id = flask.session['club_id']
-            readcheck = ViewClubDataPermission(club_id)
-            adminuser = readcheck.can()
-
             club_shname = request.args.get('club',None)
             runnerid = request.args.get('participant',None)
             seriesarg = request.args.get('series',None)
+
+            # filter on club, if present
+            club_id = None
+            if club_shname:
+                club = Club.query.filter_by(shname=club_shname).first()
+                if club:
+                    club_id = club.id
+
+            elif 'club_id' in flask.session:
+                club_id = flask.session['club_id']
+
+            if club_id is not None:
+                readcheck = ViewClubDataPermission(club_id)
+                adminuser = readcheck.can()
+
+            else:
+                adminuser = False
 
             # filter on valid runnerid, if present
             resultfilter = {}
@@ -1708,10 +1721,6 @@ class AjaxRunnerResultsChart(MethodView):
     def get(self):
     #----------------------------------------------------------------------
         try:
-            club_id = flask.session['club_id']
-            readcheck = ViewClubDataPermission(club_id)
-            adminuser = readcheck.can()
-
             club_shname = request.args.get('club',None)
             runnerid = request.args.get('runnerid',None)
             seriesarg = request.args.get('series',None)
@@ -1726,11 +1735,25 @@ class AjaxRunnerResultsChart(MethodView):
             pagename = 'Results'
 
             # filter on club, if present
+            club_id =None
             if club_shname:
                 club = Club.query.filter_by(shname=club_shname).first()
                 if club:
                     namesfilter['club_id'] = club.id
                     resultfilter['club_id'] = club.id
+                    club_id = club.id
+
+            elif 'club_id' in flask.session:
+                club_id = flask.session['club_id']
+                club = Club.query.filter_by(id=club_id).first()
+
+            if club_id is not None:
+                readcheck = ViewClubDataPermission(club_id)
+                adminuser = readcheck.can()
+
+            else:
+                adminuser = False
+
 
             # if not admin, limit source to rrwebapp product name
             if not adminuser:
