@@ -2503,6 +2503,10 @@ class AjaxTabulateResults(MethodView):
                     # create RaceResult entry
                     resulttime = thisresult.time
                     raceresult = RaceResult(club_id,runnerid,race.id,series.id,resulttime,gender,agegradeage)
+
+                    # set source fields
+                    raceresult.source = productname
+                    raceresult.sourceid = runnerid
             
                     # always add age grade to result if we know the age
                     # we will decide whether to render, later based on series.calcagegrade, in another script
