@@ -2554,12 +2554,14 @@ class AjaxTabulateResults(MethodView):
                             
                             # detect tie in subsequent results based on rendering,
                             # which rounds to a specific precision based on distance
-                            time = render.rendertime(raceresult.time,timeprecision)
-                            for tiendx in range(rrndx+1,numresults):
-                                if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
-                                    break
-                                tieindeces.append(tiendx)
-                            lasttie = tieindeces[-1] + 1
+                            # but do this only if averaging ties
+                            if series.averagetie:
+                                time = render.rendertime(raceresult.time,timeprecision)
+                                for tiendx in range(rrndx+1,numresults):
+                                    if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
+                                        break
+                                    tieindeces.append(tiendx)
+                                lasttie = tieindeces[-1] + 1
                             for tiendx in tieindeces:
                                 numsametime = len(tieindeces)
                                 if numsametime > 1 and series.averagetie:
@@ -2582,12 +2584,14 @@ class AjaxTabulateResults(MethodView):
                                 
                                 # detect tie in subsequent results based on rendering,
                                 # which rounds to a specific precision based on distance
-                                time = render.rendertime(raceresult.time,timeprecision)
-                                for tiendx in range(rrndx+1,numresults):
-                                    if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
-                                        break
-                                    tieindeces.append(tiendx)
-                                lasttie = tieindeces[-1] + 1
+                                # but do this only if averaging ties
+                                if series.averagetie:
+                                    time = render.rendertime(raceresult.time,timeprecision)
+                                    for tiendx in range(rrndx+1,numresults):
+                                        if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
+                                            break
+                                        tieindeces.append(tiendx)
+                                    lasttie = tieindeces[-1] + 1
                                 for tiendx in tieindeces:
                                     numsametime = len(tieindeces)
                                     if numsametime > 1 and series.averagetie:
@@ -2619,12 +2623,14 @@ class AjaxTabulateResults(MethodView):
                                         
                                         # detect tie in subsequent results based on rendering,
                                         # which rounds to a specific precision based on distance
-                                        time = render.rendertime(raceresult.time,timeprecision)
-                                        for tiendx in range(rrndx+1,numresults):
-                                            if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
-                                                break
-                                            tieindeces.append(tiendx)
-                                        lasttie = tieindeces[-1] + 1
+                                        # but do this only if averaging ties
+                                        if series.averagetie:
+                                            time = render.rendertime(raceresult.time,timeprecision)
+                                            for tiendx in range(rrndx+1,numresults):
+                                                if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
+                                                    break
+                                                tieindeces.append(tiendx)
+                                            lasttie = tieindeces[-1] + 1
                                         for tiendx in tieindeces:
                                             numsametime = len(tieindeces)
                                             if numsametime > 1 and series.averagetie:
@@ -2649,18 +2655,18 @@ class AjaxTabulateResults(MethodView):
                                 
                                 # detect tie in subsequent results based on rendering,
                                 # which rounds to a specific precision based on distance
-                                time = render.rendertime(raceresult.agtime,agtimeprecision)
-                                for tiendx in range(rrndx+1,numresults):
-                                    if render.rendertime(dbresults[tiendx].agtime,agtimeprecision) != time:
-                                        break
-                                    tieindeces.append(tiendx)
-                                lasttie = tieindeces[-1] + 1
+                                # but do this only if averaging ties
+                                if series.averagetie:
+                                    time = render.rendertime(raceresult.agtime,agtimeprecision)
+                                    for tiendx in range(rrndx+1,numresults):
+                                        if render.rendertime(dbresults[tiendx].agtime,agtimeprecision) != time:
+                                            break
+                                        tieindeces.append(tiendx)
+                                    lasttie = tieindeces[-1] + 1
                                 for tiendx in tieindeces:
                                     numsametime = len(tieindeces)
                                     if numsametime > 1 and series.averagetie:
                                         dbresults[tiendx].agtimeplace = (thisplace+lasttie) / 2.0
-                                        #if dbresults[tiendx].agtimeplace == (thisplace+lasttie) / 2:
-                                        #    dbresults[tiendx].agtimeplace = int(dbresults[tiendx].agtimeplace)
                                     else:
                                         dbresults[tiendx].agtimeplace = thisplace
 
