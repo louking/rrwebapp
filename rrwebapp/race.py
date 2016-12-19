@@ -92,7 +92,7 @@ class ManageRaces(MethodView):
             raceseries = []
             rawresults = []
             tabresults = []
-            for race in Race.query.filter_by(club_id=club_id,year=thisyear,active=True).order_by('date').all():
+            for race in Race.query.filter_by(club_id=club_id,year=thisyear,external=False,active=True).order_by('date').all():
                 thisraceseries = [s.series.id for s in race.series if s.active]
                 if not seriesid or int(seriesid) in thisraceseries:
                     races.append(race)
@@ -535,7 +535,7 @@ class SeriesSettings(MethodView):
             
             # get races for this club,year
             races = []
-            theseraces = Race.query.filter_by(active=True,club_id=club_id,year=thisyear).order_by('date').all()
+            theseraces = Race.query.filter_by(club_id=club_id,year=thisyear,external=False,active=True).order_by('date').all()
             for thisrace in theseraces:
                 raceselect = (thisrace.id,thisrace.name)
                 races.append(raceselect)
