@@ -688,10 +688,28 @@ class AjaxCopySeries(MethodView):
             
             # copy each entry from "copyyear"
             for series in Series.query.filter_by(club_id=club_id,active=True,year=copyyear).all():
-                newseries = Series(series.club_id, thisyear, series.name, series.membersonly,
-                                   series.calcoverall, series.calcdivisions, series.calcagegrade,
-                                   series.orderby, series.hightolow, series.allowties, series.averagetie,
-                                   series.maxraces, series.multiplier, series.maxgenpoints, series.maxdivpoints, series.maxbynumrunners, series.hint)
+                # seriesparms = series.__dict__
+                # # remove params which we'll set manually
+                # seriesparms.pop('id')
+                # seriesparms.pop('club_id')
+                # seriesparms.pop('year')
+                # seriesparms.pop('active')
+                # # remove any non-class attributes
+                # keys = seriesparms.keys()
+                # for key in keys:
+                #     if key[0] == "_": seriesparms.pop(key)
+                # # some params need to be renamed
+                # seriesparms['overall'] = seriesparms.pop('calcoverall')
+                # seriesparms['divisions'] = seriesparms.pop('calcdivisions')
+                # seriesparms['agegrade'] = seriesparms.pop('calcagegrade')
+                # app.logger.debug('seriesparms={}'.format(seriesparms))
+                # newseries = Series(series.club_id, thisyear, **seriesparms)
+                newseries = Series(series.club_id, thisyear, 
+                                   series.name, series.membersonly, 
+                                   series.calcoverall, series.calcdivisions, series.calcagegrade, 
+                                   series.orderby, series.hightolow, series.allowties, series.averagetie, 
+                                   series.maxraces, series.multiplier, series.maxgenpoints, series.maxdivpoints, 
+                                   series.maxbynumrunners, series.description)
                 racedb.insert_or_update(db.session,Series,newseries,name=newseries.name,year=thisyear,club_id=club_id,skipcolumns=['id'])
                 
                 # any series we updated is not obsolete
