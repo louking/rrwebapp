@@ -79,7 +79,8 @@ class SeriesForm(Form):
     maxgenpoints = IntegerField('Max Gender Points',[validators.Optional()])
     maxdivpoints = IntegerField('Max Division Points',[validators.Optional()])
     maxbynumrunners = BooleanField('Max by Number of Runners')
-    orderby = SelectField('Order By',coerce=str,choices=[('agtime','agtime'),('agpercent','agpercent'),('time','time')])
+    # orderby field values must match field names in raceresult table
+    orderby = SelectField('Order By',coerce=str,choices=[('agtime','agtime'),('agpercent','agpercent'),('time','time'),('overallplace','overallplace')])
     hightolow = SelectField('Order',coerce=int,choices=[(0,'ascending'),(1,'descending')])
     membersonly = BooleanField('Members Only')
     averagetie = BooleanField('Average Ties')

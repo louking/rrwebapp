@@ -1088,10 +1088,11 @@
                     { label: 'Result Name:', name: 'resultname',
                       type: 'selectize', options: membernames,
                       opts: { 
-                        searchField: 'label',
-                        openOnFocus: false
+                            searchField: 'label',
+                            openOnFocus: false
+                            },
                     },
-                    },
+                    { label: 'Place:', name: 'place' },
                     { label: 'Age:',  name: 'age' },
                     { label: 'Gender:',  name: 'gender',
                       type: 'select', options: {'': 'None', 'M':'M', 'F':'F'},
@@ -1197,6 +1198,7 @@
         var matchCol = getColIndex('Match');
         var typeCol = getColIndex('Type');
         var timeCol = getColIndex('Time');
+        var placeCol = getColIndex('Place');
         var yadcffilters = [{
                         column_number:matchCol,
                         filter_container_id:"_rrwebapp_filtermatch",
@@ -1368,7 +1370,15 @@
                     },
                     // when Editor idSrc option is used with select, this column gets removed from the table
                     // { data: 'id',           name: 'id',          visible: false },   
-                    { data: 'place',        name: 'place',       className: 'dt-body-center' },
+                    { data: 'place',        name: 'place',       className: 'dt-body-center',
+                      render: function ( data, type, row, meta ) {
+                        if (Math.round(data) == data) {
+                            return Math.round(data)
+                        } else {
+                            return data                            
+                        }
+                      }
+                     },
                     { data: 'resultname',   name: 'resultname' },
                     { data: 'gender',       name: 'gender',      className: 'dt-body-center' },
                     { data: 'age',          name: 'age',         className: 'dt-body-center' },
@@ -1433,7 +1443,7 @@
                     'csv'
                 ],
                 ordering: true,
-                order: [timeCol,'asc'], 
+                order: [placeCol, 'asc'], 
             }))
             .yadcf(yadcffilters);
 

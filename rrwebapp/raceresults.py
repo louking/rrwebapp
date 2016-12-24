@@ -109,7 +109,7 @@ class RaceResults():
         foundhdr = False
         delimited = self.file.getdelimited()
         fields = fieldxform.keys()
-        REQDFIELDS = ['gender','age']    # 'name' fields handled separately
+        REQDFIELDS = ['place', 'gender', 'age']    # 'name' fields handled separately
         if self.timereqd:
             REQDFIELDS.append('time')
         MINMATCHES = len(REQDFIELDS) + 1    # add one for 'name'

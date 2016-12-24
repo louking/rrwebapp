@@ -1221,7 +1221,7 @@ class StandingsRenderer():
                     
             # accumulate points for this result
             # if result is ordered by time, genderplace and divisionplace may be used
-            if self.orderby == 'time':
+            if self.orderby in ['time', 'overallplace']:
                 # if result points depend on the number of runners, update maxgenpoints
                 if self.maxbynumrunners:
                     self.maxgenpoints = len(allresults)
@@ -1281,7 +1281,7 @@ class StandingsRenderer():
                 #    byrunner[runnerid,name]['bydivision'].append(max(divpoints,0))
                 #
             else:
-                raise parameterError, "series '{}' results must be ordered by time, agtime or agpercent".format(self.series.name)
+                raise parameterError, "series '{}' results must be ordered by time, overallplace, agtime or agpercent".format(self.series.name)
             
         return numresults            
     

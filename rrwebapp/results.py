@@ -2429,9 +2429,9 @@ class AjaxTabulateResults(MethodView):
                 else:
                     numdeleted = RaceResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
     
-            # get all the results, and the race record
-            results = []
-            results = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).order_by('time').all()
+            # # get all the results, and the race record
+            # results = []
+            # results = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).order_by('overallplace').all()
 
             # get race and list of runners who should be included in this race, based on membersonly
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
@@ -2501,8 +2501,9 @@ class AjaxTabulateResults(MethodView):
             
                     # at this point, there should always be a runnerid in the database, even if non-member
                     # create RaceResult entry
+                    # save overallplace for possible sort later (series.orderby)
                     resulttime = thisresult.time
-                    raceresult = RaceResult(club_id,runnerid,race.id,series.id,resulttime,gender,agegradeage)
+                    raceresult = RaceResult(club_id, runnerid, race.id, series.id, resulttime, gender, agegradeage, overallplace=thisresult.place)
 
                     # set source fields
                     raceresult.source = productname
@@ -2536,41 +2537,50 @@ class AjaxTabulateResults(MethodView):
                 # flush the results so they show up below
                 db.session.flush()
                 
-                # process overall and bygender results, sorted by time
+                # process bygender and division results, sorted by time or overallplace
                 # TODO: is series.overall vs. series.orderby=='time' redundant?  same question for series.agegrade vs. series.orderby=='agtime'
-                if series.orderby == 'time':
+                if series.orderby in ['time', 'overallplace']:
                     # get all the results which have been stored in the database for this race/series
-                    ### TODO: use series.orderby, series.hightolow
-                    dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id).order_by(RaceResult.time).all()
+                    dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id).order_by(series.orderby).all()
+                    # this is easier, code-wise, than using sqlalchemy desc() function
+                    if series.hightolow:
+                        dbresults.reverse()
                     numresults = len(dbresults)
-                    for rrndx in range(numresults):
-                        raceresult = dbresults[rrndx]
+
+                    ### code below deleted because overallplace is definitely set in loop through ManagedResults above, 
+                    ### and no ties are rendered in standings for overallplace anyway
+                    # for rrndx in range(numresults):
+                    #     raceresult = dbresults[rrndx]
                         
-                        # set place if it has not been set before
-                        # place may have been determined at previous iteration, if a tie was detected
-                        if not raceresult.overallplace:
-                            thisplace = rrndx+1
-                            tieindeces = [rrndx]
+                    #     # set place if it has not been set before
+                    #     # place may have been determined at previous iteration, if a tie was detected
+                    #     if not raceresult.overallplace:
+                    #         thisplace = rrndx+1
+                    #         tieindeces = [rrndx]
                             
-                            # detect tie in subsequent results based on rendering,
-                            # which rounds to a specific precision based on distance
-                            # but do this only if averaging ties
-                            if series.averagetie:
-                                time = render.rendertime(raceresult.time,timeprecision)
-                                for tiendx in range(rrndx+1,numresults):
-                                    if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
-                                        break
-                                    tieindeces.append(tiendx)
-                                lasttie = tieindeces[-1] + 1
-                            for tiendx in tieindeces:
-                                numsametime = len(tieindeces)
-                                if numsametime > 1 and series.averagetie:
-                                    dbresults[tiendx].overallplace = (thisplace+lasttie) / 2.0
-                                else:
-                                    dbresults[tiendx].overallplace = thisplace
+                    #         # detect tie in subsequent results based on rendering,
+                    #         # which rounds to a specific precision based on distance
+                    #         # but do this only if averaging ties
+                    #         if series.averagetie:
+                    #             # TODO: need to change this code to support orderby=='overallplace' and averagetie==True
+                    #             time = render.rendertime(raceresult.time,timeprecision)
+                    #             for tiendx in range(rrndx+1,numresults):
+                    #                 if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
+                    #                     break
+                    #                 tieindeces.append(tiendx)
+                    #             lasttie = tieindeces[-1] + 1
+                    #         for tiendx in tieindeces:
+                    #             numsametime = len(tieindeces)
+                    #             if numsametime > 1 and series.averagetie:
+                    #                 dbresults[tiendx].overallplace = (thisplace+lasttie) / 2.0
+                    #             else:
+                    #                 dbresults[tiendx].overallplace = thisplace
             
                     for gender in ['F','M']:
-                        dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(RaceResult.time).all()
+                        dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(series.orderby).all()
+                        # this is easier, code-wise, than using sqlalchemy desc() function
+                        if series.hightolow:
+                            dbresults.reverse()
             
                         numresults = len(dbresults)
                         for rrndx in range(numresults):
@@ -2586,6 +2596,7 @@ class AjaxTabulateResults(MethodView):
                                 # which rounds to a specific precision based on distance
                                 # but do this only if averaging ties
                                 if series.averagetie:
+                                    # TODO: need to change this code to support orderby=='overallplace' and averagetie==True
                                     time = render.rendertime(raceresult.time,timeprecision)
                                     for tiendx in range(rrndx+1,numresults):
                                         if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
@@ -2609,7 +2620,10 @@ class AjaxTabulateResults(MethodView):
             
                                 dbresults = RaceResult.query  \
                                               .filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender,divisionlow=divlow,divisionhigh=divhigh) \
-                                              .order_by(racedb.RaceResult.time).all()
+                                              .order_by(series.orderby).all()
+                                # this is easier, code-wise, than using sqlalchemy desc() function
+                                if series.hightolow:
+                                    dbresults.reverse()
                     
                                 numresults = len(dbresults)
                                 for rrndx in range(numresults):
@@ -2625,6 +2639,7 @@ class AjaxTabulateResults(MethodView):
                                         # which rounds to a specific precision based on distance
                                         # but do this only if averaging ties
                                         if series.averagetie:
+                                            # TODO: need to change this code to support orderby=='overallplace' and averagetie==True
                                             time = render.rendertime(raceresult.time,timeprecision)
                                             for tiendx in range(rrndx+1,numresults):
                                                 if render.rendertime(dbresults[tiendx].time,timeprecision) != time:
@@ -2641,7 +2656,10 @@ class AjaxTabulateResults(MethodView):
                 # process age grade results, ordered by agtime
                 elif series.orderby == 'agtime':
                     for gender in ['F','M']:
-                        dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(RaceResult.agtime).all()
+                        dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(series.orderby).all()
+                        # this is easier, code-wise, than using sqlalchemy desc() function
+                        if series.hightolow:
+                            dbresults.reverse()
             
                         numresults = len(dbresults)
                         for rrndx in range(numresults):
@@ -2670,10 +2688,13 @@ class AjaxTabulateResults(MethodView):
                                     else:
                                         dbresults[tiendx].agtimeplace = thisplace
 
-                # process age grade results, ordered by agtime
+                # process age grade results, ordered by agpercent
                 elif series.orderby == 'agpercent':
                     for gender in ['F','M']:
-                        dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(RaceResult.agpercent.desc()).all()
+                        dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(series.orderby).all()
+                        # this is easier, code-wise, than using sqlalchemy desc() function
+                        if series.hightolow:
+                            dbresults.reverse()
             
                         numresults = len(dbresults)
                         #app.logger.debug('orderby=agpercent, club_id={}, race.id={}, series.id={}, gender={}, numresults={}'.format(club_id,race.id,series.id,gender,numresults))
