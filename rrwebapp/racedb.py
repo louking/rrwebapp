@@ -658,7 +658,7 @@ class Series(Base):
         self.calcagegrade = agegrade
         self.orderby = orderby
         self.hightolow = hightolow
-        self.allowties = allowties
+        self.allowties = allowties  # obsolete
         self.averagetie = averagetie
         self.maxraces = maxraces
         self.multiplier = multiplier
@@ -702,7 +702,7 @@ class ManagedResult(Base):
     raceid = Column(Integer, ForeignKey('race.id'))
     
     # from official race result file
-    place = Column(Integer)
+    place = Column(Float)
     name = Column(String(50))
     fname = Column(String(50))
     lname = Column(String(50))
