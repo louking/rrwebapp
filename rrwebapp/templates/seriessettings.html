@@ -6,9 +6,11 @@
 {% block body %}
   <form action="{{ userurl }}" method=post>
     {{ form.hidden_tag() }}
-    <div class="W20emLabel W25emTextBox FloatLeft">
-        {{ render_field(form.name,displayonly) }}
-        <div class="scrollarea">
+    <div class="W20emLabel FloatLeft">
+        <div class="W25emTextBox">
+          {{ render_field(form.name,displayonly) }}
+        </div>
+        <div class="scrollarea W9emTextBox">
           {{ render_field(form.maxraces,displayonly) }}
           {{ render_field(form.multiplier,displayonly) }}
           {{ render_field(form.maxgenpoints,displayonly) }}
@@ -36,6 +38,7 @@
             <input class="_rrwebapp-actionbutton " type="submit" name="whichbutton" value="{{action}}" />
           {% endif %}
         </center>
-        </div>
+      </div>
+    </div>
   </form>
 {% endblock %}
