@@ -41,5 +41,8 @@ def deploy(branchname='master'):
         run('git checkout {}'.format(branchname))
         run('cp -R ../libs/js  rrwebapp/static')
         run('cp -R ../libs/css rrwebapp/static')
+        # must source bin/activate before each command which must be done under venv
+        # because each is a separate process
         run('source bin/activate; pip install -r requirements.txt')
+        run('source bin/activate; alembic -c rrwebapp/alembic.ini upgrade head')
         run('touch {}'.format(WSGI_SCRIPT))
