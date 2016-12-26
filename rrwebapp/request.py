@@ -54,11 +54,11 @@ jq_ui_ver = '1.10.4'
 
 # dataTables
 dt_cdn = 'https://cdn.datatables.net'
-dt_datatables_ver = '1.10.12'
-dt_buttons_ver = '1.2.1'
+dt_datatables_ver = '1.10.13'
+dt_buttons_ver = '1.2.3'
 dt_colvis_ver = '1.2.2'
 dt_fixedcolumns_ver = '3.2.2'
-dt_select_ver = '1.2.0'
+dt_select_ver = '1.2.1'
 dt_editor_plugin_cdn = 'https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q='
 dt_editor_plugin_fieldtype_ver = '?'
 
@@ -68,7 +68,7 @@ s2_ver = '4.0.3'
 
 # selectize
 sz_cdn = 'https://cdnjs.cloudflare.com/ajax/libs'
-sz_ver = '0.12.2'
+sz_ver = '0.12.4'
 
 # yadcf
 yadcf_cdn = 'https://cdnjs.cloudflare.com/ajax/libs'
@@ -103,9 +103,12 @@ SCRIPTS = [
     ('fixedcolumns/{ver}/css/fixedColumns.jqueryui{min}.css', dt_fixedcolumns_ver, dt_cdn),
 
     # Editor is not yet available from the dataTables CDN
-    'js/DataTables-1.10.11/Editor-1.5.5/js/dataTables.editor.js',
-    'js/DataTables-1.10.11/Editor-1.5.5-errorfix/js/editor.jqueryui.js',
-    'js/DataTables-1.10.11/Editor-1.5.5/css/editor.jqueryui.css',
+    'js/Editor-1.6.1/js/dataTables.editor.js',
+    'js/Editor-1.6.1/js/editor.jqueryui.js',
+    'js/Editor-1.6.1/css/editor.jqueryui.css',
+    # 'js/DataTables-1.10.11/Editor-1.5.5/js/dataTables.editor.js',
+    # 'js/DataTables-1.10.11/Editor-1.5.5-errorfix/js/editor.jqueryui.js',
+    # 'js/DataTables-1.10.11/Editor-1.5.5/css/editor.jqueryui.css',
 
     ('select/{ver}/js/dataTables.select.js', dt_select_ver, dt_cdn),
     ('select/{ver}/css/select.jqueryui.css', dt_select_ver, dt_cdn),
@@ -119,8 +122,8 @@ SCRIPTS = [
     # can editor selectize come from here? Why no version?
     #   https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q=field-type/editor.selectize.min.js 
     #   https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q=field-type/editor.selectize.min.css
-    'js/DataTables-1.10.11/FieldType-Selectize/editor.selectize.js',
-    'js/DataTables-1.10.11/FieldType-Selectize/editor.selectize.css',
+    'js/FieldType-Selectize/editor.selectize.js',
+    'js/FieldType-Selectize/editor.selectize.css',
 
     ('yadcf/{ver}/jquery.dataTables.yadcf{min}.js', yadcf_ver, yadcf_cdn),
     # 'jquery.dataTables.yadcf-0.9.1-beta.6.js',
