@@ -221,13 +221,13 @@ class CrudApi(MethodView):
                 queryparms['club_id'] = club_id
 
             # peel off any _update options
-            update_uptions = []
+            update_options = []
             for column in self.clientcolumns:
                 if '_update' in column:
                     update = column['_update']  # convenience alias
                     update['url'] = url_for(update['endpoint']) + '?' + urlencode({'_wrapper':dumps(update['wrapper'])})
                     update['name'] = column['name']
-                    update_uptions.append(update)
+                    update_options.append(update)
 
             # DataTables options string, data: and buttons: are passed separately
             dt_options = {
@@ -295,7 +295,7 @@ class CrudApi(MethodView):
                                          pagejsfiles = addscripts(['datatables.js']),
                                          tabledata = tabledata, 
                                          tablebuttons = self.buttons,
-                                         options = {'dtopts': dt_options, 'editoropts': ed_options, 'updateopts': update_uptions},
+                                         options = {'dtopts': dt_options, 'editoropts': ed_options, 'updateopts': update_options},
                                          inhibityear = True,    # NOTE: prevents common CrudApi
                                          writeallowed = self.writepermission())
         
