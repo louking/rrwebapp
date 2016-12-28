@@ -14,6 +14,10 @@ applogging - define logging for the application
 ================================================
 '''
 # standard
+import logging
+from logging.handlers import SMTPHandler
+from logging import Formatter
+from logging.handlers import TimedRotatingFileHandler
 
 # pypi
 
@@ -24,14 +28,17 @@ from . import app
 def setlogging():
 #----------------------------------------------------------------------
 
+    # this is needed for any INFO or DEBUG logging
+    app.logger.setLevel(logging.DEBUG)
+
+    # patch werkzeug logging -- not sure why this is being bypassed in werkzeug._internal._log
+    werkzeug_logger = logging.getLogger('werkzeug')
+    werkzeug_logger.setLevel(logging.INFO)
+
     # TODO: move this to new module logging, bring in from dispatcher
     # set up logging
     ADMINS = ['lking@pobox.com']
     if not app.debug:
-        import logging
-        from logging.handlers import SMTPHandler
-        from logging import Formatter
-        from logging.handlers import TimedRotatingFileHandler
         mail_handler = SMTPHandler('localhost',
                                    'noreply@steeplechasers.org',
                                    ADMINS, '[scoretility] exception encountered')
@@ -74,6 +81,4 @@ def setlogging():
                 '[in %(pathname)s:%(lineno)d]'
             ))
             
-            # this is needed for any INFO or DEBUG logging
-            app.logger.setLevel(logging.DEBUG)
     
