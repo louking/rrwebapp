@@ -12,7 +12,7 @@
 forms - forms for rrwebapp
 ===============================
 '''
-from flask.ext.wtf import Form
+from flask_wtf import Form
 from wtforms import HiddenField, SelectField, StringField, IntegerField, DateField
 from wtforms import FloatField, BooleanField, TextField, TextAreaField, validators
 from wtforms import SelectMultipleField, widgets

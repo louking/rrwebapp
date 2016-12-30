@@ -20,7 +20,7 @@ from functools import update_wrapper
 # pypi
 import flask
 from flask import url_for, make_response, request, current_app
-from flask.ext.login import login_required
+from flask_login import login_required
 from flask.views import MethodView
 
 # home grown

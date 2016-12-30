@@ -16,9 +16,9 @@ from ConfigParser import SafeConfigParser
 
 # pypi
 from flask import Flask
-from flask.ext.login import login_required
-import flask.ext.principal as principal
-import flask.ext.wtf as flaskwtf
+from flask_login import login_required
+import flask_principal as principal
+import flask_wtf as flaskwtf
 import wtforms
 from celery import Celery
 

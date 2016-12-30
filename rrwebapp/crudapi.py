@@ -22,7 +22,7 @@ from urllib import urlencode
 # pypi
 import flask
 from flask import make_response, request, jsonify, url_for
-from flask.ext.login import login_required
+from flask_login import login_required
 from flask.views import MethodView
 from datatables import DataTables, ColumnDT
 from datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data

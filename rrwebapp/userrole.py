@@ -14,11 +14,11 @@ import traceback
 
 # pypi
 import flask
-import flask.ext.login as flasklogin
-from flask.ext.login import login_required
+import flask_login as flasklogin
+from flask_login import login_required
 from flask.views import MethodView
-import flask.ext.principal as principal
-import flask.ext.wtf as flaskwtf
+import flask_principal as principal
+import flask_wtf as flaskwtf
 
 # home grown
 from . import app

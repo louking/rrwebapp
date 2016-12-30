@@ -25,11 +25,11 @@ import xml.etree.ElementTree as ET
 # pypi
 import flask
 from flask import make_response, request, jsonify, url_for
-from flask.ext.login import login_required
+from flask_login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
 from datatables import DataTables, ColumnDT
-from flask.ext.wtf import Form
+from flask_wtf import Form
 from wtforms import SelectField, StringField, IntegerField, BooleanField, validators
 from celery import states
 from celery.exceptions import Ignore

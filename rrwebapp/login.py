@@ -16,9 +16,9 @@ from functools import wraps
 
 # pypi
 import flask
-from flask.ext.login import LoginManager, login_required, login_user, logout_user, current_user
-from flask.ext.principal import Identity, AnonymousIdentity, identity_changed, identity_loaded, UserNeed, RoleNeed
-import flask.ext.wtf as flaskwtf
+from flask_login import LoginManager, login_required, login_user, logout_user, current_user
+from flask_principal import Identity, AnonymousIdentity, identity_changed, identity_loaded, UserNeed, RoleNeed
+import flask_wtf as flaskwtf
 import wtforms
 
 # home grown

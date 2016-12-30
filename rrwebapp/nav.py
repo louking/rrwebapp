@@ -21,7 +21,7 @@ import json
 import flask
 from flask_login import current_user, abort
 from flask.views import MethodView
-from flask.ext.login import login_required
+from flask_login import login_required
 from flask import request
 
 # home grown

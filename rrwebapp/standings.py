@@ -22,7 +22,7 @@ import traceback
 # pypi
 import flask
 from flask import make_response,request
-from flask.ext.login import login_required
+from flask_login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
 
