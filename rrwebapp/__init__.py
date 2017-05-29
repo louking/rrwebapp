@@ -81,6 +81,7 @@ import tools
 import sysinfo
 import docs
 import staticfiles
+import agegradeapi
 
 # initialize versions for scripts
 # need to force app context with test_request_context() else get
