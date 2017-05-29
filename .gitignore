@@ -183,3 +183,7 @@ pip-selfcheck.json
 
 # Mac crap
 .DS_Store
+
+# docx, tcl
+docx-template
+tcl
