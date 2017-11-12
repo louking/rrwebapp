@@ -329,12 +329,14 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
                 try:
                     trend = aag[thisname].get_trendline(thesestats=tstats)
                 except ZeroDivisionError:
-                    app.logger.error('ZeroDivisionError - processing {}'.format(rendername))
-                    raise
-                summout['trend\n{}'.format(distcategory)] = trend.improvement
-                summout['stderr\n{}'.format(distcategory)] = trend.stderr
-                summout['r-squared\n{}'.format(distcategory)] = trend.r2
-                summout['pvalue\n{}'.format(distcategory)] = trend.pvalue
+                    app.logger.debug('ZeroDivisionError - processing {}'.format(rendername))
+                    trend = None
+                # ignore trends which can't be calculated
+                if trend:
+                    summout['trend\n{}'.format(distcategory)] = trend.improvement
+                    summout['stderr\n{}'.format(distcategory)] = trend.stderr
+                    summout['r-squared\n{}'.format(distcategory)] = trend.r2
+                    summout['pvalue\n{}'.format(distcategory)] = trend.pvalue
         SUMM.writerow(summout)
 
         # update status

@@ -480,7 +480,7 @@ class AnalyzeAgeGrade():
         try:
             lr = linear_regression(Y, X)
         except ZeroDivisionError:
-            app.logger.error(('ZeroDivisionError\n   len(thesestats)={}\n   X={}\n   Y={}\n' +
+            app.logger.debug(('ZeroDivisionError\n   len(thesestats)={}\n   X={}\n   Y={}\n' +
                               '   thesestats[0].date={}').format(len(thesestats), X, Y, thesestats[0].date))
             raise
 
