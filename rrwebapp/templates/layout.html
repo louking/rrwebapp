@@ -18,8 +18,10 @@
 {% if not printerfriendly %}
   <div class=heading>
     <h1>{{_rrwebapp_productname|safe}}
-    {% if request.url[0:16] == "http://127.0.0.1" %} (development){% endif %}
-    {% if request.url[0:14] == "http://sandbox" %} (sandbox){% endif %}
+    {% set urlparts = request.url.split('/') %}
+    {% set hostname = urlparts[2] %}
+    {% if hostname[0:9] == "127.0.0.1" %} (development){% endif %}
+    {% if hostname == "sandbox.scoretility.com" %} (sandbox){% endif %}
   </h1>
     <div class=pagename>{{self.pagename()}}</div>
     <div class=metanav>
@@ -107,10 +109,10 @@
   <link rel=stylesheet type=text/css href="{{ css }}">
 {% endfor %}
 <style>
-  {% if request.url[0:16] == "http://127.0.0.1" %}
+  {% if hostname[0:9] == "127.0.0.1" %}
     html {background: antiquewhite;}
   {% endif %}
-  {% if request.url[0:14] == "http://sandbox" %}
+  {% if hostname == "sandbox.scoretility.com" %}
     html {background: lightcyan;}
   {% endif %}
 </style>
