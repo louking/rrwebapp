@@ -118,6 +118,7 @@
         $.extend(params,updates)
         return params;
     }
+
     //var sSpecDomValue = '<"H"Clpr>t';
     var sSpecDomValue = 'lfrtip';
     function getSpecTableParams(updates) {
@@ -598,7 +599,11 @@
         toolbutton.close();
     };
         
-    function ajax_update_db_noform_resp(url,addparms,data,sel,callback) {
+    function ajax_update_db_noform_resp(url,addparms,data,sel,callback,showprogress) {
+        if (showprogress) {
+            $('#progressbar').progressbar('destroy');
+            $('#progressbar').remove();
+        }
         window.console && console.log(data);
         if (data.success) {
             if (typeof $( sel ).data('revert') != 'undefined') {
@@ -629,7 +634,7 @@
                             }
                         },{ text:  'Overwrite',
                             click: function(){
-                                ajax_update_db_noform(url,addparms,sel,true);
+                                ajax_update_db_noform(url,addparms,sel,true,callback,showprogress);
                                 $( this ).dialog('destroy');
                             }
                         }
@@ -651,25 +656,28 @@
         };
     };
     
-    function ajax_update_db_noform(urlpath,addparms,sel,force,callback) {
+    function ajax_update_db_noform(urlpath,addparms,sel,force,callback,showprogress) {
         // force = true means to overwrite existing data, not necessarily used by target page
         addparms.force = force
         
         var url = urlpath +'?'+$.param(addparms)
-        //form_data.append('force',force)
-        //url = urlpath
 
         $.ajax({
             type: 'POST',
             url: url,
-            //data: form_data,
             contentType: false,
             cache: false,
-            async: false,
+            async: true,
             success: function(data) {
-                ajax_update_db_noform_resp(urlpath,addparms,data,sel,callback);
+                ajax_update_db_noform_resp(urlpath,addparms,data,sel,callback,showprogress);
             },
         });
+
+        if (showprogress) {
+            // show we're doing something
+            $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">Loading...</div></div>');
+            progressbar = $('#progressbar').progressbar({value:false});
+        }
     };
         
     function ajax_import_file_resp(urlpath,formsel,data) {
@@ -741,8 +749,10 @@
         $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">Loading...</div></div>');
         progressbar = $('#progressbar').progressbar({value:false});
 
-        //closetoolbutton();
-        toolbutton.close();
+        // kludge because we're starting to move away from global toolbutton
+        if (toolbutton.$tooldialog) {
+            toolbutton.close();
+        }
     };
         
     function ajax_update_progress(status_url, progressbar) {
@@ -872,39 +882,12 @@
             }
         });
         
-        //closetoolbutton();
-        toolbutton.close();
+        // kludge because we're starting to move away from global toolbutton
+        if (toolbutton.$tooldialog) {
+            toolbutton.close();
+        }
     };
         
-    // managemembers
-    function managemembers( writeallowed ) {
-        //var $filterseries = $('#filterseries');
-        //$filterseries
-        //    //.selectmenu({ icons: { secondary: "ui-icon-triangle-1-s" } })
-        //    .on('change',
-        //        function() {
-        //            this.form.submit();
-        //        });
-        
-        if (writeallowed) {
-            // put toolbutton in the right place
-            //toolbutton.$widgets.css({height:"0px"});   // no more widgets in container
-            
-            var $importmembers = $('#managemembersImport');
-            $importmembers.click( function( event ) {
-                event.preventDefault();
-                var url = $(this).attr('_rrwebapp-formaction')
-                ajax_import_file(url,'#import-members',false);
-            });
-        }
-
-        _rrwebapp_table = $('#_rrwebapp-table-manage-members')
-            .dataTable(getDataTableParams({scrollY: gettableheight()-10}));
-                // -10 because sorting icons shown below headings
-        resetDataTableHW();
-        
-    };  // managemembers
-    
     // manageraces
     function manageraces( writeallowed ) {
         var $filterseries = $('#filterseries');

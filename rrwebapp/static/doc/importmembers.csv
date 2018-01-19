@@ -8,7 +8,7 @@ The following file types are allowed.,,,,,,
 ,,,,,,
 File Contents,,,,,,
 ---------------------------------------,,,,,,
-"File contents are the file header for the first row,  and the member list with a row for each member. This section defines the permitted column heading names, and describes the type of data to be found underneath those headings. ",,,,,,
+"File contents are the file header for the first row,  and the member list with a row for each member. This section defines the permitted column heading names, and describes the type of data to be found underneath those headings. This is designed to natively support the files which are exported from RunSignUp or from RunningAHEAD.",,,,,,
 ,,,,,,
 "Alternate Headings are given, separated by commas. Note the commas are not part of the alternate headings. ",,,,,,
 ,,,,,,
@@ -19,29 +19,31 @@ File Contents,,,,,,
 "* other fields may be present, are ignored",,,,,,
 ,,,,,,
 table,,,,,,
-thead,,th,Heading,Alternate Heading,Format,Description
-tbody,,td,**FamilyName**,Last,Text,The member's last (or family) name.
-tbody,,td,**GivenName**,First,Text,The member's first (or given) name.
+thead,,th,Heading,Alternate Headings,Format,Description
+tbody,,td,**FamilyName**,"Last, Last Name",Text,The member's last (or family) name.
+tbody,,td,**GivenName**,"First, First Name",Text,The member's first (or given) name.
 tbody,,td,**Gender**,,F or M,The member's gender.
-tbody,,td,**DOB**,,yyyy-mm-dd ,"The member's date of birth:
+tbody,,td,**DOB**,Date of Birth,mm/dd/yyyy\ :sup:`2`,"The member's date of birth:
 
 * yyyy - 4 digit year
 * m or mm - 1 or 2 digit month
 * d or dd - 1 or 2 digit day of the month
 "
-tbody,,td,RenewalDate\ :sup:`1`,,yyyy-mm-dd ,"The date when the member most recently renewed membership for the club.
+tbody,,td,**RenewalDate**\ :sup:`1`,Membership Start Date,mm/dd/yyyy\ :sup:`2`,"The date when the member most recently renewed membership for the club.
 
 * yyyy - 4 digit year
 * m or mm - 1 or 2 digit month
 * d or dd - 1 or 2 digit day of the month
 "
-tbody,,td,ExpirationDate\ :sup:`1`,,yyyy-mm-dd ,"The membership's expiration date.
+tbody,,td,**ExpirationDate**\ :sup:`1`,Membership End Date,mm/dd/yyyy\ :sup:`2`,"The membership's expiration date.
 
 * yyyy - 4 digit year
 * m or mm - 1 or 2 digit month
 * d or dd - 1 or 2 digit day of the month"
 tbody,,td,**City**,,Text,The member's home city
-tbody,,td,**State**',,Text,The member's home state (two digit abbreviation)
+tbody,,td,**State**,,Text,The member's home state (two digit abbreviation)
 /table,,,,,,
 ,,,,,,
 :sup:`1` **RenewalDate** and **ExpirationDate** allow scoretility to determine member's eligibility to participate in a series on a given race date,,,,,,
+,,,,,,
+":sup:`2` if the file is from RunningAHEAD, the date formats must be yyyy-mm-dd",,,,,,

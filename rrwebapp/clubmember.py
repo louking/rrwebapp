@@ -20,6 +20,7 @@ import pdb
 import argparse
 import datetime
 import difflib
+from collections import OrderedDict
 
 # pypi
 #from IPython.core.debugger import Tracer; debughere = Tracer(); debughere() # set breakpoint where needed
@@ -31,18 +32,59 @@ import unicodecsv
 import version
 import racedb
 from loutilities import timeu, csvwt
+from loutilities.transform import Transform
 from database_flask import db
+from . import app
 
 # exceptions for this module.  See __init__.py for package exceptions
 
 # module globals
 tYmd = timeu.asctime('%Y-%m-%d')
+tmdY = timeu.asctime('%m/%d/%Y')
 tHMS = timeu.asctime('%H:%M:%S')
 tMS  = timeu.asctime('%M:%S')
-
+rsudate = lambda date: tYmd.dt2asc(tmdY.asc2dt(date))
 
 # SequenceMatcher to determine matching ratio, which can be used to evaluate CUTOFF value
 sm = difflib.SequenceMatcher()
+
+# normalize format from RunSignUp API
+rsu_api2filemapping = OrderedDict([
+                        ('MembershipID'   , 'membership_id'),
+                        ('User ID'        , lambda mem: mem['user']['user_id']),
+                        ('MembershipType' , 'club_membership_level_name'),
+                        ('FamilyName'     , lambda mem: mem['user']['last_name']),
+                        ('GivenName'      , lambda mem: mem['user']['first_name']),
+                        ('MiddleName'     , lambda mem: mem['user']['middle_name']),
+                        ('Gender'         , lambda mem: 'Female' if mem['user']['gender'] == 'F' else 'Male'),
+                        ('DOB'            , lambda mem: mem['user']['dob']),
+                        ('Email'          , lambda mem: mem['user']['email'] if 'email' in mem['user'] else ''),
+                        ('City'           , lambda mem: mem['user']['address']['city']),
+                        ('State'          , lambda mem: mem['user']['address']['state']),
+                        ('PrimaryMember'  , 'primary_member'),
+                        ('RenewalDate'    , 'membership_start'),
+                        ('ExpirationDate' , 'membership_end'),
+                      ])
+
+# normalize format from RunSignUp file
+rsu_filexform = Transform({
+                        'MemberID'       : 'User ID',
+                        'MembershipID'   : 'Membership ID',
+                        'MembershipType' : 'Membership Type',
+                        'FamilyName'     : 'Last Name',
+                        'GivenName'      : 'First Name',
+                        'MiddleName'     : 'Middle Name',
+                        'Gender'         : lambda mem: 'Female' if mem['Gender'] == 'F' else 'Male',
+                        'DOB'            : lambda mem: rsudate(mem['Date of Birth']),
+                        'Email'          : 'E-mail',
+                        'City'           : 'City',
+                        'State'          : 'State',
+                        'PrimaryMember'  : lambda mem: 'T' if mem['Primary Member'] == 'Yes' else 'F',
+                        'RenewalDate'    : lambda mem: rsudate(mem['Membership Start Date']),
+                        'ExpirationDate' : lambda mem: rsudate(mem['Membership End Date']),
+                      }, 
+                      sourceattr=False, 
+                      targetattr=False)
 
 #----------------------------------------------------------------------
 def getratio(a,b):
@@ -75,6 +117,20 @@ class ClubMember():
         else:
             _IN = open(csvfile,'rb')
             closeit = True
+
+        # check header to see if RunSignUp file -- making some assumptions here
+        header = _IN.readline().strip().split(',')
+        app.logger.debug('header = {}'.format(header))
+        if (        'Membership ID' in header
+                and 'Amount Paid'   in header
+                and 'E-mail'        in header
+                and 'Last Modified' in header):
+            runsignupfile = True
+        else:
+            runsignupfile = False
+
+        # need to reset file before parsing as csv
+        _IN.seek(0) 
         IN = unicodecsv.DictReader(_IN)
         
         # collect member information by member name
@@ -86,7 +142,14 @@ class ClubMember():
         self.cutoff = cutoff
         
         # read each row in input file, and create the member data structure
-        for thisrow in IN:
+        for filerow in IN:
+            # transform file row if necessary to normalized format (from RunningAHEAD)
+            if runsignupfile:
+                thisrow = {}
+                rsu_filexform.transform(filerow, thisrow)
+            else:
+                thisrow = filerow
+
             # allow First or GivenName; allow Last or FamilyName; throw error for First, Last keys
             first = thisrow['GivenName']  if 'GivenName' in thisrow  else thisrow['First']
             last  = thisrow['FamilyName'] if 'FamilyName' in thisrow else thisrow['Last']

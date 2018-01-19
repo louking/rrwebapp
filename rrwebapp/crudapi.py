@@ -161,11 +161,15 @@ class CrudApi(MethodView):
     :param formmapping: mapping dict with key for each form row, value is key in db row or function(form)
     :param writepermission: function to check write permission for api access
     :param dbtable: db model class for table being updated
+    :param queryparms: dict of query parameters relevant to this table to retrieve table or rows
     :param byclub: True if results are to be limited by club_id
     :param clientcolumns: list of dicts for input to dataTables and Editor
     :param servercolumns: list of ColumnDT for input to sqlalchemy-datatables.DataTables
     :param idSrc: idSrc for use by Editor
     :param buttons: list of buttons for DataTable, from ['create', 'remove', 'edit', 'csv']
+    :param pagejsfiles: list of javascript files to be included at end
+    :param pagecssfiles: list of css files to be included at end
+    :param dtoptions: datatables options to override / add
     '''
 
     decorators = [login_required]
@@ -183,11 +187,16 @@ class CrudApi(MethodView):
                     formmapping = {}, 
                     writepermission = lambda: False, 
                     dbtable = None, 
+                    queryparms = {},
                     clientcolumns = None, 
                     servercolumns = None, 
                     byclub = True,        # NOTE: prevents common CrudApi
                     idSrc = 'DT_RowId', 
-                    buttons = ['create', 'edit', 'remove', 'csv'])
+                    buttons = ['create', 'edit', 'remove', 'csv'],
+                    pagejsfiles = [],
+                    pagecssfiles = [],
+                    dtoptions = {},
+                    )
         args.update(kwargs)        
         for key in args:
             setattr(self, key, args[key])
@@ -216,7 +225,7 @@ class CrudApi(MethodView):
                 flask.abort(403)
             
             # set up parameters to query, based on whether results are limited to club
-            queryparms = {}
+            queryparms = self.queryparms
             if self.byclub:
                 queryparms['club_id'] = club_id
 
@@ -242,8 +251,14 @@ class CrudApi(MethodView):
                 ],
                 'select': True,
                 'ordering': True,
-                'order': [1,'asc']
+                'order': [1,'asc'],
+                'jQueryUI': True,
             }
+
+            # update caller supplied options
+            dt_options.update(self.dtoptions)
+
+            # update column options
             for column in self.clientcolumns:
                 dt_options['columns'].append(column)
 
@@ -292,7 +307,8 @@ class CrudApi(MethodView):
             # render page
             return flask.render_template('datatables.html', 
                                          pagename = self.pagename,
-                                         pagejsfiles = addscripts(['datatables.js']),
+                                         pagejsfiles = addscripts(['datatables.js'] + self.pagejsfiles),
+                                         pagecssfiles = addscripts(self.pagecssfiles),
                                          tabledata = tabledata, 
                                          tablebuttons = self.buttons,
                                          options = {'dtopts': dt_options, 'editoropts': ed_options, 'updateopts': update_options},
@@ -316,7 +332,7 @@ class CrudApi(MethodView):
                 flask.abort(403)
                 
             # set up parameters to query, based on whether results are limited to club
-            queryparms = {}
+            queryparms = self.queryparms
             if self.byclub:
                 queryparms['club_id'] = club_id
 

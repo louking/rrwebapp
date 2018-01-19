@@ -84,6 +84,39 @@ def get_request_data(form):
     # return decoded result
     return data
 
+#----------------------------------------------------------------------
+def getDataTableParams(updates, printerfriendly = False):
+#----------------------------------------------------------------------
+
+    sDomValue = '<"H"lBpfr>t<"F"i>'
+    sPrinterFriendlyDomValue = 'lpfrt'
+
+    if not printerfriendly:
+        params = {
+                'dom': sDomValue,
+                'jQueryUI': True,
+                'paging': False,
+                # 'scrollY': gettableheight(),  # can't call js from here
+                'scrollCollapse': True,
+                'buttons': [],
+                # responsive: True,    # causes + button on left, which is not user friendly
+                'scrollX': True,
+                'scrollXInner': "100%",
+                }
+
+    else:
+        params = {
+                'dom': sPrinterFriendlyDomValue,
+                'jQueryUI': True,
+                'paging': False,
+                'ordering': False,
+                'scrollCollapse': True,
+                }
+
+    params.update(updates)
+    return params
+    
+
 
 ###########################################################################################
 class DataTablesEditor():
