@@ -165,9 +165,12 @@ def normalizeRAmemberlist(inputstream,filterexpdate=None):
 mm_dbattrs = 'id,name,fname,lname,dateofbirth,gender,hometown,renewdate,expdate,member'.split(',')
 mm_formfields = 'rowid,name,fname,lname,dob,gender,hometown,renewal,expiration,member'.split(',')
 mm_dbmapping = OrderedDict(zip(mm_dbattrs, mm_formfields))
-mm_dbmapping['member'] = lambda form: 1 if form['member'] == 'is-member' or form['member'] == 'true' else 0
 mm_formmapping = OrderedDict(zip(mm_formfields, mm_dbattrs))
+
+# convert member back / forth
+mm_dbmapping['member'] = lambda form: 1 if form['member'] == 'is-member' or form['member'] == 'true' else 0
 mm_formmapping['member'] = lambda dbrow: 'is-member' if dbrow.member else 'non-member'
+
 mm = CrudApi(pagename = 'Manage Members', 
              endpoint = 'managemembers', 
              dbmapping = mm_dbmapping, 
