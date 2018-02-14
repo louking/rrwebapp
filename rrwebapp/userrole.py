@@ -310,9 +310,12 @@ def _setpermission(club,user,rolename,setrole):
         club = Club.query.filter_by(name='owner').first()
     thisrole = Role.query.filter_by(club_id=club.id, name=rolename).first()
     
-    # not found -- shouldn't happen
+    # not found -- must be first attempt to use role for club -- create it
     if not thisrole:
-        return False
+        role = Role(rolename)
+        club.roles.append(role)
+        # try again
+        thisrole = Role.query.filter_by(club_id=club.id, name=rolename).first()
     
     # adding the permission
     if setrole:
