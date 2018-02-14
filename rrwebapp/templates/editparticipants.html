@@ -33,6 +33,11 @@
                 <button id='_rrwebapp-button-import' _rrwebapp-formaction='{{ url_for("_importresults",raceid=race.id) }}'>Import</button>\
               </form>\
             </div>\
+            <h3>Select Names and Confirm</h3>\
+            <div>\
+              <p>Choose the first name in the Standings Name dropdown and confirm for all rows in browser window (check Show value on left of table header)</p>\
+              <button id='_rrwebapp-button-select-names-and-confirm' >Confirm</button>\
+            </div>\
             ");
         {% endif %}
 
@@ -55,9 +60,6 @@
     <div class="TextLeft ">
       <div>
         <label class="Label">Match:</label><span id="_rrwebapp_filtermatch" class="_rrwebapp-filter"></span>
-        {% if not membersonly %}
-          <label class="Label">Type:</label><span id="_rrwebapp_filtertype" class="_rrwebapp-filter"></span>
-        {% endif %}
       </div>
     </div>
   </div>

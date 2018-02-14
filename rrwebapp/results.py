@@ -51,6 +51,7 @@ from nav import productname
 # module specific needs
 import raceresults
 import clubmember
+from request import annotatescripts
 from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Location, Exclusion, Series, Divisions, Club, dbdate
 from services import ServiceAttributes
 from racedb import RaceResultService, ApiCredentials
@@ -583,6 +584,7 @@ class EditParticipants(MethodView):
                         nameage = u'{} ({})'.format(thismember['name'], age)
                     # maybe no dob
                     except ValueError:
+                        age = ''    
                         nameage = thismember['name']
 
                     # memberages is used for picklist on missed and similar dispositions
@@ -620,6 +622,7 @@ class EditParticipants(MethodView):
                                          fieldapi=url_for('_updatemanagedresult',resultid=0)[0:-1],
                                          membersonly=membersonly, 
                                          inhibityear=True,inhibitclub=True,
+                                         pagejsfiles=annotatescripts(['editparticipants.js']),
                                          writeallowed=writecheck.can())
         
         except:
