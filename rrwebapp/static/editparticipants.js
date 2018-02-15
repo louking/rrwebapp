@@ -1,3 +1,8 @@
+// keep track of bulk progress
+var _rrwebapp_edpar_bulktotal,
+    _rrwebapp_edpar_bulkcompleted,
+    progressbar;
+
 // editparticipants
 function editparticipants(raceid, readallowed, writeallowed, membersonly) {
     
@@ -24,6 +29,14 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
                 event.preventDefault();
                 url = $('#_rrwebapp-button-tabulate').attr('_rrwebapp-tabulate-url')
                 ajax_update_db_noform(url,{},'#_rrwebapp-button-tabulate',false)
+            });
+
+        // set up Select Names and Confirm button
+        $('#_rrwebapp-button-select-names-and-confirm').button()
+            .click( function( event ) {
+                event.preventDefault();
+                toolbutton.close();
+                selectnamesandconfirm();
             });
 
         // handle checkbox update
@@ -268,6 +281,14 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
                                         $(sel).closest('tr').removeClass('_rrwebapp-row-confirmed-true');
                                         $(sel).closest('tr').addClass('_rrwebapp-row-confirmed-false');
                                     }
+
+                                    // see selectnamesandconfirm
+                                    // if class bulkupdatepending then update progress
+                                    if ( $(sel).hasClass('bulkupdatepending') ) {
+                                        $( sel ).removeClass('bulkupdatepending');
+                                        _rrwebapp_edpar_bulkcompleted += 1;
+                                        progressbar.progressbar('option', 'value', _rrwebapp_edpar_bulkcompleted);
+                                    };
                                 }
                                 
                                 // if newname added or removed, update select field appropriately
@@ -287,6 +308,22 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
                                             setvalue(sel,data.id);
                                             $( sel ).data('revert', data.id);
                                         }
+
+                                        // see selectnamesandconfirm
+                                        // if class bulkupdatepending then continue the processing by automatically confirming
+                                        if ( $(sel).hasClass('bulkupdatepending') ) {
+                                            $( sel ).removeClass('bulkupdatepending');
+                                            _rrwebapp_edpar_bulkcompleted += 1;
+                                            progressbar.progressbar('option', 'value', _rrwebapp_edpar_bulkcompleted);
+                                            // determine id of confirm field
+                                            var splitid = $( sel ).attr('id').split('-');
+                                            var rowid = splitid[splitid.length-1];
+                                            var confirmsel = '#_rrwebapp-editparticipants-checkbox-confirmed-' + rowid;
+                                            $( confirmsel ).addClass('bulkupdatepending');
+                                            $( confirmsel ).attr('checked', true);
+                                            setchecked( $(confirmsel)[0] );
+                                            $( confirmsel ).trigger('change');
+                                        };
                                     }
                                     // successfull remove of id, just moved off of this one, replace with new
                                     // preserve choice user just made
@@ -405,3 +442,57 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
 
 };  // editparticipants
 
+// in rows with 'missed' disposition
+//    for each Standings Name ._rrwebapp-editparticipants-select-runner for which Confirm is not already checked that has 'new' option
+//       choose the 'new' option
+//       when that option update completes, check the Confirm box
+function selectnamesandconfirm() {
+    _rrwebapp_edpar_bulktotal = 0;
+    _rrwebapp_edpar_bulkcompleted = 0;
+    $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">Initializing...</div></div>');
+    // only operate on rows with 'missed' disposition
+    $('._rrwebapp-row-disposition-missed ._rrwebapp-editparticipants-select-runner').each(function ( index ) {
+        // determine row id
+        var selectid = $( this ).attr('id');
+        var splitid = selectid.split('-');
+        var rowid = splitid[splitid.length-1];
+
+        // only operate on unchecked rows have new option
+        // choose new option
+        if (!$( '#_rrwebapp-editparticipants-checkbox-confirmed-' + rowid ).attr('checked')) {
+            // if new exists
+            if ( $( '#' + selectid + ' > option[value="new"]' ).length != 0 ) {
+                // https://stackoverflow.com/questions/38497852/set-an-option-value-as-selected
+                // https://stackoverflow.com/questions/4672505/why-does-the-jquery-change-event-not-trigger-when-i-set-the-value-of-a-select-us
+                $( '#' + selectid ).addClass('bulkupdatepending')  // see ajax_update_db_noform call above for handling
+                $( '#' + selectid ).val( 'new' );
+                $( '#' + selectid ).trigger( 'change' );
+
+                // tally two operations per row
+                _rrwebapp_edpar_bulktotal += 2;
+            }
+        }
+    });
+
+    // start progress bar using _rrwebapp_edpar_bulktotal
+    if ( _rrwebapp_edpar_bulktotal > 0 ) {
+        progressbar = $('#progressbar');
+        var progressLabel = $('.progress-label');
+        progressbar.progressbar({
+            max: _rrwebapp_edpar_bulktotal, 
+            value: 0,  
+            // progressLabel needs style - see https://jqueryui.com/progressbar/#label
+            change: function () {
+                progressLabel.text( progressbar.progressbar( 'value' ) + ' / ' + _rrwebapp_edpar_bulktotal );
+            },
+            complete: function () {
+                progressLabel.text( 'Complete!' );
+                progressbar.progressbar( 'destroy' );
+                $( '#progressbar' ).remove();
+            }
+        });
+        progressLabel.text( progressbar.progressbar( 'value' ) + ' / ' + _rrwebapp_edpar_bulktotal );
+    } else {
+        $( '#progressbar' ).remove();
+    }
+};
