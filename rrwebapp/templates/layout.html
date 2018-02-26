@@ -15,11 +15,11 @@
   <!-- End Google Analytics -->
 </head>
 <body>
+{% set urlparts = request.url.split('/') %}
+{% set hostname = urlparts[2] %}
 {% if not printerfriendly %}
   <div class=heading>
     <h1>{{_rrwebapp_productname|safe}}
-    {% set urlparts = request.url.split('/') %}
-    {% set hostname = urlparts[2] %}
     {% if hostname[0:9] == "127.0.0.1" %} (development){% endif %}
     {% if hostname == "sandbox.scoretility.com" %} (sandbox){% endif %}
   </h1>
