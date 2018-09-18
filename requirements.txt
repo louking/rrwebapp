@@ -32,7 +32,7 @@ ipython-genutils==0.2.0
 itsdangerous==0.24
 Jinja2==2.8
 kombu==3.0.35
-loutilities==0.11.2
+loutilities==0.13.3
 lxml==3.6.0
 Mako==1.0.4
 MarkupSafe==0.23
