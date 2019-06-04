@@ -1739,6 +1739,7 @@ class AjaxRunnerResultsChart(MethodView):
 
             # filter on club, if present
             club_id =None
+            club = None         # should fix #344
             if club_shname:
                 club = Club.query.filter_by(shname=club_shname).first()
                 if club:
