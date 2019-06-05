@@ -2177,6 +2177,11 @@ def importresultstask(self, club_id, raceid, resultpathname):
         except StopIteration:
             pass
 
+        # only update state max 100 times over course of file, but don't make it too small
+        statemod = total / 100;
+        if statemod == 0:
+            statemod = 1;
+
         # start over
         rr.close()
         rr = raceresults.RaceResults(resultpathname,race.distance)
@@ -2205,7 +2210,11 @@ def importresultstask(self, club_id, raceid, resultpathname):
             except StopIteration:
                 break
             numentries += 1
-            self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
+            if numentries % statemod == 0:
+                self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
+
+        # not sure this is necessary, but final state update
+        self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
 
         # remove file and temporary directory
         rr.close()
