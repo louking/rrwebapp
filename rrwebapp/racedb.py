@@ -223,7 +223,7 @@ class User(Base):
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
     email = Column(String(255), unique=True)
     name = Column(String(120))
-    pw_hash = Column(String(80))  # finding 66 characters on a couple of tests
+    pw_hash = Column(String(128))
     password = Column(String(255))
     active = Column(Boolean)
 

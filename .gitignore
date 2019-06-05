@@ -187,3 +187,6 @@ pip-selfcheck.json
 # docx, tcl
 docx-template
 tcl
+
+# PyCharm
+.idea/
