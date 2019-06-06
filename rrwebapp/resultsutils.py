@@ -292,7 +292,12 @@ class CollectServiceResults(object):
             dt_enddate = epoch2dt(enddate)
             adj_enddate = datetime(dt_enddate.year,dt_enddate.month,dt_enddate.day,23,59,59)
             enddate = dt2epoch(adj_enddate)
-            
+
+            # only update state max 100 times over course of file, but don't make it too small
+            statemod = status[self.servicename]['total'] / 100;
+            if statemod == 0:
+                statemod = 1;
+
             # get start time for debug messaging
             start = time.time()
             
@@ -324,16 +329,20 @@ class CollectServiceResults(object):
                     if outrec:
                         OUT.writerow(outrec)
         
-                # update status
+                # update status, careful not to do it too often
                 status[self.servicename]['lastname'] = name
                 status[self.servicename]['processed'] += 1
-                thistask.update_state(state='PROGRESS', meta={'progress':status})
+                if status[self.servicename]['processed'] % statemod == 0:
+                    thistask.update_state(state='PROGRESS', meta={'progress':status})
 
         finally:
             self.closeservice()
             _OUT.close()
             if type(searchfile) != list:
                 _IN.close()
+
+        # final state update
+        thistask.update_state(state='PROGRESS', meta={'progress': status})
 
         finish = time.time()
         app.logger.debug('elapsed time (min) = {}'.format((finish-start)/60))
