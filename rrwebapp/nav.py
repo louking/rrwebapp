@@ -22,7 +22,6 @@ from datetime import datetime
 import flask
 from flask_login import current_user, abort
 from flask.views import MethodView
-from flask_login import login_required
 from flask import request
 
 # home grown
