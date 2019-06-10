@@ -188,5 +188,9 @@ pip-selfcheck.json
 docx-template
 tcl
 
+# flask-assets
+.webassets-cache/
+gen/
+
 # PyCharm
 .idea/

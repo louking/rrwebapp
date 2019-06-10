@@ -1,6 +1,40 @@
 <!doctype html>
 <head>
   <title>{{self.pagename()|striptags}}</title>
+  <script type="text/javascript">
+    var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+  </script>
+
+{% set urlparts = request.url.split('/') %}
+{% set hostname = urlparts[2] %}
+{# see request.py for list of css, js files #}
+{% assets "admin_css" %}
+  <link rel=stylesheet type=text/css href="{{ ASSET_URL }}">
+{% endassets %}
+{% for css in pagecssfiles %}
+  <link rel=stylesheet type=text/css href="{{ css }}">
+{% endfor %}
+<style>
+  {% if hostname[0:9] == "127.0.0.1" or hostname[0:9] == "localhost" or hostname[0:13] == "dev.localhost" %}
+    html {background: antiquewhite;}
+  {% endif %}
+  {% if hostname[0:8] == "sandbox." %}
+    html {background: lightcyan;}
+  {% endif %}
+</style>
+{% block css %}
+{% endblock %}
+
+<script>var _rrwebapp_productname = "{{ _rrwebapp_productname_text|safe }}";</script>
+{% assets "admin_js" %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+{% endassets %}
+{% for js in pagejsfiles %}
+  <script type="text/javascript" src="{{ js }}"></script>
+{% endfor %}
+{% block scripts %}
+{% endblock %}
+
   <!-- Google Analytics -->
   <script>
     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -15,13 +49,11 @@
   <!-- End Google Analytics -->
 </head>
 <body>
-{% set urlparts = request.url.split('/') %}
-{% set hostname = urlparts[2] %}
 {% if not printerfriendly %}
   <div class=heading>
     <h1>{{_rrwebapp_productname|safe}}
-    {% if hostname[0:9] == "127.0.0.1" %} (development){% endif %}
-    {% if hostname == "sandbox.scoretility.com" %} (sandbox){% endif %}
+    {% if hostname[0:9] == "127.0.0.1" or hostname[0:9] == "localhost" or hostname[0:13] == "dev.localhost"%} (development){% endif %}
+    {% if hostname[0:8] == "sandbox." %} (sandbox){% endif %}
   </h1>
     <div class=pagename>{{self.pagename()}}</div>
     <div class=metanav>
@@ -87,7 +119,7 @@
             <a href="{{url_for('terms') }}">Terms of Service</a>
             <a href="{{url_for('feedback')}}?next={{request.url}}">Questions/Feedback</a>
           </div>
-          <span>&copy; 2016 loutilities (Lou King).   All rights reserved.</span>
+          <span>&copy; 2019 loutilities (Lou King).   All rights reserved.</span>
         </div>
       {% endif %}
     </div>
@@ -97,38 +129,6 @@
     {{ self.body() }}
   </div>
 {% endif %}
-<script type="text/javascript">
-  var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-</script>
-  
-{# see request.py for list of css, js files #}
-{% for css in _rrwebapp_cssfiles %}
-  <link rel=stylesheet type=text/css href="{{ css }}">
-{% endfor %}
-{% for css in pagecssfiles %}
-  <link rel=stylesheet type=text/css href="{{ css }}">
-{% endfor %}
-<style>
-  {% if hostname[0:9] == "127.0.0.1" %}
-    html {background: antiquewhite;}
-  {% endif %}
-  {% if hostname == "sandbox.scoretility.com" %}
-    html {background: lightcyan;}
-  {% endif %}
-</style>
-{% block css %}
-{% endblock %}
 
-<script>var _rrwebapp_productname = "{{ _rrwebapp_productname_text|safe }}";</script>
-{% for js in _rrwebapp_jsfiles %}
-  <script type="text/javascript" src="{{ js }}"></script>
-{% endfor %}
-{% if pagejsfiles %}
-  {% for js in pagejsfiles %}
-    <script type="text/javascript" src="{{ js }}"></script>
-  {% endfor %}
-{% endif %}
-{% block scripts %}
-{% endblock %}
 </body>
 </html>

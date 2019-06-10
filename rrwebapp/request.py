@@ -25,7 +25,6 @@ from flask.views import MethodView
 
 # home grown
 from . import app
-from database_flask import db   # this is ok because this module only runs under flask
 
 # module specific needs
 from nav import setnavigation
@@ -45,99 +44,6 @@ class invalidScript(Exception): pass
 # if scriptitem in request.SCRIPTS is not a tuple, it is assumed to be the string filename 
 # of a file located in server static directory. v arg is set to modification time of the
 # file to assure updated files will be downloaded (i.e., cache won't be used)
-
-# jquery
-jq_cdn = 'https://code.jquery.com'
-jq_ver = '1.11.3'
-jq_ui_ver = '1.10.4'
-
-
-# dataTables
-dt_cdn = 'https://cdn.datatables.net'
-dt_datatables_ver = '1.10.13'
-dt_buttons_ver = '1.2.3'
-dt_colvis_ver = '1.2.2'
-dt_fixedcolumns_ver = '3.2.2'
-dt_select_ver = '1.2.1'
-dt_editor_plugin_cdn = 'https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q='
-dt_editor_plugin_fieldtype_ver = '?'
-
-# select2
-s2_cdn = 'https://cdnjs.cloudflare.com/ajax/libs'
-s2_ver = '4.0.3'
-
-# selectize
-sz_cdn = 'https://cdnjs.cloudflare.com/ajax/libs'
-sz_ver = '0.12.4'
-
-# yadcf
-yadcf_cdn = 'https://cdnjs.cloudflare.com/ajax/libs'
-yadcf_ver = '0.9.1'
-
-# d3
-d3_cdn = 'https://d3js.org'
-d3_ver = 'v4'
-d3_sc_ver = 'v1'    # d3-scale-chromatic
-
-SCRIPTS = [
-    ('jquery-{ver}{min}.js', jq_ver, jq_cdn),
-
-    # 'js/jquery-ui-1.11.4/jquery-ui.js',
-    # 'js/jquery-ui-1.11.4/themes/smoothness/jquery-ui.css',
-    'js/jquery-ui-1.10.4.custom.js',
-    'css/sm-f0-8em-theme/jquery-ui-1.10.4.custom.min.css',
-
-    ('{ver}/js/jquery.dataTables{min}.js', dt_datatables_ver, dt_cdn),
-    ('{ver}/js/dataTables.jqueryui{min}.js', dt_datatables_ver, dt_cdn),
-    ('{ver}/css/dataTables.jqueryui{min}.css', dt_datatables_ver, dt_cdn),
-
-    ('buttons/{ver}/js/dataTables.buttons{min}.js', dt_buttons_ver, dt_cdn),
-    ('buttons/{ver}/js/buttons.jqueryui.js', dt_buttons_ver, dt_cdn),
-
-    ('buttons/{ver}/js/buttons.html5{min}.js', dt_buttons_ver, dt_cdn),
-    ('buttons/{ver}/css/buttons.jqueryui{min}.css', dt_buttons_ver, dt_cdn),
-
-    ('buttons/{ver}/js/buttons.colVis{min}.js', dt_colvis_ver, dt_cdn), 
-
-    ('fixedcolumns/{ver}/js/dataTables.fixedColumns{min}.js', dt_fixedcolumns_ver, dt_cdn),
-    ('fixedcolumns/{ver}/css/fixedColumns.jqueryui{min}.css', dt_fixedcolumns_ver, dt_cdn),
-
-    # Editor is not yet available from the dataTables CDN
-    'js/Editor-1.6.1/js/dataTables.editor.js',
-    'js/Editor-1.6.1/js/editor.jqueryui.js',
-    'js/Editor-1.6.1/css/editor.jqueryui.css',
-    # 'js/DataTables-1.10.11/Editor-1.5.5/js/dataTables.editor.js',
-    # 'js/DataTables-1.10.11/Editor-1.5.5-errorfix/js/editor.jqueryui.js',
-    # 'js/DataTables-1.10.11/Editor-1.5.5/css/editor.jqueryui.css',
-
-    ('select/{ver}/js/dataTables.select.js', dt_select_ver, dt_cdn),
-    ('select/{ver}/css/select.jqueryui.css', dt_select_ver, dt_cdn),
-
-    ('select2/{ver}/js/select2.full{min}.js', s2_ver, s2_cdn),
-    ('select2/{ver}/css/select2{min}.css', s2_ver, s2_cdn),
-
-    # selectize is required for use by Editor forms
-    ('selectize.js/{ver}/css/selectize{min}.css', sz_ver, sz_cdn),
-    ('selectize.js/{ver}/js/standalone/selectize{min}.js', sz_ver, sz_cdn),
-    # can editor selectize come from here? Why no version?
-    #   https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q=field-type/editor.selectize.min.js 
-    #   https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q=field-type/editor.selectize.min.css
-    'js/FieldType-Selectize/editor.selectize.js',
-    'js/FieldType-Selectize/editor.selectize.css',
-
-    ('yadcf/{ver}/jquery.dataTables.yadcf{min}.js', yadcf_ver, yadcf_cdn),
-    # 'jquery.dataTables.yadcf-0.9.1-beta.6.js',
-    ('yadcf/{ver}/jquery.dataTables.yadcf{min}.css', yadcf_ver, yadcf_cdn),
-
-    ('d3.{ver}{min}.js', d3_ver, d3_cdn),
-    ('d3-scale-chromatic.{ver}{min}.js', d3_sc_ver, d3_cdn),
-
-    'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
-
-    'RaceResults.js',
-    'style.css',
-
-]
 
 #----------------------------------------------------------------------
 def annotatescripts(scripts):
@@ -194,48 +100,6 @@ def annotatescripts(scripts):
         annotated.append(fileref)
 
     return annotated
-    
-#----------------------------------------------------------------------
-def setscripts():
-#----------------------------------------------------------------------
-    '''
-    setscripts caches the versions for js and css scripts, identified in
-    request.SCRIPTS
-
-    files from a CDN are contained in (filename, version, cdn) tuples
-       cdn is host for content data network
-       filename may contain {ver}, {min} as replacement_field {field_name}
-       {min} gets replaced with '.min' if app.config['MINIMIZE_CDN_JAVASCRIPT'] is True
-       {ver} gets replaced with version
-
-    if item in request.SCRIPTS is not a tuple, it is assumed to be the string filename 
-    of a file located in server static directory
-    '''
-    cssfiles = []
-    jsfiles = []
-    for scriptitem in SCRIPTS:
-        # handle files from CDN
-        if type(scriptitem) == tuple:
-            thisfile = scriptitem[0]
-        
-        # handle static files
-        else:
-            thisfile = scriptitem
-
-        filetype = thisfile.split('.')[-1]  # gets file extension
-
-        # append scriptitem to list, might be cdn tuple
-        # annotatescripts() parses and puts correct filename / version string
-        if filetype == 'css':
-            cssfiles.append(scriptitem)
-        elif filetype == 'js':
-            jsfiles.append(scriptitem)
-        else:
-            raise invalidScript,'Invalid script filename: {}'.format(thisfile)
-    
-    # make these available to any template
-    app.jinja_env.globals['_rrwebapp_cssfiles'] = annotatescripts(cssfiles)
-    app.jinja_env.globals['_rrwebapp_jsfiles'] = annotatescripts(jsfiles)
     
 #----------------------------------------------------------------------
 def addscripts(scriptlist):

@@ -4,25 +4,6 @@
         return Math.round(value * multiplier) / multiplier;
     }
 
-    // layout.html
-    $('.sessionoption')
-        .on('change',
-            function ( event ) {
-                var apiurl = $( this ).attr('sessionoptionapi');
-                var selected = $( this ).val();
-                
-                $.ajax({
-                    url: $SCRIPT_ROOT + apiurl + '/' + selected,
-                    type: 'POST',
-                    dataType: 'json',
-                    complete: function(data){
-                        var success = data.success;
-                        location.reload(true);
-                        }
-                });
-            });
-    $( "#navigation" ).menu();
-    
     // from http://stackoverflow.com/questions/1480133/how-can-i-get-an-objects-absolute-position-on-the-page-in-javascript
     var cumulativeOffset = function(element) {
         var top = 0, left = 0;
@@ -31,13 +12,13 @@
             left += element.offsetLeft || 0;
             element = element.offsetParent;
         } while(element);
-    
+
         return {
             top: top,
             left: left
         };
     };
-    
+
     // common dataTables
     // gettableheight - assumes some elements exist on the page
     function gettableheight() {
@@ -96,12 +77,12 @@
                     infoCallback: function( oSettings, iStart, iEnd, iMax, iTotal, sPre ) {
                         var info = "Showing ";
                         if (oSettings.oFeatures.bPaginate) {
-                            info = info + iStart +" to ";                        
+                            info = info + iStart +" to ";
                             info = info + iEnd +" of "+ iMax +" entries";
                         } else {
                             info = info + iEnd +" entries";
                         }
-    
+
                         return info;
                       }
                 };
@@ -146,66 +127,6 @@
         }
       } );
 
-    // dataTables num-html support [modified plugin from http://datatables.net/plug-ins/sorting#functions_type "Numbers with HTML"]
-    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
-      "num-html-pre": function ( a ) {
-          var x = String(a).replace( /<[\s\S]*?>/g, "" );
-          return parseFloat( x );
-      },
-   
-      "num-html-asc": function ( a, b ) {
-          if (!a || a == '') {a = 0};
-          if (!b || b == '') {b = 0};
-          return ((a < b) ? -1 : ((a > b) ? 1 : 0));
-      },
-   
-      "num-html-desc": function ( a, b ) {
-          if (!a || a == '') {a = 0};
-          if (!b || b == '') {b = 0};
-          return ((a < b) ? 1 : ((a > b) ? -1 : 0));
-      }
-    } );
-    
-    // sort extension for 'racetime' ([[h:]mm:]ss)
-    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
-      "racetime-pre": function ( a ) {
-            if (!a || a == '') {return 0};
-            var parts = a.split(':');
-            var len = parts.length;
-            var numsecs = 0;
-            for (var i = 0; i < len; i++) {
-              numsecs = numsecs*60 + parseFloat( parts[i] );
-            }
-            traceonce = 0;
-            return numsecs;
-      },
-   
-      "racetime-asc": function ( a, b ) {
-          return ((a < b) ? -1 : ((a > b) ? 1 : 0));
-      },
-   
-      "racetime-desc": function ( a, b ) {
-          return ((a < b) ? 1 : ((a > b) ? -1 : 0));
-      }
-    } );
-
-    // sort extension for 'agtrend'(nn%/yr)
-    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
-        "agtrend-pre": function ( a ) {
-            if (!a || a == '') {return -100};
-            var x = (a == "-") ? 0 : a.replace( /%\/yr/, "" );
-            return parseFloat( x );
-        },
-     
-        "agtrend-asc": function ( a, b ) {
-            return ((a < b) ? -1 : ((a > b) ? 1 : 0));
-        },
-     
-        "agtrend-desc": function ( a, b ) {
-            return ((a < b) ? 1 : ((a > b) ? -1 : 0));
-        }
-    } );
-    
     // retrieve filter used for table at indicated column (per https://groups.google.com/forum/#!topic/daniels_code/j6xFhWin38U)
     function getFilterValue(table_arg, column_number){
         return table_arg.fnSettings().aoPreSearchCols[column_number].sSearch;
@@ -225,41 +146,6 @@
         return new Date(parts[0], parts[1] - 1, parts[2]);
     }
 
-    
-    // common functions
-    
-    // special link processing
-    $("a").click(function( event ){
-        // for slow loading links
-        var img = $(this).attr('_rrwebapp-loadingimg');
-        if (img) {
-            $(this).after('<div id="progressbar"><div class="progress-label">Loading...</div></div>');
-            $('#progressbar').progressbar({
-                value: false,
-            });
-        }
-
-        // use form to gather url arguments
-        var formopts = $(this).attr('_rrwebapp-editor-form')
-        if (formopts) {
-            event.preventDefault();
-            var opts = JSON.parse(formopts);
-
-            // convert functions for buttons - see http://stackoverflow.com/questions/3946958/pass-function-in-json-and-execute
-            // this assumes buttons is array of objects
-            // TODO: handle full http://editor.datatables.net/reference/api/buttons() capability, i.e., string or single object
-            for (i=0; i<opts.buttons.length; i++) {
-                opts.buttons[i].fn = new Function(opts.buttons[i].fn);
-            }
-
-            naveditor = new $.fn.dataTable.Editor ( opts.editoropts )
-                .title( opts.title )
-                .buttons( opts.buttons )
-                .edit( null, false )
-                .open();
-        }
-    });
-    
     // this opens url in new window or tab, depending on browser settings
     function newtab(url) {
         // from http://stackoverflow.com/questions/19851782/how-to-open-a-url-in-a-new-tab-using-javascript-or-jquery
@@ -276,7 +162,7 @@
     function geturl () {
         return document.URL.split('?')[0];
     }
-    
+
     function geturlargs() {
         var vars = {}, hash;
         var q = document.URL.split('?')[1];
@@ -284,13 +170,13 @@
             q = q.split('&');
             for(var i = 0; i < q.length; i++){
                 hash = q[i].split('=');
-                // decode the URI, but have to replace '+' with ' ' - from http://stackoverflow.com/questions/3431512/javascript-equivalent-to-phps-urldecode 
+                // decode the URI, but have to replace '+' with ' ' - from http://stackoverflow.com/questions/3431512/javascript-equivalent-to-phps-urldecode
                 vars[decodeURIComponent(hash[0])] = decodeURIComponent(hash[1].replace(/\+/g, ' '));
             }
         }
         return vars;
     }
-    
+
     function getconfirmation(event,button,text) {
         event.preventDefault();
         $('<div>').append(text).dialog({
@@ -312,13 +198,13 @@
                     }
                 }
             ],
-                
+
             close: function(event,ui) {$(this).remove()},
 
         });
     }
 
-    // getvalue tested for checkbox and select - sel is standard DOM selector (not jQuery)    
+    // getvalue tested for checkbox and select - sel is standard DOM selector (not jQuery)
     function getvalue(sel) {
         var fieldtype = $( sel ).attr('type');
         if (fieldtype && (fieldtype.toLowerCase() == 'checkbox' || fieldtype.toLowerCase() == 'radio')) {
@@ -328,12 +214,12 @@
         }
         return value
     };
-        
+
     // getselecttext - sel is standard DOM selector (not jQuery), val is value looking for, returns "" if not found
     function getselecttext(sel,val) {
         return $( sel ).find("option[value="+val+"]").text()
     }
-    
+
     // getchoicevalues tested for select
     // from http://stackoverflow.com/questions/4964456/make-javascript-do-list-comprehension
     function getchoicevalues(sel) {
@@ -342,8 +228,8 @@
         });
         return choiceslist;
     };
-    
-    // setvalue tested for checkbox and select - sel is standard DOM selector (not jQuery)    
+
+    // setvalue tested for checkbox and select - sel is standard DOM selector (not jQuery)
     function setvalue(sel,value) {
         var fieldtype = $( sel ).attr('type');
         if (fieldtype && (fieldtype.toLowerCase() == 'checkbox' || fieldtype.toLowerCase() == 'radio')) {
@@ -352,7 +238,7 @@
             $( sel ).val(value);
         }
     };
-    
+
     function updateselectbyapi(sel,apiurl,ajaxparams) {
         ajax_update_db_noform(apiurl,ajaxparams,sel,true,
             // this function is called in ajax_update_db_noform_resp if successful
@@ -366,9 +252,9 @@
                    $(sel).append($('<option>').val(choice[0]).text(choice[1]));
                 });
             });
-        
+
     };
-    
+
     function updateselectbyarray(sel,selchoices) {
         $(sel+' option').each(function(){
            $(this).remove();
@@ -378,13 +264,6 @@
            $(sel).append($('<option>').val(choice[0]).text(choice[1]));
         });
     };
-    
-    // decorate buttons
-    $("._rrwebapp-actionbutton").button();
-    $("._rrwebapp-simplebutton").button();
-    
-    // get confirmation for any deletes
-    $("._rrwebapp-deletebutton").on('click', function(event){getconfirmation(event,'Delete','Please confirm item deletion')});
 
     // toolbutton feature
     var toolbutton = {
@@ -411,7 +290,7 @@
                             toolbutton.close()
                         };
                     });
-                
+
             toolbutton.$tooldialog.dialog({
                                 dialogClass: "no-titlebar",
                                 draggable: false,
@@ -426,27 +305,27 @@
                                         of: toolbutton.$toolbutton
                                         },
                                 });
-            
+
             toolbutton.selector = toolbutton.$toolbutton;
         },
-        
+
         open: function() {
             toolbutton.$tooldialog.dialog("open");
             toolbutton.$toolcontent.show();
             toolbutton.toolstatus = 1;
         },
-        
+
         close: function() {
             toolbutton.$tooldialog.dialog("close");
             toolbutton.$toolcontent.hide();
             toolbutton.toolstatus = 0;
         },
-        
+
         position: function(position) {
             toolbutton.$toolbutton.position(position)
         }
     }
-    
+
     // popupbutton feature
     var popupbutton = {
 
@@ -462,7 +341,7 @@
                         });
             popupbutton.clickoutside = clickoutside;
         },
-        
+
         click: function ( buttonsel, popupcontent, popupaction ) {
             if (popupbutton.popupstatus) {
                 popupbutton.$popupdialog.dialog("destroy");
@@ -488,7 +367,7 @@
                         },
                         open: function () {
                             popupbutton.popupstatus = 1;
-                            
+
                             if (popupaction) {
                                 popupaction();
                             };
@@ -496,9 +375,9 @@
                         });
             };
         },
-        
+
     };
-    
+
     // addbutton feature
     var addbutton = {
         init: function ( buttonid, url ) {
@@ -512,15 +391,15 @@
                     function() {
                         document.location.href = url;
                     });
-                
+
             addbutton.selector = addbutton.$addbutton;
         },
-        
+
         position: function(position) {
             addbutton.$addbutton.position(position)
         }
     };
-    
+
     function ajax_update_db_form_resp(url,form,data) {
         window.console && console.log(data);
         if (data.success) {
@@ -565,21 +444,21 @@
             };
         };
     };
-    
+
     function ajax_update_db_form(urlpath,form,force) {
         //var form_data = new FormData($(this).parent()[0]);
         //var form_data = new FormData($(this).closest('form')[0]);
         //var form_data = new FormData($('#copy-series')[0]); // not used
         //window.console && console.log(form_data)
-        
+
         // force = true means to overwrite existing data for this year
         params = [{name:"force",value:force}]
-        
+
         // get form values into parameters
         $.each(form.serializeArray(), function(index,value){
             params.push(value)
         })
-        
+
         var url = urlpath +'?'+$.param(params)
         //form_data.append('force',force)
         //url = urlpath
@@ -595,10 +474,10 @@
                 ajax_update_db_form_resp(urlpath,form,data);
             },
         });
-        
+
         toolbutton.close();
     };
-        
+
     function ajax_update_db_noform_resp(url,addparms,data,sel,callback,showprogress) {
         if (showprogress) {
             $('#progressbar').progressbar('destroy');
@@ -655,11 +534,11 @@
             };
         };
     };
-    
+
     function ajax_update_db_noform(urlpath,addparms,sel,force,callback,showprogress) {
         // force = true means to overwrite existing data, not necessarily used by target page
         addparms.force = force
-        
+
         var url = urlpath +'?'+$.param(addparms)
 
         $.ajax({
@@ -679,7 +558,7 @@
             progressbar = $('#progressbar').progressbar({value:false});
         }
     };
-        
+
     function ajax_import_file_resp(urlpath,formsel,data) {
         window.console && console.log(data);
         $('#progressbar').progressbar('destroy');
@@ -727,13 +606,13 @@
             };
         };
     };
-    
+
     function ajax_import_file(urlpath,formsel,force) {
         var form_data = new FormData($(formsel)[0]);
-        
+
         // force = true means to overwrite existing data for this year
         var url = urlpath+'?force='+force
-        
+
         $.ajax({
             type: 'POST',
             url: url,
@@ -744,7 +623,7 @@
             async: true,
             success: function(data) {ajax_import_file_resp(urlpath,formsel,data)},
         });
-        
+
         // show we're doing something
         $('#progressbar-container').after('<div id="progressbar"><div class="progress-label">Loading...</div></div>');
         progressbar = $('#progressbar').progressbar({value:false});
@@ -754,7 +633,7 @@
             toolbutton.close();
         }
     };
-        
+
     function ajax_update_progress(status_url, progressbar) {
         // send GET request to status URL
         $.getJSON(status_url, function(data) {
@@ -764,7 +643,7 @@
             var current = data.current;
             var total = data.total;
             progressbar.progressbar({value:percent});
-            
+
             // when we're done
             if (data.state != 'PENDING' && data.state != 'PROGRESS') {
                 if (data.state == 'SUCCESS' && data.cause == '') {
@@ -812,10 +691,10 @@
             var current = data.current;
             var total = data.total;
             var percent = current * 100 / total;
-            var progressbar = $('#progressbar'), 
+            var progressbar = $('#progressbar'),
                 progressLabel = $('.progress-label');
             progressbar.progressbar({
-                value: percent, 
+                value: percent,
                 // progressLabel needs style - see https://jqueryui.com/progressbar/#label
                 change: function () {
                     progressLabel.text( progressbar.progressbar( 'value') + '%' )
@@ -861,13 +740,13 @@
             };
         };
     };
-    
+
     function ajax_import_file_background(urlpath,formsel,force) {
         var form_data = new FormData($(formsel)[0]);
-        
+
         // force = true means to overwrite existing data for this year
         var url = urlpath+'?force='+force
-        
+
         $.ajax({
             type: 'POST',
             url: url,
@@ -881,13 +760,13 @@
                 alert('Unexpected error');
             }
         });
-        
+
         // kludge because we're starting to move away from global toolbutton
         if (toolbutton.$tooldialog) {
             toolbutton.close();
         }
     };
-        
+
     // manageraces
     function manageraces( writeallowed ) {
         var $filterseries = $('#filterseries');
@@ -897,11 +776,11 @@
                 function() {
                     this.form.submit();
                 });
-        
+
         if (writeallowed) {
             // put toolbutton in the right place
             toolbutton.$widgets.css({height:"0px"});   // no more widgets in container
-            
+
             var $importraces = $('#manageracesImport');
             $importraces.click( function( event ) {
                 event.preventDefault();
@@ -909,7 +788,7 @@
                 ajax_import_file(url,'#import-races',false);
             });
         };
-            
+
         $("._rrwebapp-importResultsButton").each(function(){
             raceid = $(this).attr('_rrwebapp-raceid');
             imported = $(this).attr('_rrwebapp-imported');
@@ -926,10 +805,10 @@
                 label = 'import';
                 text = true;
             };
-            
+
             popupbutton.init(this, text, label, icons);
         });
-        
+
         $("._rrwebapp-importResultsButton").click(function(){
             var raceid = $(this).attr('_rrwebapp-raceid');
             var imported = $(this).attr('_rrwebapp-imported');
@@ -939,9 +818,9 @@
             var importdoc = $(this).attr('_rrwebapp-importdoc');
             var editaction = $(this).attr('_rrwebapp-editaction');
             var seriesresultsaction = $(this).attr('_rrwebapp-seriesresultsaction');
-            
+
             var popupcontent = ""
-            
+
             if (writeallowed) {
                 popupcontent = popupcontent + "\
                     <p>Import the selected races's results as a CSV file. Please read the <a href='"+importdoc+"' target='_blank'>Import Guide</a> for information on the column headers and data format.</p>\
@@ -974,7 +853,7 @@
                     });
             }
             popupbutton.click(this, popupcontent, popupaction)
-            
+
         });
 
         _rrwebapp_table = $('#_rrwebapp-table-manage-races')
@@ -988,17 +867,17 @@
         //});
 
     };  // manageraces
-    
+
     // manageseries
     function manageseries() {
-        
+
         var $copyseries = $('#manageseries-copy-button');
         $copyseries.click( function( event ) {
             event.preventDefault();
             var form = $(this).closest('form')
             ajax_update_db_form('_copyseries',form,false);
         });
-    
+
         _rrwebapp_table = $('#_rrwebapp-table-manage-series')
             .dataTable(getDataTableParams({ordering: false}));
         resetDataTableHW();
@@ -1007,22 +886,22 @@
 
     // managedivisions
     function managedivisions() {
-        
+
         var $copydivisions = $('#managedivisions-copy-button');
         $copydivisions.click( function( event ) {
             event.preventDefault();
             var form = $(this).parent()
             ajax_update_db_form('_copydivisions',form,false);
         });
-    
+
         _rrwebapp_table = $('#_rrwebapp-table-manage-divisions')
             .dataTable(getDataTableParams({ordering:false}))
         setTimeout(function () {resetDataTableHW()},30);
-        
+
     };  // managedivisions
-    
+
     function seriesresults(writeallowed,series,division,gender,printerfriendly) {
-        
+
         var seriesCol = 0;
         var genderCol = 3;
         var divisionCol = 5;
@@ -1033,10 +912,10 @@
                         {targets:[seriesCol],bVisible:false},
                         {targets:[timeCol,paceCol,agtimeCol],type:'racetime'},
                                 ];
-        
+
         if (!printerfriendly){
             var tableparamupdates = {
-                    scrollY: gettableheight()+13, 
+                    scrollY: gettableheight()+13,
                     buttons: ['csv'],
                     // scrollXInner: "100%",
                     columnDefs: columndefs,
@@ -1092,7 +971,7 @@
         }
         if ($.inArray(gender, genchoices) != -1) {
             filtercolumns.push([genderCol, gender]);
-        } 
+        }
 
         // set up external filters
         yadcf.exFilterColumn(_rrwebapp_table, filtercolumns);
@@ -1117,17 +996,17 @@
                 newurl = url + '?' + $.param(args);
                 newtab(newurl);
         });
-            
-        
+
+
     };  // seriesresults
 
     function runnerresults(name,series) {
-        
+
         // for future use
         var printerfriendly = false;
         var division = null;
         var gender = null;
-        
+
         // column definitions
         var nameCol = 0;
         var seriesCol = 1;
@@ -1139,7 +1018,7 @@
         var columndefs = [
                         {targets:[timeCol,paceCol,agtimeCol],type:'racetime'},
                                 ];
-        
+
         if (!printerfriendly) {
             if (document.referrer.search('viewstandings') != -1) {
                 $('#_rrwebapp-button-back').button()
@@ -1151,10 +1030,10 @@
                 $('#_rrwebapp-button-back').hide();
             }
         }
-        
+
         if (!printerfriendly){
             var tableparamupdates = {
-                    //scrollY: gettableheight()+3, 
+                    //scrollY: gettableheight()+3,
                     //scrollXInner: "100%",
                     paging: true,
                     pageLength: 25,
@@ -1200,11 +1079,11 @@
                     filter_container_id:"_rrwebapp_filterdivision",
                     filter_reset_button_text: 'all',
                 },]);
-            
+
         if (!printerfriendly) {
             resetDataTableHW();
         }
-        
+
 
         // set filters based on caller's preference
         var filtercolumns = [];
@@ -1226,7 +1105,7 @@
         if ($.inArray(gender, genchoices) != -1) {
             filtercolumns.push([genderCol, gender]);
         }
-        
+
         // set up external filters
         yadcf.exFilterColumn(_rrwebapp_table, filtercolumns);
 
@@ -1247,15 +1126,15 @@
                 newurl = url + '?' + $.param(args);
                 newtab(newurl);
         });
-            
-        
+
+
     };  // runnerresults
 
     // define as variable to support replacement during stackoverflow debugging
     var viewstandings = function (division,gender,printerfriendly) {
         // not sure why fudge is needed
         var initialheightfudge = -12;
-        
+
         // Legend
         if (!printerfriendly){
             legend = '<table>\
@@ -1267,7 +1146,7 @@
             $('#_rrwebapp-button-standings-legend').on(
                 'click', function() { popupbutton.click('#_rrwebapp-button-standings-legend',legend) }
             );
-            
+
             // Race list is kept in accordion above table, for reference
             // height gets changed as accordion changes -- see http://datatables.net/forums/discussion/10906/adjust-sscrolly-after-init/p1
             $( "#_rrwebapp-accordion-standings-races" ).accordion({
@@ -1327,7 +1206,7 @@
         if (!printerfriendly) {
             resetDataTableHW();
         }
-        
+
         // printerfriendly
         $('#_rrwebapp-button-printerfriendly').button({
             text: false,
@@ -1344,7 +1223,7 @@
                 newurl = url + '?' + $.param(args);
                 newtab(newurl);
         });
-            
+
         // set filters based on caller's preference
         filtercolumns = [];
         var divchoices = getchoicevalues('#_rrwebapp_filterdivision select');
@@ -1373,22 +1252,22 @@
             if (!club ) {
                 return
             }
-            
+
             // save last value
             var selectvalue = getvalue('#_rrwebapp-choosestandings-select-year')
-            
+
             // ajax parameter setup
             ajaxparams = {club:club}
-            
+
             updateselectbyapi('#_rrwebapp-choosestandings-select-year',apiurl,ajaxparams);
-            
+
             // reset last value if possible
             choicevalues = getchoicevalues('#_rrwebapp-choosestandings-select-year')
             if ($.inArray(selectvalue, choicevalues) != -1) {
                 setvalue('#_rrwebapp-choosestandings-select-year',selectvalue)
             }
         };
-        
+
         function setseriesselect( sel ) {
             var apiurl = $( sel ).attr('_rrwebapp_apiurl');
             club = getvalue('#_rrwebapp-choosestandings-select-club')
@@ -1398,13 +1277,13 @@
             if (!club || !year) {
                 return
             }
-            
+
             // save last value
             var selectvalue = getvalue('#_rrwebapp-choosestandings-select-series')
-            
+
             // ajax parameter setup
             ajaxparams = {club:club,year:year}
-            
+
             updateselectbyapi('#_rrwebapp-choosestandings-select-series',apiurl,ajaxparams);
 
             // reset last value if possible
@@ -1413,7 +1292,7 @@
                 setvalue('#_rrwebapp-choosestandings-select-series',selectvalue)
             }
         };
-        
+
         $('#_rrwebapp-choosestandings-select-club')
             .on('change',
                 function ( event ) {
@@ -1431,9 +1310,135 @@
     };  // choosestandings
 
     function importspec() {
-        
+
         _rrwebapp_spec_table = $('#_rrwebapp-table-importspec')
             .dataTable(getSpecTableParams());
 
     };  // importspec
+
+$(function() {
+    $( "#navigation" ).menu();
+
+    // layout.html
+    $('.sessionoption')
+        .on('change',
+            function ( event ) {
+                var apiurl = $( this ).attr('sessionoptionapi');
+                var selected = $( this ).val();
+
+                $.ajax({
+                    url: $SCRIPT_ROOT + apiurl + '/' + selected,
+                    type: 'POST',
+                    dataType: 'json',
+                    complete: function(data){
+                        var success = data.success;
+                        location.reload(true);
+                        }
+                });
+            });
+
+        // dataTables num-html support [modified plugin from http://datatables.net/plug-ins/sorting#functions_type "Numbers with HTML"]
+    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
+      "num-html-pre": function ( a ) {
+          var x = String(a).replace( /<[\s\S]*?>/g, "" );
+          return parseFloat( x );
+      },
+
+      "num-html-asc": function ( a, b ) {
+          if (!a || a == '') {a = 0};
+          if (!b || b == '') {b = 0};
+          return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+      },
+
+      "num-html-desc": function ( a, b ) {
+          if (!a || a == '') {a = 0};
+          if (!b || b == '') {b = 0};
+          return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+      }
+    } );
+
+    // sort extension for 'racetime' ([[h:]mm:]ss)
+    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
+      "racetime-pre": function ( a ) {
+            if (!a || a == '') {return 0};
+            var parts = a.split(':');
+            var len = parts.length;
+            var numsecs = 0;
+            for (var i = 0; i < len; i++) {
+              numsecs = numsecs*60 + parseFloat( parts[i] );
+            }
+            traceonce = 0;
+            return numsecs;
+      },
+
+      "racetime-asc": function ( a, b ) {
+          return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+      },
+
+      "racetime-desc": function ( a, b ) {
+          return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+      }
+    } );
+
+    // sort extension for 'agtrend'(nn%/yr)
+    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
+        "agtrend-pre": function ( a ) {
+            if (!a || a == '') {return -100};
+            var x = (a == "-") ? 0 : a.replace( /%\/yr/, "" );
+            return parseFloat( x );
+        },
+
+        "agtrend-asc": function ( a, b ) {
+            return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+        },
+
+        "agtrend-desc": function ( a, b ) {
+            return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+        }
+    } );
+
+
+    // common functions
+    
+    // special link processing
+    $("a").click(function( event ){
+        // for slow loading links
+        var img = $(this).attr('_rrwebapp-loadingimg');
+        if (img) {
+            $(this).after('<div id="progressbar"><div class="progress-label">Loading...</div></div>');
+            $('#progressbar').progressbar({
+                value: false,
+            });
+        }
+
+        // use form to gather url arguments
+        var formopts = $(this).attr('_rrwebapp-editor-form')
+        if (formopts) {
+            event.preventDefault();
+            var opts = JSON.parse(formopts);
+
+            // convert functions for buttons - see http://stackoverflow.com/questions/3946958/pass-function-in-json-and-execute
+            // this assumes buttons is array of objects
+            // TODO: handle full http://editor.datatables.net/reference/api/buttons() capability, i.e., string or single object
+            for (i=0; i<opts.buttons.length; i++) {
+                opts.buttons[i].fn = new Function(opts.buttons[i].fn);
+            }
+
+            naveditor = new $.fn.dataTable.Editor ( opts.editoropts )
+                .title( opts.title )
+                .buttons( opts.buttons )
+                .edit( null, false )
+                .open();
+        }
+    });
+
+    // decorate buttons
+    $("._rrwebapp-actionbutton").button();
+    $("._rrwebapp-simplebutton").button();
+    
+    // get confirmation for any deletes
+    $("._rrwebapp-deletebutton").on('click', function(event){getconfirmation(event,'Delete','Please confirm item deletion')});
+
+
+})
 

@@ -28,11 +28,19 @@ from celery import Celery
 #                                    UpdateClubDataPermission, ViewClubDataPermission
 from loutilities.configparser import getitems
 
+# bring in js, css assets
+import assets
+from assets import asset_env, asset_bundles
+
 # import os
 # print 'pid={} __init__.py executed'.format(os.getpid())
 
 # create app and celery tasking back end
 app = Flask('rrwebapp')
+
+# initialize assets
+asset_env.init_app(app)
+asset_env.register(asset_bundles)
 
 # define product name (don't import nav until after app.jinja_env.globals['_rrwebapp_productname'] set)
 # TODO: this really should be set in rrwebapp.cfg
@@ -82,13 +90,5 @@ import sysinfo
 import docs
 import staticfiles
 import agegradeapi
-
-# initialize versions for scripts
-# need to force app context with test_request_context() else get
-#    RuntimeError: Attempted to generate a URL without the application context being pushed.
-# see http://kronosapiens.github.io/blog/2014/08/14/understanding-contexts-in-flask.html
-# NOTE: with app_context() was not sufficient to prevent runtime error
-with app.test_request_context():
-    request.setscripts()
 
 
