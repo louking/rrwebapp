@@ -1599,7 +1599,7 @@ class RunnerResultsChart(MethodView):
 
             # set up pretablehtml
             ## set up some html elements to be used pretable
-            aglink = ET.Element('a', attrib={'class' : "dt-chart-age-grade-link", 'href' : "http://www.usatfmasters.org/fa_agegrading.htm", 
+            aglink = ET.Element('a', attrib={'class' : "dt-chart-age-grade-link", 'href' : "https://usatfmasters.org/wp/2018/08/age-grading/",
                                 'target' : '_blank'})
             aglink.text = 'learn about age grading'
             charttablebutton = ET.Element('button', attrib={'class' : 'dt-chart-display-button', 'type' : 'button'})
