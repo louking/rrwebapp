@@ -16,6 +16,7 @@ helper functions and ajax APIs to support navigation and headers
 
 # standard
 import json
+from datetime import datetime
 
 # pypi
 import flask
@@ -198,15 +199,7 @@ def getuseryears(user):
     :param user: User record
     :rtype: [(year,year),...], for select, sorted by year
     '''
-    races = Race.query.all()
-    allyears = [r.year for r in races]
-    
-    # database shouldn't be empty, but just in case, kick start this process
-    if not allyears:
-        allyears = [2014]   # TODO: or use current year
-    
-    # use all years from database, with additional year on low end and on high end
-    return [(y,y) for y in range(min(allyears)-1,max(allyears)+2)]
+    return [(y,y) for y in range(2013, datetime.now().year+1)]
             
 
 #----------------------------------------------------------------------
