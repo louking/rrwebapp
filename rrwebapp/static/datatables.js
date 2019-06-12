@@ -188,6 +188,11 @@ function datatables(data, buttons, options, files) {
         if ($.inArray(button, ['create', 'edit', 'editRefresh', 'remove']) >= 0) {
             button_options.push({extend:button, editor:editor});
         } else {
+            // convert button actions to javascript, // kludge for conversion from python
+            if (button.hasOwnProperty('action')) {
+                button.action = eval(button.action)
+            }
+
             button_options.push(button);
         }
     };

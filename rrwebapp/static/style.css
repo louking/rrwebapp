@@ -129,13 +129,6 @@ div.DTE_Field input._rrwebapp_CRUD_input_short {
     margin: -1px;
 }
 
-.ui-state-hover, .ui-widget-content .ui-state-hover, .ui-widget-header .ui-state-hover, .ui-state-active, .ui-widget-content .ui-state-active, .ui-widget-header .ui-state-active {
-    border: 1px solid #999;
-    background: #dadada url(images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x;
-    font-weight: normal;
-    color: #212121;
-}
-
 .ui-menu .ui-menu-item a {
     text-decoration: none;
     display: block;

@@ -8,9 +8,9 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
     
     function setchecked(sel) {
         if (sel.checked) {
-            $(sel).button({icons:{ primary: 'ui-icon-check' }});
+            $(sel).button({icon: 'ui-icon-check' });
         } else {
-            $(sel).button({icons:{ primary: null }});         
+            $(sel).button({icon: null });
         }
     };
 
@@ -130,9 +130,7 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
                         .after('<button class=_rrwebapp_button_age_cycle title="More than one member matches this name. Click here to cycle through members">')
                     $('._rrwebapp_button_age_cycle')
                         .button( {
-                            icons: {
-                                primary: "ui-icon-arrowthick-1-e"
-                            }
+                                icon: "ui-icon-arrowthick-1-e"
                         } )
                         .on('click', function() {
                             agegen_index += 1;
@@ -199,7 +197,7 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
         // when the page has been drawn, need to do a lot of housekeeping
         .on( 'draw.dt', function () {
             // make button for checkbox
-            $('._rrwebapp-editparticipants-checkbox-confirmed').button({text:false});
+            $('._rrwebapp-editparticipants-checkbox-confirmed').button({showLabel:false});
             $('._rrwebapp-editparticipants-checkbox-confirmed').each(function(){setchecked(this);});
             
             // initial revert values -- see ajax_update_db_noform_resp for use of 'revert' data field
@@ -371,11 +369,11 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
                 { data: 'confirm',      name: 'confirm',     className: 'dt-body-center',
                   render: function ( data, type, row, meta ) {
                     var val = '' 
-                        + '<input class="_rrwebapp-editparticipants-checkbox-confirmed" type="checkbox" ' 
+                        + '<input class="_rrwebapp-editparticipants-checkbox-confirmed" type="checkbox" '
                         + ((data) ? 'checked ' : ' ') 
                         + 'id="_rrwebapp-editparticipants-checkbox-confirmed-' + row.id + '" ' 
                         + '_rrwebapp-field=\'confirmed\' ' 
-                        + '_rrwebapp-apiurl=' + fieldapi + row.id + '>\n' 
+                        + '_rrwebapp-apiurl=' + fieldapi + row.id + '>\n'
                         + '<label for="_rrwebapp-editparticipants-checkbox-confirmed-' + row.id + '"></label>';
                     return val;
                   }
