@@ -307,9 +307,10 @@ class CrudApi(MethodView):
             # render page
             return flask.render_template('datatables.html', 
                                          pagename = self.pagename,
-                                         pagejsfiles = addscripts(['datatables.js'] + self.pagejsfiles),
+                                         pagejsfiles = addscripts(self.pagejsfiles),
                                          pagecssfiles = addscripts(self.pagecssfiles),
-                                         tabledata = tabledata, 
+                                         tabledata = tabledata,
+                                         tablefiles = None,
                                          tablebuttons = self.buttons,
                                          options = {'dtopts': dt_options, 'editoropts': ed_options, 'updateopts': update_options},
                                          inhibityear = True,    # NOTE: prevents common CrudApi

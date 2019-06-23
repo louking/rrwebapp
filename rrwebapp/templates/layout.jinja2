@@ -1,0 +1,52 @@
+{% extends "layout-base.jinja2" %}
+{% block metanav %}
+    <div class=metanav>
+      {% if not session.logged_in %}
+        <a href="{{ url_for('login') }}">log in</a>
+      {% else %}
+        {{ session.user_name }}
+        {% if not inhibityear and session.year %}
+          |
+          <select id="year_select" class=sessionoption sessionoptionapi="/_useryear">
+            {% for year in session.year_choices %}
+              <option value={{ year[0] }} {% if year[0] == session.year %}selected{% endif %}>{{ year[1] }}</option>
+            {% endfor %}
+          </select>
+        {% endif %}
+        {% if not inhibitclub and session.club_name %}
+          |
+          <select id="club_select" class=sessionoption sessionoptionapi="/_userclub">
+            {% for club in session.club_choices %}
+              <option value={{ club[0] }} {% if club[0] == session.club_id %}selected{% endif %}>{{ club[1]}}</option>
+            {% endfor %}
+          </select>
+        {% endif %}
+        | <a href="{{ url_for('logout') }}">log out</a>
+        | <a href="{{ url_for('usersettings')}}?next={{request.url}}">
+            <span class="ui-icon ui-icon-gear" style="display: inline-block"></span>
+          </a>
+      {% endif %}
+    </div>
+{% endblock %}
+
+{% block nav %}
+    {% if session.nav %}
+      <ul id="navigation">
+      {% for thisnav in session.nav %}
+        {# if list not present, just simple entry #}
+        {% if not thisnav.list %}
+          <li><a href="{{ thisnav.url }}"{%for a in thisnav.attr%} {{a.name}}='{{a.value}}'{%endfor%}>{{ thisnav.display }}</a></li>
+        {% else %}
+          <li>
+            <a href="#">{{ thisnav.display }}</a>
+            <ul>
+              {% for subnav in thisnav.list %}
+                <li><a href="{{ subnav.url }}"{%for a in subnav.attr%} {{a.name}}="{{a.value}}"{%endfor%}>{{ subnav.display }}</a></li>
+              {% endfor %}
+            </ul>
+          </li>
+        {% endif %}
+      {% endfor %}
+      </ul>
+    {% endif %}
+{% endblock %}

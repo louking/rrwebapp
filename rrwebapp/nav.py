@@ -50,7 +50,7 @@ def strip_tags(html):
     return s.get_data()
 
 # get product name
-productname = strip_tags(app.jinja_env.globals['_rrwebapp_productname'])
+productname = strip_tags(app.jinja_env.globals['_productname'])
 
 #----------------------------------------------------------------------
 def is_authenticated(user):

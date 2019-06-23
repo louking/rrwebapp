@@ -191,6 +191,7 @@ tcl
 # flask-assets
 .webassets-cache/
 gen/
+webassets-external/
 
 # PyCharm
 .idea/

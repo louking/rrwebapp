@@ -928,9 +928,9 @@ class EditExclusions(MethodView):
             db.session.commit()
             return flask.render_template('datatables.html', 
                                          pagename='Edit Exclusions',
-                                         pagejsfiles=addscripts(['datatables.js']),
-                                         tabledata=tabledata, 
+                                         tabledata=tabledata,
                                          tablebuttons = buttons,
+                                         tablefiles=None,
                                          options = {'dtopts': dt_options, 'editoropts': ed_options},
                                          inhibityear=True,
                                          writeallowed=writecheck.can())
@@ -1252,11 +1252,11 @@ class RunnerResults(MethodView):
             return flask.render_template('datatables.html',
                                          pagename=pagename,
                                          pretablehtml=pretablehtml,
-                                         pagejsfiles=addscripts(['datatables.js']),
                                          # serverSide must be True to pass url
                                          # add the request args to the ajax function
                                          tabledata=url_for('_results')+'?'+urlencode(request.args),
                                          tablebuttons= buttons,
+                                         tablefiles=None,
                                          options = options,
                                          inhibityear=True,inhibitclub=True,
                                          )
@@ -1699,12 +1699,13 @@ class RunnerResultsChart(MethodView):
                                          pagename=pagename,
                                          pretablehtml=pretablehtml,
                                          chartloc='beforetable',
-                                         pagejsfiles=addscripts(['datatables.js', 'dt_chart.js', 'd3.legend.js', 'results_scatterplot.js']),
+                                         pagejsfiles=addscripts(['dt_chart.js', 'd3.legend.js', 'results_scatterplot.js']),
                                          pagecssfiles=addscripts(['d3.legend.css', 'dt_chart.css']),
                                          # serverSide must be True to pass url
                                          # add the request args to the ajax function
                                          tabledata=url_for('_resultschart')+'?'+urlencode(request.args),
                                          tablebuttons= ['csv'],
+                                         tablefiles=None,
                                          options = options,
                                          inhibityear=True,inhibitclub=True,
                                          )

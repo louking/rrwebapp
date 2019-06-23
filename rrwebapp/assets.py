@@ -1,3 +1,15 @@
+###########################################################################################
+# assets - create js and css asset bundles
+#
+#       Date            Author          Reason
+#       ----            ------          ------
+#       06/07/19        Lou King        Create
+#
+#   Copyright 2010 Lou King.  All rights reserved
+###########################################################################################
+
+# pypi
+from flask import current_app
 from flask_assets import Bundle, Environment
 
 # jquery
@@ -94,6 +106,7 @@ asset_bundles = {
         'js/FieldType-Selectize/editor.selectize.css',
         'js/yadcf-{ver}/jquery.dataTables.yadcf.css'.format(ver=yadcf_ver),
         'style.css',
+        'branding.css',
         output='gen/admin.css',
         # cssrewrite helps find image files when ASSETS_DEBUG = False
         filters=['cssrewrite', 'cssmin'],

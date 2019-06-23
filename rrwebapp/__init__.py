@@ -16,16 +16,15 @@ from ConfigParser import SafeConfigParser
 
 # pypi
 from flask import Flask
-from flask_login import login_required
-import flask_principal as principal
-import flask_wtf as flaskwtf
-import wtforms
+from jinja2 import ChoiceLoader, FileSystemLoader, PackageLoader
+
 from celery import Celery
 
 # homegrown -- why were these here?
 #import database_flask # this is ok because this subpackage only runs under flask
 #from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
 #                                    UpdateClubDataPermission, ViewClubDataPermission
+import loutilities
 from loutilities.configparser import getitems
 
 # bring in js, css assets
@@ -38,14 +37,30 @@ from assets import asset_env, asset_bundles
 # create app and celery tasking back end
 app = Flask('rrwebapp')
 
+# add loutilities tables-assets for js/css/template loading
+# see https://adambard.com/blog/fresh-flask-setup/
+#    and https://webassets.readthedocs.io/en/latest/environment.html#webassets.env.Environment.load_path
+with app.app_context():
+    # js/css files
+    asset_env.append_path(app.static_folder)
+    # os.path.split to get package directory
+    asset_env.append_path(os.path.join(os.path.split(loutilities.__file__)[0], 'tables-assets', 'static'))
+
+    # templates
+    loader = ChoiceLoader([
+        app.jinja_loader,
+        PackageLoader('loutilities', 'tables-assets/templates')
+    ])
+    app.jinja_loader = loader
+
 # initialize assets
 asset_env.init_app(app)
 asset_env.register(asset_bundles)
 
 # define product name (don't import nav until after app.jinja_env.globals['_rrwebapp_productname'] set)
 # TODO: this really should be set in rrwebapp.cfg
-app.jinja_env.globals['_rrwebapp_productname'] = '<span class="brand-all"><span class="brand-left">score</span><span class="brand-right">tility</span></span>'
-app.jinja_env.globals['_rrwebapp_productname_text'] = 'scoretility'
+app.jinja_env.globals['_productname'] = '<span class="brand-all"><span class="brand-left">score</span><span class="brand-right">tility</span></span>'
+app.jinja_env.globals['_productname_text'] = 'scoretility'
 #from nav import productname
 
 # tell jinja to remove linebreaks

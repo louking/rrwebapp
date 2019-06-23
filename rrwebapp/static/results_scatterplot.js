@@ -10,7 +10,7 @@ var priority = {
     'runningahead': PRIO_RUNNINGAHEAD,
     'strava':       PRIO_STRAVA,
 };
-priority[_rrwebapp_productname] = PRIO_CLUBRACES;
+priority[_productname] = PRIO_CLUBRACES;
 
 
 // datatables_chart is used to create the chart from datatables.js
