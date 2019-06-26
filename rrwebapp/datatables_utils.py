@@ -301,9 +301,10 @@ class DatatablesCsv(MethodView):
             # render page
             return flask.render_template('datatables.html', 
                                          pagename = self.pagename,
-                                         pagejsfiles = addscripts(['datatables.js', 'buttons.colvis.js']),
+                                         pagejsfiles = addscripts(['buttons.colvis.js']),
                                          tabledata = tabledata, 
                                          tablebuttons = buttons,
+                                         tablefiles = None,
                                          options = {'dtopts': dt_options},
                                          inhibityear = True,    # NOTE: prevents common DatatablesCsv
                                         )

@@ -164,9 +164,10 @@ class ResultsAnalysisStatus(MethodView):
             db.session.commit()
             return flask.render_template('datatables.html', 
                                          pagename=self.pagename,
-                                         pagejsfiles=addscripts(['resultanalysis.js', 'datatables.js']),
+                                         pagejsfiles=addscripts(['resultanalysis.js']),
                                          tabledata=tabledata, 
                                          tablebuttons = buttons,
+                                         tablefiles = None,
                                          options = {'dtopts': dt_options},
                                          inhibityear=True,
                                          writeallowed=owner_permission.can())
