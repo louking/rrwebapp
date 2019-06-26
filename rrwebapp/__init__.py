@@ -44,7 +44,7 @@ with app.app_context():
     # js/css files
     asset_env.append_path(app.static_folder)
     # os.path.split to get package directory
-    asset_env.append_path(os.path.join(os.path.split(loutilities.__file__)[0], 'tables-assets', 'static'))
+    asset_env.append_path(os.path.join(os.path.split(loutilities.__file__)[0], 'tables-assets', 'static'), '/loutilities')
 
     # templates
     loader = ChoiceLoader([
