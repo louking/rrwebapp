@@ -57,7 +57,7 @@ with app.app_context():
 asset_env.init_app(app)
 asset_env.register(asset_bundles)
 
-# define product name (don't import nav until after app.jinja_env.globals['_rrwebapp_productname'] set)
+# define product name (don't import nav until after app.jinja_env.globals['_productname'] set)
 # TODO: this really should be set in rrwebapp.cfg
 app.jinja_env.globals['_productname'] = '<span class="brand-all"><span class="brand-left">score</span><span class="brand-right">tility</span></span>'
 app.jinja_env.globals['_productname_text'] = 'scoretility'
