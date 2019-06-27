@@ -15,8 +15,8 @@ import os.path
 from ConfigParser import SafeConfigParser
 
 # pypi
-from flask import Flask
-from jinja2 import ChoiceLoader, FileSystemLoader, PackageLoader
+from flask import Flask, send_from_directory
+from jinja2 import ChoiceLoader, PackageLoader
 
 from celery import Celery
 
@@ -37,14 +37,25 @@ from assets import asset_env, asset_bundles
 # create app and celery tasking back end
 app = Flask('rrwebapp')
 
+# get configuration
+configpath = os.path.join(os.path.sep.join(os.path.dirname(__file__).split(os.path.sep)[:-2]), 'rrwebapp.cfg')
+appconfig = getitems(configpath, 'app')
+app.config.update(appconfig)
+
 # add loutilities tables-assets for js/css/template loading
 # see https://adambard.com/blog/fresh-flask-setup/
 #    and https://webassets.readthedocs.io/en/latest/environment.html#webassets.env.Environment.load_path
+# loutilities.__file__ is __init__.py file inside loutilities; os.path.split gets package directory
+loutilitiespath = os.path.join(os.path.split(loutilities.__file__)[0], 'tables-assets', 'static')
+
+@app.route('/loutilities/static/<path:filename>')
+def loutilities_static(filename):
+    return send_from_directory(loutilitiespath, filename)
+
 with app.app_context():
     # js/css files
     asset_env.append_path(app.static_folder)
-    # os.path.split to get package directory
-    asset_env.append_path(os.path.join(os.path.split(loutilities.__file__)[0], 'tables-assets', 'static'), '/loutilities')
+    asset_env.append_path(loutilitiespath, '/loutilities/static')
 
     # templates
     loader = ChoiceLoader([
@@ -66,11 +77,6 @@ app.jinja_env.globals['_productname_text'] = 'scoretility'
 # tell jinja to remove linebreaks
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
-
-# get configuration
-configpath = os.path.join(os.path.sep.join(os.path.dirname(__file__).split(os.path.sep)[:-2]), 'rrwebapp.cfg')
-appconfig = getitems(configpath, 'app')
-app.config.update(appconfig)
 
 celery = Celery('rrwebapp')
 
