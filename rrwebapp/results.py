@@ -1649,6 +1649,9 @@ class RunnerResultsChart(MethodView):
                     'select_type': 'select2',
                     'filter_reset_button_text': 'clear',
                     'sort_as': 'none',
+                    'select_type_options': {
+                        'width': '200px',
+                    },
                 },{
                     'column_number':getcol('date'),
                     'filter_container_id':"_rrwebapp_filterdate",
@@ -1672,6 +1675,11 @@ class RunnerResultsChart(MethodView):
                     'column_number':getcol('series'),
                     'filter_container_id':"_rrwebapp_filterseries",
                     'filter_reset_button_text': 'all',
+                    'filter_type': "select",
+                    'select_type': 'select2',
+                    'select_type_options': {
+                        'width': '150px',
+                    },
                 }
             ]
 
@@ -1688,6 +1696,7 @@ class RunnerResultsChart(MethodView):
                         'column_number':getcol('sourceid'),
                         'filter_container_id':"_rrwebapp_filtersourceid",
                         'filter_type':'select',
+                        'select_type': 'select2',
                         'filter_reset_button_text': 'all',
                     },
                 ]
