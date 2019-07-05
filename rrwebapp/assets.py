@@ -105,8 +105,9 @@ asset_bundles = {
         'js/selectize-{ver}/css/selectize.css'.format(ver=sz_ver),
         'js/FieldType-Selectize/editor.selectize.css',
         'js/yadcf-{ver}/jquery.dataTables.yadcf.css'.format(ver=yadcf_ver),
-        'style.css',
+        'filters.css',
         'branding.css',
+        'style.css',
         output='gen/admin.css',
         # cssrewrite helps find image files when ASSETS_DEBUG = False
         filters=['cssrewrite', 'cssmin'],
