@@ -31,6 +31,7 @@ from datatables_utils import DataTablesEditor, dt_editor_response, get_request_a
 from . import app
 from database_flask import db   # this is ok because this module only runs under flask
 from request import addscripts
+from loutilities.tables import DbCrudApi
 
 #----------------------------------------------------------------------
 def _editormethod(checkaction='', formrequest=True):
@@ -102,7 +103,7 @@ def _editormethod(checkaction='', formrequest=True):
 
 
 #######################################################################
-class CrudApi(MethodView):
+class CrudApi(DbCrudApi):
 #######################################################################
     '''
     provides initial render and RESTful CRUD api
@@ -181,11 +182,15 @@ class CrudApi(MethodView):
         # caller supplied keyword args are used to update the defaults
         # all arguments are made into attributes for self
         self.kwargs = kwargs
-        args = dict(pagename = None, 
+        args = dict(db = None,
+                    app = None,
+                    model = None,
+                    pagename = None,
                     endpoint = None, 
                     dbmapping = {}, 
                     formmapping = {}, 
-                    writepermission = lambda: False, 
+                    writepermission = lambda: False,
+                    permission = None,
                     dbtable = None, 
                     queryparms = {},
                     clientcolumns = None, 
@@ -196,219 +201,44 @@ class CrudApi(MethodView):
                     pagejsfiles = [],
                     pagecssfiles = [],
                     dtoptions = {},
+                    addltemplateargs = {'inhibityear':True}
                     )
-        args.update(kwargs)        
-        for key in args:
-            setattr(self, key, args[key])
 
-        # set up mapping between database and editor form
-        self.dte = DataTablesEditor(self.dbmapping, self.formmapping)
+        # update defaults with kwargs from caller
+        args.update(kwargs)
+
+        # legacy support: initialize a couple of arguments required by inherited class
+        if not args['db']:
+            args['db'] = db
+        if not args['app']:
+            args['app'] = app
+        if not args['model']:
+            # args['model'] = args.pop('dbtable')
+            args['model'] = args['dbtable']
+        if not args['permission']:
+            # args['permission'] = args.pop('writepermission')
+            args['permission'] = args['writepermission']
+
+        # initialize inherited class, and a couple of attributes
+        super(CrudApi, self).__init__(**args)
 
     #----------------------------------------------------------------------
-    def register(self):
+    def beforequery(self):
     #----------------------------------------------------------------------
-        # create supported endpoints
-        my_view = self.as_view(self.endpoint, **self.kwargs)
-        app.add_url_rule('/{}'.format(self.endpoint),view_func=my_view,methods=['GET',])
-        app.add_url_rule('/{}/rest'.format(self.endpoint),view_func=my_view,methods=['GET', 'POST'])
-        app.add_url_rule('/{}/rest/<int:thisid>'.format(self.endpoint),view_func=my_view,methods=['PUT', 'DELETE'])
+        if self.byclub:
+            self.queryparms['club_id'] = self._club_id
 
     #----------------------------------------------------------------------
     def _renderpage(self):
     #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            
-            # verify user can write the data, otherwise abort
-            if not self.writepermission():
-                db.session.rollback()
-                flask.abort(403)
-            
-            # set up parameters to query, based on whether results are limited to club
-            queryparms = self.queryparms
-            if self.byclub:
-                queryparms['club_id'] = club_id
-
-            # peel off any _update options
-            update_options = []
-            for column in self.clientcolumns:
-                if '_update' in column:
-                    update = column['_update']  # convenience alias
-                    update['url'] = url_for(update['endpoint']) + '?' + urlencode({'_wrapper':dumps(update['wrapper'])})
-                    update['name'] = column['name']
-                    update_options.append(update)
-
-            # DataTables options string, data: and buttons: are passed separately
-            dt_options = {
-                'dom': '<"H"lBpfr>t<"F"i>',
-                'columns': [
-                    {
-                        'data': None,
-                        'defaultContent': '',
-                        'className': 'select-checkbox',
-                        'orderable': False
-                    },
-                ],
-                'select': True,
-                'ordering': True,
-                'order': [1,'asc'],
-                'jQueryUI': True,
-            }
-
-            # update caller supplied options
-            dt_options.update(self.dtoptions)
-
-            # update column options
-            for column in self.clientcolumns:
-                dt_options['columns'].append(column)
-
-            # build table data
-            if self.servercolumns == None:
-                dt_options['serverSide'] = False
-                dbrecords = self.dbtable.query.filter_by(**queryparms).all()
-                tabledata = []
-                for dbrecord in dbrecords:
-                    thisentry = self.dte.get_response_data(dbrecord)
-                    tabledata.append(thisentry)
-            else:
-                dt_options['serverSide'] = True
-                tabledata = '{}/rest'.format(url_for(self.endpoint))
-
-            ed_options = {
-                'idSrc': self.idSrc,
-                'ajax': {
-                    'create': {
-                        'type': 'POST',
-                        'url':  '{}/rest'.format(url_for(self.endpoint)),
-                    },
-                    'edit': {
-                        'type': 'PUT',
-                        'url':  '{}/rest/{}'.format(url_for(self.endpoint),'_id_'),
-                    },
-                    'remove': {
-                        'type': 'DELETE',
-                        'url':  '{}/rest/{}'.format(url_for(self.endpoint),'_id_'),
-                    },
-                },
-                
-                'fields': [
-                ],
-            }
-            # TODO: these are editor field options as of Editor 1.5.6 -- do we really need to get rid of non-Editor options?
-            fieldkeys = ['className', 'data', 'def', 'entityDecode', 'fieldInfo', 'id', 'label', 'labelInfo', 'name', 'type', 'options', 'opts']
-            for column in self.clientcolumns:
-                # pick keys which matter
-                edcolumn = { key: column[key] for key in fieldkeys if key in column}
-                ed_options['fields'].append(edcolumn)
-
-            # commit database updates and close transaction
-            db.session.commit()
-
-            # render page
-            return flask.render_template('datatables.html', 
-                                         pagename = self.pagename,
-                                         pagejsfiles = addscripts(self.pagejsfiles),
-                                         pagecssfiles = addscripts(self.pagecssfiles),
-                                         tabledata = tabledata,
-                                         tablefiles = None,
-                                         tablebuttons = self.buttons,
-                                         options = {'dtopts': dt_options, 'editoropts': ed_options, 'updateopts': update_options},
-                                         inhibityear = True,    # NOTE: prevents common CrudApi
-                                         writeallowed = self.writepermission())
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
+        self._club_id = flask.session['club_id']
+        return super(DbCrudApi, self)._renderpage()
 
     #----------------------------------------------------------------------
     def _retrieverows(self):
     #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            
-            # verify user can write the data, otherwise abort
-            if not self.writepermission():
-                db.session.rollback()
-                flask.abort(403)
-                
-            # set up parameters to query, based on whether results are limited to club
-            queryparms = self.queryparms
-            if self.byclub:
-                queryparms['club_id'] = club_id
-
-            # columns to retrieve from database
-            columns = self.servercolumns
-
-            # get data from database
-            rowTable = DataTables(request.args, self.dbtable, self.dbtable.query.filter_by(**queryparms), columns, dialect='mysql')
-            output_result = rowTable.output_result()
-
-            # back to client
-            return jsonify(output_result)
-
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-
-    #----------------------------------------------------------------------
-    def get(self):
-    #----------------------------------------------------------------------
-        if request.path[-4:] != 'rest':
-            return self._renderpage()
-        else:
-            return self._retrieverows()
-
-    #----------------------------------------------------------------------
-    @_editormethod(checkaction='create', formrequest=True)
-    def post(self):
-    #----------------------------------------------------------------------
-        # retrieve data from request
-        thisdata = self._data[0]
-        
-        # create item
-        dbitem = self.dbtable(**self._dbparms)
-        self.dte.set_dbrow(thisdata, dbitem)
-        app.logger.debug('creating dbrow={}'.format(dbitem))
-        db.session.add(dbitem)
-        db.session.flush()
-
-        # prepare response
-        thisrow = self.dte.get_response_data(dbitem)
-        self._responsedata = [thisrow]
-
-
-    #----------------------------------------------------------------------
-    @_editormethod(checkaction='edit', formrequest=True)
-    def put(self, thisid):
-    #----------------------------------------------------------------------
-        # retrieve data from request
-        self._responsedata = []
-        thisdata = self._data[thisid]
-        
-        # edit item
-        dbitem = self.dbtable.query.filter_by(id=thisid).first()
-        app.logger.debug('editing id={} dbrow={}'.format(thisid, dbitem))
-        self.dte.set_dbrow(thisdata, dbitem)
-        app.logger.debug('after edit id={} dbrow={}'.format(thisid, dbitem))
-
-        # prepare response
-        thisrow = self.dte.get_response_data(dbitem)
-        self._responsedata = [thisrow]
-
-
-    #----------------------------------------------------------------------
-    @_editormethod(checkaction='remove', formrequest=False)
-    def delete(self, thisid):
-    #----------------------------------------------------------------------
-        # remove item
-        dbitem = self.dbtable.query.filter_by(id=thisid).first()
-        app.logger.debug('deleting id={} dbrow={}'.format(thisid, dbitem))
-        db.session.delete(dbitem)
-
-        # prepare response
-        self._responsedata = []
+        self._club_id = flask.session['club_id']
+        return super(DbCrudApi, self)._retrieverows()
 
 #----------------------------------------------------------------------
 def deepupdate(obj, val, newval):

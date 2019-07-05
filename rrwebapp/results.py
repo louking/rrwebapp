@@ -17,7 +17,7 @@ import os
 from datetime import timedelta
 from time import time
 import traceback
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 from urllib import urlencode
 from copy import copy
 import xml.etree.ElementTree as ET
@@ -28,19 +28,15 @@ from flask import make_response, request, jsonify, url_for
 from flask_login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
+from sqlalchemy import func, cast
 from datatables import DataTables, ColumnDT
-from flask_wtf import Form
-from wtforms import SelectField, StringField, IntegerField, BooleanField, validators
-from celery import states
-from celery.exceptions import Ignore
 from attrdict import AttrDict
 
 # home grown
 from . import app
 from . import celery
 import racedb
-from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
-                                    UpdateClubDataPermission, ViewClubDataPermission
+from accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 from database_flask import db   # this is ok because this module only runs under flask
 from apicommon import failure_response, success_response
 from request import addscripts, crossdomain
@@ -52,15 +48,17 @@ from nav import productname
 import raceresults
 import clubmember
 from request import annotatescripts
-from racedb import dbdate, Runner, ManagedResult, RaceResult, RaceSeries, Race, Location, Exclusion, Series, Divisions, Club, dbdate
+from racedb import Runner, ManagedResult, RaceResult, Race, Location, Exclusion, Series, Divisions, Club, dbdate
+from racedb import timeformat, floatformat
 from services import ServiceAttributes
 from racedb import RaceResultService, ApiCredentials
 from location import LocationServer, get_distance
 from datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
-from forms import SeriesResultForm, RunnerResultForm
+from forms import SeriesResultForm
 from loutilities.namesplitter import split_full_name
 import loutilities.renderrun as render
 from loutilities import timeu, agegrade
+
 tYmd = timeu.asctime('%Y-%m-%d')
 tmdy = timeu.asctime('%m/%d/%y')
 
@@ -1271,23 +1269,6 @@ app.add_url_rule('/results',view_func=RunnerResults.as_view('results'),methods=[
 
 
 #----------------------------------------------------------------------
-def renderdivision(result):
-#----------------------------------------------------------------------
-    '''
-    render division string for result
-
-    :param result: result from RaceResult
-    :rtype: string for rendering
-    '''
-
-    if result.divisionhigh:
-        thisdiv = '{}-{}'.format(result.divisionlow,result.divisionhigh)
-    else:
-        thisdiv = ''
-
-    return thisdiv
-
-#----------------------------------------------------------------------
 def renderage(result):
 #----------------------------------------------------------------------
     '''
@@ -1362,27 +1343,6 @@ def renderintstr(cell):
         this = 0
 
     return this
-
-#----------------------------------------------------------------------
-def renderplace(cell):
-#----------------------------------------------------------------------
-    '''
-    render place
-
-    :param cell: cell passed from table
-    :rtype: string for rendering
-    '''
-
-    # try to render as integer, otherwise use one decimal place
-    if cell or cell==0:
-        if int(cell) == float(cell):
-            thisplace = int(cell)
-        else:
-            thisplace = '{0:.1f}'.format(cell)
-    else:
-        thisplace = ''
-
-    return thisplace
 
 #----------------------------------------------------------------------
 def rendermembertype(result):
@@ -1481,26 +1441,30 @@ class AjaxRunnerResults(MethodView):
             resultfilter['source'] = productname
 
             columns = [
-                ColumnDT('runner.name',     mData='name'), 
-                ColumnDT('series.name',     mData='series'),
-                ColumnDT('race.date',       mData='date'),
-                ColumnDT('race.name',       mData='race'),
-                ColumnDT('race.distance',   mData='miles',              searchable=False,
-                         # render integers as integers, 1 decimal less than 1, 2 decimals between 1 and 3 and 1 decimal above 3
-                         filter=lambda c: '{0:.{1}f}'.format(c,0 if int(c)==float(c) else 1 if c > 3 else 3 if c < 1 else 2)),
-                ColumnDT('runner.gender',   mData='gender',             searchable=False),
-                ColumnDT('age',             mData='age',                searchable=False,   filterarg='row', filter=renderage),
-                ColumnDT('genderplace',     mData='genderplace',        searchable=False,   filter=renderplace),
-                ColumnDT('division',        mData='division',           searchable=False,   filterarg='row', filter=renderdivision),
-                ColumnDT('divisionplace',   mData='divisionplace',      searchable=False,   filter=renderplace),
-                ColumnDT('time',            mData='time',               searchable=False,   filter=lambda c: render.rendertime(c, 0)),  # TODO: get precision
-                ColumnDT('time',            mData='pace',               searchable=False,
-                         filterarg='row', filter=lambda r: render.rendertime(r.time / r.race.distance, 0, useceiling=False)),
-                ColumnDT('agtime',          mData='agtime',             searchable=False,   filter=lambda c: render.rendertime(c, 0)),  # TODO: get precision
-                ColumnDT('agpercent',       mData='agpercent',          searchable=False,   filter=lambda c: '{:.2f}%'.format(c)),
+                ColumnDT(Runner.name,                mData='name'),
+                ColumnDT(Series.name,                mData='series'),
+                ColumnDT(Race.date,                  mData='date'),
+                ColumnDT(Race.name,                  mData='race'),
+                ColumnDT(floatformat(Race.distance, 2), mData='miles', search_method='none'),
+                ColumnDT(Runner.gender,              mData='gender',             search_method='none'),
+                # ColumnDT(int(Race.date[0:4]) - int(Runner.dateofbirth[0:4]) - int(Race.date[5:] < Runner.dateofbirth[5:]),
+                #          mData='age',                search_method='none'),
+                # see https://stackoverflow.com/questions/12019766/how-to-get-month-and-year-from-date-field-in-sqlalchemy
+                # but does agage work?
+                ColumnDT(RaceResult.agage,
+                         mData='age',                search_method='none'),
+                ColumnDT(RaceResult.genderplace,     mData='genderplace',        search_method='none'),
+                ColumnDT(func.concat(RaceResult.divisionlow, '-', RaceResult.divisionhigh), mData='division', search_method='none'),
+                ColumnDT(RaceResult.divisionplace, mData='divisionplace', search_method='none'),
+                ColumnDT(timeformat(RaceResult.time), mData='time', search_method='none'),
+                ColumnDT(timeformat(RaceResult.time / Race.distance), mData='pace', search_method='none'),
+                ColumnDT(timeformat(RaceResult.agtime), mData='agtime', search_method='none'),
+                ColumnDT(func.concat(floatformat(RaceResult.agpercent, 1), '%'), mData='agpercent', search_method='none'),
             ]
 
-            rowTable = DataTables(request.args, RaceResult, RaceResult.query.filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race"), columns, dialect='mysql')
+            params = request.args.to_dict()
+            query = db.session.query().select_from(RaceResult).filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race")
+            rowTable = DataTables(params, query, columns)
 
             # prepare for name, series and gender filter
             # need to use db.session to access query function

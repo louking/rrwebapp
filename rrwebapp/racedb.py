@@ -32,6 +32,8 @@ import time
 
 # pypi
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func, types, cast
+from sqlalchemy.types import TypeDecorator
 
 # github
 
@@ -41,6 +43,7 @@ from database_flask import *
 # home grown
 import version
 from loutilities import timeu
+from loutilities.renderrun import rendertime
 
 DBDATEFMT = '%Y-%m-%d'
 t = timeu.asctime(DBDATEFMT)
@@ -969,3 +972,20 @@ class Exclusion(Base):
     def __repr__(self):
     #----------------------------------------------------------------------
         return "<Exclusion '%s','%s')>" % (self.foundname, self.runnerid)
+
+#####################################################
+# for use in ColumnDT declarations
+#####################################################
+class TimeFormat(TypeDecorator):
+    impl = types.String
+
+    # assumes float value seconds to be converted to time
+    def process_result_value(self, value, engine):
+        return rendertime(float(value), 0)
+
+def floatformat(expr, numdigits):
+    return func.round(expr, numdigits)
+
+def timeformat(expr):
+    return cast(expr, TimeFormat())
+

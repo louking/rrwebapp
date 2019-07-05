@@ -19,6 +19,7 @@ cssmin==0.2.0
 decorator==4.1.2
 docutils==0.11
 docx==0.2.4
+dominate==2.3.5
 ecdsa==0.13
 enum34==1.1.6
 ez-setup==0.9
@@ -43,7 +44,7 @@ itsdangerous==0.24
 Jinja2==2.10.1
 jsmin==2.2.2
 kombu==3.0.35
-loutilities==0.14.9
+-e git+https://github.com/louking/loutilities.git@9596979c6d39e13c2540d30b328add360c0e9309#egg=loutilities
 lxml==3.6.0
 Mako==1.0.4
 MarkupSafe==0.23
@@ -72,8 +73,8 @@ running==1.5.1
 scandir==1.5
 simplegeneric==0.8.1
 six==1.10.0
-SQLAlchemy==1.0.15
-sqlalchemy-datatables===0.4.1lk3
+SQLAlchemy==1.3.5
+sqlalchemy-datatables==2.0.1
 traitlets==4.3.2
 tzlocal==1.0
 unicodecsv==0.14.1
