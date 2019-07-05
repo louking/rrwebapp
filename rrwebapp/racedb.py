@@ -32,7 +32,7 @@ import time
 
 # pypi
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import func, types, cast
+from sqlalchemy import func, types, cast, case
 from sqlalchemy.types import TypeDecorator
 
 # github
@@ -43,7 +43,7 @@ from database_flask import *
 # home grown
 import version
 from loutilities import timeu
-from loutilities.renderrun import rendertime
+import loutilities.renderrun as render
 
 DBDATEFMT = '%Y-%m-%d'
 t = timeu.asctime(DBDATEFMT)
@@ -981,11 +981,19 @@ class TimeFormat(TypeDecorator):
 
     # assumes float value seconds to be converted to time
     def process_result_value(self, value, engine):
-        return rendertime(float(value), 0)
+        return render.rendertime(float(value), 0)
 
-def floatformat(expr, numdigits):
+def renderfloat(expr, numdigits):
     return func.round(expr, numdigits)
 
-def timeformat(expr):
+def rendertime(expr):
     return cast(expr, TimeFormat())
+
+def rendermember(expr):
+    return case(
+        [
+            (expr==True, 'member'),
+        ],
+        else_='nonmember'
+    )
 

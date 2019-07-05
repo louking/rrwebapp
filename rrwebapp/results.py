@@ -49,7 +49,7 @@ import raceresults
 import clubmember
 from request import annotatescripts
 from racedb import Runner, ManagedResult, RaceResult, Race, Location, Exclusion, Series, Divisions, Club, dbdate
-from racedb import timeformat, floatformat
+from racedb import rendertime, renderfloat, rendermember
 from services import ServiceAttributes
 from racedb import RaceResultService, ApiCredentials
 from location import LocationServer, get_distance
@@ -657,23 +657,25 @@ class AjaxEditParticipants(MethodView):
             
             # mData must match columns in RaceResults[.js].editparticipants
             columns = [
-                ColumnDT('id',                  mData='id',                   searchable=False),
-                ColumnDT('place',               mData='place'), 
-                ColumnDT('name',                mData='resultname'),
-                ColumnDT('gender',              mData='gender',             searchable=False),
-                ColumnDT('age',                 mData='age',                searchable=False,   filterarg='cell',   filter=renderintstr),
-                ColumnDT('initialdisposition',  mData='disposition'),
-                ColumnDT('membertype',          mData='membertype',         searchable=False,   filterarg='row',    filter=rendermembertype),
+                ColumnDT(ManagedResult.id,                  mData='id',                 search_method='none'),
+                ColumnDT(ManagedResult.place,               mData='place'),
+                ColumnDT(ManagedResult.name,                mData='resultname'),
+                ColumnDT(ManagedResult.gender,              mData='gender',             search_method='none'),
+                ColumnDT(ManagedResult.age,                 mData='age',                search_method='none'),
+                ColumnDT(ManagedResult.initialdisposition,  mData='disposition'),
+                ColumnDT(rendermember(Runner.member), mData='membertype', search_method='none'),
                 # the odd confirmed lambda filter prevents a string 'True' or 'False' from being sent
-                ColumnDT('confirmed',           mData='confirm',            searchable=False,   filterarg='cell',   filter=lambda c: c),
-                ColumnDT('runnerid',            mData='runnerid'),
+                ColumnDT(ManagedResult.confirmed,           mData='confirm',            search_method='none'),
+                ColumnDT(ManagedResult.runnerid,            mData='runnerid'),
                 # next two, suppress 'None' rendering
-                ColumnDT('hometown',            mData='hometown',                               filterarg='cell',   filter=lambda c: c if c else ''),
-                ColumnDT('club',                mData='club',                                   filterarg='cell',   filter=lambda c: c if c else ''),
-                ColumnDT('time',                mData='time',               searchable=False,   filter=lambda c: render.rendertime(c, timeprecision)),
+                ColumnDT(ManagedResult.hometown,            mData='hometown'),
+                ColumnDT(ManagedResult.club,                mData='club'),
+                ColumnDT(rendertime(ManagedResult.time), mData='time'),
             ]
 
-            rowTable = DataTables(request.args, ManagedResult, ManagedResult.query.filter_by(club_id=club_id,raceid=raceid), columns, dialect='mysql')
+            params = request.args.to_dict()
+            query = db.session.query().select_from(ManagedResult).filter_by(club_id=club_id,raceid=raceid).join(Runner)
+            rowTable = DataTables(params, query, columns)
 
             # prepare for match filter
             # need to use db.session to access query function
@@ -1445,7 +1447,7 @@ class AjaxRunnerResults(MethodView):
                 ColumnDT(Series.name,                mData='series'),
                 ColumnDT(Race.date,                  mData='date'),
                 ColumnDT(Race.name,                  mData='race'),
-                ColumnDT(floatformat(Race.distance, 2), mData='miles', search_method='none'),
+                ColumnDT(renderfloat(Race.distance, 2), mData='miles', search_method='none'),
                 ColumnDT(Runner.gender,              mData='gender',             search_method='none'),
                 # ColumnDT(int(Race.date[0:4]) - int(Runner.dateofbirth[0:4]) - int(Race.date[5:] < Runner.dateofbirth[5:]),
                 #          mData='age',                search_method='none'),
@@ -1456,10 +1458,10 @@ class AjaxRunnerResults(MethodView):
                 ColumnDT(RaceResult.genderplace,     mData='genderplace',        search_method='none'),
                 ColumnDT(func.concat(RaceResult.divisionlow, '-', RaceResult.divisionhigh), mData='division', search_method='none'),
                 ColumnDT(RaceResult.divisionplace, mData='divisionplace', search_method='none'),
-                ColumnDT(timeformat(RaceResult.time), mData='time', search_method='none'),
-                ColumnDT(timeformat(RaceResult.time / Race.distance), mData='pace', search_method='none'),
-                ColumnDT(timeformat(RaceResult.agtime), mData='agtime', search_method='none'),
-                ColumnDT(func.concat(floatformat(RaceResult.agpercent, 1), '%'), mData='agpercent', search_method='none'),
+                ColumnDT(rendertime(RaceResult.time), mData='time', search_method='none'),
+                ColumnDT(rendertime(RaceResult.time / Race.distance), mData='pace', search_method='none'),
+                ColumnDT(rendertime(RaceResult.agtime), mData='agtime', search_method='none'),
+                ColumnDT(func.concat(renderfloat(RaceResult.agpercent, 1), '%'), mData='agpercent', search_method='none'),
             ]
 
             params = request.args.to_dict()
