@@ -138,21 +138,6 @@ div.DTE_Field input._rrwebapp_CRUD_input_short {
     font-weight: normal;
 }
 
-/* branding */
-.brand-all {
-  font-family: Impact, Charcoal, sans-serif;
-}
-
-.brand-left {
-  color:#009999;
-  font-weight: lighter;
-}
-
-.brand-right {
-  color:#990033;
-  font-weight:bold;
-}
-
 div.wrapper div.Footer
 {
     border-top: 1px solid #336699;
