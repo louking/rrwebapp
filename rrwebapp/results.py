@@ -29,13 +29,13 @@ from flask_login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, cast
-from datatables import DataTables, ColumnDT
 from attrdict import AttrDict
 
 # home grown
 from . import app
 from . import celery
 import racedb
+from loutilities.tables import DataTables, ColumnDT
 from accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 from database_flask import db   # this is ok because this module only runs under flask
 from apicommon import failure_response, success_response
@@ -49,7 +49,7 @@ import raceresults
 import clubmember
 from request import annotatescripts
 from racedb import Runner, ManagedResult, RaceResult, Race, Location, Exclusion, Series, Divisions, Club, dbdate
-from racedb import rendertime, renderfloat, rendermember
+from racedb import rendertime, renderfloat, rendermember, renderlocation, renderseries
 from services import ServiceAttributes
 from racedb import RaceResultService, ApiCredentials
 from location import LocationServer, get_distance
@@ -1368,36 +1368,6 @@ def rendermembertype(result):
 
     return this
 
-#----------------------------------------------------------------------
-def renderseries(cell):
-#----------------------------------------------------------------------
-    # if there's something in this cell, it must be series id
-    if cell:
-        series = Series.query.filter_by(id=cell).first()
-        if series:
-            seriesname = series.name
-        else:
-            seriesname = ''
-    else:
-        seriesname = ''
-
-    return seriesname
-
-#----------------------------------------------------------------------
-def renderlocation(result):
-#----------------------------------------------------------------------
-    # get location from raceid
-    if not result.raceid: return ' '
-
-    race = Race.query.filter_by(id=result.raceid).first()
-    if not race: return ' '
-
-    location = Location.query.filter_by(id=race.locationid).first()
-    if not location: return ' '
-
-    return location.name
-
-
 #######################################################################
 class AjaxRunnerResults(MethodView):
 #######################################################################
@@ -1449,12 +1419,7 @@ class AjaxRunnerResults(MethodView):
                 ColumnDT(Race.name,                  mData='race'),
                 ColumnDT(renderfloat(Race.distance, 2), mData='miles', search_method='none'),
                 ColumnDT(Runner.gender,              mData='gender',             search_method='none'),
-                # ColumnDT(int(Race.date[0:4]) - int(Runner.dateofbirth[0:4]) - int(Race.date[5:] < Runner.dateofbirth[5:]),
-                #          mData='age',                search_method='none'),
-                # see https://stackoverflow.com/questions/12019766/how-to-get-month-and-year-from-date-field-in-sqlalchemy
-                # but does agage work?
-                ColumnDT(RaceResult.agage,
-                         mData='age',                search_method='none'),
+                ColumnDT(RaceResult.agage,           mData='age',                search_method='none'),
                 ColumnDT(RaceResult.genderplace,     mData='genderplace',        search_method='none'),
                 ColumnDT(func.concat(RaceResult.divisionlow, '-', RaceResult.divisionhigh), mData='division', search_method='none'),
                 ColumnDT(RaceResult.divisionplace, mData='divisionplace', search_method='none'),
@@ -1747,12 +1712,10 @@ class AjaxRunnerResultsChart(MethodView):
             ## otherwise
             ##    retrieve series.name and join('series') [filter enabled]
             columns = [
-                ColumnDT('race.date',       mData='date'),
-                ColumnDT('runnerid',        mData='runnerid',           search_like=False), 
-                ColumnDT('runner.name',     mData='name'), 
-
-                # may need to pop this off just below, but needed for getcol('series') 
-                ColumnDT('seriesid',        mData='series',             searchable=False,   filter=renderseries),
+                ColumnDT(Race.date, mData='date', search_method='yadcf_range_date'),
+                ColumnDT(RaceResult.runnerid, mData='runnerid', search_method='numeric'),
+                ColumnDT(Runner.name, mData='name'),
+                ColumnDT(renderseries(RaceResult.seriesid), mData='series', search_method='none'),
             ]
 
             # set up columns differently if series is being searched for, as if so it's ok to join('series') in query
@@ -1768,31 +1731,32 @@ class AjaxRunnerResultsChart(MethodView):
                 # pop the last element (mData='series') off the end, as we're replacing it
                 columns.pop()
                 columns += [
-                    ColumnDT('series.name',        mData='series'),
+                    ColumnDT(Series.name,        mData='series'),
                 ]
 
             columns += [
-                ColumnDT('race.name',       mData='race'),
-                ColumnDT('race.distance',   mData='miles',              searchable=False),
-                ColumnDT('age',             mData='age',                searchable=False,   filterarg='row', filter=renderage),
-                ColumnDT('time',            mData='time',               searchable=False,   filter=lambda c: render.rendertime(c, 0)),
-                ColumnDT('time',            mData='pace',               searchable=False,
-                         filterarg='row', filter=lambda r: render.rendertime(r.time / r.race.distance, 0, useceiling=False)),
-                ColumnDT('agtime',          mData='agtime',             searchable=False,   filterarg='row', filter=renderagtime),
-                ColumnDT('agpercent',       mData='agpercent',          searchable=False,   filterarg='row', filter=renderagpercent),
+                ColumnDT(Race.name, mData='race', search_method='none'),
+                ColumnDT(renderfloat(Race.distance, 2), mData='miles', search_method='yadcf_range_number'),
+                # ColumnDT(renderfloat(Race.distance, 2), mData='miles', search_method='none'),
+                ColumnDT(RaceResult.agage, mData='age', search_method='none'),
+                ColumnDT(rendertime(RaceResult.time), mData='time', search_method='none'),
+                ColumnDT(rendertime(RaceResult.time / Race.distance), mData='pace', search_method='none'),
+                ColumnDT(rendertime(RaceResult.agtime), mData='agtime', search_method='none'),
+                ColumnDT(func.concat(renderfloat(RaceResult.agpercent, 2), '%'), mData='agpercent', search_method='yadcf_range_number'),
+                # ColumnDT(func.concat(renderfloat(RaceResult.agpercent, 2), '%'), mData='agpercent', search_method='none'),
             ]
 
             # give extra columns to the admin
             if adminuser:
                 columns += [
-                        # ColumnDT('race.location.name',   mData='location',        searchable=False,   filter=lambda c: c if c else ' '), 
-                        ColumnDT('location',   mData='location',        searchable=False,   filterarg='row', filter=renderlocation), 
-                        ColumnDT('source',          mData='source'),
-                        ColumnDT('sourceid',        mData='sourceid'),
+                        # ColumnDT('race.location.name',   mData='location',        search_method='none',   filter=lambda c: c if c else ' '),
+                        ColumnDT(renderlocation(Race.locationid),   mData='location', search_method='none'),
+                        ColumnDT(RaceResult.source,          mData='source'),
+                        ColumnDT(RaceResult.sourceid,        mData='sourceid'),
                     ]
 
             # make copy of args as request.args is immutable and we might want to update
-            args = request.args.copy()
+            args = request.args.to_dict()
 
             # if no search for runnerid, we return no records, expecting user to make a selection later
             # kludge this by setting resultsfilter to -1
@@ -1822,32 +1786,56 @@ class AjaxRunnerResultsChart(MethodView):
                         daterange[i] = nulldate[i]
                 args[datefield] = delim.join(daterange)
 
-            # preprocess range for some fields to allow min only or max only
-            statranges = {'miles': [0,100], 'agpercent': [0,100]}
-            for stat in statranges:
-                statrange = statranges[stat]
-                statfield = 'columns[{}][search][value]'.format(getcol(stat))
-                statarg = args[statfield]
-                if statarg:
-                    print 'before: stat='+stat+ ' statfield='+statfield+' args='+args[statfield]
-                    argsrange = statarg.split(delim)
-                    for i in range(2):
-                        if argsrange[i] == '':
-                            argsrange[i] = str(statrange[i])
-                    args[statfield] = delim.join(argsrange)
-                    print 'after: stat='+stat+ ' statfield='+statfield+' args='+args[statfield]
+            def set_yadcf_data():
+                # preprocess range for some fields to allow min only or max only
+                statranges = {'miles': [0,100], 'agpercent': [0,100]}
+
+                # prepare for page filters
+                # see http://stackoverflow.com/questions/2175355/selecting-distinct-column-values-in-sqlalchemy-elixir
+                # see http://stackoverflow.com/questions/22275412/sqlalchemy-return-all-distinct-column-values
+                # see http://stackoverflow.com/questions/11175519/how-to-query-distinct-on-a-joined-column
+                # format depends on type of select
+                namesq = Runner.query.filter_by(**namesfilter)
+                resultnames = [{'value': row.id, 'label': '{} ({})'.format(row.name, timeu.age(timeu.epoch2dt(time()),
+                                                                                               tYmd.asc2dt(
+                                                                                                   row.dateofbirth)))}
+                               for row in namesq.all()]
+
+                # only return distinct names, sorted
+                names = []
+                for name in resultnames:
+                    if name not in names:
+                        names.append(name)
+                names.sort(key=lambda item: item['label'].lower())
+                # app.logger.debug('after names sort')
+
+                # avoid exception if club not specified in query
+                if club:
+                    series = [row.name for row in db.session.query(Series.name).filter_by(club_id=club.id).distinct().all()]
+                else:
+                    series = []
+
+                # add yadcf filters
+                yadcf_data = []
+                yadcf_data.append(('yadcf_data_{}'.format(getcol('runnerid')), names))
+                yadcf_data.append(('yadcf_data_{}'.format(getcol('series')), series))
+                yadcf_data.append(('yadcf_data_{}'.format(getcol('miles')), statranges['miles']))
+                yadcf_data.append(('yadcf_data_{}'.format(getcol('agpercent')), statranges['agpercent']))
+
+                # send back yadcf_data
+                return yadcf_data
 
             # add series filters to query
-            q = RaceResult.query.filter_by(**resultfilter).join("runner")
+            q = db.session.query().select_from(RaceResult).filter_by(**resultfilter).join(Runner).join(Race)
             if seriesfilter:
-                q = q.join("series").filter_by(**seriesfilter)
-            q = q.join("race")
+                # q = q.join(Series).filter_by(**seriesfilter)
+                q = q.join(RaceResult.series).filter_by(**seriesfilter)
+            # q = q.join(Race).join(Location)
             # app.logger.debug('resultfilter = {}, seriesfilter = {}'.format(resultfilter, seriesfilter))
             # app.logger.debug('query = \n{}'.format(q))
 
-
             # note there's no paging (see RunnerResultsChart) so can do some filtering after retrieval of all results from database
-            rowTable = DataTables(args, RaceResult, q, columns, dialect='mysql')
+            rowTable = DataTables(args, q, columns, set_yadcf_data=set_yadcf_data)
             output_result = rowTable.output_result()
 
             # app.logger.debug('after race results filtered query')
@@ -1868,52 +1856,14 @@ class AjaxRunnerResultsChart(MethodView):
                 ## update data
                 locsvr = LocationServer()
                 clublocation = locsvr.getlocation(club.location)
-                rows = copy(output_result['data'])
-                output_result['data'] = []
-                for row in rows:
-                    if maxdistance[row['source']]:
-                        distance = get_distance(clublocation, locsvr.getlocation(row['location']))
-                        if distance == None or distance > maxdistance[row['source']]: continue
-                    output_result['data'].append(row)
-
-            # prepare for page filters
-            # need to use db.session to access query function
-            # see http://stackoverflow.com/questions/2175355/selecting-distinct-column-values-in-sqlalchemy-elixir
-            # see http://stackoverflow.com/questions/22275412/sqlalchemy-return-all-distinct-column-values
-            # see http://stackoverflow.com/questions/11175519/how-to-query-distinct-on-a-joined-column
-            # format depends on type of select
-            namesq = Runner.query.filter_by(**namesfilter)
-            # *** debug
-            # app.logger.debug('names query = {}'.format(namesq))
-            # allrunners = namesq.all()
-            # resultnames = []
-            # for row in allrunners:
-            #     try:
-            #         resultnames.append({'value':row.id, 'label': '{} ({})'.format(row.name,timeu.age(timeu.epoch2dt(time()),tYmd.asc2dt(row.dateofbirth)))})
-            #     except ValueError:
-            #         app.logger.error('error on date of birth for runner.id {} dateofbirth {}'.format(row.id, row.dateofbirth))
-            # *** debug
-            resultnames = [{'value':row.id, 'label': '{} ({})'.format(row.name,timeu.age(timeu.epoch2dt(time()),tYmd.asc2dt(row.dateofbirth)))} 
-                        for row in namesq.all()]
-            # app.logger.debug('after result names query')
-            
-            # only return distinct names, sorted
-            names = []
-            for name in resultnames:
-                if name not in names:
-                    names.append(name)
-            names.sort(key=lambda item: item['label'].lower())
-            # app.logger.debug('after names sort')
-
-            # avoid exception if club not specified in query
-            if club:
-                series = [row.name for row in db.session.query(Series.name).filter_by(club_id=club.id).distinct().all()]
-
-            # add yadcf filters
-            output_result['yadcf_data_{}'.format(getcol('runnerid'))] = names
-            output_result['yadcf_data_{}'.format(getcol('series'))] = series
-            output_result['yadcf_data_{}'.format(getcol('miles'))] = statranges['miles']
-            output_result['yadcf_data_{}'.format(getcol('agpercent'))] = statranges['agpercent']
+                if 'data' in output_result:
+                    rows = copy(output_result['data'])
+                    output_result['data'] = []
+                    for row in rows:
+                        if maxdistance[row['source']]:
+                            distance = get_distance(clublocation, locsvr.getlocation(row['location']))
+                            if distance == None or distance > maxdistance[row['source']]: continue
+                        output_result['data'].append(row)
 
             # add select options to admin fields source and sourceid, from runner's data
             if adminuser:

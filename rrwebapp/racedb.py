@@ -983,6 +983,28 @@ class TimeFormat(TypeDecorator):
     def process_result_value(self, value, engine):
         return render.rendertime(float(value), 0)
 
+class LocationFormat(TypeDecorator):
+    impl = types.String
+
+    # assumes float value seconds to be converted to time
+    def process_result_value(self, value, engine):
+        loc = Location.query.filter_by(id=value).one_or_none()
+        if loc:
+            return loc.name
+        else:
+            return ''
+
+class SeriesFormat(TypeDecorator):
+    impl = types.String
+
+    # assumes float value seconds to be converted to time
+    def process_result_value(self, value, engine):
+        series = Series.query.filter_by(id=value).one_or_none()
+        if series:
+            return series.name
+        else:
+            return ''
+
 def renderfloat(expr, numdigits):
     return func.round(expr, numdigits)
 
@@ -997,3 +1019,8 @@ def rendermember(expr):
         else_='nonmember'
     )
 
+def renderlocation(expr):
+    return cast(expr, LocationFormat())
+
+def renderseries(expr):
+    return cast(expr, SeriesFormat())
