@@ -35,7 +35,7 @@ from crudapi import CrudApi
 from loutilities.timeu import epoch2dt
 from database_flask import db   # this is ok because this module only runs under flask
 
-CACHE_REFRESH = timedelta(30)   # 30 days, per https://developers.google.com/maps/terms#section_10 (sec 10.5)
+CACHE_REFRESH = timedelta(30)   # 30 days, per https://cloud.google.com/maps-platform/terms/maps-service-terms/?&sign=0 (sec 3.4)
 
 #----------------------------------------------------------------------
 def get_distance(loc1, loc2, miles=True):
@@ -133,21 +133,14 @@ loc = CrudApi(pagename = 'Locations',
              writepermission = owner_permission.can, 
              dbtable = Location, 
              clientcolumns = [
-                { 'data': 'loc', 'name': 'loc', 'label': 'Location Name' },
-                { 'data': 'lat', 'name': 'lat', 'label': 'Latitude' },
-                { 'data': 'long', 'name': 'long', 'label': 'Longitude' },
-                { 'data': 'cached', 'name': 'cached', 'label': 'Cached' },
-                { 'data': 'error', 'name': 'error', 'label': 'Error' },
-             ], 
-             servercolumns = [
-                ColumnDT('id',          mData='rowid'),
-                ColumnDT('name',        mData='loc'),
-                ColumnDT('latitude',    mData='lat'),
-                ColumnDT('longitude',   mData='long'),
-                ColumnDT('cached_at',   mData='cached'),
-                ColumnDT('lookuperror', mData='error'),
+                {'data': 'loc', 'name': 'loc', 'label': 'Location Name'},
+                {'data': 'lat', 'name': 'lat', 'label': 'Latitude'},
+                {'data': 'long', 'name': 'long', 'label': 'Longitude'},
+                {'data': 'cached', 'name': 'cached', 'label': 'Cached'},
+                {'data': 'error', 'name': 'error', 'label': 'Error', '_treatment': {'boolean': {'formfield': 'error', 'dbfield': 'lookuperror'}}},
              ],
-             byclub = False, 
+             serverside = True,
+             byclub = False,
              idSrc = 'rowid', 
              buttons = ['create', 'edit', 'remove'])
 loc.register()

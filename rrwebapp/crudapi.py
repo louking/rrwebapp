@@ -193,7 +193,6 @@ class CrudApi(DbCrudApi):
                     dbtable = None, 
                     queryparms = {},
                     clientcolumns = None, 
-                    servercolumns = None, 
                     byclub = True,        # NOTE: prevents common CrudApi
                     idSrc = 'DT_RowId', 
                     buttons = ['create', 'edit', 'remove', 'csv'],
