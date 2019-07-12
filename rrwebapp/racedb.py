@@ -976,14 +976,30 @@ class Exclusion(Base):
 #####################################################
 # for use in ColumnDT declarations
 #####################################################
-class TimeFormat(TypeDecorator):
+def renderfloat(expr, numdigits):
+    return func.round(expr, numdigits)
+
+def rendermember(expr):
+    return case(
+        [
+            (expr==True, 'member'),
+        ],
+        else_='nonmember'
+    )
+
+
+class RenderTime(TypeDecorator):
     impl = types.String
 
     # assumes float value seconds to be converted to time
     def process_result_value(self, value, engine):
         return render.rendertime(float(value), 0)
 
-class LocationFormat(TypeDecorator):
+def rendertime(expr):
+    return cast(expr, RenderTime())
+
+
+class RenderLocation(TypeDecorator):
     impl = types.String
 
     # assumes float value seconds to be converted to time
@@ -994,7 +1010,11 @@ class LocationFormat(TypeDecorator):
         else:
             return ''
 
-class SeriesFormat(TypeDecorator):
+def renderlocation(expr):
+    return cast(expr, RenderLocation())
+
+
+class RenderSeries(TypeDecorator):
     impl = types.String
 
     # assumes float value seconds to be converted to time
@@ -1005,22 +1025,6 @@ class SeriesFormat(TypeDecorator):
         else:
             return ''
 
-def renderfloat(expr, numdigits):
-    return func.round(expr, numdigits)
-
-def rendertime(expr):
-    return cast(expr, TimeFormat())
-
-def rendermember(expr):
-    return case(
-        [
-            (expr==True, 'member'),
-        ],
-        else_='nonmember'
-    )
-
-def renderlocation(expr):
-    return cast(expr, LocationFormat())
-
 def renderseries(expr):
-    return cast(expr, SeriesFormat())
+    return cast(expr, RenderSeries())
+
