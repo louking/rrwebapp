@@ -15,7 +15,6 @@ from json import loads, dumps
 # pypi
 from flask import url_for
 from collections import OrderedDict
-from datatables import ColumnDT
 
 # homegrown
 from . import app

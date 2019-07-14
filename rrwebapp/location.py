@@ -20,7 +20,6 @@ import time
 from datetime import timedelta
 
 # pypi
-from datatables import ColumnDT
 
 # github
 from googlemaps import Client
