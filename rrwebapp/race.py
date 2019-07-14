@@ -123,7 +123,7 @@ races = CrudApi(pagename = 'Races',
              byclub = True,
              byyear = True,
              idSrc = 'rowid',
-             buttons = ['create', 'edit', 'remove',
+             buttons = ['create', 'edit', 'remove', 'csv',
                         {'name':'tools', 'text':'Tools'}
                         ],
              addltemplateargs={'inhibityear': False},
@@ -469,7 +469,17 @@ class AjaxImportRaces(MethodView):
                     thisrace['time'] = ''
 
                 # add or update race in database
-                race = Race(club_id,thisrace['year'],thisrace['race'],None,thisrace['date'],thisrace['time'],thisrace['distance'],thisrace['surface'])
+                race = Race(
+                    club_id=club_id,
+                    year=thisrace['year'],
+                    name=thisrace['race'],
+                    date=thisrace['date'],
+                    starttime=thisrace['time'],
+                    distance=thisrace['distance'],
+                    surface=thisrace['surface'],
+                    active=True,
+                    external=False,
+                )
                 race.fixeddist = race_fixeddist(race.distance)
                 added = racedb.insert_or_update(db.session,Race,race,skipcolumns=['id'],club_id=club_id,name=race.name,year=race.year)
                 
