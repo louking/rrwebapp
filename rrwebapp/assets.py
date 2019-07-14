@@ -105,6 +105,7 @@ asset_bundles = {
         'js/selectize-{ver}/css/selectize.css'.format(ver=sz_ver),
         'js/FieldType-Selectize/editor.selectize.css',
         'js/yadcf-{ver}/jquery.dataTables.yadcf.css'.format(ver=yadcf_ver),
+        'editor.css',
         'filters.css',
         'branding.css',
         'style.css',

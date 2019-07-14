@@ -23,16 +23,15 @@ from flask.views import MethodView
 # home grown
 from . import app
 import racedb
-from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
-                                    UpdateClubDataPermission, ViewClubDataPermission
+from accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 from database_flask import db   # this is ok because this module only runs under flask
 from apicommon import failure_response, success_response, check_header
-
-# module specific needs
+from crudapi import CrudApi
 from racedb import Race, Club, Series, RaceSeries, Divisions, ManagedResult
 from forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 #from runningclub import racefile   # required for xlsx support
 from loutilities.csvu import DictReaderStr2Num
+from loutilities.filters import filtercontainerdiv, filterdiv
 
 # acceptable surfaces
 SURFACES = 'road,track,trail'.split(',')
@@ -47,6 +46,91 @@ def race_fixeddist(distance):
     :rtype: string containing value for race.fixeddist field
     '''
     return '{:.4g}'.format(float(distance))
+
+###########################################################################################
+# races endpoint
+###########################################################################################
+
+filters = filtercontainerdiv()
+filters += filterdiv('external-filter-series', 'Series')
+
+yadcf_options = [
+    {
+        'column_selector': 'series.name:name',
+        'select_type': 'select2',
+        'select_type_options': {
+            'width': '200px',
+            'allowClear': True,  # show 'x' (remove) next to selection inside the select itself
+            'placeholder': {
+                'id': -1,
+                'text': 'Select series',
+            },
+        },
+        'filter_type': 'multi_select',
+        'filter_container_id': 'external-filter-series',
+        'column_data_type': 'text',
+        'text_data_delimiter': ', ',
+        'filter_reset_button_text': False,  # hide yadcf reset button
+    },
+]
+
+races_dbattrs = 'id,name,date,distance,surface,series'.split(',')
+races_formfields = 'rowid,name,date,distance,surface,series'.split(',')
+races_dbmapping = dict(zip(races_dbattrs, races_formfields))
+races_formmapping = dict(zip(races_formfields, races_dbattrs))
+races = CrudApi(pagename = 'Races',
+             template='manageraces.html',
+             endpoint = 'manageraces',
+             dbmapping = races_dbmapping, 
+             formmapping = races_formmapping, 
+             permission = lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+             dbtable = Race,
+             queryparams = {'external': False, 'active': True},
+             checkrequired = True,
+             clientcolumns = [
+                 {'data': 'date',
+                  'name': 'date', 'label': 'Date', 'type':'datetime',
+                  'className': 'field_req',
+                  'ed':{ 'label': 'Date (yyyy-mm-dd)', 'format':'YYYY-MM-DD',
+                  # first day of week for date picker is Sunday, strict date format required
+                  'opts':{ 'momentStrict':True, 'firstDay':0 } },
+                  },
+                 {'data': 'name', 'name': 'name', 'label': 'Race Name', '_unique':True,
+                  'className': 'field_req',
+                  },
+                 {'data': 'distance', 'name': 'distance', 'label': 'Miles',
+                  'className': 'field_req',
+                  },
+                 {'data': 'surface', 'name': 'surface', 'label': 'Surface', 'type': 'select2',
+                  'className': 'field_req',
+                  'options': ['road', 'track', 'trail'],    # must match racedb.SurfaceType
+                  },
+                 {'data': 'series', 'name': 'series', 'label': 'Series', 'type': 'select2',
+                      '_treatment': {'relationship':
+                          {
+                              'dbfield': 'series',
+                              'fieldmodel': Series,
+                              'labelfield': 'name',
+                              'formfield': 'series',
+                              'uselist': True,
+                              'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
+                          }
+                      }
+                  },
+                 # {'data': 'results', 'name': 'results', 'label': 'Results'},
+             ],
+             serverside = False,
+             byclub = True,
+             byyear = True,
+             idSrc = 'rowid',
+             buttons = ['create', 'edit', 'remove',
+                        {'name':'tools', 'text':'Tools'}
+                        ],
+             addltemplateargs={'inhibityear': False},
+             pretablehtml=filters,
+             yadcfoptions = yadcf_options,
+                )
+races.register()
 
 #######################################################################
 class ManageRaces(MethodView):
@@ -114,7 +198,7 @@ class ManageRaces(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/manageraces',view_func=ManageRaces.as_view('manageraces'),methods=['GET'])
+app.add_url_rule('/manageracesxx',view_func=ManageRaces.as_view('manageracesxx'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -278,7 +362,7 @@ class RaceSettings(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/racesettings/<int:raceid>',view_func=RaceSettings.as_view('racesettings'),methods=['GET','POST'])
+app.add_url_rule('/racesettingsxx/<int:raceid>',view_func=RaceSettings.as_view('racesettings'),methods=['GET','POST'])
 #----------------------------------------------------------------------
 
 #######################################################################

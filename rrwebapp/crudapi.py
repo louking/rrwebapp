@@ -31,10 +31,12 @@ from . import app
 from database_flask import db   # this is ok because this module only runs under flask
 from request import addscripts
 from loutilities.tables import DbCrudApi
+from accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
+
+class parameterError(Exception): pass
 
 #----------------------------------------------------------------------
 def _editormethod(checkaction='', formrequest=True):
-#----------------------------------------------------------------------
     '''
     decorator for CrudApi methods used by Editor
 
@@ -103,7 +105,6 @@ def _editormethod(checkaction='', formrequest=True):
 
 #######################################################################
 class CrudApi(DbCrudApi):
-#######################################################################
     '''
     provides initial render and RESTful CRUD api
 
@@ -161,7 +162,7 @@ class CrudApi(DbCrudApi):
     :param formmapping: mapping dict with key for each form row, value is key in db row or function(form)
     :param writepermission: function to check write permission for api access
     :param dbtable: db model class for table being updated
-    :param queryparms: dict of query parameters relevant to this table to retrieve table or rows
+    :param queryparams: dict of query parameters relevant to this table to retrieve table or rows
     :param byclub: True if results are to be limited by club_id
     :param clientcolumns: list of dicts for input to dataTables and Editor
     :param servercolumns: list of ColumnDT for input to sqlalchemy-datatables.DataTables
@@ -176,8 +177,7 @@ class CrudApi(DbCrudApi):
 
     #----------------------------------------------------------------------
     def __init__(self, **kwargs):
-    #----------------------------------------------------------------------
-        # the args dict has all the defined parameters to 
+        # the args dict has all the defined parameters to
         # caller supplied keyword args are used to update the defaults
         # all arguments are made into attributes for self
         self.kwargs = kwargs
@@ -191,9 +191,10 @@ class CrudApi(DbCrudApi):
                     writepermission = lambda: False,
                     permission = None,
                     dbtable = None, 
-                    queryparms = {},
+                    queryparams = {},
                     clientcolumns = None, 
-                    byclub = True,        # NOTE: prevents common CrudApi
+                    byclub = True,
+                    byyear = False,
                     idSrc = 'DT_RowId', 
                     buttons = ['create', 'edit', 'remove', 'csv'],
                     pagejsfiles = [],
@@ -211,10 +212,8 @@ class CrudApi(DbCrudApi):
         if not args['app']:
             args['app'] = app
         if not args['model']:
-            # args['model'] = args.pop('dbtable')
             args['model'] = args['dbtable']
         if not args['permission']:
-            # args['permission'] = args.pop('writepermission')
             args['permission'] = args['writepermission']
 
         # initialize inherited class, and a couple of attributes
@@ -222,25 +221,23 @@ class CrudApi(DbCrudApi):
 
     #----------------------------------------------------------------------
     def beforequery(self):
-    #----------------------------------------------------------------------
         if self.byclub:
-            self.queryparms['club_id'] = self._club_id
+            self.queryparams['club_id'] = flask.session['club_id']
+        if self.byyear:
+            self.queryparams['year'] = flask.session['year']
 
     #----------------------------------------------------------------------
     def _renderpage(self):
-    #----------------------------------------------------------------------
         self._club_id = flask.session['club_id']
-        return super(DbCrudApi, self)._renderpage()
+        return super(CrudApi, self)._renderpage()
 
     #----------------------------------------------------------------------
     def _retrieverows(self):
-    #----------------------------------------------------------------------
         self._club_id = flask.session['club_id']
-        return super(DbCrudApi, self)._retrieverows()
+        return super(CrudApi, self)._retrieverows()
 
 #----------------------------------------------------------------------
 def deepupdate(obj, val, newval):
-#----------------------------------------------------------------------
     '''
     recursively searches obj object and replaces any val values with newval
     does not update opj
@@ -269,7 +266,6 @@ def deepupdate(obj, val, newval):
 
 #######################################################################
 class DbQueryApi(MethodView):
-#######################################################################
     '''
     class to set up api to get fields from dbtable
 
@@ -291,7 +287,6 @@ class DbQueryApi(MethodView):
 
     #----------------------------------------------------------------------
     def __init__(self, **kwargs):
-    #----------------------------------------------------------------------
 
         # the args dict has all the defined parameters to 
         # caller supplied keyword args are used to update the defaults
@@ -313,13 +308,11 @@ class DbQueryApi(MethodView):
 
     #----------------------------------------------------------------------
     def register(self):
-    #----------------------------------------------------------------------
         my_view = self.as_view(self.endpoint, **self.kwargs)
         app.add_url_rule('/{}/query'.format(self.endpoint),view_func=my_view,methods=['POST',])
 
     #----------------------------------------------------------------------
     def post(self):
-    #----------------------------------------------------------------------
         # maybe some filters, maybe club_id required
         filters = request.args.copy()
 

@@ -265,6 +265,62 @@
         });
     };
 
+    // editorbutton feature
+    function EditorButtonDialog() {
+
+        this.init = function(content) {
+            this.popup = $('<div>').append(content);
+            this.content = this.popup.accordion({
+                heightStyle: "content",
+                animate: 30,
+            });
+            this.buttondialog = $('<div>').append(this.popup);
+
+            this.buttondialog.dialog({
+                dialogClass: "no-titlebar",
+                draggable: false,
+                //resizeable: false,
+                open: this.content,
+                autoOpen: false,
+                height: "auto",
+                width: 450,
+                // position:{
+                //         my: "left top",
+                //         at: "left bottom",
+                //         of: this.button
+                //         },
+            });
+
+            this.status = 0;
+        };
+
+        this.click = function() {
+            if (this.status == 0) {
+                this.open()
+            } else {
+                this.close()
+            };
+        };
+
+        this.open = function() {
+            this.buttondialog.dialog("open");
+            this.content.show();
+            this.status = 1;
+        };
+
+        this.close = function() {
+            this.buttondialog.dialog("close");
+            this.content.hide();
+            this.status = 0;
+        };
+
+        this.position = function(position) {
+            this.buttondialog.dialog({
+                position: position,
+            });
+        }
+    }
+
     // toolbutton feature
     var toolbutton = {
         // toolcontent needs to be formatted as expected by JQuery accordian widget
@@ -769,18 +825,7 @@
 
     // manageraces
     function manageraces( writeallowed ) {
-        var $filterseries = $('#filterseries');
-        $filterseries
-            //.selectmenu({ icons: { secondary: "ui-icon-triangle-1-s" } })
-            .on('change',
-                function() {
-                    this.form.submit();
-                });
-
         if (writeallowed) {
-            // put toolbutton in the right place
-            toolbutton.$widgets.css({height:"0px"});   // no more widgets in container
-
             var $importraces = $('#manageracesImport');
             $importraces.click( function( event ) {
                 event.preventDefault();
@@ -855,16 +900,6 @@
             popupbutton.click(this, popupcontent, popupaction)
 
         });
-
-        _rrwebapp_table = $('#_rrwebapp-table-manage-races')
-            .dataTable(getDataTableParams({ordering: false}));
-        resetDataTableHW();
-
-        //_rrwa_racestable = $('#_rrwebapp-table-manage-races').DataTable({
-        //    paging: false,
-        //    scrollY: 450, // when scrolling, scroll jumps after updating column value
-        //    ordering: false,
-        //});
 
     };  // manageraces
 

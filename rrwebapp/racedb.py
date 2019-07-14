@@ -499,30 +499,8 @@ class Race(Base):
     external = Column(Boolean)
     active = Column(Boolean)
     results = relationship("RaceResult", backref='race', cascade="all, delete, delete-orphan")
-    series = relationship("RaceSeries", backref='race', cascade="all, delete, delete-orphan")
+    series = relationship("Series", backref='races', secondary="raceseries")
 
-    #----------------------------------------------------------------------
-    def __init__(self, club_id, year, name=None, racenum=None, date=None, starttime=None, distance=None, surface=None, locationid=None, external=False, fixeddist=None):
-    #----------------------------------------------------------------------
-
-        self.club_id = club_id
-        self.name = name
-        self.year = year
-        self.racenum = racenum  # deprecated, ignored
-        self.date = date
-        self.starttime = starttime
-        self.distance = distance
-        self.fixeddist = fixeddist
-        self.surface = surface
-        self.locationid = locationid
-        self.external = external
-        self.active = True
-
-    #----------------------------------------------------------------------
-    def __repr__(self):
-    #----------------------------------------------------------------------
-        return "<Race('%s','%s','%s','%s','%s','%s','%s','%s','%s',active='%s')>" % (self.club_id, self.name, self.year, self.racenum, self.date, self.starttime, self.distance, self.surface, self.locationid, self.active)
-    
 ########################################################################
 class Course(Base):
 ########################################################################
@@ -645,7 +623,7 @@ class Series(Base):
     active = Column(Boolean)
     description = Column(String(20))
     divisions = relationship("Divisions", backref='series', cascade="all, delete, delete-orphan")
-    races = relationship("RaceSeries", backref='series', cascade="all, delete, delete-orphan")
+    # races = relationship("Series", secondary="raceseries", backref='series')
     results = relationship("RaceResult", backref='series', cascade="all, delete, delete-orphan")
 
     #----------------------------------------------------------------------
