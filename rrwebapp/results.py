@@ -191,7 +191,7 @@ class ImportResults():
             raise ParameterError, 'Race needs to be included in at least one series to import results'
 
         # determine candidate pool based on membersonly
-        membersonly = self.race.series[0].series.membersonly
+        membersonly = self.race.series[0].membersonly
         if membersonly:
             self.pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
         else:
@@ -254,7 +254,7 @@ class ImportResults():
         missed = []
 
         # assumes all series for same race have same membersonly
-        membersonly = race.series[0].series.membersonly
+        membersonly = race.series[0].membersonly
 
         # for members or people who were once members, set age based on date of birth in database
         # note this clause will be executed for membersonly races
@@ -394,7 +394,7 @@ def getrunnerchoices(club_id, race, pool, result):
     :rtype: choices for use in Standings Name select
     '''
 
-    membersonly = race.series[0].series.membersonly
+    membersonly = race.series[0].membersonly
     racedatedt = dbdate.asc2dt(race.date)
 
     # object should have either disposition or initialdisposition
@@ -561,7 +561,7 @@ class EditParticipants(MethodView):
                 return flask.redirect(url_for('manageraces'))
 
             # active is ClubMember object for active members; if race isn't for members only nonmember is ClubMember object for nonmembers
-            membersonly = race.series[0].series.membersonly
+            membersonly = race.series[0].membersonly
             if membersonly:
                 pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
             else:
@@ -694,7 +694,7 @@ class AjaxEditParticipants(MethodView):
 
             # determine if race is for members only
             # then get appropriate pool of runners for possible inclusion in tableselects
-            membersonly = race.series[0].series.membersonly
+            membersonly = race.series[0].membersonly
             if membersonly:
                 pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
             else:
@@ -1039,10 +1039,10 @@ class SeriesResults(MethodView):
             # get all the results, and the race record
             results = []
             for series in race.series:
-                seriesid = series.series.id
-                seriesresults = RaceResult.query.filter_by(raceid=raceid,seriesid=seriesid).order_by(series.series.orderby).all()
+                seriesid = series.id
+                seriesresults = RaceResult.query.filter_by(raceid=raceid,seriesid=seriesid).order_by(series.orderby).all()
                 # this is easier, code-wise, than using sqlalchemy desc() function
-                if series.series.hightolow:
+                if series.hightolow:
                     seriesresults.reverse()
                 results += seriesresults
             
@@ -2389,7 +2389,7 @@ class AjaxTabulateResults(MethodView):
             timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
 
             # for each series for this race - 'series' describes how to tabulate the results
-            theseseries = [s.series for s in race.series]
+            theseseries = race.series
             for series in theseseries:
                 # get divisions for this series, if appropriate
                 if series.divisions:

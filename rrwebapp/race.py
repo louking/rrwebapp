@@ -16,7 +16,7 @@ import traceback
 
 # pypi
 import flask
-from flask import make_response,request
+from flask import request, url_for
 from flask_login import login_required
 from flask.views import MethodView
 
@@ -33,7 +33,7 @@ from forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 from loutilities.csvu import DictReaderStr2Num
 from loutilities.filters import filtercontainerdiv, filterdiv
 
-# acceptable surfaces
+# acceptable surfaces -- must match racedb.SurfaceType
 SURFACES = 'road,track,trail'.split(',')
 
 #----------------------------------------------------------------------
@@ -54,6 +54,9 @@ def race_fixeddist(distance):
 filters = filtercontainerdiv()
 filters += filterdiv('external-filter-series', 'Series')
 
+dt_options = {
+    'order': [3, 'asc'],
+}
 yadcf_options = [
     {
         'column_selector': 'series.name:name',
@@ -74,61 +77,100 @@ yadcf_options = [
     },
 ]
 
-races_dbattrs = 'id,name,date,distance,surface,series'.split(',')
-races_formfields = 'rowid,name,date,distance,surface,series'.split(',')
+def races_results_to_form(race):
+    # there are some results
+    if len(race.results) > 0:
+        return '''
+            <td align=center>
+              <button class='_rrwebapp-importResultsButton _rrwebapp-needswidget' _rrwebapp-raceid='{raceid}'
+                _rrwebapp-formaction='{importresults}' _rrwebapp-importdoc='{doc_importresults}' _rrwebapp-formid='_rrwebapp-form-results-{raceid}'
+                _rrwebapp-editaction='{editparticipants}' 
+                _rrwebapp-seriesresultsaction='{seriesresults}' 
+                _rrwebapp-imported='true'>
+              </button>
+            </td>
+        '''.format(raceid=race.id,
+                   importresults=url_for("_importresults",raceid=race.id),
+                   doc_importresults=url_for("doc_importresults"),
+                   editparticipants=url_for("editparticipants",raceid=race.id),
+                   seriesresults=url_for("seriesresults",raceid=race.id)
+                   )
+    else:
+        return '''
+            <td align=center>
+              <button class='_rrwebapp-importResultsButton _rrwebapp-needswidget' _rrwebapp-raceid='{raceid}'
+                      _rrwebapp-formaction='{importresults}' _rrwebapp-importdoc='{doc_importresults}' _rrwebapp-formid='_rrwebapp-form-results-{raceid}'
+                      _rrwebapp-editaction='{editparticipants}' 
+                      >
+              </button>
+            </td>
+        '''.format(raceid=race.id,
+                   importresults=url_for("_importresults",raceid=race.id),
+                   doc_importresults=url_for("doc_importresults"),
+                   editparticipants=url_for("editparticipants",raceid=race.id),
+                   )
+
+races_dbattrs = 'id,results,name,date,distance,surface,series'.split(',')
+races_formfields = 'rowid,results,name,date,distance,surface,series'.split(',')
 races_dbmapping = dict(zip(races_dbattrs, races_formfields))
 races_formmapping = dict(zip(races_formfields, races_dbattrs))
-races = CrudApi(pagename = 'Races',
-             template='manageraces.html',
-             endpoint = 'manageraces',
-             dbmapping = races_dbmapping, 
-             formmapping = races_formmapping, 
-             permission = lambda: UpdateClubDataPermission(flask.session['club_id']).can,
-             dbtable = Race,
-             queryparams = {'external': False, 'active': True},
-             checkrequired = True,
-             clientcolumns = [
-                 {'data': 'date',
-                  'name': 'date', 'label': 'Date', 'type':'datetime',
-                  'className': 'field_req',
-                  'ed':{ 'label': 'Date (yyyy-mm-dd)', 'format':'YYYY-MM-DD',
-                  # first day of week for date picker is Sunday, strict date format required
-                  'opts':{ 'momentStrict':True, 'firstDay':0 } },
-                  },
-                 {'data': 'name', 'name': 'name', 'label': 'Race Name', '_unique':True,
-                  'className': 'field_req',
-                  },
-                 {'data': 'distance', 'name': 'distance', 'label': 'Miles',
-                  'className': 'field_req',
-                  },
-                 {'data': 'surface', 'name': 'surface', 'label': 'Surface', 'type': 'select2',
-                  'className': 'field_req',
-                  'options': ['road', 'track', 'trail'],    # must match racedb.SurfaceType
-                  },
-                 {'data': 'series', 'name': 'series', 'label': 'Series', 'type': 'select2',
-                      '_treatment': {'relationship':
-                          {
-                              'dbfield': 'series',
-                              'fieldmodel': Series,
-                              'labelfield': 'name',
-                              'formfield': 'series',
-                              'uselist': True,
-                              'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
-                          }
-                      }
-                  },
-                 # {'data': 'results', 'name': 'results', 'label': 'Results'},
-             ],
-             serverside = False,
-             byclub = True,
-             byyear = True,
-             idSrc = 'rowid',
-             buttons = ['create', 'edit', 'remove', 'csv',
-                        {'name':'tools', 'text':'Tools'}
-                        ],
-             addltemplateargs={'inhibityear': False},
-             pretablehtml=filters,
-             yadcfoptions = yadcf_options,
+
+races_formmapping['results'] = races_results_to_form
+
+races = CrudApi(pagename='Races',
+                template='manageraces.html',
+                endpoint='manageraces',
+                dbmapping=races_dbmapping,
+                formmapping=races_formmapping,
+                permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+                dbtable=Race,
+                queryparams={'external': False, 'active': True},
+                checkrequired=True,
+                clientcolumns=[
+                    {'data': 'results', 'name': 'results', 'label': 'Results', 'type': 'readonly',
+                     'ed': {'type': 'hidden', 'submit': False}  # don't display or allow update in edit form
+                     },
+                    {'data': 'name', 'name': 'name', 'label': 'Race Name', '_unique': True,
+                     'className': 'field_req',
+                     },
+                    {'data': 'date',
+                     'name': 'date', 'label': 'Date', 'type': 'datetime',
+                     'className': 'field_req',
+                     'ed': {'label': 'Date (yyyy-mm-dd)', 'format': 'YYYY-MM-DD',
+                            # first day of week for date picker is Sunday, strict date format required
+                            'opts': {'momentStrict': True, 'firstDay': 0}},
+                     },
+                    {'data': 'distance', 'name': 'distance', 'label': 'Miles',
+                     'className': 'field_req',
+                     },
+                    {'data': 'surface', 'name': 'surface', 'label': 'Surface', 'type': 'select2',
+                     'className': 'field_req',
+                     'options': SURFACES,
+                     },
+                    {'data': 'series', 'name': 'series', 'label': 'Series', 'type': 'select2',
+                     '_treatment': {'relationship':
+                         {
+                             'dbfield': 'series',
+                             'fieldmodel': Series,
+                             'labelfield': 'name',
+                             'formfield': 'series',
+                             'uselist': True,
+                             'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
+                         }
+                     }
+                     },
+                ],
+                serverside=False,
+                byclub=True,
+                byyear=True,
+                idSrc='rowid',
+                buttons=['create', 'edit', 'remove', 'csv',
+                         {'name': 'tools', 'text': 'Tools'}
+                         ],
+                addltemplateargs={'inhibityear': False},
+                pretablehtml=filters,
+                dtoptions=dt_options,
+                yadcfoptions=yadcf_options,
                 )
 races.register()
 
@@ -177,7 +219,7 @@ class ManageRaces(MethodView):
             rawresults = []
             tabresults = []
             for race in Race.query.filter_by(club_id=club_id,year=thisyear,external=False,active=True).order_by('date').all():
-                thisraceseries = [s.series.id for s in race.series if s.active]
+                thisraceseries = [s.id for s in race.series if s.active]
                 if not seriesid or int(seriesid) in thisraceseries:
                     races.append(race)
                     racerawresults = ManagedResult.query.filter_by(club_id=club_id,raceid=race.id).first()
@@ -251,7 +293,7 @@ class RaceSettings(MethodView):
                 seriesl.append(serieselect)
             form.series.choices = seriesl
 
-            form.series.data = [rs.series.id for rs in race.series if rs.active]
+            form.series.data = [rs.id for rs in race.series if rs.active]
 
             form.surface.choices = [(s,s) for s in SURFACES]
 

@@ -65,8 +65,8 @@
     </div>
   </div>
     <center><b>{{race.name}} - {{race.date}}</b></center>
-    <center>Series: {% for ss in race.series %}{{ ss.series.name }} {% endfor %} -
-            {% if race.series[0].series.membersonly %}members only{% else %}nonmembers included{% endif %}</center>
+    <center>Series: {% for ss in race.series %}{{ ss.name }} {% endfor %} -
+            {% if race.series[0].membersonly %}members only{% else %}nonmembers included{% endif %}</center>
       <table class="" id="_rrwebapp-table-editparticipants" >
         <thead>
           <tr>

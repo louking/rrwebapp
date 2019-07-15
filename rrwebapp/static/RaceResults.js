@@ -823,6 +823,7 @@
         }
     };
 
+
     // manageraces
     function manageraces( writeallowed ) {
         if (writeallowed) {
@@ -834,73 +835,81 @@
             });
         };
 
-        $("._rrwebapp-importResultsButton").each(function(){
-            raceid = $(this).attr('_rrwebapp-raceid');
-            imported = $(this).attr('_rrwebapp-imported');
-            action = $(this).attr('_rrwebapp-formaction');
-            formid = $(this).attr('_rrwebapp-formid');
-            buttonid = formid+'-import';
+        // manageraces_tablebuttons (for both table and editor events, so only one parameter
+        var manageraces_tablebuttons = function(selector) {
+            selector.each(function(){
+                raceid = $(this).attr('_rrwebapp-raceid');
+                imported = $(this).attr('_rrwebapp-imported');
+                action = $(this).attr('_rrwebapp-formaction');
+                formid = $(this).attr('_rrwebapp-formid');
+                buttonid = formid+'-import';
 
-            if (imported) {
-                icons = {secondary:'ui-icon-check'};
-                text = false;
-                label = null;
-            } else {
-                icons = {};
-                label = 'import';
-                text = true;
-            };
+                if (imported) {
+                    icons = {secondary:'ui-icon-check'};
+                    text = false;
+                    label = null;
+                } else {
+                    icons = {};
+                    label = 'import';
+                    text = true;
+                };
 
-            popupbutton.init(this, text, label, icons);
-        });
+                popupbutton.init(this, text, label, icons);
+            });
 
-        $("._rrwebapp-importResultsButton").click(function(){
-            var raceid = $(this).attr('_rrwebapp-raceid');
-            var imported = $(this).attr('_rrwebapp-imported');
-            var formid = $(this).attr('_rrwebapp-formid');
-            var buttonid = formid+'-import'
-            var formaction = $(this).attr('_rrwebapp-formaction');
-            var importdoc = $(this).attr('_rrwebapp-importdoc');
-            var editaction = $(this).attr('_rrwebapp-editaction');
-            var seriesresultsaction = $(this).attr('_rrwebapp-seriesresultsaction');
+            selector.click(function(){
+                var raceid = $(this).attr('_rrwebapp-raceid');
+                var imported = $(this).attr('_rrwebapp-imported');
+                var formid = $(this).attr('_rrwebapp-formid');
+                var buttonid = formid+'-import'
+                var formaction = $(this).attr('_rrwebapp-formaction');
+                var importdoc = $(this).attr('_rrwebapp-importdoc');
+                var editaction = $(this).attr('_rrwebapp-editaction');
+                var seriesresultsaction = $(this).attr('_rrwebapp-seriesresultsaction');
 
-            var popupcontent = ""
+                var popupcontent = ""
 
-            if (writeallowed) {
-                popupcontent = popupcontent + "\
-                    <p>Import the selected races's results as a CSV file. Please read the <a href='"+importdoc+"' target='_blank'>Import Guide</a> for information on the column headers and data format.</p>\
-                    <form action='"+action+"', id='"+formid+"' method='post' enctype='multipart/form-data'> \
-                        <input type='file' name=file /> <button id='"+buttonid+"'>Import</button> \
-                    </form>\
-                ";
-                if (editaction) {
+                if (writeallowed) {
                     popupcontent = popupcontent + "\
-                    <form method='link' action='"+editaction+"'>\
-                        <input type='submit' value='Edit Participants' />\
+                        <p>Import the selected races's results as a CSV file. Please read the <a href='"+importdoc+"' target='_blank'>Import Guide</a> for information on the column headers and data format.</p>\
+                        <form action='"+action+"', id='"+formid+"' method='post' enctype='multipart/form-data'> \
+                            <input type='file' name=file /> <button id='"+buttonid+"'>Import</button> \
+                        </form>\
+                    ";
+                    if (editaction) {
+                        popupcontent = popupcontent + "\
+                        <form method='link' action='"+editaction+"'>\
+                            <input type='submit' value='Edit Participants' />\
+                        </form>\
+                        "
+                    };
+                };
+
+                if (seriesresultsaction) {
+                    popupcontent = popupcontent + "\
+                    <form method='link' action='"+seriesresultsaction+"'>\
+                        <input type='submit' value='View Series Results' />\
                     </form>\
                     "
                 };
-            };
 
-            if (seriesresultsaction) {
-                popupcontent = popupcontent + "\
-                <form method='link' action='"+seriesresultsaction+"'>\
-                    <input type='submit' value='View Series Results' />\
-                </form>\
-                "
-            };
+                var popupaction = function() {
+                    $('#'+buttonid)
+                        .click( function( event ) {
+                            event.preventDefault();
+                            ajax_import_file_background(formaction,'#'+formid,false);
+                        });
+                }
+                popupbutton.click(this, popupcontent, popupaction)
+            });
+        }
 
-            var popupaction = function() {
-                $('#'+buttonid)
-                    .click( function( event ) {
-                        event.preventDefault();
-                        ajax_import_file_background(formaction,'#'+formid,false);
-                    });
-            }
-            popupbutton.click(this, popupcontent, popupaction)
-
-        });
-
+        // make sure table buttons are drawn and behave properly
+        // note draw fires after edit, and edited value will come back with needswidget class
+        _dt_table.on('draw.dt', function(e) {
+            manageraces_tablebuttons($("._rrwebapp-needswidget"));
+            $("._rrwebapp-needswidget").removeClass('_rrwebapp-needswidget')
+        })
     };  // manageraces
 
     // manageseries

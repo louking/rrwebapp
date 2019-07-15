@@ -30,8 +30,8 @@
     <div class="_rrwebapp-table-header" >
       {{race.name}} - {{race.date}}
     </div>
-    <center>Series: {% for ss in race.series %}{{ ss.series.name }} {% endfor %} -
-            {% if race.series[0].series.membersonly %}members only{% else %}nonmembers included{% endif %}</center>
+    <center>Series: {% for ss in race.series %}{{ ss.name }} {% endfor %} -
+            {% if race.series[0].membersonly %}members only{% else %}nonmembers included{% endif %}</center>
     <div class="TextLeft W7emLabel">
       <div>
         <label class="Label">Series:</label><span id="_rrwebapp_filterseries" class="_rrwebapp-filter"></span>
