@@ -620,44 +620,13 @@ class Series(Base):
     maxgenpoints = Column(Integer)
     maxdivpoints = Column(Integer)
     maxbynumrunners = Column(Boolean)
-    active = Column(Boolean)
+    active = Column(Boolean, default=True)
     description = Column(String(20))
     divisions = relationship("Divisions", backref='series', cascade="all, delete, delete-orphan")
     # races = relationship("Series", secondary="raceseries", backref='series')
     results = relationship("RaceResult", backref='series', cascade="all, delete, delete-orphan")
 
-    #----------------------------------------------------------------------
-    def __init__(self, club_id, year, name=None, membersonly=None, overall=None, divisions=None, agegrade=None, orderby=None, hightolow=None, allowties=None, averagetie=None, maxraces=None, multiplier=None, maxgenpoints=None, maxdivpoints=None, maxbynumrunners=None, description=None):
-    #----------------------------------------------------------------------
-        
-        self.club_id = club_id
-        self.name = name
-        self.membersonly = membersonly
-        self.year = year
-        self.calcoverall = overall
-        self.calcdivisions = divisions
-        self.calcagegrade = agegrade
-        self.orderby = orderby
-        self.hightolow = hightolow
-        self.allowties = allowties  # obsolete
-        self.averagetie = averagetie
-        self.maxraces = maxraces
-        self.multiplier = multiplier
-        self.maxgenpoints = maxgenpoints
-        self.maxdivpoints = maxdivpoints
-        self.maxbynumrunners = maxbynumrunners
-        self.active = True
-        self.description = description
 
-    #----------------------------------------------------------------------
-    def __repr__(self):
-    #----------------------------------------------------------------------
-        return "<Series('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s',active='%s')>" % (
-            self.club_id, self.name, self.year, self.membersonly, self.calcoverall, self.calcdivisions, self.calcagegrade,
-            self.orderby, self.hightolow, self.averagetie, self.maxraces, self.multiplier, self.maxgenpoints,
-            self.maxdivpoints, self.maxbynumrunners, self.active
-            )
-    
 ########################################################################
 class ManagedResult(Base):
 ########################################################################

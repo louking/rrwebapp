@@ -912,22 +912,6 @@
         })
     };  // manageraces
 
-    // manageseries
-    function manageseries() {
-
-        var $copyseries = $('#manageseries-copy-button');
-        $copyseries.click( function( event ) {
-            event.preventDefault();
-            var form = $(this).closest('form')
-            ajax_update_db_form('_copyseries',form,false);
-        });
-
-        _rrwebapp_table = $('#_rrwebapp-table-manage-series')
-            .dataTable(getDataTableParams({ordering: false}));
-        resetDataTableHW();
-
-    };  // manageseries
-
     // managedivisions
     function managedivisions() {
 

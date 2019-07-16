@@ -128,6 +128,7 @@ races = CrudApi(pagename='Races',
                 checkrequired=True,
                 clientcolumns=[
                     {'data': 'results', 'name': 'results', 'label': 'Results', 'type': 'readonly',
+                     'class': 'column-center',
                      'ed': {'type': 'hidden', 'submit': False}  # don't display or allow update in edit form
                      },
                     {'data': 'name', 'name': 'name', 'label': 'Race Name', '_unique': True,
@@ -136,15 +137,18 @@ races = CrudApi(pagename='Races',
                     {'data': 'date',
                      'name': 'date', 'label': 'Date', 'type': 'datetime',
                      'className': 'field_req',
+                     'class': 'column-center',
                      'ed': {'label': 'Date (yyyy-mm-dd)', 'format': 'YYYY-MM-DD',
                             # first day of week for date picker is Sunday, strict date format required
                             'opts': {'momentStrict': True, 'firstDay': 0}},
                      },
                     {'data': 'distance', 'name': 'distance', 'label': 'Miles',
                      'className': 'field_req',
+                     'class': 'column-center',
                      },
                     {'data': 'surface', 'name': 'surface', 'label': 'Surface', 'type': 'select2',
                      'className': 'field_req',
+                     'class': 'column-center',
                      'options': SURFACES,
                      },
                     {'data': 'series', 'name': 'series', 'label': 'Series', 'type': 'select2',
@@ -173,239 +177,6 @@ races = CrudApi(pagename='Races',
                 yadcfoptions=yadcf_options,
                 )
 races.register()
-
-#######################################################################
-class ManageRaces(MethodView):
-#######################################################################
-    decorators = [login_required]
-    #----------------------------------------------------------------------
-    def get(self):
-    #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-            
-            readcheck = ViewClubDataPermission(club_id)
-            writecheck = UpdateClubDataPermission(club_id)
-            
-            # verify user can at least read the data, otherwise abort
-            if not readcheck.can():
-                db.session.rollback()
-                flask.abort(403)
-                
-            
-            form = RaceForm()
-    
-            seriesl = [('','all series')]
-            supportedseries = []
-            theseseries = Series.query.filter_by(club_id=club_id,active=True,year=thisyear).order_by('name').all()
-            for thisseries in theseseries:
-                serieselect = (thisseries.id,thisseries.name)
-                seriesl.append(serieselect)
-                supportedseries.append(thisseries.id)
-            form.filterseries.choices = seriesl
-            
-            # not quite sure why this comes in GET method, but make sure this series is supported
-            seriesid = request.args.get('filterseries')
-            
-            if seriesid and int(seriesid) not in supportedseries:
-                return flask.redirect(flask.url_for('manageraces'))    # without any form info
-            
-            # select is set to what url indicated
-            form.filterseries.data = seriesid if seriesid else ''
-            
-            races = []
-            raceseries = []
-            rawresults = []
-            tabresults = []
-            for race in Race.query.filter_by(club_id=club_id,year=thisyear,external=False,active=True).order_by('date').all():
-                thisraceseries = [s.id for s in race.series if s.active]
-                if not seriesid or int(seriesid) in thisraceseries:
-                    races.append(race)
-                    racerawresults = ManagedResult.query.filter_by(club_id=club_id,raceid=race.id).first()
-                    rawresults.append(True if racerawresults else False)        # raw results were imported
-                    tabresults.append(True if len(race.results) > 0 else False) # results were tabulated
-                    raceseries.append(thisraceseries)
-
-            # combine parallel lists for processing in form
-            raceresultsseries = zip(races,rawresults,tabresults,raceseries)
-            
-            # commit database updates and close transaction
-            db.session.commit()
-            return flask.render_template('manageraces.html',form=form,raceresultsseries=raceresultsseries,series=theseseries,
-                                         writeallowed=writecheck.can())
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-#----------------------------------------------------------------------
-app.add_url_rule('/manageracesxx',view_func=ManageRaces.as_view('manageracesxx'),methods=['GET'])
-#----------------------------------------------------------------------
-
-#######################################################################
-class RaceSettings(MethodView):
-#######################################################################
-    decorators = [login_required]
-    #----------------------------------------------------------------------
-    def get(self,raceid):
-    #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-            
-            readcheck = ViewClubDataPermission(club_id)
-            writecheck = UpdateClubDataPermission(club_id)
-            
-            # verify user can at least read the data, otherwise abort
-            if not readcheck.can():
-                db.session.rollback()
-                flask.abort(403)
-                
-            # raceid == 0 means add
-            if raceid == 0:
-                if not writecheck.can():
-                    db.session.rollback()
-                    flask.abort(403)
-                race = Race(club_id,thisyear)
-                form = RaceSettingsForm()
-                action = 'Add'
-                pagename = 'Add Race'
-            
-            # raceid != 0 means update
-            else:
-                race = Race.query.filter_by(club_id=club_id,year=thisyear,active=True,id=raceid).first()
-    
-                # copy source attributes to form
-                params = {}
-                for field in vars(race):
-                    params[field] = getattr(race,field)
-                
-                form = RaceSettingsForm(**params)
-                action = 'Update'
-                pagename = 'Edit Race'
-    
-            # get series for this club,year
-            seriesl = []
-            theseseries = Series.query.filter_by(active=True,club_id=club_id,year=thisyear).order_by('name').all()
-            for thisseries in theseseries:
-                serieselect = (thisseries.id,thisseries.name)
-                seriesl.append(serieselect)
-            form.series.choices = seriesl
-
-            form.series.data = [rs.id for rs in race.series if rs.active]
-
-            form.surface.choices = [(s,s) for s in SURFACES]
-
-            # commit database updates and close transaction
-            db.session.commit()
-            # delete button only for edit (raceid != 0)
-            return flask.render_template('racesettings.html',thispagename=pagename,
-                                         action=action,deletebutton=(raceid!=0),
-                                         form=form,race=race,writeallowed=writecheck.can())
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-        
-    #----------------------------------------------------------------------
-    def post(self,raceid):
-    #----------------------------------------------------------------------
-        form = RaceSettingsForm()
-
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-
-            # handle Cancel
-            if request.form['whichbutton'] == 'Cancel':
-                db.session.rollback() # throw out any changes which have been made
-                return flask.redirect(flask.url_for('manageraces'))
-    
-            # handle Delete
-            elif request.form['whichbutton'] == 'Delete':
-                race = Race.query.filter_by(club_id=club_id,year=thisyear,active=True,id=raceid).first()
-                db.session.delete(race)
-
-                # commit database updates and close transaction
-                db.session.commit()
-                return flask.redirect(flask.url_for('manageraces'))
-
-            # handle Update and Add
-            elif request.form['whichbutton'] in ['Update','Add']:
-                # get series for this club,year
-                seriesl = []
-                theseseries = Series.query.filter_by(club_id=club_id,active=True,year=thisyear).order_by('name').all()
-                for thisseries in theseseries:
-                    serieselect = (thisseries.id,thisseries.name)
-                    seriesl.append(serieselect)
-                form.series.choices = seriesl
-                form.surface.choices = [(s,s) for s in SURFACES]
-
-                if not form.validate_on_submit():
-                    return 'error occurred on form submit -- update error message and display form again'
-                    
-                readcheck = ViewClubDataPermission(club_id)
-                writecheck = UpdateClubDataPermission(club_id)
-                
-                # verify user can at write the data, otherwise abort
-                if not writecheck.can():
-                    db.session.rollback()
-                    flask.abort(403)
-                
-                # add
-                if request.form['whichbutton'] == 'Add':
-                    race = Race(club_id,thisyear)
-                # update
-                else:
-                    race = Race.query.filter_by(club_id=club_id,year=thisyear,active=True,id=raceid).first()
-                
-                # copy fields from form to db object
-                for field in vars(race):
-                    # only copy attributes which are in the form class already
-                    if field in form.data:
-                        setattr(race,field,form.data[field])
-                    # and set fixeddist based on distance
-                    race.fixeddist = race_fixeddist(race.distance) if race.distance else None
-                
-                # add
-                if request.form['whichbutton'] == 'Add':
-                    db.session.add(race)
-                    db.session.flush()  # needed to update race.id
-                    raceid = race.id
-
-                # get series for this race
-                allraceseries = RaceSeries.query.filter_by(active=True,raceid=raceid).all()
-                inactiveraceseries = {}
-                for d in allraceseries:
-                    inactiveraceseries[(d.raceid,d.seriesid)] = d
-    
-                for seriesid in [int(s) for s in form.series.data]:
-                    # add or update raceseries in database
-                    raceseries = RaceSeries(raceid,seriesid)
-                    added = racedb.insert_or_update(db.session,RaceSeries,raceseries,skipcolumns=['id'],raceid=raceid,seriesid=seriesid)
-
-                    # remove this series from collection of series which should be deleted in database
-                    if (raceid,seriesid) in inactiveraceseries:
-                        inactiveraceseries.pop((raceid,seriesid))
-
-                # any race/series remaining in 'inactiveraceraceseries' should be deleted
-                for raceid,seriesid in inactiveraceseries:
-                    thisraceseries = RaceSeries.query.filter_by(raceid=raceid,seriesid=seriesid).first() # should be only one returned by filter
-                    db.session.delete(thisraceseries)
-
-                # commit database updates and close transaction
-                db.session.commit()
-                return flask.redirect(flask.url_for('manageraces'))
-            
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-#----------------------------------------------------------------------
-app.add_url_rule('/racesettingsxx/<int:raceid>',view_func=RaceSettings.as_view('racesettings'),methods=['GET','POST'])
-#----------------------------------------------------------------------
 
 #######################################################################
 class AjaxImportRaces(MethodView):
@@ -580,6 +351,104 @@ app.add_url_rule('/_importraces',view_func=AjaxImportRaces.as_view('_importraces
 #app.add_url_rule('/_series/<int:club_id>/','/_series/<int:club_id>/<int:year>/',defaults={'year':-1},view_func=series_api_view,methods=['POST'])
 ##----------------------------------------------------------------------
 
+###########################################################################################
+# series endpoint
+###########################################################################################
+
+dt_options = {
+    'order': [1, 'asc'],
+}
+
+series_dbattrs = 'id,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
+series_formfields = 'rowid,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
+series_dbmapping = dict(zip(series_dbattrs, series_formfields))
+series_formmapping = dict(zip(series_formfields, series_dbattrs))
+
+series = CrudApi(pagename='series',
+                endpoint='manageseries',
+                dbmapping=series_dbmapping,
+                formmapping=series_formmapping,
+                permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+                dbtable=Series,
+                queryparams={'active': True},
+                checkrequired=True,
+                clientcolumns=[
+                    {'data': 'name', 'name': 'name', 'label': 'Series Name', '_unique': True,
+                     'className': 'field_req',
+                     },
+                    {'data': 'maxraces', 'name': 'maxraces', 'label': 'Max Races',
+                     'class': 'column-center',
+                     },
+                    {'data': 'multiplier', 'name': 'multiplier', 'label': 'Multiplier',
+                     'class': 'column-center',
+                     },
+                    {'data': 'maxgenpoints', 'name': 'maxgenpoints', 'label': 'Max Gen Pts',
+                     'class': 'column-center',
+                     },
+                    {'data': 'maxdivpoints', 'name': 'maxdivpoints', 'label': 'Max Div Pts',
+                     'class': 'column-center',
+                     },
+                    {'data': 'maxbynumrunners', 'name': 'maxbynumrunners', 'label': 'Max by Num Rnrs',
+                     'className': 'field_req',
+                     'class': 'column-center',
+                     '_treatment': {'boolean': {'formfield': 'maxbynumrunners', 'dbfield': 'maxbynumrunners', 'truedisplay': 'yes', 'falsedisplay': '-'}},
+                     },
+                    {'data': 'orderby', 'name': 'orderby', 'label': 'Order By', 'type': 'select2',
+                     'className': 'field_req',
+                     'class': 'column-center',
+                     'options': ['agtime','agpercent','time','overallplace'],
+                     },
+                    {'data': 'hightolow', 'name': 'hightolow', 'label': 'Order', 'type': 'select2',
+                     'className': 'field_req',
+                     'class': 'column-center',
+                     '_treatment': {'boolean': {'formfield': 'hightolow', 'dbfield': 'hightolow', 'truedisplay': 'descending', 'falsedisplay': 'ascending'}},
+                     },
+                    {'data': 'membersonly', 'name': 'membersonly', 'label': 'Members Only',
+                     'className': 'field_req',
+                     'class': 'column-center',
+                     '_treatment': {'boolean': {'formfield': 'membersonly', 'dbfield': 'membersonly', 'truedisplay': 'yes', 'falsedisplay': '-'}}},
+                    {'data': 'averagetie', 'name': 'averagetie', 'label': 'Avg Ties',
+                     'className': 'field_req',
+                     'class': 'column-center',
+                     '_treatment': {'boolean': {'formfield': 'averagetie', 'dbfield': 'averagetie', 'truedisplay': 'yes', 'falsedisplay': '-'}}},
+                    {'data': 'calcoverall', 'name': 'calcoverall', 'label': 'Overall',
+                     'className': 'field_req',
+                     'class': 'column-center',
+                     '_treatment': {'boolean': {'formfield': 'calcoverall', 'dbfield': 'calcoverall', 'truedisplay': 'yes', 'falsedisplay': '-'}}},
+                    {'data': 'calcdivisions', 'name': 'calcdivisions', 'label': 'Divisions',
+                     'className': 'field_req',
+                     'class': 'column-center',
+                     '_treatment': {'boolean': {'formfield': 'calcdivisions', 'dbfield': 'calcdivisions', 'truedisplay': 'yes', 'falsedisplay': '-'}}},
+                    {'data': 'calcagegrade', 'name': 'calcagegrade', 'label': 'Age Grade',
+                     'className': 'field_req',
+                     'class': 'column-center',
+                     '_treatment': {'boolean': {'formfield': 'calcagegrade', 'dbfield': 'calcagegrade', 'truedisplay': 'yes', 'falsedisplay': '-'}}},
+                    {'data': 'races', 'name': 'races', 'label': 'Races', 'type': 'select2',
+                     '_treatment': {'relationship':
+                         {
+                             'dbfield': 'races',
+                             'fieldmodel': Race,
+                             'labelfield': 'name',
+                             'formfield': 'races',
+                             'uselist': True,
+                             'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
+                         }
+                     },
+                     'render': '$.fn.dataTable.render.ellipsis( 20 )',
+                     },
+                ],
+                serverside=False,
+                byclub=True,
+                byyear=True,
+                addltemplateargs={'inhibityear': False},
+                idSrc='rowid',
+                buttons=['create', 'edit', 'remove', 'csv',
+                         ],
+                dtoptions=dt_options,
+                )
+series.register()
+
+
 #######################################################################
 class ManageSeries(MethodView):
 #######################################################################
@@ -623,7 +492,7 @@ class ManageSeries(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/manageseries',view_func=ManageSeries.as_view('manageseries'),methods=['GET'])
+app.add_url_rule('/manageseriesxx',view_func=ManageSeries.as_view('manageseriesxx'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -782,7 +651,7 @@ class SeriesSettings(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/seriessettings/<int:seriesid>',view_func=SeriesSettings.as_view('seriessettings'),methods=['GET','POST'])
+app.add_url_rule('/seriessettingsxx/<int:seriesid>',view_func=SeriesSettings.as_view('seriessettingsxx'),methods=['GET','POST'])
 #----------------------------------------------------------------------
 
 #######################################################################

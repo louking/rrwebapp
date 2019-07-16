@@ -86,6 +86,7 @@ asset_bundles = {
         'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
 
         'datatables.js',
+        'datatables.dataRender.ellipsis.js',
         'RaceResults.js',
 
         output='gen/admin.js',
@@ -105,6 +106,7 @@ asset_bundles = {
         'js/selectize-{ver}/css/selectize.css'.format(ver=sz_ver),
         'js/FieldType-Selectize/editor.selectize.css',
         'js/yadcf-{ver}/jquery.dataTables.yadcf.css'.format(ver=yadcf_ver),
+        'datatables.css',
         'editor.css',
         'filters.css',
         'branding.css',
