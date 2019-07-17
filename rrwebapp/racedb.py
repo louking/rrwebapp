@@ -39,6 +39,7 @@ from sqlalchemy.types import TypeDecorator
 
 # other
 from database_flask import *
+from flask import session
 
 # home grown
 import version
@@ -56,6 +57,9 @@ rolenames = ['admin','viewer']
 
 MAX_RACENAME_LEN = 50
 MAX_LOCATION_LEN = 64
+
+getclubid = lambda form: session['club_id']
+getyear   = lambda form: session['year']
 
 #----------------------------------------------------------------------
 def getunique(session, model, **kwargs):
@@ -496,8 +500,8 @@ class Race(Base):
     fixeddist = Column(String(10))   # null or coerced with "{:.4g}".format(distance)
     surface = Column(Enum('road','track','trail',name='SurfaceType'))
     locationid = Column(Integer, ForeignKey('location.id'))
-    external = Column(Boolean)
-    active = Column(Boolean)
+    external = Column(Boolean, default=False)
+    active = Column(Boolean, default=True)
     results = relationship("RaceResult", backref='race', cascade="all, delete, delete-orphan")
     series = relationship("Series", backref='races', secondary="raceseries")
 
@@ -872,24 +876,9 @@ class Divisions(Base):
     seriesid = Column(Integer, ForeignKey('series.id'))
     divisionlow = Column(Integer)
     divisionhigh = Column(Integer)
-    active = Column(Boolean)
+    active = Column(Boolean, default=True)
 
-    #----------------------------------------------------------------------
-    def __init__(self, club_id, year, seriesid=None, divisionlow=None, divisionhigh=None):
-    #----------------------------------------------------------------------
-        
-        self.club_id = club_id
-        self.year = year
-        self.seriesid = seriesid
-        self.divisionlow = divisionlow
-        self.divisionhigh = divisionhigh
-        self.active = True
 
-    #----------------------------------------------------------------------
-    def __repr__(self):
-    #----------------------------------------------------------------------
-        return "<Divisions '%s','%s','%s','%s','%s',active='%s')>" % (self.club_id, self.year, self.seriesid, self.divisionlow, self.divisionhigh, self.active)
-    
 ########################################################################
 class Exclusion(Base):
 ########################################################################

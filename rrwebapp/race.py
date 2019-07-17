@@ -27,7 +27,9 @@ from accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 from database_flask import db   # this is ok because this module only runs under flask
 from apicommon import failure_response, success_response, check_header
 from crudapi import CrudApi
-from racedb import Race, Club, Series, RaceSeries, Divisions, ManagedResult
+from racedb import Race, Series, Divisions
+from racedb import getclubid, getyear
+
 from forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 #from runningclub import racefile   # required for xlsx support
 from loutilities.csvu import DictReaderStr2Num
@@ -48,7 +50,7 @@ def race_fixeddist(distance):
     return '{:.4g}'.format(float(distance))
 
 ###########################################################################################
-# races endpoint
+# manageraces endpoint
 ###########################################################################################
 
 filters = filtercontainerdiv()
@@ -110,12 +112,17 @@ def races_results_to_form(race):
                    editparticipants=url_for("editparticipants",raceid=race.id),
                    )
 
-races_dbattrs = 'id,results,name,date,distance,surface,series'.split(',')
-races_formfields = 'rowid,results,name,date,distance,surface,series'.split(',')
+races_dbattrs = 'id,club_id,year,results,name,date,distance,surface,series'.split(',')
+races_formfields = 'rowid,club_id,year,results,name,date,distance,surface,series'.split(',')
 races_dbmapping = dict(zip(races_dbattrs, races_formfields))
 races_formmapping = dict(zip(races_formfields, races_dbattrs))
 
+# transform race results for fancy buttons
 races_formmapping['results'] = races_results_to_form
+
+# force default of club id and year for new or updated records
+races_dbmapping['club_id'] = getclubid
+races_dbmapping['year'] = getyear
 
 races = CrudApi(pagename='Races',
                 template='manageraces.html',
@@ -352,17 +359,21 @@ app.add_url_rule('/_importraces',view_func=AjaxImportRaces.as_view('_importraces
 ##----------------------------------------------------------------------
 
 ###########################################################################################
-# series endpoint
+# manageseries endpoint
 ###########################################################################################
 
 dt_options = {
     'order': [1, 'asc'],
 }
 
-series_dbattrs = 'id,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
-series_formfields = 'rowid,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
+series_dbattrs = 'id,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
+series_formfields = 'rowid,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
 series_dbmapping = dict(zip(series_dbattrs, series_formfields))
 series_formmapping = dict(zip(series_formfields, series_dbattrs))
+
+# force default of club id and year for new or updated records
+series_dbmapping['club_id'] = getclubid
+series_dbmapping['year'] = getyear
 
 series = CrudApi(pagename='series',
                 endpoint='manageseries',
@@ -391,7 +402,7 @@ series = CrudApi(pagename='series',
                     {'data': 'maxbynumrunners', 'name': 'maxbynumrunners', 'label': 'Max by Num Rnrs',
                      'className': 'field_req',
                      'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'maxbynumrunners', 'dbfield': 'maxbynumrunners', 'truedisplay': 'yes', 'falsedisplay': '-'}},
+                     '_treatment': {'boolean': {'formfield': 'maxbynumrunners', 'dbfield': 'maxbynumrunners', 'truedisplay': 'yes', 'falsedisplay': 'no'}},
                      },
                     {'data': 'orderby', 'name': 'orderby', 'label': 'Order By', 'type': 'select2',
                      'className': 'field_req',
@@ -406,23 +417,23 @@ series = CrudApi(pagename='series',
                     {'data': 'membersonly', 'name': 'membersonly', 'label': 'Members Only',
                      'className': 'field_req',
                      'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'membersonly', 'dbfield': 'membersonly', 'truedisplay': 'yes', 'falsedisplay': '-'}}},
+                     '_treatment': {'boolean': {'formfield': 'membersonly', 'dbfield': 'membersonly', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
                     {'data': 'averagetie', 'name': 'averagetie', 'label': 'Avg Ties',
                      'className': 'field_req',
                      'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'averagetie', 'dbfield': 'averagetie', 'truedisplay': 'yes', 'falsedisplay': '-'}}},
+                     '_treatment': {'boolean': {'formfield': 'averagetie', 'dbfield': 'averagetie', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
                     {'data': 'calcoverall', 'name': 'calcoverall', 'label': 'Overall',
                      'className': 'field_req',
                      'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'calcoverall', 'dbfield': 'calcoverall', 'truedisplay': 'yes', 'falsedisplay': '-'}}},
+                     '_treatment': {'boolean': {'formfield': 'calcoverall', 'dbfield': 'calcoverall', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
                     {'data': 'calcdivisions', 'name': 'calcdivisions', 'label': 'Divisions',
                      'className': 'field_req',
                      'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'calcdivisions', 'dbfield': 'calcdivisions', 'truedisplay': 'yes', 'falsedisplay': '-'}}},
+                     '_treatment': {'boolean': {'formfield': 'calcdivisions', 'dbfield': 'calcdivisions', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
                     {'data': 'calcagegrade', 'name': 'calcagegrade', 'label': 'Age Grade',
                      'className': 'field_req',
                      'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'calcagegrade', 'dbfield': 'calcagegrade', 'truedisplay': 'yes', 'falsedisplay': '-'}}},
+                     '_treatment': {'boolean': {'formfield': 'calcagegrade', 'dbfield': 'calcagegrade', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
                     {'data': 'races', 'name': 'races', 'label': 'Races', 'type': 'select2',
                      '_treatment': {'relationship':
                          {
@@ -448,211 +459,6 @@ series = CrudApi(pagename='series',
                 )
 series.register()
 
-
-#######################################################################
-class ManageSeries(MethodView):
-#######################################################################
-    decorators = [login_required]
-    #----------------------------------------------------------------------
-    def get(self):
-    #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-            
-            readcheck = ViewClubDataPermission(club_id)
-            writecheck = UpdateClubDataPermission(club_id)
-            
-            # verify user can at least read the data, otherwise abort
-            if not readcheck.can():
-                db.session.rollback()
-                flask.abort(403)
-                
-            form = SeriesForm()
-    
-            seriesl = []
-            copyyear = []
-            for series in Series.query.filter_by(club_id=club_id,active=True).order_by('name').all():
-                # show all series from this year
-                if series.year == thisyear:
-                    seriesl.append(series)
-                # options for copy do not include this year
-                elif (series.year,series.year) not in copyyear:
-                    copyyear.append((series.year,series.year))
-            copyyear.sort()
-            form.copyyear.choices = copyyear
-            
-            # commit database updates and close transaction
-            db.session.commit()
-
-            return flask.render_template('manageseries.html',form=form,series=seriesl,copyyear=copyyear,writeallowed=writecheck.can())
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-#----------------------------------------------------------------------
-app.add_url_rule('/manageseriesxx',view_func=ManageSeries.as_view('manageseriesxx'),methods=['GET'])
-#----------------------------------------------------------------------
-
-#######################################################################
-class SeriesSettings(MethodView):
-#######################################################################
-    decorators = [login_required]
-    #----------------------------------------------------------------------
-    def get(self,seriesid):
-    #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-            
-            readcheck = ViewClubDataPermission(club_id)
-            writecheck = UpdateClubDataPermission(club_id)
-            
-            # verify user can at least read the data, otherwise abort
-            if not readcheck.can():
-                db.session.rollback()
-                flask.abort(403)
-            
-            # seriesid == 0 means add
-            if seriesid == 0:
-                if not writecheck.can():
-                    db.session.rollback()
-                    flask.abort(403)
-                series = Series(club_id, thisyear)
-                form = SeriesForm()
-                action = 'Add'
-                pagename = 'Add Series'
- 
-            # seriesid != 0 means update
-            else:
-                series = Series.query.filter_by(club_id=club_id,year=thisyear,active=True,id=seriesid).first()
-        
-                # copy source attributes to form
-                params = {}
-                for field in vars(series):
-                    # only copy attributes which are in the form class already
-                    params[field] = getattr(series,field)
-                
-                form = SeriesForm(**params)
-                action = 'Update'
-                pagename = 'Edit Series'
-            
-            # get races for this club,year
-            races = []
-            theseraces = Race.query.filter_by(club_id=club_id,year=thisyear,external=False,active=True).order_by('date').all()
-            for thisrace in theseraces:
-                raceselect = (thisrace.id,thisrace.name)
-                races.append(raceselect)
-            form.races.choices = races
-            form.races.data = [rs.race.id for rs in series.races if rs.active]
-
-            # commit database updates and close transaction
-            db.session.commit()
-            # delete button only for edit (seriesid != 0)
-            return flask.render_template('seriessettings.html',thispagename=pagename,action=action,deletebutton=(seriesid!=0),
-                                         form=form,series=series,writeallowed=writecheck.can())
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-        
-    #----------------------------------------------------------------------
-    def post(self,seriesid):
-    #----------------------------------------------------------------------
-        form = SeriesForm()
-
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-
-            # handle Cancel
-            if request.form['whichbutton'] == 'Cancel':
-                db.session.rollback() # throw out any changes which have been made
-                return flask.redirect(flask.url_for('manageseries'))
-    
-            # handle Delete
-            elif request.form['whichbutton'] == 'Delete':
-                series = Series.query.filter_by(club_id=club_id,year=thisyear,active=True,id=seriesid).first()
-                db.session.delete(series)
-    
-                # commit database updates and close transaction
-                db.session.commit()
-                return flask.redirect(flask.url_for('manageseries'))
-    
-            # handle 'Update'
-            elif request.form['whichbutton'] in ['Update','Add']:
-                # get the indicated series
-                # add
-                if request.form['whichbutton'] == 'Add':
-                    series = Series(club_id,thisyear)
-                # update
-                else:
-                    series = Series.query.filter_by(club_id=club_id,year=thisyear,active=True,id=seriesid).first()
-
-                # get races for this club,year
-                races = []
-                theseraces = Race.query.filter_by(active=True,club_id=club_id,year=thisyear).order_by('date').all()
-                for thisrace in theseraces:
-                    raceselect = (thisrace.id,thisrace.name)
-                    races.append(raceselect)
-                form.races.choices = races  # this has to be before form validation
-
-                if not form.validate():
-                    app.logger.warning(form.errors)
-                    return 'error occurred on form submit -- update error message and display form again'
-                    
-                readcheck = ViewClubDataPermission(club_id)
-                writecheck = UpdateClubDataPermission(club_id)
-                
-                # verify user can at write the data, otherwise abort
-                if not writecheck.can():
-                    db.session.rollback()
-                    flask.abort(403)
-                    
-                for field in vars(series):
-                    # only copy attributes which are in the form class already
-                    if field in form.data:
-                        setattr(series,field,form.data[field])
-
-                # add
-                if request.form['whichbutton'] == 'Add':
-                    db.session.add(series)
-                    db.session.flush()  # needed to update series.id
-                    seriesid = series.id
-
-                # get races for this series
-                allraceseries = RaceSeries.query.filter_by(active=True,seriesid=seriesid).all()
-                inactiveraceseries = {}
-                for d in allraceseries:
-                    inactiveraceseries[(d.raceid,d.seriesid)] = d
-    
-                for raceid in [int(r) for r in form.races.data]:
-                    # add or update raceseries in database
-                    raceseries = RaceSeries(raceid,seriesid)
-                    added = racedb.insert_or_update(db.session,RaceSeries,raceseries,skipcolumns=['id'],raceid=raceid,seriesid=seriesid)
-
-                    # remove this series from collection of series which should be deleted in database
-                    if (raceid,seriesid) in inactiveraceseries:
-                        inactiveraceseries.pop((raceid,seriesid))
-
-                # any race/series remaining in 'inactiveraceraceseries' should be deactivated
-                for raceid,seriesid in inactiveraceseries:
-                    thisraceseries = RaceSeries.query.filter_by(raceid=raceid,seriesid=seriesid).first() # should be only one returned by filter
-                    thisraceseries.active = False
-
-                # commit database updates and close transaction
-                db.session.commit()
-                return flask.redirect(flask.url_for('manageseries'))
-            
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-#----------------------------------------------------------------------
-app.add_url_rule('/seriessettingsxx/<int:seriesid>',view_func=SeriesSettings.as_view('seriessettingsxx'),methods=['GET','POST'])
-#----------------------------------------------------------------------
 
 #######################################################################
 class AjaxCopySeries(MethodView):
@@ -738,189 +544,60 @@ class AjaxCopySeries(MethodView):
 app.add_url_rule('/_copyseries',view_func=AjaxCopySeries.as_view('_copyseries'),methods=['POST'])
 #----------------------------------------------------------------------
 
-#######################################################################
-class ManageDivisions(MethodView):
-#######################################################################
-    decorators = [login_required]
-    #----------------------------------------------------------------------
-    def get(self):
-    #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-            
-            readcheck = ViewClubDataPermission(club_id)
-            writecheck = UpdateClubDataPermission(club_id)
-            
-            # verify user can at least read the data, otherwise abort
-            if not readcheck.can():
-                db.session.rollback()
-                flask.abort(403)
-                
-            form = DivisionForm()
-    
-            divisions = []
-            copyyear = []
-            for division in Divisions.query.filter_by(club_id=club_id,active=True).order_by('seriesid','divisionlow').all():
-                # show all division from this year
-                if division.year == thisyear:
-                    divisions.append(division)
-                # options for copy do not include this year
-                elif (division.year,division.year) not in copyyear:
-                    copyyear.append((division.year,division.year))
-            copyyear.sort()
-            form.copyyear.choices = copyyear
-            
-            # commit database updates and close transaction
-            db.session.commit()
-            return flask.render_template('managedivisions.html',form=form,divisions=divisions,copyyear=copyyear,writeallowed=writecheck.can())
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-#----------------------------------------------------------------------
-app.add_url_rule('/managedivisions',view_func=ManageDivisions.as_view('managedivisions'),methods=['GET'])
-#----------------------------------------------------------------------
+###########################################################################################
+# managedivisions endpoint
+###########################################################################################
 
-#######################################################################
-class DivisionSettings(MethodView):
-#######################################################################
-    decorators = [login_required]
-    #----------------------------------------------------------------------
-    def get(self,divisionid):
-    #----------------------------------------------------------------------
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
-            
-            readcheck = ViewClubDataPermission(club_id)
-            writecheck = UpdateClubDataPermission(club_id)
-            
-            # verify user can at least read the data, otherwise abort
-            if not readcheck.can():
-                db.session.rollback()
-                flask.abort(403)
-                
-            # divisionid == 0 means add
-            if divisionid == 0:
-                if not writecheck.can():
-                    db.session.rollback()
-                    flask.abort(403)
-                division = Divisions(club_id,thisyear)
-                form = DivisionForm()
-                action = 'Add'
-                pagename = 'Add Division'
-            
-            # divisionid != 0 means update
-            else:
-                division = Divisions.query.filter_by(club_id=club_id,year=thisyear,active=True,id=divisionid).first()
-    
-                # copy source attributes to form
-                params = {}
-                for field in vars(division):
-                    # only copy attributes which are in the form class already
-                    params[field] = getattr(division,field)
-                
-                form = DivisionForm(**params)
-                action = 'Update'
-                pagename = 'Edit Division'
-           
-            # get series for this club,year
-            series = []
-            theseseries = Series.query.filter_by(active=True,club_id=club_id,year=thisyear).order_by('name').all()
-            for thisseries in theseseries:
-                serieselect = (thisseries.id,thisseries.name)
-                series.append(serieselect)
-            form.seriesid.choices = series
+divisions_dbattrs = 'id,club_id,year,series,divisionlow,divisionhigh'.split(',')
+divisions_formfields = 'rowid,club_id,year,series,divisionlow,divisionhigh'.split(',')
+divisions_dbmapping = dict(zip(divisions_dbattrs, divisions_formfields))
+divisions_formmapping = dict(zip(divisions_formfields, divisions_dbattrs))
 
-            # commit database updates and close transaction
-            db.session.commit()
-            # delete button only for edit (divisionid != 0)
-            return flask.render_template('divisionsettings.html',thispagename=pagename,
-                                         action=action,deletebutton=(divisionid!=0),
-                                         form=form,divisions=division,writeallowed=writecheck.can())
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-        
-    #----------------------------------------------------------------------
-    def post(self,divisionid):
-    #----------------------------------------------------------------------
-        form = DivisionForm()
+# force default of club id and year for new or updated records
+divisions_dbmapping['club_id'] = getclubid
+divisions_dbmapping['year'] = getyear
 
-        try:
-            club_id = flask.session['club_id']
-            thisyear = flask.session['year']
+divisions = CrudApi(pagename='divisions',
+                endpoint='managedivisions',
+                dbmapping=divisions_dbmapping,
+                formmapping=divisions_formmapping,
+                permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+                dbtable=Divisions,
+                queryparams={'active': True},
+                checkrequired=True,
+                clientcolumns=[
+                    {'data': 'series', 'name': 'series', 'label': 'Series', 'type': 'select2',
+                     'className': 'field_req',
+                     '_treatment': {'relationship':
+                         {
+                             'dbfield': 'series',
+                             'fieldmodel': Series,
+                             'labelfield': 'name',
+                             'formfield': 'series',
+                             'uselist': False,
+                             'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
+                         }
+                     },
+                     },
+                    {'data': 'divisionlow', 'name': 'divisionlow', 'label': 'Low Age',
+                     'className': 'field_req',
+                     'class': 'column-center',
+                     },
+                    {'data': 'divisionhigh', 'name': 'divisionhigh', 'label': 'High Age',
+                     'className': 'field_req',
+                     'class': 'column-center',
+                     },
+                ],
+                serverside=False,
+                byclub=True,
+                byyear=True,
+                addltemplateargs={'inhibityear': False},
+                idSrc='rowid',
+                buttons=['create', 'edit', 'remove', 'csv',
+                         ],
+                )
+divisions.register()
 
-            # handle Cancel
-            if request.form['whichbutton'] == 'Cancel':
-                db.session.rollback() # throw out any changes which have been made
-                return flask.redirect(flask.url_for('managedivisions'))
-    
-            # TODO add handle 'Delete'
-            elif request.form['whichbutton'] == 'Delete':
-                    division = Divisions.query.filter_by(club_id=club_id,year=thisyear,active=True,id=divisionid).first()
-                    db.session.delete(division)
-                
-                    # commit database updates and close transaction
-                    db.session.commit()
-                    return flask.redirect(flask.url_for('managedivisions'))
-    
-            # handle Update and Add
-            elif request.form['whichbutton'] in ['Update','Add']:
-                # add
-                if request.form['whichbutton'] == 'Add':
-                    division = Divisions(club_id,thisyear)
-                else:
-                    # get the indicated division
-                    division = Divisions.query.filter_by(club_id=club_id,year=thisyear,active=True,id=divisionid).first()
-
-                # get series for this club,year
-                series = []
-                theseseries = Series.query.filter_by(active=True,club_id=club_id,year=thisyear).order_by('name').all()
-                for thisseries in theseseries:
-                    serieselect = (thisseries.id,thisseries.name)
-                    series.append(serieselect)
-                form.seriesid.choices = series  # this has to be before form validation
-
-                if not form.validate():
-                    app.logger.warning(form.errors)
-                    return 'error occurred on form submit -- update error message and display form again'
-                    
-                readcheck = ViewClubDataPermission(club_id)
-                writecheck = UpdateClubDataPermission(club_id)
-                
-                # verify user can at write the data, otherwise abort
-                if not writecheck.can():
-                    db.session.rollback()
-                    flask.abort(403)
-                    
-                for field in vars(division):
-                    # only copy attributes which are in the form class already
-                    if field in form.data:
-                        setattr(division,field,form.data[field])
-
-                # add
-                if request.form['whichbutton'] == 'Add':
-                    db.session.add(division)
-                    db.session.flush()  # needed to update division.id
-                    divisionid = division.id
-                    # well this isn't really needed at this time, but is done for consistency with other views
-
-                # commit database updates and close transaction
-                db.session.commit()
-                return flask.redirect(flask.url_for('managedivisions'))
-            
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-#----------------------------------------------------------------------
-app.add_url_rule('/divisionsettings/<int:divisionid>',view_func=DivisionSettings.as_view('divisionsettings'),methods=['GET','POST'])
-#----------------------------------------------------------------------
 
 #######################################################################
 class AjaxCopyDivisions(MethodView):
