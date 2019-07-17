@@ -402,6 +402,7 @@ class Runner(Base):
     active = Column(Boolean)
     results = relationship("RaceResult", backref='runner', cascade="all, delete, delete-orphan")
     aliases = relationship("RunnerAlias", backref='runner', cascade="all, delete, delete-orphan")
+    exclusions = relationship("Exclusion", backref='runner')
 
     #----------------------------------------------------------------------
     def __init__(self, club_id, name=None, dateofbirth=None, gender=None, hometown=None, member=True, renewdate=None, expdate=None, fname=None, lname=None):
@@ -896,18 +897,6 @@ class Exclusion(Base):
     foundname = Column(String(40))
     runnerid = Column(Integer, ForeignKey('runner.id'))
 
-    #----------------------------------------------------------------------
-    def __init__(self, club_id, foundname, runnerid):
-    #----------------------------------------------------------------------
-        
-        self.club_id = club_id
-        self.foundname = foundname
-        self.runnerid = runnerid
-
-    #----------------------------------------------------------------------
-    def __repr__(self):
-    #----------------------------------------------------------------------
-        return "<Exclusion '%s','%s')>" % (self.foundname, self.runnerid)
 
 #####################################################
 # for use in ColumnDT declarations
