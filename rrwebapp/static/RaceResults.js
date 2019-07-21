@@ -1427,8 +1427,50 @@ $(function() {
 
 
     // common functions
-    
-    // special link processing
+
+    // special processing for nav standings standalone editor
+    var navstandingsdepth = 0;
+    var dependentfields = ['club', 'year'];
+    function navstandingsopen(editor, buttons) {
+        function navstandingsupdate() {
+            // disable all buttons (should only be one 'Show Standings' button)
+            navstandingsdepth += 1;
+            var localbuttons = _.cloneDeep(buttons);
+            for (var i=0; i<localbuttons.length; i++) {
+                localbuttons[i].className = 'disabled';
+                localbuttons[i].action = function() {}; // no-op
+            }
+            editor.buttons(localbuttons);
+
+            $.post('/standings/_getseries?' + $.param({club:editor.field('club').val(), year:editor.field('year').val()}),
+                success=function(data, textStatus, jqXHR) {
+                    if (data.success) {
+                        editor.field('series').update(data.choices);
+                        navstandingsdepth -= 1;
+                        if (navstandingsdepth == 0) {
+                            // reset to normal
+                            editor.buttons(buttons);
+                        }
+                    } else {
+                        console.log('need error handling here');
+                    }
+                })
+        }
+
+        // when any dependent field update, change series options
+        editor.dependent(dependentfields, function(val, data, callback) {
+            navstandingsupdate();
+            return {};
+        })
+
+        // initial update to series pulldown
+        navstandingsupdate();
+    }
+    function navstandingsclose(editor, buttons) {
+        editor.undependent(dependentfields);
+    }
+
+    // special link processing for navigation
     $("a").click(function( event ){
         // for slow loading links
         var img = $(this).attr('_rrwebapp-loadingimg');
@@ -1449,14 +1491,30 @@ $(function() {
             // this assumes buttons is array of objects
             // TODO: handle full http://editor.datatables.net/reference/api/buttons() capability, i.e., string or single object
             for (i=0; i<opts.buttons.length; i++) {
-                opts.buttons[i].fn = new Function(opts.buttons[i].fn);
+                // legacy https://editor.datatables.net/reference/type/button-options
+                if (opts.buttons[i].fn) opts.buttons[i].fn = new Function(opts.buttons[i].fn);
+                // updated - note eval doesn't work on 'function() { ... }' so we leave out the function() and create it here
+                if (opts.buttons[i].action) opts.buttons[i].action = new Function(opts.buttons[i].action);
             }
 
-            naveditor = new $.fn.dataTable.Editor ( opts.editoropts )
+            var naveditor = new $.fn.dataTable.Editor ( opts.editoropts )
                 .title( opts.title )
                 .buttons( opts.buttons )
                 .edit( null, false )
                 .open();
+            if (opts.onopen) {
+                var navonopen = eval(opts.onopen)
+                // note we just opened the standalone editor
+                // the link click is the only way this editor can be opened
+                navonopen(naveditor, opts.buttons);
+            }
+            // onclose should do any cleanup required
+            if (opts.onclose) {
+                var navonclose = eval(opts.onclose)
+                naveditor.on('close', function(e, mode, action) {
+                    navonclose(naveditor, opts.buttons);
+                })
+            }
         }
     });
 

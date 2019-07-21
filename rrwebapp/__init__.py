@@ -10,9 +10,7 @@
 ###########################################################################################
 
 # standard
-import os
 import os.path
-from ConfigParser import SafeConfigParser
 
 # pypi
 from flask import Flask, send_from_directory
@@ -30,9 +28,6 @@ from loutilities.configparser import getitems
 # bring in js, css assets
 import assets
 from assets import asset_env, asset_bundles
-
-# import os
-# print 'pid={} __init__.py executed'.format(os.getpid())
 
 # create app and celery tasking back end
 app = Flask('rrwebapp')

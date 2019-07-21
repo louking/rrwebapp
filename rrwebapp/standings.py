@@ -39,121 +39,11 @@ import xml.etree.ElementTree as ET
 import urllib
 from racedb import dbdate, Runner, RaceResult, RaceSeries, Race, Series, Club
 from renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
-from forms import StandingsForm, ChooseStandingsForm
+from forms import StandingsForm
 import loutilities.renderrun as render
 from loutilities import timeu
 from request import addscripts
 
-#######################################################################
-class ChooseStandings(MethodView):
-#######################################################################
-    CHOOSE = 'Show Standings'
-    
-    #----------------------------------------------------------------------
-    def get(self):
-    #----------------------------------------------------------------------
-        try:
-            thisclub = None
-            thisyear = None
-            thisseries = None
-            
-            # take club, year, series from the session, if they are there
-            if 'last_standings_club' in flask.session:
-                thisclub = flask.session['last_standings_club']
-            if 'last_standings_year' in flask.session:
-                thisyear = flask.session['last_standings_year']
-            if 'last_standings_series' in flask.session:
-                thisseries = flask.session['last_standings_series']
-                        
-            # override club, year, series if provided in url
-            thisclub = request.args.get('club',thisclub)
-            thisyear = request.args.get('year',thisyear)
-            thisseries = request.args.get('series',thisseries)
-            
-            # initialize year and series choices
-            form = ChooseStandingsForm()
-            form.year.choices = [(0,'Select Year')]
-            form.series.choices = [('','Select Series')]
-            
-            # get clubs, years and series
-            allclubs = Club.query.order_by('name').all()
-            form.club.choices = [('','Select Club')] + [(c.shname,c.name) for c in allclubs if c.name != 'owner']
-            if thisclub:
-                for club in allclubs:
-                    if club.shname == thisclub:
-                        club_id = club.id
-                        break
-                form.club.data = thisclub
-                allseries = Series.query.filter_by(active=True,club_id=club_id).all()
-                
-                # for what years do we have results?
-                years = []
-                for sseries in allseries:
-                    if sseries.year not in years:
-                        years.append(sseries.year)
-                years.sort()
-                form.year.choices += [(y,y) for y in years]
-                if thisyear:
-                    thisyear = int(thisyear)
-                    form.year.data = thisyear
-                    form.series.choices += [(s.name,s.name) for s in allseries if s.year == thisyear]
-                    if thisseries:
-                        form.series.data = thisseries
-            
-            # commit database updates and close transaction
-            db.session.commit()
-            return flask.render_template('choosestandings.html',thispagename='Choose Standings',form=form,action=ChooseStandings.CHOOSE,
-                                         useurl=flask.url_for('choosestandings'))
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-
-    #----------------------------------------------------------------------
-    def post(self):
-    #----------------------------------------------------------------------
-        try:
-            form = ChooseStandingsForm()
-
-            # handle Cancel
-            if request.form['whichbutton'] == ChooseStandings.CHOOSE:
-                # there must be input on all fields
-                if not (form.club.data and form.year.data and form.series.data):
-                    db.session.rollback()
-                    cause =  "you must specify club, year and series"
-                    app.logger.debug(cause)
-                    flask.flash(cause)
-                    return flask.redirect(flask.url_for('choosestandings'))
-
-                
-                # pull parameters out of form
-                params = {}
-                params['club'] = form.club.data
-                params['year'] = form.year.data
-                params['series'] = form.series.data
-                thisclub = Club.query.filter_by(shname=form.club.data).first()
-                clubname = thisclub.name
-                params['desc'] = '{} - {} {}'.format(clubname,form.year.data,form.series.data)
-                
-                # remember for next time
-                flask.session['last_standings_club'] = form.club.data
-                flask.session['last_standings_year'] = form.year.data
-                flask.session['last_standings_series'] = form.series.data
-                
-                # commit database updates and close transaction
-                db.session.commit()
-                url = '{url}?{params}'.format(url=flask.url_for('viewstandings'),params=urllib.urlencode(params))
-                return flask.redirect(url)
-            
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-
-#----------------------------------------------------------------------
-app.add_url_rule('/choosestandings/',view_func=ChooseStandings.as_view('choosestandings'),methods=['GET','POST'])
-#----------------------------------------------------------------------
 
 #######################################################################
 class ViewStandings(MethodView):
@@ -177,7 +67,7 @@ class ViewStandings(MethodView):
                 cause = "Error: club '{}' does not exist".format(club)
                 flask.flash(cause)
                 app.logger.error(cause)
-                return flask.redirect(flask.url_for('choosestandings'))  
+                return flask.redirect(flask.url_for('index'))
             
             club_id = thisclub.id
             clubname = thisclub.name
@@ -187,7 +77,7 @@ class ViewStandings(MethodView):
                 cause = "Error: series '{}' does not exist for '{}' club".format(series,clubname)
                 flask.flash(cause)
                 app.logger.error(cause)
-                return flask.redirect(flask.url_for('choosestandings'))  
+                return flask.redirect(flask.url_for('index'))
             
             seriesid = thisseries.id
             thisyear = year
@@ -195,7 +85,7 @@ class ViewStandings(MethodView):
             form = StandingsForm()
     
             # get races for this series, in date order
-            races = Race.query.join("series").filter_by(seriesid=seriesid,active=True).order_by(Race.date).all()
+            races = Race.query.join("series").filter_by(id=seriesid,active=True).order_by(Race.date).all()
             racenums = range(1,len(races)+1)
             resulturls = [flask.url_for('seriesresults',raceid=r.id) for r in races]
             
@@ -271,7 +161,7 @@ class ViewStandings(MethodView):
             flask.flash(cause)
             app.logger.error(traceback.format_exc())
             raise
-            return flask.redirect(flask.url_for('choosestandings'))  
+            return flask.redirect(flask.url_for('index'))
 #----------------------------------------------------------------------
 app.add_url_rule('/viewstandings/',view_func=ViewStandings.as_view('viewstandings'),methods=['GET'])
 #----------------------------------------------------------------------
@@ -316,7 +206,7 @@ class TestStandings(MethodView):
             form = StandingsForm()
     
             # get races for this series, in date order
-            races = Race.query.join("series").filter_by(seriesid=seriesid,active=True).order_by(Race.date).all()
+            races = Race.query.join("series").filter_by(id=seriesid,active=True).order_by(Race.date).all()
             racenums = range(1,len(races)+1)
             resulturls = [flask.url_for('seriesresults',raceid=r.id) for r in races]
             
@@ -475,9 +365,11 @@ class AjaxGetSeries(MethodView):
             club_id = club.id
             
             allseries = Series.query.filter_by(active=True,club_id=club_id,year=year).all()
-            theseseries = [(s.name,s.name) for s in allseries]
+            # see https://editor.datatables.net/plug-ins/field-type/editor.select2
+            theseseries = [{'label':s.name, 'value':s.name} for s in allseries]
             theseseries.sort()
-            choices = [('','Select Series')] + theseseries
+            # choices = [{'label':'Select Series', 'value':''}] + theseseries
+            choices = theseseries
 
             # commit database updates and close transaction
             db.session.commit()

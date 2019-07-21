@@ -44,7 +44,7 @@ itsdangerous==0.24
 Jinja2==2.10.1
 jsmin==2.2.2
 kombu==3.0.35
--e git+https://github.com/louking/loutilities.git@9596979c6d39e13c2540d30b328add360c0e9309#egg=loutilities
+loutilities==0.14.10
 lxml==3.6.0
 Mako==1.0.4
 MarkupSafe==0.23

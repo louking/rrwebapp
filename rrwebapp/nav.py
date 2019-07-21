@@ -132,15 +132,59 @@ def getnavigation():
     # get defaults for navigation forms
     clubsess = flask.session.get('last_standings_club',None)
 
+    # what year is it now? what default should we use?
+    thisyear = datetime.now().year
+    yeardefault = flask.session['last_standings_year'] if flask.session['last_standings_year'] else thisyear
+
     # anonymous access
-    navigation.append({'display':'Standings','url':flask.url_for('choosestandings')})
+    navigation.append({'display':'Standings','url':'#',
+        'attr':[{'name':'_rrwebapp-editor-form',
+                 'value': json.dumps({
+                     'title': 'Choose Standings',
+                     'editoropts': {
+                         'className': 'choose-standings-form',
+                         'fields': [
+                             {'name': 'club', 'label': 'Club', 'type': 'select2', 'options': clubopts, 'def': clubsess},
+                             {'name': 'year', 'label': 'Year', 'type': 'select2', 'options': range(2013, thisyear+1), 'def':yeardefault},
+                             {'name': 'series', 'label': 'Series', 'type': 'select2', 'opts': {'placeholder': 'Select series'}},
+                         ]
+                     },
+                     'buttons': [
+                         {'label': 'Show Standings',
+                          'action': '''
+                                    {{ 
+                                        var args = {{club: this.get("club"), year: this.get("year"), series: this.get("series") }};
+                                        var error = false;
+                                        for (var field in args) {{
+                                            if (!args[field]) {{
+                                                error = true;
+                                                this.error(field, "must be supplied");
+                                            }}
+                                        }}
+                                        if (error) {{
+                                            this.error("check field errors");
+                                            return;
+                                        }}
+                                        args.desc = this.field("club").inst().find(":selected").text() + " - " + this.get("year") + " " + this.get("series");
+                                        this.close();
+                                        window.location.href = "{}?\" + $.param( args );
+                                    }}'''.format(flask.url_for('viewstandings'))},
+                     ],
+                     # name of functions called with standalone editor instance and buttons field from above
+                     'onopen': 'navstandingsopen',
+                     'onclose': 'navstandingsclose',
+                 })
+
+        }
+
+        ]})
     navigation.append({'display':'Results','url':'#',
         'attr':[{   'name':'_rrwebapp-editor-form',
                     'value': json.dumps({
                             'title' : 'Choose club',
                             'buttons' : [
-                                {'label': 'table', 'fn': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(flask.url_for('results'))},
-                                {'label': 'chart', 'fn': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(flask.url_for('resultschart'))},
+                                {'label': 'table', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(flask.url_for('results'))},
+                                {'label': 'chart', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(flask.url_for('resultschart'))},
                             ],
                             'editoropts': {
                                 'fields': [ {

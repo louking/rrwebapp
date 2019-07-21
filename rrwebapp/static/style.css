@@ -410,3 +410,12 @@ div.DTE_Body div.DTE_Body_Content div.DTE_Field > label {
 ._rrwebapp-class-pfriendly-races a {
   color: black;
 }
+
+/* handle navigation popup buttons */
+.ui-widget.disabled {
+    color: lightgrey;
+}
+
+.ui-widget.disabled:hover {
+    border: 1px solid #d3d3d3;
+}
