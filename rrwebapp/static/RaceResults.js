@@ -1166,7 +1166,8 @@
                 buttons: ['csv'],
                 columnDefs: columndefs,
                 fixedColumns: {
-                                leftColumns: 3
+                                leftColumns: 3,
+                                rightColumns: 1,
                               },
                 };
         }
