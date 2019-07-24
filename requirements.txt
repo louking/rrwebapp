@@ -44,7 +44,7 @@ itsdangerous==0.24
 Jinja2==2.10.1
 jsmin==2.2.2
 kombu==3.0.35
-loutilities==0.14.10
+loutilities==0.14.11
 lxml==3.6.0
 Mako==1.0.4
 MarkupSafe==0.23

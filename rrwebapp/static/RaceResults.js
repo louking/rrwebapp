@@ -265,62 +265,6 @@
         });
     };
 
-    // editorbutton feature
-    function EditorButtonDialog() {
-
-        this.init = function(content) {
-            this.popup = $('<div>').append(content);
-            this.content = this.popup.accordion({
-                heightStyle: "content",
-                animate: 30,
-            });
-            this.buttondialog = $('<div>').append(this.popup);
-
-            this.buttondialog.dialog({
-                dialogClass: "no-titlebar",
-                draggable: false,
-                //resizeable: false,
-                open: this.content,
-                autoOpen: false,
-                height: "auto",
-                width: 450,
-                // position:{
-                //         my: "left top",
-                //         at: "left bottom",
-                //         of: this.button
-                //         },
-            });
-
-            this.status = 0;
-        };
-
-        this.click = function() {
-            if (this.status == 0) {
-                this.open()
-            } else {
-                this.close()
-            };
-        };
-
-        this.open = function() {
-            this.buttondialog.dialog("open");
-            this.content.show();
-            this.status = 1;
-        };
-
-        this.close = function() {
-            this.buttondialog.dialog("close");
-            this.content.hide();
-            this.status = 0;
-        };
-
-        this.position = function(position) {
-            this.buttondialog.dialog({
-                position: position,
-            });
-        }
-    }
-
     // toolbutton feature
     var toolbutton = {
         // toolcontent needs to be formatted as expected by JQuery accordian widget
@@ -825,13 +769,28 @@
 
 
     // manageraces
-    function manageraces( writeallowed ) {
+    function manageraces( writeallowed, toolscontent ) {
         if (writeallowed) {
+            var tools = new EditorButtonDialog({
+                content: toolscontent,
+                accordian: true,
+            });
+            var btn = _dt_table.button( 'tools:name' );
+            tools.position({
+                             my: "left top",
+                             at: "middle bottom",
+                             of: btn.node()
+                             });
+            btn.action( function( object, dtapi, button, cnf ){
+                tools.click();
+            } );
+
             var $importraces = $('#manageracesImport');
             $importraces.click( function( event ) {
                 event.preventDefault();
                 url = $(this).attr('_rrwebapp-formaction')
                 ajax_import_file(url,'#import-races',false);
+                tools.close();
             });
         };
 

@@ -87,6 +87,7 @@ asset_bundles = {
 
         'datatables.js',
         'datatables.dataRender.ellipsis.js',
+        'managemembers.js',
         'RaceResults.js',
 
         output='gen/admin.js',

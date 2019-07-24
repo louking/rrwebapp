@@ -117,47 +117,6 @@ def normalizeRAmemberlist(inputstream,filterexpdate=None):
     outputdata = ''.join(outdatalist)
     return outputdata
 
-# #######################################################################
-# class ManageMembers(MethodView):
-# #######################################################################
-#     decorators = [login_required]
-#     #----------------------------------------------------------------------
-#     def get(self):
-#     #----------------------------------------------------------------------
-#         try:
-#             club_id = flask.session['club_id']
-#             thisyear = flask.session['year']
-            
-#             readcheck = ViewClubDataPermission(club_id)
-#             writecheck = UpdateClubDataPermission(club_id)
-            
-#             # verify user can at least read the data, otherwise abort
-#             if not readcheck.can():
-#                 db.session.rollback()
-#                 flask.abort(403)
-                
-#             form = MemberForm()
-    
-#             members = []
-#             # TODO: if thisyear is not current year, need to look at expirationdate and renewdate, not active (issue #8)
-#             members = Runner.query.filter_by(club_id=club_id,active=True).order_by('lname').all()
-    
-#             # commit database updates and close transaction
-#             db.session.commit()
-#             return flask.render_template('managemembers.html',
-#                                          form=form,
-#                                          members=members,
-#                                          writeallowed=writecheck.can(),
-#                                          pagejsfiles=addscripts(['managemembers.js']))
-        
-#         except:
-#             # roll back database updates and close transaction
-#             db.session.rollback()
-#             raise
-# #----------------------------------------------------------------------
-# app.add_url_rule('/managemembers',view_func=ManageMembers.as_view('managemembers'),methods=['GET'])
-# #----------------------------------------------------------------------
-
 #----------------------------------------------------------------------
 # managemembers endpoint
 #----------------------------------------------------------------------
@@ -171,13 +130,14 @@ mm_formmapping = OrderedDict(zip(mm_formfields, mm_dbattrs))
 mm_dbmapping['member'] = lambda form: 1 if form['member'] == 'is-member' or form['member'] == 'true' else 0
 mm_formmapping['member'] = lambda dbrow: 'is-member' if dbrow.member else 'non-member'
 
-mm = CrudApi(pagename = 'Manage Members', 
-             endpoint = 'managemembers', 
+mm = CrudApi(pagename = 'Manage Members',
+             template='managemembers.html',
+             endpoint = 'managemembers',
              dbmapping = mm_dbmapping, 
              formmapping = mm_formmapping, 
-             writepermission = lambda: UpdateClubDataPermission(flask.session['club_id']).can(), 
-             dbtable = Runner, 
-             queryparms = { 'active' : True },
+             permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+             dbtable = Runner,
+             queryparams = { 'active' : True },
              clientcolumns = [
                 { 'data': 'name', 'name': 'name', 'label': 'Name' },
                 { 'data': 'fname', 'name': 'fname', 'label': 'First Name' },
@@ -192,11 +152,11 @@ mm = CrudApi(pagename = 'Manage Members',
              servercolumns = None,  # no ajax
              byclub = True, 
              idSrc = 'rowid', 
-             buttons = [ 
-                        { 'text' : 'Import', 'action' : 'setmembertools()', 'className' : 'import-buttons' }, 
-                          'edit',
-                       ],
-             pagejsfiles = ['managemembers.js'],
+             buttons = [
+                 'edit',
+                 'csv',
+                 {'name': 'tools', 'text': 'Import'},
+             ],
              dtoptions = {
                             'scrollCollapse': True,
                             'scrollX': True,

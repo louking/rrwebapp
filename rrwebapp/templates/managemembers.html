@@ -1,73 +1,27 @@
-{% extends "layout.html" %}
-{% from '_formhelpers.html' import num,tabbool,tabboollink,tabeditlink %}
-{% block pagename %}
-    Members
-{% endblock %}
+{% extends "datatables.jinja2" %}
 {% block scripts %}
   <script type="text/javascript">
-    $( document ).ready( function() {
+    function afterdatatables() {
       {% if writeallowed %}
-        //addbutton.init('add-member',
-        //               '{{ url_for('membersettings',memberid=0) }}'
-        //               );
-        toolbutton.init('tool-button',
-                        "\
+
+        var toolscontent = "\
             <h3>Import Members</h3>\
-            <div>\
+            <div class='importapi' style='display:none;'>\
+                <p>Import the member list directly from the configured service</p>\
+                <button id='managemembersImportApi' _rrwebapp-formaction='{{url_for("_importmembers")}}'>Download from Service</button>\
+            </div>\
+            <div class='importfile'>\
               <p>Import the member list as a CSV file. Please read the <a href='{{url_for("doc_importmembers")}}' target='_blank'>Import Guide</a> for information on the column headers and data format.</p>\
               <form id='import-members' method='post' enctype='multipart/form-data'>\
                 <input id='choosefileImport' type=file name='file'>\
                 <button id='managemembersImport'  _rrwebapp-formaction='{{url_for("_importmembers")}}'>Import</button>\
               </form>\
-            </div>");
+            </div>"
+
+        managemembers( {% if writeallowed %}true{% else %}false{% endif %}, toolscontent);
+
         {% endif %}
-
-      managemembers( {% if writeallowed %}true{% else %}false{% endif %} );    // need to do something here -- $widgets is undefined if not after toolbutton.init
-
-      {% if writeallowed %}
-        //addbutton.position({my: "left center", at: "right+3 center", of: '#filtermember'});
-        //toolbutton.position({my: "left center", at: "right+3 center", of: addbutton.selector});
-      {% endif %}
-    })
+    }
   </script>
-  <script type="text/javascript">
-  </script>
-{% endblock %}
-{% block body %}
-  <div id="_rrwebapp-heading-elements">
-  </div>
-      <table class='' id='_rrwebapp-table-manage-members'>
-        <thead>
-          <tr>
-{#            {% if writeallowed %}
-              <th>Edit</th>
-            {% endif %}
-#}
-            <th> {{ form.name.label }} </th>
-            <th> {{ form.dateofbirth.label }}</td>
-            <th> {{ form.gender.label }} </td>
-            <th> {{ form.hometown.label }} </td>
-            <th> {{ form.renewdate.label }} </th>
-            <th> {{ form.expdate.label }} </th>
-            <th> {{ form.member.label }} </th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for member in members %}
-            <tr>
-{#            {% if writeallowed %}
-                {{ tabeditlink(url_for('membersettings',memberid=member.id)) }}
-              {% endif %}
-#}
-              <td>{{ member.name }}</td>
-              <td>{{ member.dateofbirth }}</td>
-              <td align="center">{{ member.gender }}</td>
-              <td>{{ member.hometown }}</td>
-              <td>{{ member.renewdate }}</td>
-              <td>{{ member.expdate }}</td>
-              {{ tabbool(member.member) }}
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  {{ super() }}
 {% endblock %}
