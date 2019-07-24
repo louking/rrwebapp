@@ -2204,7 +2204,11 @@ class AjaxUpdateManagedResult(MethodView):
                         # user is confirming entry -- if not already in table, add exclusion
                         if result.confirmed and not excl:
                             # now excluded from future results
-                            newexclusion = Exclusion(club_id,result.name,thisexcludeid)
+                            newexclusion = Exclusion(
+                                club_id=club_id,
+                                foundname=result.name,
+                                runnerid=thisexcludeid
+                            )
                             db.session.add(newexclusion)
                         # user is removing confirmation -- if exclusion exists, remove it
                         elif not result.confirmed and excl:
