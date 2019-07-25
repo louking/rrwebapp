@@ -155,7 +155,9 @@ def getnavigation():
                                     {{ 
                                         var args = {{club: this.get("club"), year: this.get("year"), series: this.get("series") }};
                                         var error = false;
+                                        this.error("");
                                         for (var field in args) {{
+                                            this.error(field, "");
                                             if (!args[field]) {{
                                                 error = true;
                                                 this.error(field, "must be supplied");
