@@ -453,7 +453,11 @@ series = CrudApi(pagename='series',
                 byyear=True,
                 addltemplateargs={'inhibityear': False},
                 idSrc='rowid',
-                buttons=['create', 'edit', 'remove', 'csv',
+                buttons=['create', 'edit', 'remove',
+                         {
+                             'extend': 'csv',
+                             'exportOptions': {'orthogonal': 'export'},
+                         },
                          ],
                 dtoptions=dt_options,
                 )
