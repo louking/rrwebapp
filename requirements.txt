@@ -23,7 +23,7 @@ dominate==2.3.5
 ecdsa==0.13
 enum34==1.1.6
 ez-setup==0.9
-Fabric==1.11.1
+fabric==2.4.0
 Flask==1.0.3
 Flask-Assets==0.12
 Flask-Login==0.3.2
@@ -37,6 +37,7 @@ gpxpy==1.1.2
 haversine==0.4.5
 httplib2==0.12.0
 idna==2.7
+invoke==1.2.0
 ipaddress==1.0.22
 ipython==5.4.1
 ipython-genutils==0.2.0

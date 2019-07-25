@@ -1,0 +1,6 @@
+{
+    "connect_kwargs": {
+        "key_filename": "C:\\Users\\lking\\Documents\\Lou\\putty\\loutility-server-digitalocean-scoretility.sshkey"
+    },
+    "user": "scoretility"
+}
