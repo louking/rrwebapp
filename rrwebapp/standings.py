@@ -352,7 +352,8 @@ class AjaxGetSeries(MethodView):
             if not clubsh or not year:
                 db.session.rollback()
                 cause = 'Unexpected Error: both club and year must be specified'
-                app.logger.error(cause)
+                # this can happen if user has no cookie initialized when the popup is initially brought up
+                # app.logger.error(cause)
                 return failure_response(cause=cause)
                 
             club = Club.query.filter_by(shname=clubsh).first()
