@@ -1404,9 +1404,9 @@ $(function() {
 
             $.post('/standings/_getseries?' + $.param({club:editor.field('club').val(), year:editor.field('year').val()}),
                 success=function(data, textStatus, jqXHR) {
+                    navstandingsdepth -= 1;
                     if (data.success) {
                         editor.field('series').update(data.choices);
-                        navstandingsdepth -= 1;
                         if (navstandingsdepth == 0) {
                             // reset to normal
                             editor.buttons(buttons);

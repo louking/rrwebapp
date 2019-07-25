@@ -134,7 +134,7 @@ def getnavigation():
 
     # what year is it now? what default should we use?
     thisyear = datetime.now().year
-    yeardefault = flask.session['last_standings_year'] if flask.session['last_standings_year'] else thisyear
+    yeardefault = flask.session['last_standings_year'] if 'last_standings_year' in flask.session else thisyear
 
     # anonymous access
     navigation.append({'display':'Standings','url':'#',
