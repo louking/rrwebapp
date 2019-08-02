@@ -675,7 +675,7 @@ class AjaxEditParticipants(MethodView):
             ]
 
             params = request.args.to_dict()
-            query = db.session.query().select_from(ManagedResult).filter_by(club_id=club_id,raceid=raceid).join(Runner)
+            query = db.session.query().select_from(ManagedResult).filter_by(club_id=club_id,raceid=raceid)
             rowTable = DataTables(params, query, columns)
 
             # prepare for match filter
@@ -2001,9 +2001,9 @@ def importresultstask(self, club_id, raceid, resultpathname):
             pass
 
         # only update state max 100 times over course of file, but don't make it too small
-        statemod = total / 100;
+        statemod = total / 100
         if statemod == 0:
-            statemod = 1;
+            statemod = 1
 
         # start over
         rr.close()
