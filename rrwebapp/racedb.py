@@ -904,13 +904,20 @@ class Exclusion(Base):
 def renderfloat(expr, numdigits):
     return func.round(expr, numdigits)
 
+class RenderMember(TypeDecorator):
+    impl = types.String
+
+    # assumes runner id value
+    def process_result_value(self, value, engine):
+        membertext = ''
+        runner = Runner.query.filter_by(id=value).one_or_none()
+        if runner:
+            membertext = 'member' if runner.member else 'nonmember'
+
+        return membertext
+
 def rendermember(expr):
-    return case(
-        [
-            (expr==True, 'member'),
-        ],
-        else_='nonmember'
-    )
+    return cast(expr, RenderMember())
 
 
 class RenderTime(TypeDecorator):

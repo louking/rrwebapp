@@ -664,7 +664,10 @@ class AjaxEditParticipants(MethodView):
                 ColumnDT(ManagedResult.gender,              mData='gender',             search_method='none'),
                 ColumnDT(ManagedResult.age,                 mData='age',                search_method='none'),
                 ColumnDT(ManagedResult.initialdisposition,  mData='disposition'),
-                ColumnDT(rendermember(Runner.member), mData='membertype', search_method='none'),
+
+                # ColumnDT(rendermember(Runner.member), mData='membertype', search_method='none'),
+                ColumnDT(rendermember(ManagedResult.runnerid), mData='membertype', search_method='none'),
+
                 # the odd confirmed lambda filter prevents a string 'True' or 'False' from being sent
                 ColumnDT(ManagedResult.confirmed,           mData='confirm',            search_method='none'),
                 ColumnDT(ManagedResult.runnerid,            mData='runnerid'),
@@ -690,7 +693,8 @@ class AjaxEditParticipants(MethodView):
             getcol = lambda colname: [col.mData for col in columns].index(colname)
 
             # add yadcf filter
-            matches = [row.initialdisposition for row in db.session.query(ManagedResult.initialdisposition).distinct().all()]
+            matches = [row.initialdisposition for row in db.session.query(ManagedResult.initialdisposition)
+                        .filter_by(club_id=club_id,raceid=raceid).distinct().all()]
             output_result['yadcf_data_{}'.format(getcol('disposition'))] = matches
 
             # determine if race is for members only

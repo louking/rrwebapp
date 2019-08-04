@@ -174,7 +174,7 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
                     column_number:matchCol,
                     filter_container_id:"_rrwebapp_filtermatch",
                     column_data_type: "text",
-                    filter_match_mode: "exact",
+                    // filter_match_mode: "exact",
                     filter_type:"multi_select",
                     select_type: 'select2',
                     select_type_options: {
