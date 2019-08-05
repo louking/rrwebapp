@@ -658,12 +658,12 @@ class AjaxEditParticipants(MethodView):
             
             # mData must match columns in RaceResults[.js].editparticipants
             columns = [
-                ColumnDT(ManagedResult.id,                  mData='id',                 search_method='none'),
-                ColumnDT(ManagedResult.place,               mData='place'),
-                ColumnDT(ManagedResult.name,                mData='resultname'),
-                ColumnDT(ManagedResult.gender,              mData='gender',             search_method='none'),
-                ColumnDT(ManagedResult.age,                 mData='age',                search_method='none'),
-                ColumnDT(ManagedResult.initialdisposition,  mData='disposition'),
+                ColumnDT(ManagedResult.id,                 mData='id',          search_method='none'),
+                ColumnDT(ManagedResult.place,              mData='place'),
+                ColumnDT(ManagedResult.name,               mData='resultname'),
+                ColumnDT(ManagedResult.gender,             mData='gender',      search_method='none'),
+                ColumnDT(ManagedResult.age,                mData='age',         search_method='none'),
+                ColumnDT(ManagedResult.initialdisposition, mData='disposition', search_method='yadcf_multi_select'),
 
                 # ColumnDT(rendermember(Runner.member), mData='membertype', search_method='none'),
                 ColumnDT(rendermember(ManagedResult.runnerid), mData='membertype', search_method='none'),
@@ -677,9 +677,19 @@ class AjaxEditParticipants(MethodView):
                 ColumnDT(rendertime(ManagedResult.time), mData='time'),
             ]
 
+            def set_yadcf_data():
+                getcol = lambda colname: [col.mData for col in columns].index(colname)
+
+                # add yadcf filter
+                matches = [row.initialdisposition for row in db.session.query(ManagedResult.initialdisposition)
+                    .filter_by(club_id=club_id, raceid=raceid).distinct().all()]
+                yadcf_data = [('yadcf_data_{}'.format(getcol('disposition')), matches)]
+
+                return yadcf_data
+
             params = request.args.to_dict()
             query = db.session.query().select_from(ManagedResult).filter_by(club_id=club_id,raceid=raceid)
-            rowTable = DataTables(params, query, columns)
+            rowTable = DataTables(params, query, columns, set_yadcf_data=set_yadcf_data)
 
             # prepare for match filter
             # need to use db.session to access query function
@@ -690,12 +700,6 @@ class AjaxEditParticipants(MethodView):
 
             # add to returned output
             output_result = rowTable.output_result()
-            getcol = lambda colname: [col.mData for col in columns].index(colname)
-
-            # add yadcf filter
-            matches = [row.initialdisposition for row in db.session.query(ManagedResult.initialdisposition)
-                        .filter_by(club_id=club_id,raceid=raceid).distinct().all()]
-            output_result['yadcf_data_{}'.format(getcol('disposition'))] = matches
 
             # determine if race is for members only
             # then get appropriate pool of runners for possible inclusion in tableselects
