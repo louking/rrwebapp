@@ -20,7 +20,7 @@ decorator==4.1.2
 docutils==0.11
 docx==0.2.4
 dominate==2.3.5
-ecdsa==0.13
+ecdsa==0.13.3
 enum34==1.1.6
 ez-setup==0.9
 fabric==2.4.0
