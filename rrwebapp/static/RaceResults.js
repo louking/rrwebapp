@@ -1137,14 +1137,16 @@
             // Race list is kept in accordion above table, for reference
             // height gets changed as accordion changes -- see http://datatables.net/forums/discussion/10906/adjust-sscrolly-after-init/p1
             $( "#_rrwebapp-accordion-standings-races" ).accordion({
-              collapsible: true,
-              active: 'none',   // see http://stackoverflow.com/questions/2675263/collapse-all-sections-in-accordian-on-page-load-in-jquery-accordian
-              activate: function(event,ui) {
-                var oSettings = _rrwebapp_table.fnSettings();
-                var newheight = gettableheight();
-                oSettings.oScroll.sY = newheight;
-                $('div.dataTables_scrollBody').height(newheight);
-              }
+                collapsible: true,
+                active: 'none',   // see http://stackoverflow.com/questions/2675263/collapse-all-sections-in-accordian-on-page-load-in-jquery-accordian
+                // commented out due to #390, now lets standings table just get
+                // pushed down when races accordian opened without trying to resize
+                // activate: function(event,ui) {
+                //   var oSettings = _rrwebapp_table.fnSettings();
+                //   var newheight = gettableheight();
+                //   oSettings.oScroll.sY = newheight;
+                //   $('div.dataTables_scrollBody').height(newheight);
+                // }
             });
         }
 
