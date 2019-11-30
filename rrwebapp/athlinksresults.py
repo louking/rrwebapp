@@ -276,7 +276,9 @@ class AthlinksCollect(CollectServiceResults):
             ### TODO: should the above be .all() then check for first race within epsilon distance?
             if not race:
                 racecached = False
-                race = Race(self.club_id, raceyear)
+                race = Race()
+                race.club_id = self.club_id
+                race.raceyear = raceyear
                 race.name = course.name
                 race.distance = course.distmiles
                 race.fixeddist = race_fixeddist(race.distance)
