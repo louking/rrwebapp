@@ -190,6 +190,38 @@ class AthlinksCollect(CollectServiceResults):
 
 
     #----------------------------------------------------------------------
+    def get_race(self, course):
+    #----------------------------------------------------------------------
+        '''
+        gets the associated race from the database, creating it if necessary
+        :param course: course database object
+        :return: race database object
+        '''
+
+        raceyear = ftime.asc2dt(course.date).year
+        race = Race.query.filter_by(club_id=self.club_id, name=course.name, year=raceyear,
+                                    fixeddist=race_fixeddist(course.distmiles)).first()
+        ### TODO: should the above be .all() then check for first race within epsilon distance?
+        if not race:
+            racecached = False
+            race = Race()
+            race.club_id = self.club_id
+            race.raceyear = raceyear
+            race.name = course.name
+            race.distance = course.distmiles
+            race.fixeddist = race_fixeddist(race.distance)
+            race.date = course.date
+            race.active = True
+            race.external = True
+            race.surface = course.surface
+            loc = self.locsvr.getlocation(course.location)
+            race.locationid = loc.id
+            db.session.add(race)
+            db.session.flush()  # force id to be created
+
+        return race
+
+    #----------------------------------------------------------------------
     def convertserviceresult(self, result):
     #----------------------------------------------------------------------
         '''
@@ -271,25 +303,7 @@ class AthlinksCollect(CollectServiceResults):
             # flush should allow subsequent query per http://stackoverflow.com/questions/4201455/sqlalchemy-whats-the-difference-between-flush-and-commit
             # Race has uniqueconstraint for club_id/name/year/fixeddist. It's been seen that there are additional races in athlinks, 
             # but just assume the first is the correct one.
-            raceyear = ftime.asc2dt(course.date).year
-            race = Race.query.filter_by(club_id=self.club_id, name=course.name, year=raceyear, fixeddist=race_fixeddist(course.distmiles)).first()
-            ### TODO: should the above be .all() then check for first race within epsilon distance?
-            if not race:
-                racecached = False
-                race = Race()
-                race.club_id = self.club_id
-                race.raceyear = raceyear
-                race.name = course.name
-                race.distance = course.distmiles
-                race.fixeddist = race_fixeddist(race.distance)
-                race.date = course.date
-                race.active = True
-                race.external = True
-                race.surface = course.surface
-                loc = self.locsvr.getlocation(course.location)
-                race.locationid = loc.id
-                db.session.add(race)
-                db.session.flush()  # force id to be created
+            race = self.get_race(course)
 
             course.raceid = race.id
             db.session.add(course)
@@ -299,7 +313,8 @@ class AthlinksCollect(CollectServiceResults):
         # update location of result race, if needed, and if supplied
         # this is here to clean up old database data
         if not race:
-            race = Race.query.filter_by(club_id=self.club_id, name=course.name, year=ftime.asc2dt(course.date).year, fixeddist=race_fixeddist(course.distmiles)).first()
+            # may need to create the race again if there was an error after creating course but before creating race
+            race = self.get_race(course)
         if not race.locationid and course.location:
             # app.logger.debug('updating race with location {}'.format(course.location))
             loc = self.locsvr.getlocation(course.location)
