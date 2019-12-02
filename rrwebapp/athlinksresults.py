@@ -206,7 +206,7 @@ class AthlinksCollect(CollectServiceResults):
             racecached = False
             race = Race()
             race.club_id = self.club_id
-            race.raceyear = raceyear
+            race.year = raceyear
             race.name = course.name
             race.distance = course.distmiles
             race.fixeddist = race_fixeddist(race.distance)

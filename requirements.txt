@@ -56,6 +56,7 @@ packaging==16.8
 paramiko==2.4.2
 pathlib2==2.3.0
 pickleshare==0.7.4
+Pillow==6.2.1
 prompt-toolkit==1.0.15
 pyasn1==0.4.4
 pycparser==2.19
