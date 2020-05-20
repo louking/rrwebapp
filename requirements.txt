@@ -35,7 +35,7 @@ flup==1.0.2
 googlemaps==2.4.4
 gpxpy==1.1.2
 haversine==0.4.5
-httplib2==0.12.0
+httplib2==0.18.0
 idna==2.7
 invoke==1.2.0
 ipaddress==1.0.22
