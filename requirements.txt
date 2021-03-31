@@ -46,7 +46,7 @@ Jinja2==2.10.1
 jsmin==2.2.2
 kombu==3.0.35
 loutilities==0.14.11
-lxml==3.6.0
+lxml==4.6.3
 Mako==1.0.4
 MarkupSafe==0.23
 MySQL-python==1.2.5
