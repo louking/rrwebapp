@@ -27,18 +27,18 @@ from celery import states
 # homegrown
 from . import app
 from . import celery
-from racedb import ApiCredentials, Club, Runner, RaceResultService, Course
-from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
+from .racedb import ApiCredentials, Club, Runner, RaceResultService, Course
+from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from database_flask import db   # this is ok because this module only runs under flask
-from nav import productname
-from apicommon import failure_response, success_response
+from .database_flask import db   # this is ok because this module only runs under flask
+from .nav import productname
+from .apicommon import failure_response, success_response
 from loutilities.csvwt import wlist
-from request import addscripts
-from crudapi import CrudApi
-from datatables_utils import AdminDatatablesCsv
-from resultsutils import StoreServiceResults
-from resultssummarize import summarize
+from .request import addscripts
+from .crudapi import CrudApi
+from .datatables_utils import AdminDatatablesCsv
+from .resultsutils import StoreServiceResults
+from .resultssummarize import summarize
 from loutilities.timeu import asctime, timesecs
 ftime = asctime('%Y-%m-%d')
 
@@ -54,11 +54,11 @@ collectservices = {}
 storeservices = {}
 
 ## athlinks handling
-from athlinksresults import AthlinksCollect, AthlinksResultFile
+from .athlinksresults import AthlinksCollect, AthlinksResultFile
 athl = AthlinksCollect()
 collectservices['athlinks'] = athl.collect
 athlinksattrs = 'name,dob,gender,id,entryid,racename,racedate,raceloc,age,distmiles,resulttime,timesecs,fuzzyage'.split(',')
-athlinkstransform = dict(zip(normstoreattrs, athlinksattrs))
+athlinkstransform = dict(list(zip(normstoreattrs, athlinksattrs)))
 # dates come in as datetime, reset to ascii
 # athlinkstransform['dob'] = lambda row: ftime.dt2asc(getattr(row, 'dob'))
 # athlinkstransform['date'] = lambda row: ftime.dt2asc(getattr(row, 'racedate'))
@@ -67,11 +67,11 @@ athlresults = AthlinksResultFile()
 storeservices['athlinks'] = StoreServiceResults('athlinks', athlresults, athlinkstransform)
 
 ## ultrasignup handling
-from ultrasignupresults import UltraSignupCollect, UltraSignupResultFile
+from .ultrasignupresults import UltraSignupCollect, UltraSignupResultFile
 us = UltraSignupCollect()
 collectservices['ultrasignup'] = us.collect
 usattrs = 'name,dob,gender,sourceid,sourceresultid,race,date,raceloc,age,miles,time,timesecs,fuzzyage'.split(',')
-ustransform = dict(zip(normstoreattrs, usattrs))
+ustransform = dict(list(zip(normstoreattrs, usattrs)))
 ustransform['sourceid'] = lambda row: None
 ustransform['sourceresultid'] = lambda row: None
 ustransform['fuzzyage'] = lambda row: False
@@ -79,11 +79,11 @@ usresults = UltraSignupResultFile()
 storeservices['ultrasignup'] = StoreServiceResults('ultrasignup', usresults, ustransform)
 
 ## runningahead handling
-from runningaheadresults import RunningAHEADCollect, RunningAHEADResultFile
+from .runningaheadresults import RunningAHEADCollect, RunningAHEADResultFile
 ra = RunningAHEADCollect()
 collectservices['runningahead'] = ra.collect
 raattrs = 'name,dob,gender,sourceid,sourceresultid,race,date,loc,age,miles,time,timesecs,fuzzyage'.split(',')
-ratransform = dict(zip(normstoreattrs, raattrs))
+ratransform = dict(list(zip(normstoreattrs, raattrs)))
 ratransform['sourceid'] = lambda row: ''
 ratransform['sourceresultid'] = lambda row: ''
 ratransform['fuzzyage'] = lambda row: False
@@ -300,7 +300,7 @@ class ResultsAnalysisStatus(MethodView):
                 OUT = csv.DictWriter(memberfile, filefields)
                 OUT.writeheader()
                 members = Runner.query.filter_by(club_id=club_id, member=True, active=True)
-                mapping = dict(zip(dbattrs, filefields))
+                mapping = dict(list(zip(dbattrs, filefields)))
                 for member in members:
                     filerow = {}
                     for dbattr in mapping:
@@ -344,8 +344,8 @@ ras.register()
 
 course_dbattrs = 'id,name,source,sourceid,date,distmiles,distkm,surface,location,raceid'.split(',')
 course_formfields = 'rowid,name,source,sourceid,date,distmiles,distkm,surface,location,raceid'.split(',')
-course_dbmapping = OrderedDict(zip(course_dbattrs, course_formfields))
-course_formmapping = OrderedDict(zip(course_formfields, course_dbattrs))
+course_dbmapping = OrderedDict(list(zip(course_dbattrs, course_formfields)))
+course_formmapping = OrderedDict(list(zip(course_formfields, course_dbattrs)))
 course = CrudApi(pagename = 'Courses', 
              endpoint = 'courses', 
              dbmapping = course_dbmapping, 
@@ -533,7 +533,7 @@ def analyzeresultstask(self, club_id, action, resultsurl, memberfile, detailfile
 
         # unknown action
         else:
-            raise invalidParameter, 'unknown action "{}"" received'.format(action)
+            raise invalidParameter('unknown action "{}"" received'.format(action))
 
         # not in a task any more
         if os.path.isfile(taskfile):

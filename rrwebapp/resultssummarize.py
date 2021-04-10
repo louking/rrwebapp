@@ -24,8 +24,8 @@ import csv
 from datetime import datetime
 import collections
 import time
-from urlparse import urlparse, parse_qsl, urlunparse
-from urllib import urlencode
+from urllib.parse import urlparse, parse_qsl, urlunparse
+from urllib.parse import urlencode
 from copy import copy
 import json
 
@@ -35,11 +35,11 @@ import json
 
 # home grown
 from . import app
-import analyzeagegrade
-from services import ServiceAttributes
-from racedb import Club, RaceResultService, ApiCredentials, RaceResult, Race, Location, Runner
-from location import LocationServer, get_distance
-from nav import productname
+from . import analyzeagegrade
+from .services import ServiceAttributes
+from .racedb import Club, RaceResultService, ApiCredentials, RaceResult, Race, Location, Runner
+from .location import LocationServer, get_distance
+from .nav import productname
 from loutilities import timeu
 from loutilities.renderrun import rendertime
 
@@ -145,7 +145,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
 
     firstyear = begindate.year
     lastyear = enddate.year
-    yearrange = range(firstyear,lastyear+1)
+    yearrange = list(range(firstyear,lastyear+1))
     
     # get all the requested result data from the database and save in a data structure indexed by runner
     ## first get the data from the database
@@ -163,7 +163,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
     ## prepare to save detail file, for debugging
     detlfields = 'runnername,runnerid,dob,gender,resultid,racename,racedate,series,distmiles,distkm,time,timesecs,agpercent,source,sourceid'.split(',')
     detailfname = detailfile
-    _DETL = open(detailfname,'wb')
+    _DETL = open(detailfname,'w')
     DETL = csv.DictWriter(_DETL,detlfields)
     DETL.writeheader()
 
@@ -239,8 +239,8 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
 
     # set up summary file
     summaryfname = summaryfile
-    _SUMM = open(summaryfname,'wb')
-    SUMM = csv.DictWriter(_SUMM,summfields)
+    _SUMM = open(summaryfname, 'w', newline='')
+    SUMM = csv.DictWriter(_SUMM, summfields)
     SUMM.writeheader()
     
     # loop through each member we've recorded information about

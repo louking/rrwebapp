@@ -28,21 +28,21 @@ from werkzeug.utils import secure_filename
 
 # home grown
 from . import app
-import racedb
-from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
+from . import racedb
+from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from database_flask import db   # this is ok because this module only runs under flask
-from apicommon import failure_response, success_response
+from .database_flask import db   # this is ok because this module only runs under flask
+from .apicommon import failure_response, success_response
 
 # module specific needs
 import xml.etree.ElementTree as ET
-import urllib
-from racedb import dbdate, Runner, RaceResult, RaceSeries, Race, Series, Club
-from renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
-from forms import StandingsForm
+import urllib.request, urllib.parse, urllib.error
+from .racedb import dbdate, Runner, RaceResult, RaceSeries, Race, Series, Club
+from .renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
+from .forms import StandingsForm
 import loutilities.renderrun as render
 from loutilities import timeu
-from request import addscripts
+from .request import addscripts
 
 
 #######################################################################
@@ -86,7 +86,7 @@ class ViewStandings(MethodView):
     
             # get races for this series, in date order
             races = Race.query.join("series").filter_by(id=seriesid,active=True).order_by(Race.date).all()
-            racenums = range(1,len(races)+1)
+            racenums = list(range(1,len(races)+1))
             resulturls = [flask.url_for('seriesresults',raceid=r.id) for r in races]
             
             # number of rows is set based on whether len(races) is even or odd
@@ -145,7 +145,7 @@ class ViewStandings(MethodView):
                         standings.append([row[k] for k in roworder])
 
             # headings, headerclasses, tooltips are used together
-            headingdata = zip(headings,headerclasses,tooltips)
+            headingdata = list(zip(headings,headerclasses,tooltips))
             
             # commit database updates and close transaction
             db.session.commit()
@@ -154,7 +154,7 @@ class ViewStandings(MethodView):
                                          division=division,gender=gender,printerfriendly=printerfriendly,
                                          inhibityear=True,inhibitclub=True)
         
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}'.format(e)
@@ -207,7 +207,7 @@ class TestStandings(MethodView):
     
             # get races for this series, in date order
             races = Race.query.join("series").filter_by(id=seriesid,active=True).order_by(Race.date).all()
-            racenums = range(1,len(races)+1)
+            racenums = list(range(1,len(races)+1))
             resulturls = [flask.url_for('seriesresults',raceid=r.id) for r in races]
             
             # number of rows is set based on whether len(races) is even or odd
@@ -266,7 +266,7 @@ class TestStandings(MethodView):
                         standings.append([row[k] for k in roworder])
 
             # headings, headerclasses, tooltips are used together
-            headingdata = zip(headings,headerclasses,tooltips)
+            headingdata = list(zip(headings,headerclasses,tooltips))
             
             # commit database updates and close transaction
             db.session.commit()
@@ -276,7 +276,7 @@ class TestStandings(MethodView):
                                          pagejsfiles=addscripts(['TestStandings.js']),
                                          inhibityear=True,inhibitclub=True)
         
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}'.format(e)
@@ -328,7 +328,7 @@ class AjaxGetYears(MethodView):
             db.session.commit()
             return success_response(choices=choices)
         
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())
@@ -367,8 +367,7 @@ class AjaxGetSeries(MethodView):
             
             allseries = Series.query.filter_by(active=True,club_id=club_id,year=year).all()
             # see https://editor.datatables.net/plug-ins/field-type/editor.select2
-            theseseries = [{'label':s.name, 'value':s.name} for s in allseries]
-            theseseries.sort()
+            theseseries = sorted([{'label':s.name, 'value':s.name} for s in allseries])
             # choices = [{'label':'Select Series', 'value':''}] + theseseries
             choices = theseseries
 
@@ -376,7 +375,7 @@ class AjaxGetSeries(MethodView):
             db.session.commit()
             return success_response(choices=choices)
         
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())

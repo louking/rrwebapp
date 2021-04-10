@@ -24,7 +24,7 @@ def upgrade():
     ### end Alembic commands ###
 
     # update 
-    race = table(u'race',
+    race = table('race',
                column('id', sa.Integer),
                column('distance', sa.Float),
                column('fixeddist', sa.String),

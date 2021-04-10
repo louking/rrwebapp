@@ -20,7 +20,7 @@ from docutils.core import publish_parts
 
 # home grown
 from . import app
-from database_flask import db   # this is ok because this module only runs under flask
+from .database_flask import db   # this is ok because this module only runs under flask
 
 # module specific needs
 
@@ -56,7 +56,7 @@ class IcdView(MethodView):
     #----------------------------------------------------------------------
         try:
             # use csv reader to understand file contents
-            ff = open(self.icdfile,'rb')
+            ff = open(self.icdfile, 'r', newline='')
             cc = csv.reader(ff)
             
             # pull in the file text, then close it, remembering table start and end

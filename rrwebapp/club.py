@@ -15,11 +15,11 @@
 
 # home grown
 from . import app
-from accesscontrol import owner_permission, UpdateClubDataPermission
-from crudapi import CrudApi, DbQueryApi
+from .accesscontrol import owner_permission, UpdateClubDataPermission
+from .crudapi import CrudApi, DbQueryApi
 
 # module specific needs
-from racedb import Club
+from .racedb import Club
 
 ###########################################################################################
 # manageclubs endpoint
@@ -27,8 +27,8 @@ from racedb import Club
 
 club_dbattrs = 'id,shname,name,location,memberserviceapi,memberserviceid'.split(',')
 club_formfields = 'rowid,shname,name,location,service,serviceid'.split(',')
-club_dbmapping = dict(zip(club_dbattrs, club_formfields))
-club_formmapping = dict(zip(club_formfields, club_dbattrs))
+club_dbmapping = dict(list(zip(club_dbattrs, club_formfields)))
+club_formmapping = dict(list(zip(club_formfields, club_dbattrs)))
 club = CrudApi(pagename = 'Clubs', 
              endpoint = 'manageclubs', 
              dbmapping = club_dbmapping, 

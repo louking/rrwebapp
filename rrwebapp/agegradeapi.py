@@ -18,11 +18,11 @@ from flask.views import MethodView
 
 # homegrown
 from . import app
-from request import crossdomain
-from database_flask import db   # this is ok because this module only runs under flask
+from .request import crossdomain
+from .database_flask import db   # this is ok because this module only runs under flask
 
 from loutilities.agegrade import AgeGrade
-ag = AgeGrade()
+ag = AgeGrade(agegradewb='config/wavacalc15.xls')
 
 
 #######################################################################
@@ -46,7 +46,7 @@ class AgeGradeApi(MethodView):
             errorfield = 'distance'
             distance = float(distance)
             errorfield = 'gender'
-            if gender not in ['M','F']: raise ValueError, 'gender must be one of M, F'
+            if gender not in ['M','F']: raise ValueError('gender must be one of M, F')
 
             errorfield = 'time'
             timelist = timestr.split(':')

@@ -29,10 +29,10 @@ import traceback
 
 # home grown
 from . import app
-from resultsutils import CollectServiceResults, ServiceResultFile
-from database_flask import db   # this is ok because this module only runs under flask
-from racedb import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
-from race import race_fixeddist
+from .resultsutils import CollectServiceResults, ServiceResultFile
+from .database_flask import db   # this is ok because this module only runs under flask
+from .racedb import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
+from .race import race_fixeddist
 
 from loutilities import timeu
 from loutilities import csvu
@@ -42,14 +42,14 @@ from running import runningahead
 from running.runningahead import FIELD
 
 
-ag = agegrade.AgeGrade()
+ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
 class invalidParameter(Exception): pass
 
 # resultfilehdr needs to associate 1:1 with resultattrs
 resultfilehdr = 'GivenName,FamilyName,name,DOB,Gender,race,date,loc,age,miles,km,time,timesecs,ag'.split(',')
 resultattrs = 'firstname,lastname,name,dob,gender,race,date,loc,age,miles,km,time,timesecs,ag'.split(',')
 
-hdrtransform = dict(zip(resultattrs,resultfilehdr))
+hdrtransform = dict(list(zip(resultattrs,resultfilehdr)))
 ftime = timeu.asctime('%Y-%m-%d')
 hdrtransform['gender'] = lambda row: row['Gender'][0].upper()
 hdrtransform['loc'] = lambda row: None                  # loc not available from runningahead
@@ -155,7 +155,7 @@ class RunningAHEADCollect(CollectServiceResults):
         # if we're here, found the right user, now let's look at the workouts
         a_begindate = ftime.epoch2asc(begindate)
         a_enddate = ftime.epoch2asc(enddate)
-        workouts = self.service.listworkouts(user['token'],begindate=a_begindate,enddate=a_enddate,getfields=FIELD['workout'].keys())
+        workouts = self.service.listworkouts(user['token'],begindate=a_begindate,enddate=a_enddate,getfields=list(FIELD['workout'].keys()))
 
         # get race results for this athlete
         results = []
@@ -167,7 +167,7 @@ class RunningAHEADCollect(CollectServiceResults):
                 dt_thisdate = ftime.asc2dt(thisdate)
                 thisdist = runningahead.dist2meters(wo['details']['distance'])
                 thistime = wo['details']['duration']
-                thisrace = wo['course']['name'] if wo.has_key('course') else 'unknown'
+                thisrace = wo['course']['name'] if 'course' in wo else 'unknown'
                 if thistime == 0:
                     log.warning('{} has 0 time for {} {}'.format(name,thisrace,thisdate))
                     continue

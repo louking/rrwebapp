@@ -22,14 +22,14 @@ import flask_wtf as flaskwtf
 
 # home grown
 from . import app
-import racedb
-from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
+from . import racedb
+from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from database_flask import db   # this is ok because this module only runs under flask
+from .database_flask import db   # this is ok because this module only runs under flask
 
 # module specific needs
-from racedb import User, Role, Club
-from forms import UserForm, UserSettingsForm
+from .racedb import User, Role, Club
+from .forms import UserForm, UserSettingsForm
 
 ########################################################################
 # Manage Users
@@ -208,7 +208,7 @@ class UserSettings(MethodView):
         '''
         try:
             # get the user from the database
-            userid = flask.session['user_id']
+            userid = flask.session['_user_id']
             thisuser = racedb.User.query.filter_by(id=userid).first()
         
             pagename = 'User Settings'
@@ -227,7 +227,7 @@ class UserSettings(MethodView):
                                          displayonly=displayonly,
                                          thispagename=pagename, action=buttontext)
             
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())
@@ -244,7 +244,7 @@ class UserSettings(MethodView):
         '''
         try:
             # get the user from the database
-            userid = flask.session['user_id']
+            userid = flask.session['_user_id']
             thisuser = racedb.User.query.filter_by(id=userid).first()
         
             pagename = 'User Settings'
@@ -281,7 +281,7 @@ class UserSettings(MethodView):
             db.session.commit()
             return (flask.redirect(flask.request.args.get('next')) or flask.url_for('index'))
             
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())

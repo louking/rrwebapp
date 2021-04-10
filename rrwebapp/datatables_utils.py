@@ -19,8 +19,8 @@ from flask_login import login_required
 
 # homegrown
 from . import app
-from database_flask import db   # this is ok because this module only runs under flask
-from request import addscripts
+from .database_flask import db   # this is ok because this module only runs under flask
+from .request import addscripts
 from loutilities.transform import Transform
 
 class ParameterError(Exception): pass;
@@ -71,10 +71,10 @@ def get_request_data(form):
     data = defaultdict(lambda: {})
 
     # fill in data[id][field] = value
-    for formkey in form.keys():
+    for formkey in list(form.keys()):
         if formkey == 'action': continue
         datapart,idpart,fieldpart = formkey.split('[')
-        if datapart != 'data': raise ParameterError, "invalid input in request: {}".format(formkey)
+        if datapart != 'data': raise ParameterError("invalid input in request: {}".format(formkey))
 
         idvalue = int(idpart[0:-1])
         fieldname = fieldpart[0:-1]
@@ -287,7 +287,7 @@ class DatatablesCsv(MethodView):
                 csvfile = self.csvfile()
             else:
                 csvfile = self.csvfile
-            with open(csvfile, 'rb') as _CSV:
+            with open(csvfile, 'r', newline='') as _CSV:
                 tabledata = []
                 CSV = DictReader(_CSV)
                 for csvrow in CSV:

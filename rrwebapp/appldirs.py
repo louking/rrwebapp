@@ -19,7 +19,7 @@ class parameterError(Exception): pass
 # store temporary uploads here
 UPLOAD_TEMP_DIR = app.config.get('UPLOAD_TEMP_DIR','')
 if not UPLOAD_TEMP_DIR:
-    raise parameterError, 'rrwebapp.cfg [app] section requires UPLOAD_TEMP_DIR'
+    raise parameterError('rrwebapp.cfg [app] section requires UPLOAD_TEMP_DIR')
 
 if not os.path.exists( UPLOAD_TEMP_DIR ):
-    raise parameterError, "[app] UPLOAD_TEMP_DIR '{}' directory missing".format(UPLOAD_TEMP_DIR)
+    raise parameterError("[app] UPLOAD_TEMP_DIR '{}' directory missing".format(UPLOAD_TEMP_DIR))

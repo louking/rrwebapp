@@ -29,28 +29,28 @@ import traceback
 
 # home grown
 from . import app
-from location import LocationServer
+from .location import LocationServer
 from loutilities import timeu
 from loutilities import csvu
 from loutilities import agegrade
-from resultsutils import CollectServiceResults, ServiceResultFile
+from .resultsutils import CollectServiceResults, ServiceResultFile
 from running import athlinks
-from database_flask import db   # this is ok because this module only runs under flask
-from racedb import ApiCredentials, Club, Course, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN, insert_or_update
-from race import race_fixeddist
+from .database_flask import db   # this is ok because this module only runs under flask
+from .racedb import ApiCredentials, Club, Course, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN, insert_or_update
+from .race import race_fixeddist
 
 
 # see http://api.athlinks.com/Enums/RaceCategories
 CAT_RUNNING = 2
 CAT_TRAILS = 15
 race_category = {CAT_RUNNING:'road',CAT_TRAILS:'trail'}
-ag = agegrade.AgeGrade()
+ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
 class invalidParameter(Exception): pass
 
 # resultfilehdr needs to associate 1:1 with resultattrs
 resultfilehdr = 'GivenName,FamilyName,name,DOB,Gender,athlid,race,date,loc,age,fuzzyage,miles,km,category,time,ag,entryid'.split(',')
 resultattrs = 'firstname,lastname,name,dob,gender,id,racename,racedate,raceloc,age,fuzzyage,distmiles,distkm,racecategory,resulttime,resultagegrade,entryid'.split(',')
-hdrtransform = dict(zip(resultattrs, resultfilehdr))
+hdrtransform = dict(list(zip(resultattrs, resultfilehdr)))
 ftime = timeu.asctime('%Y-%m-%d')
 
 
@@ -109,7 +109,7 @@ class AthlinksCollect(CollectServiceResults):
             self.racefile = None
 
         if self.racefile:
-            self._RACE = open(self.racefile, 'wb')
+            self._RACE = open(self.racefile, 'w', newline='')
             self.racefields = 'id,name,date,distmiles,status,runner'.split(',')
             self.RACE = csv.DictWriter(self._RACE, self.racefields)
             self.RACE.writeheader()

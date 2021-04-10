@@ -19,9 +19,9 @@ import traceback
 
 # homegrown
 from . import app
-from database_flask import db   
-from racedb import insert_or_update, RaceResult, Runner, Race
-from race import race_fixeddist
+from .database_flask import db   
+from .racedb import insert_or_update, RaceResult, Runner, Race
+from .race import race_fixeddist
 from loutilities.csvu import str2num
 from loutilities.timeu import age, asctime, epoch2dt, dt2epoch
 from loutilities.agegrade import AgeGrade
@@ -30,7 +30,7 @@ from loutilities.transform import Transform
 ftime = asctime('%Y-%m-%d')
 
 RACEEPSILON = .01  # in miles, to allow for floating point precision error in database
-ag = AgeGrade()
+ag = AgeGrade(agegradewb='config/wavacalc15.xls')
 
 class ParameterError(Exception): pass
 
@@ -106,7 +106,7 @@ class StoreServiceResults():
 
         # loop through all results and store in database
         while True:
-            filerecord = self.serviceaccessor.next()
+            filerecord = next(self.serviceaccessor)
             if not filerecord: break
 
             # transform to result attributes
@@ -121,7 +121,7 @@ class StoreServiceResults():
             ## first get runner
             runner = Runner.query.filter_by(club_id=club_id, name=result.runnername, dateofbirth=result.dob, gender=result.gender).first()
             if not runner:
-                raise ParameterError, "could not find runner in database: {} line {} {} {} {}".format(filename, status[self.servicename]['processed']+2, result.runnername, result.dob, result.gender)
+                raise ParameterError("could not find runner in database: {} line {} {} {} {}".format(filename, status[self.servicename]['processed']+2, result.runnername, result.dob, result.gender))
 
             ## next get race
             ### Race has uniqueconstraint for club_id/name/year/fixeddist. It's been seen that there are additional races in athlinks, 
@@ -135,7 +135,7 @@ class StoreServiceResults():
             #         race = thisrace
             #         break
             if not race:
-                raise ParameterError, "could not find race in database: {} line {} {} {} {}".format(filename, status[self.servicename]['processed']+2, result.racename, result.date, result.distmiles)
+                raise ParameterError("could not find race in database: {} line {} {} {} {}".format(filename, status[self.servicename]['processed']+2, result.racename, result.date, result.distmiles))
 
             ## update or create result in database
             try:
@@ -270,13 +270,13 @@ class CollectServiceResults(object):
         self.status = status
 
         # open files
-        if type(searchfile) == list:
+        if isinstance(searchfile, list):
             _IN = searchfile
         else:
-            _IN = open(searchfile,'rb')
-        IN = csv.DictReader(_IN)
+            _IN = open(searchfile,'r')
+        IN = csv.DictReader(_IN, newline='')
 
-        _OUT = open(resultfile,'wb')
+        _OUT = open(resultfile, 'w' , newline='')
         OUT = csv.DictWriter(_OUT, self.resultfilehdr)
         OUT.writeheader()
 
@@ -338,7 +338,7 @@ class CollectServiceResults(object):
         finally:
             self.closeservice()
             _OUT.close()
-            if type(searchfile) != list:
+            if not isinstance(searchfile, list):
                 _IN.close()
 
         # final state update
@@ -381,17 +381,17 @@ class ServiceResultFile(object):
         self.transform = Transform(mapping, sourceattr=False, targetattr=True).transform
         
     #----------------------------------------------------------------------
-    def open(self, filename, mode='rb'):
+    def open(self, filename, mode='r'):
     #----------------------------------------------------------------------
         '''
         open athlinks result file
         
-        :param mode: 'rb' or 'wb' -- TODO: support 'wb'
+        :param mode: 'r' or 'w' -- TODO: support 'w'
         '''
         if mode[0] not in ['r']:
-            raise invalidParameter, 'mode {} not currently supported'.format(mode)
+            raise invalidParameter('mode {} not currently supported'.format(mode))
     
-        self._fh = open(filename,mode)
+        self._fh = open(filename, mode, newline='')
 
         # count the number of lines then reset the file pointer -- don't count header
         self._numlines = sum(1 for line in self._fh) - 1
@@ -418,7 +418,7 @@ class ServiceResultFile(object):
         return self._numlines
     
     #----------------------------------------------------------------------
-    def next(self):
+    def __next__(self):
     #----------------------------------------------------------------------
         '''
         get next :class:`AthlinksResult`
@@ -426,7 +426,7 @@ class ServiceResultFile(object):
         :rtype: :class:`AthlinksResult`, or None when end of file reached
         '''
         try:
-            fresult = self._csv.next()
+            fresult = next(self._csv)
             
         except StopIteration:
             return None

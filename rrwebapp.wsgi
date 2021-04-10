@@ -10,7 +10,7 @@
 ###########################################################################################
 
 import os, sys
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 
 # get configuration
 config = SafeConfigParser()
@@ -20,7 +20,7 @@ config.readfp(open(os.path.join(parentdir, 'rrwebapp.cfg')))
 PROJECT_DIR = config.get('project', 'PROJECT_DIR')
 
 activate_this = os.path.join(PROJECT_DIR, 'bin', 'activate_this.py')
-execfile(activate_this, dict(__file__=activate_this))
+exec(compile(open(activate_this, "rb").read(), activate_this, 'exec'), dict(__file__=activate_this))
 sys.path.append(PROJECT_DIR)
 
 from rrwebapp import app as application

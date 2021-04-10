@@ -18,7 +18,7 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.sql import table, column
 
 # note we need the id to identify rows when column requires data specific to the row
-raceresult = table(u'raceresult',
+raceresult = table('raceresult',
                column('hidden', sa.Boolean),
               )
 #end added
@@ -38,7 +38,7 @@ def upgrade():
                type_=sa.Boolean(),
                existing_nullable=True)
     op.alter_column('managedresult', 'initialdisposition',
-               existing_type=mysql.ENUM(u'definite', u'similar', u'missed', u'excluded', u''),
+               existing_type=mysql.ENUM('definite', 'similar', 'missed', 'excluded', ''),
                type_=sa.String(length=15),
                existing_nullable=True)
     op.alter_column('race', 'active',
@@ -225,7 +225,7 @@ def downgrade():
                existing_nullable=True)
     op.alter_column('managedresult', 'initialdisposition',
                existing_type=sa.String(length=15),
-               type_=mysql.ENUM(u'definite', u'similar', u'missed', u'excluded', u''),
+               type_=mysql.ENUM('definite', 'similar', 'missed', 'excluded', ''),
                existing_nullable=True)
     op.alter_column('managedresult', 'confirmed',
                existing_type=sa.Boolean(),

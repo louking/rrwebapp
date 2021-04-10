@@ -22,15 +22,15 @@ from flask.views import MethodView
 
 # home grown
 from . import app
-import racedb
-from accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
-from database_flask import db   # this is ok because this module only runs under flask
-from apicommon import failure_response, success_response, check_header
-from crudapi import CrudApi
-from racedb import Race, Series, Divisions
-from racedb import getclubid, getyear
+from . import racedb
+from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
+from .database_flask import db   # this is ok because this module only runs under flask
+from .apicommon import failure_response, success_response, check_header
+from .crudapi import CrudApi
+from .racedb import Race, Series, Divisions
+from .racedb import getclubid, getyear
 
-from forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
+from .forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 #from runningclub import racefile   # required for xlsx support
 from loutilities.csvu import DictReaderStr2Num
 from loutilities.filters import filtercontainerdiv, filterdiv
@@ -114,8 +114,8 @@ def races_results_to_form(race):
 
 races_dbattrs = 'id,club_id,year,results,name,date,distance,surface,series'.split(',')
 races_formfields = 'rowid,club_id,year,results,name,date,distance,surface,series'.split(',')
-races_dbmapping = dict(zip(races_dbattrs, races_formfields))
-races_formmapping = dict(zip(races_formfields, races_dbattrs))
+races_dbmapping = dict(list(zip(races_dbattrs, races_formfields)))
+races_formmapping = dict(list(zip(races_formfields, races_dbattrs)))
 
 # transform race results for fancy buttons
 races_formmapping['results'] = races_results_to_form
@@ -316,7 +316,7 @@ class AjaxImportRaces(MethodView):
             db.session.commit()
             return success_response()
         
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = traceback.format_exc()
@@ -368,8 +368,8 @@ dt_options = {
 
 series_dbattrs = 'id,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
 series_formfields = 'rowid,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
-series_dbmapping = dict(zip(series_dbattrs, series_formfields))
-series_formmapping = dict(zip(series_formfields, series_dbattrs))
+series_dbmapping = dict(list(zip(series_dbattrs, series_formfields)))
+series_formmapping = dict(list(zip(series_formfields, series_dbattrs)))
 
 # force default of club id and year for new or updated records
 series_dbmapping['club_id'] = getclubid
@@ -554,8 +554,8 @@ app.add_url_rule('/_copyseries',view_func=AjaxCopySeries.as_view('_copyseries'),
 
 divisions_dbattrs = 'id,club_id,year,series,divisionlow,divisionhigh'.split(',')
 divisions_formfields = 'rowid,club_id,year,series,divisionlow,divisionhigh'.split(',')
-divisions_dbmapping = dict(zip(divisions_dbattrs, divisions_formfields))
-divisions_formmapping = dict(zip(divisions_formfields, divisions_dbattrs))
+divisions_dbmapping = dict(list(zip(divisions_dbattrs, divisions_formfields)))
+divisions_formmapping = dict(list(zip(divisions_formfields, divisions_dbattrs)))
 
 # force default of club id and year for new or updated records
 divisions_dbmapping['club_id'] = getclubid

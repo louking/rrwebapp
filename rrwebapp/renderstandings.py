@@ -17,11 +17,10 @@ renderstandings - render result information within database for standings
 
 # standard
 import pdb
-import argparse
 import math
 import copy
 import xml.etree.ElementTree as ET
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from datetime import datetime
 
 # pypi
@@ -33,13 +32,13 @@ import flask
 # other
 
 # home grown
-import racedb
+from . import racedb
 from loutilities import renderrun as render
 from . import app
 
 # module speicific needs
 import time
-from racedb import Divisions, Race, RaceResult, Runner
+from .racedb import Divisions, Race, RaceResult, Runner
 from loutilities import timeu
 tYmd = timeu.asctime('%Y-%m-%d')
 
@@ -59,7 +58,7 @@ def addstyle(header,contents,style):
     el = ET.Element('div')
     
     # embed ET Elements
-    if type(contents) == ET.Element:
+    if isinstance(contents, ET.Element):
         el.append(contents)
     
     # otherwise assume string
@@ -757,7 +756,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         '''
         name = str(name)
         if runnerid:
-            nameurl = makelink('{}?{}'.format(flask.url_for('results'),urllib.urlencode({'participant':runnerid,'series':self.seriesname})),name)
+            nameurl = makelink('{}?{}'.format(flask.url_for('results'),urllib.parse.urlencode({'participant':runnerid,'series':self.seriesname})),name)
         else:
             nameurl = name
         self.pline[gen]['name'] = addstyle(self.pline[gen]['header'],nameurl,stylename)
@@ -1281,7 +1280,7 @@ class StandingsRenderer():
                 #    byrunner[runnerid,name]['bydivision'].append(max(divpoints,0))
                 #
             else:
-                raise parameterError, "series '{}' results must be ordered by time, overallplace, agtime or agpercent".format(self.series.name)
+                raise parameterError("series '{}' results must be ordered by time, overallplace, agtime or agpercent".format(self.series.name))
             
         return numresults            
     
@@ -1302,7 +1301,7 @@ class StandingsRenderer():
             for div in Divisions.query.filter_by(club_id=self.club_id,seriesid=self.series.id,active=True).order_by(Divisions.divisionlow).all():
                 divisions.append((div.divisionlow,div.divisionhigh))
             if len(divisions) == 0:
-                raise dbConsistencyError, 'series {0} indicates divisions to be calculated, but no divisions found'.format(self.series.name)
+                raise dbConsistencyError('series {0} indicates divisions to be calculated, but no divisions found'.format(self.series.name))
 
         # process each gender
         for gen in ['F','M']:
@@ -1354,7 +1353,7 @@ class StandingsRenderer():
                     bypoints = []
                     for runnerid,name,age in divrunner[div]:
                         # convert each race result to int if possible
-                        byrunner[runnerid,name,age]['bydivision'] = [int(r) if type(r)==float and r==int(r) else r for r in byrunner[runnerid,name,age]['bydivision']]
+                        byrunner[runnerid,name,age]['bydivision'] = [int(r) if isinstance(r, float) and r==int(r) else r for r in byrunner[runnerid,name,age]['bydivision']]
                         racetotals = byrunner[runnerid,name,age]['bydivision'][:]    # make a copy
                         racetotals.sort(reverse=True)
                         # total numbers only, and convert to int if possible
@@ -1399,7 +1398,7 @@ class StandingsRenderer():
                             else:
                                 fh.setrace(gen,racenum,pts,stylename='race-dropped')
                             # count number of races runner ran
-                            if type(pts) == int or type(pts) == float:
+                            if isinstance(pts, int) or isinstance(pts, float):
                                 nraces += 1
                         fh.setnraces(gen,nraces)
                         fh.render(gen)
@@ -1422,7 +1421,7 @@ class StandingsRenderer():
             bypoints = []
             for runnerid,name,age in byrunner:
                 # convert each race result to int if possible
-                byrunner[runnerid,name,age]['bygender'] = [int(r) if type(r)==float and r==int(r) else r for r in byrunner[runnerid,name,age]['bygender']]
+                byrunner[runnerid,name,age]['bygender'] = [int(r) if isinstance(r, float) and r==int(r) else r for r in byrunner[runnerid,name,age]['bygender']]
                 racetotals = byrunner[runnerid,name,age]['bygender'][:]    # make a copy
                 racetotals.sort(reverse=True)
                 # total numbers only, and convert to int if possible
@@ -1466,7 +1465,7 @@ class StandingsRenderer():
                     else:
                         fh.setrace(gen,racenum,pts,stylename='race-dropped')
                     # count number of races runner ran
-                    if type(pts) == int or type(pts) == float:
+                    if isinstance(pts, int) or isinstance(pts, float):
                         nraces += 1
                 fh.setnraces(gen,nraces)
                 fh.render(gen)

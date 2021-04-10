@@ -1,15 +1,3 @@
-#!/usr/bin/python
-###########################################################################################
-# raceresults  -- retrieve race results from a file
-#
-#	Date		Author		Reason
-#	----		------		------
-#       01/07/13        Lou King        Create
-#       03/04/14        Lou King        Copied from runningclub
-#
-#   Copyright 2014 Lou King.  All rights reserved
-#
-###########################################################################################
 '''
 raceresults  -- retrieve race results from a file
 ===================================================
@@ -108,7 +96,7 @@ class RaceResults():
     
         foundhdr = False
         delimited = self.file.getdelimited()
-        fields = fieldxform.keys()
+        fields = list(fieldxform.keys())
         REQDFIELDS = ['place', 'gender', 'age']    # 'name' fields handled separately
         if self.timereqd:
             REQDFIELDS.append('time')
@@ -118,7 +106,7 @@ class RaceResults():
         try:
             # loop for each line until header found
             while True:
-                origline = self.file.next()
+                origline = next(self.file)
                 fieldsfound = 0
                 self.field = {} # need to clear in case earlier line had some garbage
                 line = []
@@ -142,7 +130,7 @@ class RaceResults():
                         for linendx in range(len(line)):                        
                             # match over the end of the line is no match
                             # m is either a string or a list of strings
-                            if type(m) == str:
+                            if isinstance(m, str):
                                 m = [m]         # make single string into list
                             if linendx+len(m)>len(line):
                                 continue
@@ -174,11 +162,11 @@ class RaceResults():
                         self.field['firstname'] = namefield
                         self.splitnames = True
                     elif 'name' in self.field and ('lastname' not in self.field and 'firstname' in self.field):
-                        raise headerError, '{0}: inconsistent name fields found in header: {1}'.format(self.filename,origline)
+                        raise headerError('{0}: inconsistent name fields found in header: {1}'.format(self.filename,origline))
                     elif 'name' in self.field:  # not 'lastname' or 'firstname'
                         self.splitnames = False
                     else:                       # insufficient name fields
-                        raise headerError, '{0}: no name fields found in header: {1}'.format(self.filename,origline)
+                        raise headerError('{0}: no name fields found in header: {1}'.format(self.filename,origline))
                     
                     # verify that all other required fields are present
                     fieldsnotfound = []
@@ -186,11 +174,10 @@ class RaceResults():
                         if f not in self.field:
                             fieldsnotfound.append(f)
                     if len(fieldsnotfound) != 0:
-                        raise headerError, '{0}: could not find fields {1} in header {2}'.format(self.filename,fieldsnotfound,origline)
+                        raise headerError('{0}: could not find fields {1} in header {2}'.format(self.filename,fieldsnotfound,origline))
                         
                     # sort found fields by order found within the line
-                    foundfields_dec = [(self.field[f]['start'],self.field[f]) for f in self.field]
-                    foundfields_dec.sort()
+                    foundfields_dec = sorted([(self.field[f]['start'],self.field[f]) for f in self.field])
                     self.foundfields = [ff[1] for ff in foundfields_dec] # get rid of sorting decorator
                         
                     # here we have decided it is a header line
@@ -255,7 +242,7 @@ class RaceResults():
                 
         # not good to come here
         except StopIteration:
-            raise headerError, '{0}: header not found'.format(self.filename)
+            raise headerError('{0}: header not found'.format(self.filename))
         
     #----------------------------------------------------------------------
     def _normalizetime(self,time,distance):
@@ -270,7 +257,7 @@ class RaceResults():
         '''
         
         # if string, assume hh:mm:ss or mm:ss or ss
-        if type(time) in [str,unicode]:
+        if type(time) in [str,str]:
             thistime = time
     
         # if float or int, assume it came from excel, and is in days
@@ -289,7 +276,7 @@ class RaceResults():
         return normalizeracetime(thistime, distance)
     
     #----------------------------------------------------------------------
-    def next(self):
+    def __next__(self):
     #----------------------------------------------------------------------
         '''
         return dict with generic headers and associated data from file
@@ -299,14 +286,14 @@ class RaceResults():
         # TODO: skip lines which empty text or otherwise invalid lines
         textfound = False
         while not textfound:
-            rawline = self.file.next()
+            rawline = next(self.file)
             textfound = True    # hope for the best
             
             # pick columns which are associated with generic headers
             filteredline = [rawline[i] for i in range(len(rawline)) if i in self.fieldcols]
             
             # create dict association, similar to csv.DictReader
-            result = dict(zip(self.fieldhdrs,filteredline))
+            result = dict(list(zip(self.fieldhdrs,filteredline)))
             
             # special processing if name is split, to combine first, last names
             if self.splitnames:
@@ -316,7 +303,7 @@ class RaceResults():
                 
             # special processing for age - normalize to integer
             if 'age' in result and result['age'] is not None:
-                if type(result['age']) in [str,unicode]:
+                if type(result['age']) in [str,str]:
                     result['age'] = result['age'].strip()
                 if not result['age']: # 0 or ''
                     result['age'] = None
@@ -328,11 +315,11 @@ class RaceResults():
                             textfound = False
                             continue
                         else:
-                            raise dataError, "invalid age '{}' for record with name '{}'".format(result['age'],result['name'])
+                            raise dataError("invalid age '{}' for record with name '{}'".format(result['age'],result['name']))
                 
             # special processing for place - normalize to integer
             if 'place' in result and result['place'] is not None:
-                if type(result['place']) in [str,unicode]:
+                if type(result['place']) in [str,str]:
                     result['place'] = result['place'].strip()
                 if not result['place']:  # 0 or ''
                     result['place'] = None
@@ -344,7 +331,7 @@ class RaceResults():
                             textfound = False
                             continue
                         else:
-                            raise dataError, "invalid place '{}' for record with name '{}'".format(result['place'],result['name'])
+                            raise dataError("invalid place '{}' for record with name '{}'".format(result['place'],result['name']))
                 
             # look for some obvious errors in name
             if result['name'] is None or result['name'][0] in '=-/!':
@@ -352,7 +339,7 @@ class RaceResults():
                     textfound = False
                     continue
                 else:
-                    raise dataError, "invalid name '{}'".format(result['name'])
+                    raise dataError("invalid name '{}'".format(result['name']))
             
             # TODO: add normalization for gender
             

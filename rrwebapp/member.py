@@ -27,27 +27,27 @@ from werkzeug.utils import secure_filename
 
 # home grown
 from . import app
-import racedb
-from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
+from . import racedb
+from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from database_flask import db   # this is ok because this module only runs under flask
-from apicommon import failure_response, success_response
+from .database_flask import db   # this is ok because this module only runs under flask
+from .apicommon import failure_response, success_response
 
 # module specific needs
 from collections import OrderedDict
 import csv
 from copy import copy
-from racedb import Runner, Club, RaceResult, ApiCredentials
-from forms import MemberForm 
+from .racedb import Runner, Club, RaceResult, ApiCredentials
+from .forms import MemberForm 
 #from runningclub import memberfile   # required for xlsx support
 from loutilities.csvu import DictReaderStr2Num
 from loutilities import timeu
 from running.runsignup import RunSignUp, members2csv as rsu_members2csv
-import clubmember
-from clubmember import rsu_api2filemapping
-from request import addscripts
-from crudapi import CrudApi
-from datatables_utils import getDataTableParams
+from . import clubmember
+from .clubmember import rsu_api2filemapping
+from .request import addscripts
+from .crudapi import CrudApi
+from .datatables_utils import getDataTableParams
 
 # module globals
 tYmd = timeu.asctime('%Y-%m-%d')
@@ -123,8 +123,8 @@ def normalizeRAmemberlist(inputstream,filterexpdate=None):
 
 mm_dbattrs = 'id,name,fname,lname,dateofbirth,gender,hometown,renewdate,expdate,member'.split(',')
 mm_formfields = 'rowid,name,fname,lname,dob,gender,hometown,renewal,expiration,member'.split(',')
-mm_dbmapping = OrderedDict(zip(mm_dbattrs, mm_formfields))
-mm_formmapping = OrderedDict(zip(mm_formfields, mm_dbattrs))
+mm_dbmapping = OrderedDict(list(zip(mm_dbattrs, mm_formfields)))
+mm_formmapping = OrderedDict(list(zip(mm_formfields, mm_dbattrs)))
 
 # convert member back / forth
 mm_dbmapping['member'] = lambda form: 1 if form['member'] == 'is-member' or form['member'] == 'true' else 0
@@ -407,7 +407,7 @@ class AjaxImportMembers(MethodView):
             try:
                 os.rmdir(tempdir)
             # no idea why this can happen; hopefully doesn't happen on linux
-            except WindowsError,e:
+            except WindowsError as e:
                 app.logger.debug('WindowsError exception ignored: {}'.format(e))
 
             # get old clubmembers from database
@@ -523,7 +523,7 @@ class AjaxImportMembers(MethodView):
             db.session.commit()
             return success_response()
         
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = traceback.format_exc()
@@ -586,7 +586,7 @@ class AjaxLoadMembers(MethodView):
             db.session.commit()
             return success_response(data=table)
         
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = traceback.format_exc()

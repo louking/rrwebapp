@@ -140,7 +140,7 @@ for s in range(numsets+1):  # and more
         hr   = int(laps[lp]['AverageHeartRateBpm']['Value'])
         dist = float(laps[lp]['DistanceMeters'])        # bug in xmldict?  Seems to put into a list if any child tag has the same name
         
-        if dist <> 0.0:
+        if dist != 0.0:
         
             # accumulate for this set
             # for interval switch, only indicated laps are averaged

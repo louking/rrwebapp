@@ -32,21 +32,21 @@ from . import app
 from loutilities import timeu
 from loutilities import csvu
 from loutilities import agegrade
-from resultsutils import CollectServiceResults, ServiceResultFile
+from .resultsutils import CollectServiceResults, ServiceResultFile
 from running import ultrasignup
-from database_flask import db   # this is ok because this module only runs under flask
-from racedb import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
-from race import race_fixeddist
+from .database_flask import db   # this is ok because this module only runs under flask
+from .racedb import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
+from .race import race_fixeddist
 
 
-ag = agegrade.AgeGrade()
+ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
 class invalidParameter(Exception): pass
 
 # resultfilehdr needs to associate 1:1 with resultattrs
 resultfilehdr = 'GivenName,FamilyName,name,DOB,Gender,race,date,loc,age,miles,km,time,timesecs,ag'.split(',')
 resultattrs = 'firstname,lastname,name,dob,gender,race,date,raceloc,age,miles,km,time,timesecs,ag'.split(',')
 
-hdrtransform = dict(zip(resultattrs,resultfilehdr))
+hdrtransform = dict(list(zip(resultattrs,resultfilehdr)))
 ftime = timeu.asctime('%Y-%m-%d')
 hdrtransform['gender'] = lambda row: row['Gender'][0]
 
@@ -204,7 +204,7 @@ class UltraSignupCollect(CollectServiceResults):
         resulttime = result.racetime
 
         # int resulttime means DNF, most likely -- skip this result
-        if type(resulttime) == int: return None
+        if isinstance(resulttime, int): return None
         
         # strange case of TicksString = ':00'
         if resulttime[0] == ':':

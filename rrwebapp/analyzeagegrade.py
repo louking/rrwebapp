@@ -32,7 +32,7 @@ class invalidParameter(Exception): pass
 METERSPERMILE = 1609.344
 
 # pull in age grade object
-ag = agegrade.AgeGrade()
+ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
     
 
 #-------------------------------------------------------------------------------
@@ -234,8 +234,7 @@ class AnalyzeAgeGrade():
         TIME_EPS = 2.0   # if time is within this tolerance (seconds), assumed to be the same
 
         # sort self.stats into stats, by date,distance
-        decstats = [((s.date,s.dist),s) for s in self.stats]
-        decstats.sort()
+        decstats = sorted([((s.date,s.dist),s) for s in self.stats])
         stats = [ds[1] for ds in decstats]
         
         # deduplicate stats, paying attention to priority when races determined to be the same
@@ -323,7 +322,7 @@ class AnalyzeAgeGrade():
         linenum = 0
         while True:
             try:
-                inrow = IN.next()
+                inrow = next(IN)
                 linenum += 1
             except StopIteration:
                 break
@@ -337,11 +336,11 @@ class AnalyzeAgeGrade():
             s_rtime = inrow['Net']
             timefields = iter(s_rtime.split(':'))
             rtime = 0.0
-            thisunit = float(timefields.next())
+            thisunit = float(next(timefields))
             while True:
                 rtime += thisunit
                 try:
-                    thisunit = float(timefields.next())
+                    thisunit = float(next(timefields))
                 except StopIteration:
                     break
                 rtime *= 60 # doesn't happen if last field was processed before
@@ -397,7 +396,7 @@ class AnalyzeAgeGrade():
             # if we're here, found the right user, now let's look at the workouts
             firstdate = day.asc2dt('1980-01-01')
             lastdate = day.asc2dt('2199-12-31')
-            workouts = ra.listworkouts(user['token'],begindate=firstdate,enddate=lastdate,getfields=FIELD['workout'].keys())
+            workouts = ra.listworkouts(user['token'],begindate=firstdate,enddate=lastdate,getfields=list(FIELD['workout'].keys()))
     
             # we've found the right user and collected their data, so we're done
             break
@@ -432,9 +431,9 @@ class AnalyzeAgeGrade():
         debug = False
         if debug:
             tim = timeu.asctime('%Y-%m-%d-%H%M')
-            _DEB = open('analyzeagegrade-debug-{}-crunch-{}.csv'.format(tim.epoch2asc(self.exectime,self.who)),'wb')
+            _DEB = open('analyzeagegrade-debug-{}-crunch-{}.csv'.format(tim.epoch2asc(self.exectime,self.who)), 'w', newline='')
             fields = ['date','dist','time','ag']
-            DEB = csv.DictWriter(_DEB,fields)
+            DEB = csv.DictWriter(_DEB, fields)
             DEB.writeheader()
         ### <DEBUG
             

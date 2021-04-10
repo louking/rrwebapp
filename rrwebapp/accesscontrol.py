@@ -25,7 +25,7 @@ from flask_principal import Principal, Permission, RoleNeed, UserNeed
 
 # home grown
 from . import app
-from database_flask import db   # this is ok because this module only runs under flask
+from .database_flask import db   # this is ok because this module only runs under flask
 
 ########################################################################
 # permissions definition

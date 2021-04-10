@@ -27,7 +27,7 @@ from flask.views import MethodView
 from . import app
 
 # module specific needs
-from nav import setnavigation
+from .nav import setnavigation
 
 class invalidScript(Exception): pass
 
@@ -70,7 +70,7 @@ def annotatescripts(scripts):
     
     for scriptitem in scripts:
         # handle CDN items
-        if type(scriptitem) == tuple:
+        if isinstance(scriptitem, tuple):
             thisfile, version, cdn = scriptitem
 
             # maybe get minimized version
@@ -119,13 +119,13 @@ def addscripts(scriptlist):
     # get filetype of first file
     firstfiletype = scriptlist[0].split('.')[-1]
     if firstfiletype not in ['css', 'js']:
-        raise invalidScript,'Invalid script filename: {}'.format(thisfile)
+        raise invalidScript('Invalid script filename: {}'.format(thisfile))
 
     # make sure all scripts referenced are of same type as first
     for thisfile in scriptlist:
         filetype = thisfile.split('.')[-1]
         if filetype != firstfiletype:
-            raise invalidScript,'All scripts in script list must be of same type: {}'.format(scriptlist)
+            raise invalidScript('All scripts in script list must be of same type: {}'.format(scriptlist))
 
     return annotatescripts(scriptlist)
 
@@ -163,9 +163,9 @@ def crossdomain(origin=None, methods=None, headers=None,
     '''
     if methods is not None:
         methods = ', '.join(sorted(x.upper() for x in methods))
-    if headers is not None and not isinstance(headers, basestring):
+    if headers is not None and not isinstance(headers, str):
         headers = ', '.join(x.upper() for x in headers)
-    if not isinstance(origin, basestring):
+    if not isinstance(origin, str):
         origin = ', '.join(origin)
     if isinstance(max_age, timedelta):
         max_age = max_age.total_seconds()

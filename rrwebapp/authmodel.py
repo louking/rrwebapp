@@ -19,7 +19,7 @@ OBSOLETE -- now these tables are in racedb
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # homegrown
-from database import Base,Table,Column,Integer,Float,Boolean,String,Sequence,UniqueConstraint,ForeignKey,metadata,object_mapper,relationship,backref
+from .database import Base,Table,Column,Integer,Float,Boolean,String,Sequence,UniqueConstraint,ForeignKey,metadata,object_mapper,relationship,backref
 
 rolenames = ['admin','viewer']
 
@@ -167,11 +167,11 @@ def find_user(userid):
     :param userid: id or email address of user
     '''
     # if numeric, assume userid is id of user
-    if type(userid) in [int,long]:
+    if type(userid) in [int,int]:
         return User.query.filter_by(id=userid).first()
     
     # if string assume email address
-    if type(userid) in [str,unicode]:
+    if type(userid) in [str,str]:
         return User.query.filter_by(email=userid).first()
     
     # who knows what it was, but we didn't find it

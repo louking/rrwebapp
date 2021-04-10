@@ -26,8 +26,8 @@ import loutilities
 from loutilities.configparser import getitems
 
 # bring in js, css assets
-import assets
-from assets import asset_env, asset_bundles
+from . import assets
+from .assets import asset_env, asset_bundles
 
 # create app and celery tasking back end
 app = Flask('rrwebapp')
@@ -85,26 +85,26 @@ tu = timeu.asctime('%Y-%m-%d %H:%M:%S')
 app.configtime = tu.epoch2asc(time.time())
 
 # must set up logging after setting configuration
-import applogging
+from . import applogging
 applogging.setlogging()
 
 # import all views
-import services
-import request
-import index
-import login
-import club
-import userrole
-import race
-import member
-import results
-import resultsanalysis
-import standings
-import location
-import tools
-import sysinfo
-import docs
-import staticfiles
-import agegradeapi
+from . import services
+from . import request
+from . import index
+from . import login
+from . import club
+from . import userrole
+from . import race
+from . import member
+from . import results
+from . import resultsanalysis
+from . import standings
+from . import location
+from . import tools
+from . import sysinfo
+from . import docs
+from . import staticfiles
+from . import agegradeapi
 
 

@@ -6,6 +6,7 @@ underdevelopment.txt
 rrwebapp/static/css/*
 rrwebapp/static/js/*
 rrwebapp/static/images/*
+venv/
 
 #################
 ## Eclipse

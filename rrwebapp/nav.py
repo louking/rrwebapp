@@ -19,30 +19,35 @@ import json
 from datetime import datetime
 
 # pypi
-import flask
-from flask_login import current_user, abort
+from flask import url_for, abort, session
+from flask_login import current_user
 from flask.views import MethodView
 from flask import request
 
 # home grown
 from . import app
-from racedb import Club, Race
-from apicommon import success_response, failure_response
-from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
+from .racedb import Club, Race
+from .apicommon import success_response, failure_response
+from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from database_flask import db   # this is ok because this module only runs under flask
-
-from HTMLParser import HTMLParser
+from .database_flask import db   # this is ok because this module only runs under flask
 
 # from http://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
+from io import StringIO
+from html.parser import HTMLParser
+
+
 class MLStripper(HTMLParser):
     def __init__(self):
+        super().__init__()
         self.reset()
-        self.fed = []
+        self.strict = False
+        self.convert_charrefs= True
+        self.text = StringIO()
     def handle_data(self, d):
-        self.fed.append(d)
+        self.text.write(d)
     def get_data(self):
-        return ''.join(self.fed)
+        return self.text.getvalue()
 
 def strip_tags(html):
     s = MLStripper()
@@ -77,64 +82,64 @@ def getnavigation():
 
     # set club and club permissions
     club = None
-    if 'club_id' in flask.session:
-        club = Club.query.filter_by(id=flask.session['club_id']).first()
-        readcheck = ViewClubDataPermission(flask.session['club_id'])
-        writecheck = UpdateClubDataPermission(flask.session['club_id'])
+    if 'club_id' in session:
+        club = Club.query.filter_by(id=session['club_id']).first()
+        readcheck = ViewClubDataPermission(session['club_id'])
+        writecheck = UpdateClubDataPermission(session['club_id'])
 
     navigation = []
     
-    navigation.append({'display':'{} Home'.format(productname),'url':flask.url_for('index')})
+    navigation.append({'display':'{} Home'.format(productname),'url':url_for('index')})
     
     if is_authenticated(thisuser):
         if owner_permission.can():
-            navigation.append({'display':'Clubs','url':flask.url_for('manageclubs')})
-            navigation.append({'display':'Users','url':flask.url_for('manageusers')})
-            navigation.append({'display':'Service Credentials','url':flask.url_for('servicecredentials')})
+            navigation.append({'display':'Clubs','url':url_for('manageclubs')})
+            navigation.append({'display':'Users','url':url_for('manageusers')})
+            navigation.append({'display':'Service Credentials','url':url_for('servicecredentials')})
 
             navigation.append({'display':'Results Analysis','list':[]})
-            navigation[-1]['list'].append({'display':'Status/Control','url':flask.url_for('resultsanalysisstatus')})
-            navigation[-1]['list'].append({'display':'Summary','url':flask.url_for('resultsanalysissummary')})
-            navigation[-1]['list'].append({'display':'Services','url':flask.url_for('raceresultservices')})
-            navigation[-1]['list'].append({'display':'Courses','url':flask.url_for('courses')})
-            navigation[-1]['list'].append({'display':'Locations','url':flask.url_for('locations')})
+            navigation[-1]['list'].append({'display':'Status/Control','url':url_for('resultsanalysisstatus')})
+            navigation[-1]['list'].append({'display':'Summary','url':url_for('resultsanalysissummary')})
+            navigation[-1]['list'].append({'display':'Services','url':url_for('raceresultservices')})
+            navigation[-1]['list'].append({'display':'Courses','url':url_for('courses')})
+            navigation[-1]['list'].append({'display':'Locations','url':url_for('locations')})
             
         if club and readcheck.can():
-            navigation.append({'display':'Members','url':flask.url_for('managemembers')})
-            navigation.append({'display':'Races','url':flask.url_for('manageraces')})
-            navigation.append({'display':'Series','url':flask.url_for('manageseries')})
-            navigation.append({'display':'Divisions','url':flask.url_for('managedivisions')})
+            navigation.append({'display':'Members','url':url_for('managemembers')})
+            navigation.append({'display':'Races','url':url_for('manageraces')})
+            navigation.append({'display':'Series','url':url_for('manageseries')})
+            navigation.append({'display':'Divisions','url':url_for('managedivisions')})
 
             # owner check to avoid duplicate navigation
             if not owner_permission.can():
-                navigation.append({'display':'Results Summary','url':flask.url_for('resultsanalysissummary')})
+                navigation.append({'display':'Results Summary','url':url_for('resultsanalysissummary')})
 
         if club and writecheck.can():
-            navigation.append({'display':'Exclusions','url':flask.url_for('editexclusions')})
+            navigation.append({'display':'Exclusions','url':url_for('editexclusions')})
     
     # get club option list
     clubs = Club.query.all()
     clubnames = [club.name for club in clubs if club.name != 'owner']
     clubshnames = [club.shname for club in clubs if club.name != 'owner']
-    clubopts = dict(zip(clubnames,clubshnames))
+    clubopts = dict(list(zip(clubnames,clubshnames)))
 
     # update session based on arguments
     clubarg = request.args.get('club',None)
     yeararg = request.args.get('year',None)
     seriesarg = request.args.get('series',None)
     if clubarg:
-        flask.session['last_standings_club'] = clubarg
+        session['last_standings_club'] = clubarg
     if yeararg:
-        flask.session['last_standings_year'] = yeararg
+        session['last_standings_year'] = yeararg
     if seriesarg:
-        flask.session['last_standings_series'] = seriesarg
+        session['last_standings_series'] = seriesarg
 
     # get defaults for navigation forms
-    clubsess = flask.session.get('last_standings_club',None)
+    clubsess = session.get('last_standings_club',None)
 
     # what year is it now? what default should we use?
     thisyear = datetime.now().year
-    yeardefault = flask.session['last_standings_year'] if 'last_standings_year' in flask.session else thisyear
+    yeardefault = session['last_standings_year'] if 'last_standings_year' in session else thisyear
 
     # anonymous access
     navigation.append({'display':'Standings','url':'#',
@@ -145,7 +150,7 @@ def getnavigation():
                          'className': 'choose-standings-form',
                          'fields': [
                              {'name': 'club', 'label': 'Club', 'type': 'select2', 'options': clubopts, 'def': clubsess},
-                             {'name': 'year', 'label': 'Year', 'type': 'select2', 'options': range(2013, thisyear+1), 'def':yeardefault},
+                             {'name': 'year', 'label': 'Year', 'type': 'select2', 'options': list(range(2013, thisyear+1)), 'def':yeardefault},
                              {'name': 'series', 'label': 'Series', 'type': 'select2', 'opts': {'placeholder': 'Select series'}},
                          ]
                      },
@@ -170,7 +175,7 @@ def getnavigation():
                                         args.desc = this.field("club").inst().find(":selected").text() + " - " + this.get("year") + " " + this.get("series");
                                         this.close();
                                         window.location.href = "{}?\" + $.param( args );
-                                    }}'''.format(flask.url_for('viewstandings'))},
+                                    }}'''.format(url_for('viewstandings'))},
                      ],
                      # name of functions called with standalone editor instance and buttons field from above
                      'onopen': 'navstandingsopen',
@@ -185,8 +190,8 @@ def getnavigation():
                     'value': json.dumps({
                             'title' : 'Choose club',
                             'buttons' : [
-                                {'label': 'table', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(flask.url_for('results'))},
-                                {'label': 'chart', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(flask.url_for('resultschart'))},
+                                {'label': 'table', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(url_for('results'))},
+                                {'label': 'chart', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(url_for('resultschart'))},
                             ],
                             'editoropts': {
                                 'fields': [ {
@@ -205,12 +210,12 @@ def getnavigation():
         # TODO: when more tools are available, move writecheck to appropriate tools
         if club and writecheck.can():
             navigation.append({'display':'Tools','list':[]})
-            navigation[-1]['list'].append({'display':'Normalize Members','url':flask.url_for('normalizememberlist')})
-            navigation[-1]['list'].append({'display':'Export Results','url':flask.url_for('exportresults')})
-    navigation.append({'display':'About','url':flask.url_for('sysinfo')})
+            navigation[-1]['list'].append({'display':'Normalize Members','url':url_for('normalizememberlist')})
+            navigation[-1]['list'].append({'display':'Export Results','url':url_for('exportresults')})
+    navigation.append({'display':'About','url':url_for('sysinfo')})
     
     if is_authenticated(thisuser) and owner_permission.can():
-        navigation.append({'display':'Debug','url':flask.url_for('debug')})
+        navigation.append({'display':'Debug','url':url_for('debug')})
     
     return navigation
 
@@ -230,8 +235,7 @@ def getuserclubs(user):
         clubselect = (thisclub.id,thisclub.name)
         if clubselect not in clubs:
             clubs.append(clubselect)
-    decclubs = [(club[1],club) for club in clubs]
-    decclubs.sort()
+    decclubs = sorted([(club[1],club) for club in clubs])
     return [club[1] for club in decclubs]
 
 #----------------------------------------------------------------------
@@ -256,16 +260,16 @@ def setnavigation():
     thisuser = current_user
 
     club = None
-    if hasattr(flask.session,'club'):
-        club = flask.session.club
+    if hasattr(session,'club'):
+        club = session.club
         
     # get navigation list
-    flask.session['nav'] = getnavigation()
+    session['nav'] = getnavigation()
     
     # update years and clubs choices
     if is_authenticated(thisuser):
-        flask.session['year_choices'] = getuseryears(thisuser)
-        flask.session['club_choices'] = getuserclubs(thisuser)
+        session['year_choices'] = getuseryears(thisuser)
+        session['club_choices'] = getuserclubs(thisuser)
 
 #######################################################################
 class UserClubAPI(MethodView):
@@ -288,11 +292,10 @@ class UserClubAPI(MethodView):
             for role in current_user.roles:
                 if role.club.name == 'owner': continue
                 decclubs_set.add((role.club.name,(role.club.id,role.club.name)))
-            decclubs = list(decclubs_set)
-            decclubs.sort()
+            decclubs = sorted(decclubs_set)
             clubs = [c[1] for c in decclubs]
             
-            response = success_response(club_id=flask.session['club_id'],choices=clubs)
+            response = success_response(club_id=session['club_id'],choices=clubs)
 
             # commit database updates and close transaction
             db.session.commit()
@@ -315,7 +318,7 @@ class UserClubAPI(MethodView):
                 db.session.rollback()
                 return failure_response({'error':403})
             
-            flask.session['club_id'] = club_id
+            session['club_id'] = club_id
             response = success_response()
             
             # commit database updates and close transaction
@@ -351,7 +354,7 @@ class UserYearAPI(MethodView):
 
             years = getuseryears(current_user)
 
-            response = success_response(year=flask.session['year'],choices=years)
+            response = success_response(year=session['year'],choices=years)
 
             # commit database updates and close transaction
             db.session.commit()
@@ -374,7 +377,7 @@ class UserYearAPI(MethodView):
                 db.session.rollback()
                 abort(403)
 
-            flask.session['year'] = year
+            session['year'] = year
             
             response = success_response()
 

@@ -18,9 +18,9 @@ from collections import OrderedDict
 
 # homegrown
 from . import app
-from crudapi import CrudApi, DbQueryApi
-from accesscontrol import owner_permission
-from racedb import ApiCredentials, RaceResultService, insert_or_update
+from .crudapi import CrudApi, DbQueryApi
+from .accesscontrol import owner_permission
+from .racedb import ApiCredentials, RaceResultService, insert_or_update
 
 
 ###########################################################################################
@@ -85,8 +85,8 @@ class ServiceAttributes(object):
 
 sc_dbattrs = 'id,name,key,secret'.split(',')
 sc_formfields = 'rowid,name,key,secret'.split(',')
-sc_dbmapping = OrderedDict(zip(sc_dbattrs, sc_formfields))
-sc_formmapping = OrderedDict(zip(sc_formfields, sc_dbattrs))
+sc_dbmapping = OrderedDict(list(zip(sc_dbattrs, sc_formfields)))
+sc_formmapping = OrderedDict(list(zip(sc_formfields, sc_dbattrs)))
 sc = CrudApi(pagename = 'Service Credentials', 
              endpoint = 'servicecredentials', 
              dbmapping = sc_dbmapping, 
@@ -118,8 +118,8 @@ rrs_services.register()
 
 rrs_dbattrs = 'id,apicredentials_id,attrs'.split(',')
 rrs_formfields = 'rowid,service,attrs'.split(',')
-rrs_dbmapping = OrderedDict(zip(rrs_dbattrs, rrs_formfields))
-rrs_formmapping = OrderedDict(zip(rrs_formfields, rrs_dbattrs))
+rrs_dbmapping = OrderedDict(list(zip(rrs_dbattrs, rrs_formfields)))
+rrs_formmapping = OrderedDict(list(zip(rrs_formfields, rrs_dbattrs)))
 rrs_formmapping['service'] = lambda rrsrow: ApiCredentials.query.filter_by(id=rrsrow.apicredentials_id).first().name
 rrs = CrudApi(pagename = 'Race Result Services', 
              endpoint = 'raceresultservices', 

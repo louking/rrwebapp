@@ -23,12 +23,12 @@ import wtforms
 
 # home grown
 from . import app
-import racedb
-from racedb import User,Club
-from nav import getuserclubs
-from database_flask import db   # this is ok because this module only runs under flask
+from . import racedb
+from .racedb import User,Club
+from .nav import getuserclubs
+from .database_flask import db   # this is ok because this module only runs under flask
 from loutilities import timeu
-from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
+from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
 
 login_manager = LoginManager(app)
@@ -106,7 +106,7 @@ def login():
             # zero clubs is an internal error in the databse
             if not(userclubs):
                 db.session.rollback()
-                raise dbConsistencyError,'no clubs found in database'
+                raise dbConsistencyError('no clubs found in database')
                 
             # give user access to the first club in the list if no club already chosen
             # club_choices set in nav module. If this club.id is not in club_choices, 
@@ -277,7 +277,7 @@ def setyear():
         if form.validate_on_submit():
             # Retrieve the year picked by the user
             year = form.year.data
-            if type(year) != int or year < 2013 or year > 2050:
+            if not isinstance(year, int) or year < 2013 or year > 2050:
                 error = 'invalid year'
                 db.session.rollback()
                 return flask.render_template('setyear.html', form=form, pagename='Set Year', action='Set Year', error=error)

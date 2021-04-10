@@ -37,7 +37,7 @@ JS_SOURCE = '/home/scoretility/devhome/js'
 
 @task
 def deploy(c, branchname='master'):
-    print('c.user={} c.host={} branchname={}'.format(c.user, c.host, branchname))
+    print(('c.user={} c.host={} branchname={}'.format(c.user, c.host, branchname)))
 
     # TODO: rrwebapp should be venv, separate from application, fix for python 3
     venv_dir = '/var/www/{server}/rrwebapp'.format(server=c.host)

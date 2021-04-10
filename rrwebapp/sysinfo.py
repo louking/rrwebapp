@@ -28,14 +28,14 @@ from werkzeug.utils import secure_filename
 
 # home grown
 from . import app
-import racedb
-from accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
+from . import racedb
+from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from database_flask import db   # this is ok because this module only runs under flask
-from apicommon import failure_response, success_response
+from .database_flask import db   # this is ok because this module only runs under flask
+from .apicommon import failure_response, success_response
 
 # module specific needs
-import version
+from . import version
 
 class testException(Exception): pass
 
@@ -77,8 +77,7 @@ class ViewDebug(MethodView):
             sysvars = []
             
             # collect app.config variables
-            configkeys = app.config.keys()
-            configkeys.sort()
+            configkeys = sorted(list(app.config.keys()))
             appconfig = []
             for key in configkeys:
                 value = app.config[key]
@@ -89,7 +88,7 @@ class ViewDebug(MethodView):
             sysvars.append(['app.config',appconfig])
             
             # collect flask.session variables
-            sessionkeys = flask.session.keys()
+            sessionkeys = list(flask.session.keys())
             sessionkeys.sort()
             sessionconfig = []
             for key in sessionkeys:

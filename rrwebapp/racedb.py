@@ -27,7 +27,6 @@ racedb has the following tables.  See classes of same name (with camelcase) for 
 
 # standard
 import pdb
-import argparse
 import time
 
 # pypi
@@ -38,11 +37,11 @@ from sqlalchemy.types import TypeDecorator
 # github
 
 # other
-from database_flask import *
+from .database_flask import *
 from flask import session
 
 # home grown
-import version
+from . import version
 from loutilities import timeu
 import loutilities.renderrun as render
 
@@ -78,7 +77,7 @@ def getunique(session, model, **kwargs):
 
     # error if query returned multiple rows when it was supposed to be unique
     if len(instances) > 1:
-        raise dbConsistencyError, 'found multiple rows in {0} for {1}'.format(model,kwargs)
+        raise dbConsistencyError('found multiple rows in {0} for {1}'.format(model,kwargs))
     
     if len(instances) == 0:
         return None
@@ -157,11 +156,11 @@ def find_user(userid):
     :param userid: id or email address of user
     '''
     # if numeric, assume userid is id of user
-    if type(userid) in [int,long]:
+    if type(userid) in [int,int]:
         return User.query.filter_by(id=userid).first()
     
     # if string assume email address
-    if type(userid) in [str,unicode]:
+    if type(userid) in [str,str]:
         return User.query.filter_by(email=userid).first()
     
     # who knows what it was, but we didn't find it
@@ -414,7 +413,7 @@ class Runner(Base):
             else:
                 dateofbirth = ''
         except ValueError:
-            raise parameterError, 'invalid dateofbirth {0}'.format(dateofbirth)
+            raise parameterError('invalid dateofbirth {0}'.format(dateofbirth))
         
         try:
             if renewdate:
@@ -423,7 +422,7 @@ class Runner(Base):
             else:
                 renewdate = ''
         except ValueError:
-            raise parameterError, 'invalid renewdate {0}'.format(renewdate)
+            raise parameterError('invalid renewdate {0}'.format(renewdate))
         
         self.club_id = club_id
         self.name = name    

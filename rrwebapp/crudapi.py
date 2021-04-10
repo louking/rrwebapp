@@ -17,21 +17,21 @@ crudapi - crudapi handling
 import traceback
 from copy import deepcopy
 from json import dumps, loads
-from urllib import urlencode
+from urllib.parse import urlencode
 
 # pypi
 import flask
 from flask import make_response, request, jsonify, url_for
 from flask_login import login_required
 from flask.views import MethodView
-from datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
+from .datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 
 # homegrown
 from . import app
-from database_flask import db   # this is ok because this module only runs under flask
-from request import addscripts
+from .database_flask import db   # this is ok because this module only runs under flask
+from .request import addscripts
 from loutilities.tables import DbCrudApi
-from accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
+from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 
 class parameterError(Exception): pass
 
@@ -249,11 +249,11 @@ def deepupdate(obj, val, newval):
     '''
     thisobj = deepcopy(obj)
 
-    if type(thisobj) == dict:
+    if isinstance(thisobj, dict):
         for k in thisobj:
             thisobj[k] = deepupdate(thisobj[k], val, newval)
 
-    elif type(thisobj) == list:
+    elif isinstance(thisobj, list):
         for k in range(len(thisobj)):
             thisobj[k] = deepupdate(thisobj[k], val, newval)
 

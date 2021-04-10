@@ -11,7 +11,7 @@
 
 # standard
 import smtplib
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 # pypi
 import flask
@@ -20,11 +20,11 @@ from flask.views import MethodView
 
 # home grown
 from . import app
-from database_flask import db   # this is ok because this module only runs under flask
+from .database_flask import db   # this is ok because this module only runs under flask
 
 # module specific needs
-from forms import FeedbackForm
-import version
+from .forms import FeedbackForm
+from . import version
 
 #######################################################################
 class ViewIndex(MethodView):
@@ -99,7 +99,7 @@ class GetFeedback(MethodView):
             frompage = flask.request.args.get('next',None)
             if frompage:
                 params = {'next':frompage}
-                actionurl = '{}?{}'.format(flask.url_for('feedback'),urllib.urlencode(params))
+                actionurl = '{}?{}'.format(flask.url_for('feedback'),urllib.parse.urlencode(params))
             else:
                 actionurl = flask.url_for('feedback')
                 

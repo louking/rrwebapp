@@ -17,23 +17,23 @@ clubmember - manage club member information
 
 # standard
 import pdb
-import argparse
 import datetime
 import difflib
 from collections import OrderedDict
+from csv import DictReader
 
 # pypi
-#from IPython.core.debugger import Tracer; debughere = Tracer(); debughere() # set breakpoint where needed
-import unicodecsv
+# this isn't needed any more with python 3, per https://stackoverflow.com/q/61279985/799921
+# import unicodecsv
 
 # github
 
 # home grown
-import version
-import racedb
+from . import version
+from . import racedb
 from loutilities import timeu, csvwt
 from loutilities.transform import Transform
-from database_flask import db
+from .database_flask import db
 from . import app
 
 # exceptions for this module.  See __init__.py for package exceptions
@@ -111,11 +111,12 @@ class ClubMember():
     #----------------------------------------------------------------------
     def __init__(self,csvfile,cutoff=0.6,exceldates=True):
     #----------------------------------------------------------------------
-        if type(csvfile) == file:
+        from io import TextIOBase
+        if isinstance(csvfile, TextIOBase):
             closeit = False
             _IN = csvfile
         else:
-            _IN = open(csvfile,'rb')
+            _IN = open(csvfile, 'r', newline='')
             closeit = True
 
         # check header to see if RunSignUp file -- making some assumptions here
@@ -131,7 +132,7 @@ class ClubMember():
 
         # need to reset file before parsing as csv
         _IN.seek(0) 
-        IN = unicodecsv.DictReader(_IN)
+        IN = DictReader(_IN)
         
         # collect member information by member name
         self.members = {}
@@ -234,7 +235,7 @@ class ClubMember():
         :rtype: {'matchingmembers':member record list, 'exactmatch':boolean, 'closematches':member name list}
         '''
         
-        closematches = difflib.get_close_matches(name.lower(),self.members.keys(),cutoff=self.cutoff)
+        closematches = difflib.get_close_matches(name.lower(),list(self.members.keys()),cutoff=self.cutoff)
         
         rval = {}
         if len(closematches) > 0:
@@ -364,7 +365,7 @@ class XlClubMember(ClubMember):
 
         # retrieve first sheet's csv filename
         csvfiles = c.getfiles()
-        csvsheets = csvfiles.keys()
+        csvsheets = list(csvfiles.keys())
         csvfile = csvfiles[csvsheets[0]]
 
         # do all the work
@@ -437,7 +438,7 @@ class DbClubMember(ClubMember):
         
         # retrieve first sheet's csv filename
         csvfiles = d.getfiles()
-        csvsheets = csvfiles.keys()
+        csvsheets = list(csvfiles.keys())
         csvfile = csvfiles[csvsheets[0]]
         
         # do all the work

@@ -61,40 +61,40 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.UniqueConstraint('user_id', 'role_id')
     )
-    op.add_column(u'divisions', sa.Column('club_id', sa.Integer(), nullable=True))
-    op.add_column(u'divisions', sa.Column('year', sa.Integer(), nullable=True))
-    op.add_column(u'race', sa.Column('club_id', sa.Integer(), nullable=True))
-    op.add_column(u'race', sa.Column('surface', sa.Enum('road', 'track', 'trail', name='SurfaceType'), nullable=True))
-    op.drop_constraint(u'name', 'race',type_='unique')
+    op.add_column('divisions', sa.Column('club_id', sa.Integer(), nullable=True))
+    op.add_column('divisions', sa.Column('year', sa.Integer(), nullable=True))
+    op.add_column('race', sa.Column('club_id', sa.Integer(), nullable=True))
+    op.add_column('race', sa.Column('surface', sa.Enum('road', 'track', 'trail', name='SurfaceType'), nullable=True))
+    op.drop_constraint('name', 'race',type_='unique')
     op.create_unique_constraint(None, 'race', ['name', 'year', 'club_id'])
-    op.add_column(u'raceresult', sa.Column('club_id', sa.Integer(), nullable=True))
-    op.add_column(u'raceresult', sa.Column('instandings', sa.Boolean(), nullable=True))
+    op.add_column('raceresult', sa.Column('club_id', sa.Integer(), nullable=True))
+    op.add_column('raceresult', sa.Column('instandings', sa.Boolean(), nullable=True))
     # needed to reverse next two lines, else
     #   sqlalchemy.exc.OperationalError: (OperationalError) (1553, "Cannot drop index 'runnerid': needed in a foreign key constraint") 'ALTER TABLE raceresult DROP INDEX runnerid' ()
     op.create_unique_constraint(None, 'raceresult', ['runnerid', 'runnername', 'raceid', 'seriesid', 'club_id'])
-    op.drop_constraint(u'runnerid', 'raceresult',type_='unique')
-    op.add_column(u'runner', sa.Column('club_id', sa.Integer(), nullable=True))
-    op.add_column(u'runner', sa.Column('renewdate', sa.String(length=10), nullable=True))
-    op.drop_constraint(u'name', 'runner',type_='unique')
+    op.drop_constraint('runnerid', 'raceresult',type_='unique')
+    op.add_column('runner', sa.Column('club_id', sa.Integer(), nullable=True))
+    op.add_column('runner', sa.Column('renewdate', sa.String(length=10), nullable=True))
+    op.drop_constraint('name', 'runner',type_='unique')
     op.create_unique_constraint(None, 'runner', ['name', 'dateofbirth', 'club_id'])
-    op.add_column(u'series', sa.Column('club_id', sa.Integer(), nullable=True))
-    op.add_column(u'series', sa.Column('year', sa.Integer(), nullable=True))
-    op.drop_constraint(u'name', 'series',type_='unique')    # needed to add this -- had I deleted by accident? // this was a bug, two unique constraints were in the table
+    op.add_column('series', sa.Column('club_id', sa.Integer(), nullable=True))
+    op.add_column('series', sa.Column('year', sa.Integer(), nullable=True))
+    op.drop_constraint('name', 'series',type_='unique')    # needed to add this -- had I deleted by accident? // this was a bug, two unique constraints were in the table
     op.create_unique_constraint(None, 'series', ['name', 'year', 'club_id'])
     ### end Alembic commands ###
 
     # on upgrade, create initial clubs, roles, owner user
-    club = table(u'club',
+    club = table('club',
                  column('id', sa.Integer),
                  column('shname', sa.String),
                  column('name', sa.String),
                 )
-    role = table(u'role',
+    role = table('role',
                  column('id', sa.Integer),
                  column('name', sa.String),
                  column('club_id', sa.Integer),
                 )
-    user = table(u'user',
+    user = table('user',
                  column('id', sa.Integer),
                  column('email', sa.String),
                  column('name', sa.String),
@@ -102,7 +102,7 @@ def upgrade():
                  column('active', sa.Boolean),
                  column('pwresetrequired', sa.Boolean),
                 )
-    userrole = table(u'userrole',
+    userrole = table('userrole',
                      column('user_id', sa.Integer),
                      column('role_id', sa.Integer),
                     )
@@ -138,25 +138,25 @@ def upgrade():
                    )
 
     # update existing tables as appropriate
-    divisions = table(u'divisions',
+    divisions = table('divisions',
                       column('club_id', sa.Integer),
                       column('year', sa.Integer),
                      )
-    race = table(u'race',
+    race = table('race',
                  column('club_id', sa.Integer),
                  column('name', sa.String),
                  column('distance', sa.Float),
                  column('surface', sa.Enum),
                 )
-    raceresult = table(u'raceresult',
+    raceresult = table('raceresult',
                        column('club_id', sa.Integer),
                        column('instandings', sa.Boolean),
                       )
-    runner = table(u'runner',
+    runner = table('runner',
                    column('club_id', sa.Integer),
                    column('renewdate', sa.String),
                   )
-    series = table(u'series',
+    series = table('series',
                    column('club_id', sa.Integer),
                    column('year', sa.Integer),
                   )
@@ -179,22 +179,22 @@ def upgrade():
 def downgrade():
     ### commands auto generated by Alembic - please adjust! ###
     op.drop_constraint(None, 'series')
-    op.drop_column(u'series', 'year')
-    op.drop_column(u'series', 'club_id')
+    op.drop_column('series', 'year')
+    op.drop_column('series', 'club_id')
     op.drop_constraint(None, 'runner')
-    op.create_unique_constraint(u'name', 'runner', ['name', 'dateofbirth'])
-    op.drop_column(u'runner', 'renewdate')
-    op.drop_column(u'runner', 'club_id')
+    op.create_unique_constraint('name', 'runner', ['name', 'dateofbirth'])
+    op.drop_column('runner', 'renewdate')
+    op.drop_column('runner', 'club_id')
     op.drop_constraint(None, 'raceresult')
-    op.create_unique_constraint(u'runnerid', 'raceresult', ['runnerid', 'runnername', 'raceid', 'seriesid'])
-    op.drop_column(u'raceresult', 'instandings')
-    op.drop_column(u'raceresult', 'club_id')
+    op.create_unique_constraint('runnerid', 'raceresult', ['runnerid', 'runnername', 'raceid', 'seriesid'])
+    op.drop_column('raceresult', 'instandings')
+    op.drop_column('raceresult', 'club_id')
     op.drop_constraint(None, 'race')
-    op.create_unique_constraint(u'name', 'race', ['name', 'year'])
-    op.drop_column(u'race', 'surface')
-    op.drop_column(u'race', 'club_id')
-    op.drop_column(u'divisions', 'year')
-    op.drop_column(u'divisions', 'club_id')
+    op.create_unique_constraint('name', 'race', ['name', 'year'])
+    op.drop_column('race', 'surface')
+    op.drop_column('race', 'club_id')
+    op.drop_column('divisions', 'year')
+    op.drop_column('divisions', 'club_id')
     op.drop_table('userrole')
     op.drop_table('exclusion')
     op.drop_table('role')

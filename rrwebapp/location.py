@@ -28,11 +28,11 @@ from haversine import haversine
 
 # home grown
 from . import app
-from accesscontrol import owner_permission
-from racedb import ApiCredentials, Location, MAX_LOCATION_LEN, insert_or_update
-from crudapi import CrudApi
+from .accesscontrol import owner_permission
+from .racedb import ApiCredentials, Location, MAX_LOCATION_LEN, insert_or_update
+from .crudapi import CrudApi
 from loutilities.timeu import epoch2dt
-from database_flask import db   # this is ok because this module only runs under flask
+from .database_flask import db   # this is ok because this module only runs under flask
 
 CACHE_REFRESH = timedelta(30)   # 30 days, per https://cloud.google.com/maps-platform/terms/maps-service-terms/?&sign=0 (sec 3.4)
 
@@ -123,8 +123,8 @@ class LocationServer(object):
 
 loc_dbattrs = 'id,name,latitude,longitude,cached_at,lookuperror'.split(',')
 loc_formfields = 'rowid,loc,lat,long,cached,error'.split(',')
-loc_dbmapping = dict(zip(loc_dbattrs, loc_formfields))
-loc_formmapping = dict(zip(loc_formfields, loc_dbattrs))
+loc_dbmapping = dict(list(zip(loc_dbattrs, loc_formfields)))
+loc_formmapping = dict(list(zip(loc_formfields, loc_dbattrs)))
 loc = CrudApi(pagename = 'Locations', 
              endpoint = 'locations', 
              dbmapping = loc_dbmapping, 

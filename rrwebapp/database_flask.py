@@ -18,7 +18,7 @@ webdatabase  -- access to database for flask web application
 # standard
 import pdb
 import os.path
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 
 # pypi
 from flask import Flask

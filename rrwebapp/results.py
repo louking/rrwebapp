@@ -18,7 +18,7 @@ from datetime import timedelta
 from time import time
 import traceback
 from collections import OrderedDict
-from urllib import urlencode
+from urllib.parse import urlencode
 from copy import copy
 import xml.etree.ElementTree as ET
 
@@ -34,28 +34,28 @@ from attrdict import AttrDict
 # home grown
 from . import app
 from . import celery
-import racedb
+from . import racedb
 from loutilities.tables import DataTables, ColumnDT
-from accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
-from database_flask import db   # this is ok because this module only runs under flask
-from apicommon import failure_response, success_response
-from request import addscripts, crossdomain
-from appldirs import UPLOAD_TEMP_DIR
-from apicommon import MapDict
-from nav import productname
+from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
+from .database_flask import db   # this is ok because this module only runs under flask
+from .apicommon import failure_response, success_response
+from .request import addscripts, crossdomain
+from .appldirs import UPLOAD_TEMP_DIR
+from .apicommon import MapDict
+from .nav import productname
 
 # module specific needs
-import raceresults
-import clubmember
-from crudapi import CrudApi
-from request import annotatescripts
-from racedb import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, dbdate
-from racedb import rendertime, renderfloat, rendermember, renderlocation, renderseries
-from services import ServiceAttributes
-from racedb import RaceResultService, ApiCredentials
-from location import LocationServer, get_distance
-from datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
-from forms import SeriesResultForm
+from . import raceresults
+from . import clubmember
+from .crudapi import CrudApi
+from .request import annotatescripts
+from .racedb import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, dbdate
+from .racedb import rendertime, renderfloat, rendermember, renderlocation, renderseries
+from .services import ServiceAttributes
+from .racedb import RaceResultService, ApiCredentials
+from .location import LocationServer, get_distance
+from .datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
+from .forms import SeriesResultForm
 from loutilities.namesplitter import split_full_name
 import loutilities.renderrun as render
 from loutilities import timeu, agegrade
@@ -70,7 +70,7 @@ AGE_DELTAMAX = 3    # +/- num years to be included in DISP_MISSED
 JOIN_GRACEPERIOD = timedelta(7) # allow runner to join 1 week beyond race date
 
 # support age grade
-ag = agegrade.AgeGrade()
+ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
 
 # initialdisposition values
 # * match - exact name match found in runner table, with age consistent with dateofbirth
@@ -172,7 +172,7 @@ class ImportResults():
     dbattrs = 'place,name,fname,lname,gender,age,city,state,hometown,club,time'.split(',')
     # don't include runnerid or confirmed, as these are updated as side effects of set_initialdisposition()
     dbmetaattrs = 'initialdisposition'.split(',')   
-    defaultmapping = dict(zip(dbattrs+dbmetaattrs,dbattrs+dbmetaattrs))
+    defaultmapping = dict(list(zip(dbattrs+dbmetaattrs,dbattrs+dbmetaattrs)))
     #----------------------------------------------------------------------
     def __init__(self, club_id, raceid, mapping=defaultmapping):
     #----------------------------------------------------------------------
@@ -189,7 +189,7 @@ class ImportResults():
         self.timeprecision,agtimeprecision = render.getprecision(self.race.distance,surface=self.race.surface)
 
         if len(self.race.series) == 0:
-            raise ParameterError, 'Race needs to be included in at least one series to import results'
+            raise ParameterError('Race needs to be included in at least one series to import results')
 
         # determine candidate pool based on membersonly
         membersonly = self.race.series[0].membersonly
@@ -201,7 +201,7 @@ class ImportResults():
         ### all the "work" is here to set up the dbmapping from input result
         # use OrderedDict because some dbattrs depend on others to have been done first (e.g., confirmed must be after initialdisposition)
         # first overwrite a few of these to make sure name, lname, fname, hometown, city, state filled in
-        dbmapping = OrderedDict(zip(self.dbattrs,self.dbattrs))
+        dbmapping = OrderedDict(list(zip(self.dbattrs,self.dbattrs)))
         dbmapping['name']     = lambda inrow: inrow['name'] if inrow.get('name') \
                                 else ' '.join([inrow['fname'], inrow['lname']]) if inrow.get('fname') or inrow.get('lname') \
                                 else None
@@ -580,7 +580,7 @@ class EditParticipants(MethodView):
                     try:
                         dob = tYmd.asc2dt(thismember['dob'])
                         age = timeu.age(racedate,dob)
-                        nameage = u'{} ({})'.format(thismember['name'], age)
+                        nameage = '{} ({})'.format(thismember['name'], age)
                     # maybe no dob
                     except ValueError:
                         age = ''    
@@ -786,10 +786,10 @@ class AjaxEditParticipantsCRUD(MethodView):
             timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
 
             # dataTables Editor helper
-            dbmapping = dict(zip(self.dbfields,self.formfields))
+            dbmapping = dict(list(zip(self.dbfields,self.formfields)))
             dbmapping['time']     = lambda inrow: raceresults.normalizeracetime(inrow['time'], race.distance)
 
-            formmapping = dict(zip(self.formfields,self.dbfields))
+            formmapping = dict(list(zip(self.formfields,self.dbfields)))
             formmapping['time'] = lambda dbrow: render.rendertime(dbrow.time,timeprecision)
             formmapping['membertype'] = lambda dbrow: getmembertype(dbrow.runnerid)
 
@@ -879,8 +879,8 @@ app.add_url_rule('/_editparticipantscrud/<int:raceid>',view_func=AjaxEditPartici
 
 editexclusions_dbattrs = 'id,club_id,foundname,runner'.split(',')
 editexclusions_formfields = 'rowid,club_id,foundname,runner'.split(',')
-editexclusions_dbmapping = dict(zip(editexclusions_dbattrs, editexclusions_formfields))
-editexclusions_formmapping = dict(zip(editexclusions_formfields, editexclusions_dbattrs))
+editexclusions_dbmapping = dict(list(zip(editexclusions_dbattrs, editexclusions_formfields)))
+editexclusions_formmapping = dict(list(zip(editexclusions_formfields, editexclusions_dbattrs)))
 
 editexclusions = CrudApi(pagename='edit exclusions',
                 endpoint='editexclusions',
@@ -1046,7 +1046,7 @@ def addfilters(filters, filterlines):
 
         # loop once for each element on the line
         for el in line:
-            if type(el) == dict:
+            if isinstance(el, dict):
                 thisel = ET.SubElement(filters, 'label', attrib={'class' : 'Label'})
                 thisel.text = el['text']
                 spanel = ET.SubElement(filters, 'span', attrib={'id' : el['id'], 'class' : '_rrwebapp-filter'})
@@ -1904,14 +1904,14 @@ class AjaxImportResults(MethodView):
                 rr.close()
             
             # format not good enough
-            except raceresults.headerError, e:
+            except raceresults.headerError as e:
                 db.session.rollback()
                 cause = '{}'.format(e)
                 app.logger.warning(cause)
                 return failure_response(cause=cause)
                 
             # how did this happen?  check allowed_file() for bugs
-            except raceresults.dataError, e:
+            except raceresults.dataError as e:
                 db.session.rollback()
                 cause =  'Program Error: {}'.format(e)
                 app.logger.error(cause)
@@ -1925,7 +1925,7 @@ class AjaxImportResults(MethodView):
             return jsonify({'success': True, 'current': 0, 'total':100, 'location': url_for('importresultsstatus', task_id=task.id)}), 202, {}
             #return success_response(redirect=url_for('editparticipants',raceid=raceid))
         
-        except Exception, e:
+        except Exception as e:
             # close rr if created, otherwise NOP
             try:
                 rr.close()
@@ -2003,7 +2003,7 @@ def importresultstask(self, club_id, raceid, resultpathname):
         try:
             total = 0
             while True:
-                rr.next()
+                next(rr)
                 total += 1
         except StopIteration:
             pass
@@ -2026,7 +2026,7 @@ def importresultstask(self, club_id, raceid, resultpathname):
         logfirst = True
         while True:
             try:
-                fileresult = rr.next()
+                fileresult = next(rr)
                 if logfirst:
                     app.logger.debug('first file result {}'.format(fileresult))
                     logfirst = False
@@ -2183,7 +2183,7 @@ class AjaxUpdateManagedResult(MethodView):
                     if value in ['true','false']:
                         result.confirmed = (value == 'true')
                     else:
-                        raise BooleanError, "invalid literal for boolean: '{}'".format(value)
+                        raise BooleanError("invalid literal for boolean: '{}'".format(value))
                 else:
                     pass    # this was handled above
                 
@@ -2224,7 +2224,7 @@ class AjaxUpdateManagedResult(MethodView):
                         
 
                     
-            except Exception,e:
+            except Exception as e:
                 db.session.rollback()
                 cause = "Unexpected Error: value '{}' not allowed for field {}, {}".format(value,field,e)
                 app.logger.error(traceback.format_exc())
@@ -2235,7 +2235,7 @@ class AjaxUpdateManagedResult(MethodView):
             db.session.commit()
             return success_response(**respargs)
         
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}'.format(e)
@@ -2555,7 +2555,7 @@ class AjaxTabulateResults(MethodView):
             db.session.commit()
             return success_response(redirect=url_for('seriesresults',raceid=raceid))
         
-        except Exception,e:
+        except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}'.format(e)
