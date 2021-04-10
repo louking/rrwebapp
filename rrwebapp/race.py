@@ -179,7 +179,7 @@ races = CrudApi(pagename='Races',
                          {'name': 'tools', 'text': 'Tools'}
                          ],
                 addltemplateargs={'inhibityear': False},
-                pretablehtml=filters,
+                pretablehtml=lambda: filters.render(),
                 dtoptions=dt_options,
                 yadcfoptions=yadcf_options,
                 )
