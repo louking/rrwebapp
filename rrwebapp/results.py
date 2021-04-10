@@ -1105,7 +1105,7 @@ class RunnerResults(MethodView):
                 ],
                 'ordering': True,
                 'serverSide': True,
-                'order': [0,'asc'],
+                'order': [[0,'asc']],
                 # 'search' : { 'regex' : True },   # to test sqlalchemy-datatables global search feature
             }
 
@@ -1420,7 +1420,7 @@ class RunnerResultsChart(MethodView):
                 },
                 'ordering': True,
                 'serverSide': True,
-                'order': [0,'asc'],
+                'order': [[0,'asc']],
                 # NOTE: cannot use paging because we need to display all points on the chart
                 'paging': False,
             }
