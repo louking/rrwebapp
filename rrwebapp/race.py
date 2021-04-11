@@ -57,7 +57,7 @@ filters = filtercontainerdiv()
 filters += filterdiv('external-filter-series', 'Series')
 
 dt_options = {
-    'order': [[3, 'asc']],
+    'order': [['date:name', 'asc']],
 }
 yadcf_options = [
     {
@@ -363,7 +363,7 @@ app.add_url_rule('/_importraces',view_func=AjaxImportRaces.as_view('_importraces
 ###########################################################################################
 
 dt_options = {
-    'order': [[1, 'asc']],
+    'order': [['name:name', 'asc']],
 }
 
 series_dbattrs = 'id,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
