@@ -1131,7 +1131,7 @@ class RunnerResults(MethodView):
                 getcol = lambda name: [col['name'] for col in dt_options['columns']].index(name)
                 yadcf_options = [
                     {
-                        'column_number':getcol('name'),
+                        'column_selector': 'name:name',
                         'filter_container_id':"_rrwebapp_filtername",
                         'filter_type':"multi_select",
                         'select_type': 'select2',
@@ -1479,7 +1479,7 @@ class RunnerResultsChart(MethodView):
             filterdelay = 500
             yadcf_options = [
                 {
-                    'column_number':getcol('runnerid'),
+                    'column_selector': 'runnerid:name',
                     'filter_container_id':"_rrwebapp_filtername",
                     'filter_type':"select",
                     'select_type': 'select2',
@@ -1489,26 +1489,26 @@ class RunnerResultsChart(MethodView):
                         'width': '200px',
                     },
                 },{
-                    'column_number':getcol('date'),
+                    'column_selector': 'date:name',
                     'filter_container_id':"_rrwebapp_filterdate",
                     'filter_type':'range_date',
                     'date_format':'yyyy-mm-dd',
                     'filter_delay': filterdelay,
                     'filter_reset_button_text': 'all',
                 },{
-                    'column_number':getcol('miles'),
+                    'column_selector': 'miles:name',
                     'filter_container_id':"_rrwebapp_filterdistance",
                     'filter_type': 'range_number',
                     'filter_delay': filterdelay,
                     'filter_reset_button_text': 'all',
                 },{
-                    'column_number':getcol('agpercent'),
+                    'column_selector': 'agpercent:name',
                     'filter_container_id':"_rrwebapp_filteragpercent",
                     'filter_type': 'range_number',
                     'filter_delay': filterdelay,
                     'filter_reset_button_text': 'all',
                 },{
-                    'column_number':getcol('series'),
+                    'column_selector': 'series:name',
                     'filter_container_id':"_rrwebapp_filterseries",
                     'filter_reset_button_text': 'all',
                     'filter_type': "select",
@@ -1523,13 +1523,13 @@ class RunnerResultsChart(MethodView):
             if adminuser:
                 yadcf_options += [
                     {
-                        'column_number':getcol('source'),
+                        'column_selector': 'source:name',
                         'filter_container_id':"_rrwebapp_filtersource",
                         'filter_type':"select",
                         'select_type': 'select2',
                         'filter_reset_button_text': 'all',
                     },{
-                        'column_number':getcol('sourceid'),
+                        'column_selector': 'sourceid:name',
                         'filter_container_id':"_rrwebapp_filtersourceid",
                         'filter_type':'select',
                         'select_type': 'select2',
