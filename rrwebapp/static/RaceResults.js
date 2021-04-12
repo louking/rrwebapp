@@ -865,10 +865,12 @@
 
         // make sure table buttons are drawn and behave properly
         // note draw fires after edit, and edited value will come back with needswidget class
-        _dt_table.on('draw.dt', function(e) {
+        function add_results_widget() {
             manageraces_tablebuttons($("._rrwebapp-needswidget"));
             $("._rrwebapp-needswidget").removeClass('_rrwebapp-needswidget')
-        })
+        }
+        _dt_table.on('draw.dt', add_results_widget);
+        add_results_widget();
     };  // manageraces
 
     // managedivisions
