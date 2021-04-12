@@ -39,8 +39,7 @@
                 "worker",
                 "-A",
                 "rrwebapp.celery",
-                "-c",
-                "2",
+                "-c1",
                 "-l",
                 "info",
                 // may not be needed, see https://stackoverflow.com/a/54488640/799921 and https://github.com/Microsoft/ptvsd/issues/1046
