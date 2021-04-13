@@ -18,13 +18,14 @@ jq_ui_ver = '1.12.1'
 
 
 # dataTables
-dt_datatables_ver = '1.10.18'
-dt_editor_ver = '1.9.0'
-dt_buttons_ver = '1.5.6'
-dt_colvis_ver = '1.5.6'
-dt_fixedcolumns_ver = '3.2.5'
-dt_select_ver = '1.3.0'
+dt_datatables_ver = '1.10.24'
+dt_editor_ver = '2.0.1'
+dt_buttons_ver = '1.7.0'
+dt_colvis_ver = '1.7.0'
+dt_fixedcolumns_ver = '3.3.2'
+dt_select_ver = '1.3.3'
 dt_editor_plugin_fieldtype_ver = '?'
+dt_datetime_ver = '1.0.3'
 
 # select2
 # NOTE: patch to jquery ui required, see https://github.com/select2/select2/issues/1246#issuecomment-17428249
@@ -47,41 +48,42 @@ d3_sc_ver = '1.3.3'    # d3-scale-chromatic
 
 asset_bundles = {
     'admin_js' : Bundle(
-        'js/jQuery-{ver}/jquery.js'.format(ver=jq_ver),
+        f'js/jQuery-{jq_ver}/jquery.js',
 
-        'js/jquery-ui-{ver}.custom/jquery-ui.js'.format(ver=jq_ui_ver),
+        f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.js',
 
-        'js/lodash-{ver}/lodash.js'.format(ver=lodash_ver),
+        f'js/lodash-{lodash_ver}/lodash.js',
 
-        'js/DataTables-{ver}/js/jquery.dataTables.js'.format(ver=dt_datatables_ver),
-        'js/DataTables-{ver}/js/dataTables.jqueryui.js'.format(ver=dt_datatables_ver),
+        f'js/DataTables-{dt_datatables_ver}/js/jquery.dataTables.js',
+        f'js/DataTables-{dt_datatables_ver}/js/dataTables.jqueryui.js',
 
-        'js/Buttons-{ver}/js/dataTables.buttons.js'.format(ver=dt_buttons_ver),
-        'js/Buttons-{ver}/js/buttons.jqueryui.js'.format(ver=dt_buttons_ver),
-        'js/Buttons-{ver}/js/buttons.html5.js'.format(ver=dt_buttons_ver),
-        'js/Buttons-{ver}/js/buttons.colVis.js'.format(ver=dt_colvis_ver),
+        f'js/Buttons-{dt_buttons_ver}/js/dataTables.buttons.js',
+        f'js/Buttons-{dt_buttons_ver}/js/buttons.jqueryui.js',
+        f'js/Buttons-{dt_buttons_ver}/js/buttons.html5.js',
+        f'js/Buttons-{dt_colvis_ver}/js/buttons.colVis.js',
+        f'js/DateTime-{dt_datetime_ver}/js/datatables.dateTime.js',
 
-        'js/FixedColumns-{ver}/js/dataTables.fixedColumns.js'.format(ver=dt_fixedcolumns_ver),
-        'js/Editor-{ver}/js/dataTables.editor.js'.format(ver=dt_editor_ver),
-        'js/Editor-{ver}/js/editor.jqueryui.js'.format(ver=dt_editor_ver),
+        f'js/FixedColumns-{dt_fixedcolumns_ver}/js/dataTables.fixedColumns.js',
+        f'js/Editor-{dt_editor_ver}/js/dataTables.editor.js',
+        f'js/Editor-{dt_editor_ver}/js/editor.jqueryui.js',
 
-        'js/Select-{ver}/js/dataTables.select.js'.format(ver=dt_select_ver),
+        f'js/Select-{dt_select_ver}/js/dataTables.select.js',
 
         # select2 is required for use by Editor forms
-        'js/select2-{ver}/js/select2.full.js'.format(ver=s2_ver),
+        f'js/select2-{s2_ver}/js/select2.full.js',
         # the order here is important
         'js/FieldType-Select2/editor.select2.js',
 
         # selectize is required for use by Editor forms
-        'js/selectize-{ver}/js/standalone/selectize.js'.format(ver=sz_ver),
+        f'js/selectize-{sz_ver}/js/standalone/selectize.js',
         #   https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q=field-type/editor.selectize.min.js
         #   https://editor.datatables.net/plug-ins/download?cdn=cdn-download&amp;q=field-type/editor.selectize.min.css
         'js/FieldType-Selectize/editor.selectize.js',
 
-        'js/yadcf-{ver}/jquery.dataTables.yadcf.js'.format(ver=yadcf_ver),
+        f'js/yadcf-{yadcf_ver}/jquery.dataTables.yadcf.js',
 
-        'js/d3-{ver}/d3.js'.format(ver=d3_ver),
-        'js/d3-scale-chromatic-{ver}/d3-scale-chromatic.js'.format(ver=d3_sc_ver),
+        f'js/d3-{d3_ver}/d3.js',
+        f'js/d3-scale-chromatic-{d3_sc_ver}/d3-scale-chromatic.js',
 
         'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
 
@@ -95,18 +97,19 @@ asset_bundles = {
     ),
 
     'admin_css': Bundle (
-        'js/jquery-ui-{ver}.custom/jquery-ui.css'.format(ver=jq_ui_ver),
-        'js/jquery-ui-{ver}.custom/jquery-ui.structure.css'.format(ver=jq_ui_ver),
-        'js/jquery-ui-{ver}.custom/jquery-ui.theme.css'.format(ver=jq_ui_ver),
-        'js/DataTables-{ver}/css/dataTables.jqueryui.css'.format(ver=dt_datatables_ver),
-        'js/Buttons-{ver}/css/buttons.jqueryui.css'.format(ver=dt_buttons_ver),
-        'js/FixedColumns-{ver}/css/fixedColumns.jqueryui.css'.format(ver=dt_fixedcolumns_ver),
-        'js/Editor-{ver}/css/editor.jqueryui.css'.format(ver=dt_editor_ver),
-        'js/Select-{ver}/css/select.jqueryui.css'.format(ver=dt_select_ver),
-        'js/select2-{ver}/css/select2.css'.format(ver=s2_ver),
-        'js/selectize-{ver}/css/selectize.css'.format(ver=sz_ver),
+        f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.css',
+        f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.structure.css',
+        f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.theme.css',
+        f'js/DataTables-{dt_datatables_ver}/css/dataTables.jqueryui.css',
+        f'js/Buttons-{dt_buttons_ver}/css/buttons.jqueryui.css',
+        f'js/DateTime-{dt_datetime_ver}/css/dataTables.dateTime.css',
+        f'js/FixedColumns-{dt_fixedcolumns_ver}/css/fixedColumns.jqueryui.css',
+        f'js/Editor-{dt_editor_ver}/css/editor.jqueryui.css',
+        f'js/Select-{dt_select_ver}/css/select.jqueryui.css',
+        f'js/select2-{s2_ver}/css/select2.css',
+        f'js/selectize-{sz_ver}/css/selectize.css',
         'js/FieldType-Selectize/editor.selectize.css',
-        'js/yadcf-{ver}/jquery.dataTables.yadcf.css'.format(ver=yadcf_ver),
+        f'js/yadcf-{yadcf_ver}/jquery.dataTables.yadcf.css',
         'datatables.css',
         'editor.css',
         'filters.css',
