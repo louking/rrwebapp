@@ -10,12 +10,15 @@ billiard==3.6.4.0
 blinker==1.4
 celery==5.0.5
 certifi==2020.12.5
-cffi==1.11.5
+cffi==1.14.5
 chardet==4.0.0
 click==7.1.2
+click-didyoumean==0.0.3
+click-plugins==1.1.1
+click-repl==0.1.6
 colorama==0.4.4
 colorclass==2.2.0
-cryptography==2.4.2
+cryptography==3.4.7
 cssmin==0.2.0
 decorator==5.0.6
 dnspython==2.1.0
@@ -42,7 +45,7 @@ gpxpy==1.4.2
 greenlet==1.0.0
 haversine==2.3.0
 httplib2==0.19.1
-idna==3.1
+idna==2.10
 importlib-metadata==3.10.0
 invoke==1.5.0
 ipaddress==1.0.23
@@ -55,7 +58,7 @@ kombu==5.0.2
 loutilities==3.4.5.0
 lxml==4.6.3
 Mako==1.1.4
-MarkupSafe==0.23
+MarkupSafe==1.1.1
 mysqlclient==2.0.3
 ndg-httpsclient==0.5.1
 oauthlib==3.1.0
@@ -83,7 +86,7 @@ runtilities==2.1.2
 scandir==1.10.0
 simplegeneric==0.8.1
 six==1.15.0
-SQLAlchemy==1.4.6
+SQLAlchemy==1.4.7
 sqlalchemy-datatables==2.0.1
 terminaltables==3.1.0
 traitlets==4.3.2
@@ -91,6 +94,7 @@ typing-extensions==3.7.4.3
 tzlocal==2.1
 unicodecsv==0.14.1
 urllib3==1.26.4
+vine==5.0.0
 wcwidth==0.2.5
 webassets==2.0
 Werkzeug==1.0.1
