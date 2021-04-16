@@ -43,11 +43,15 @@
             "request": "launch",
             "module": "celery",
             "console": "integratedTerminal",
+            "env": {
+                // https://github.com/celery/celery/issues/4081#issuecomment-349535810
+                "FORKED_BY_MULTIPROCESSING": "1"
+            },
             "args": [
-                "worker",
                 "-A",
                 "rrwebapp.celery",
-                "-c1",
+                "worker",
+                "-c2",
                 "-l",
                 "info",
                 // may not be needed, see https://stackoverflow.com/a/54488640/799921 and https://github.com/Microsoft/ptvsd/issues/1046
@@ -62,11 +66,10 @@
             "module": "celery",
             "console": "integratedTerminal",
             "args": [
-                "worker",
                 "-A",
                 "rrwebapp.celery",
-                "-c",
-                "2",
+                "worker",
+                "-c2",
                 "-l",
                 "info",
                 "-Q",

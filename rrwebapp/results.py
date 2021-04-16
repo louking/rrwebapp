@@ -24,7 +24,7 @@ import xml.etree.ElementTree as ET
 
 # pypi
 import flask
-from flask import make_response, request, jsonify, url_for
+from flask import make_response, request, jsonify, url_for, current_app
 from flask_login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
@@ -1943,6 +1943,7 @@ class ImportResultsStatus(MethodView):
 #######################################################################
     def get(self, task_id):
         task = importresultstask.AsyncResult(task_id)
+        current_app.logger.debug(f'task.state: {task.state}, task.info {task.info}')
 
         if task.state == 'PENDING':
             # job did not start yet
@@ -1959,13 +1960,14 @@ class ImportResultsStatus(MethodView):
                 'total': task.info.get('total', 1),
                 'status': task.info.get('status', '')
             }
-
+            
             # task is finished, check for traceback, which indicates an error occurred
             if task.state == 'SUCCESS':
                 # check for traceback, which indicates an error occurred
                 response['cause'] = task.info.get('traceback','')
                 if response['cause'] == '':
                     response['redirect'] = url_for('editparticipants',raceid=task.info.get('raceid'))
+                task.forget()
 
         # doesn't seem like this can happen, but just in case
         else:
@@ -2007,7 +2009,7 @@ def importresultstask(self, club_id, raceid, resultpathname):
             pass
 
         # only update state max 100 times over course of file, but don't make it too small
-        statemod = total / 100
+        statemod = total // 100
         if statemod == 0:
             statemod = 1
 
@@ -2024,6 +2026,8 @@ def importresultstask(self, club_id, raceid, resultpathname):
         logfirst = True
         while True:
             try:
+                if numentries % statemod == 0:
+                    self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
                 fileresult = next(rr)
                 if logfirst:
                     app.logger.debug('first file result {}'.format(fileresult))
@@ -2039,8 +2043,6 @@ def importresultstask(self, club_id, raceid, resultpathname):
             except StopIteration:
                 break
             numentries += 1
-            if numentries % statemod == 0:
-                self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
 
         # not sure this is necessary, but final state update
         self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
