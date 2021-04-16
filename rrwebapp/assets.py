@@ -13,7 +13,7 @@ from flask import current_app
 from flask_assets import Bundle, Environment
 
 # jquery
-jq_ver = '3.4.1'
+jq_ver = '3.6.0'
 jq_ui_ver = '1.12.1'
 
 
@@ -22,7 +22,9 @@ dt_datatables_ver = '1.10.24'
 dt_editor_ver = '2.0.1'
 dt_buttons_ver = '1.7.0'
 dt_colvis_ver = '1.7.0'
+dt_datetime_ver = '1.0.3'
 dt_fixedcolumns_ver = '3.3.2'
+dt_responsive_ver = '2.2.7'
 dt_select_ver = '1.3.3'
 dt_editor_plugin_fieldtype_ver = '?'
 dt_datetime_ver = '1.0.3'
@@ -30,16 +32,16 @@ dt_datetime_ver = '1.0.3'
 # select2
 # NOTE: patch to jquery ui required, see https://github.com/select2/select2/issues/1246#issuecomment-17428249
 # currently in datatables.js
-s2_ver = '4.0.7'
+s2_ver = '4.0.13'
 
 # selectize
-sz_ver = '0.12.6'
+sz_ver = '0.13.3'
 
 # yadcf
 yadcf_ver = '0.9.4.beta.27'
 
 # lodash
-lodash_ver = '4.17.11'      # lodash.js (see https://lodash.com)
+lodash_ver = '4.17.21'      # lodash.js (see https://lodash.com)
 
 # d3
 d3_cdn = 'https://d3js.org'
@@ -110,10 +112,11 @@ asset_bundles = {
         f'js/selectize-{sz_ver}/css/selectize.css',
         'js/FieldType-Selectize/editor.selectize.css',
         f'js/yadcf-{yadcf_ver}/jquery.dataTables.yadcf.css',
-        'datatables.css',
-        'editor.css',
-        'filters.css',
-        'branding.css',
+        'jqueryui.theme.adjust.css',    # loutilities
+        'datatables.css',               # loutilities
+        'editor.css',                   # loutilities
+        'filters.css',                  # loutilities
+        'branding.css',                 # loutilities
         'style.css',
         output='gen/admin.css',
         # cssrewrite helps find image files when ASSETS_DEBUG = False
