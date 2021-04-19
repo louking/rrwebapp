@@ -29,10 +29,10 @@ from haversine import haversine
 # home grown
 from . import app
 from .accesscontrol import owner_permission
-from .racedb import ApiCredentials, Location, MAX_LOCATION_LEN, insert_or_update
+from .model import ApiCredentials, Location, MAX_LOCATION_LEN, insert_or_update
 from .crudapi import CrudApi
 from loutilities.timeu import epoch2dt
-from .database_flask import db   # this is ok because this module only runs under flask
+from .model import db   # this is ok because this module only runs under flask
 
 CACHE_REFRESH = timedelta(30)   # 30 days, per https://cloud.google.com/maps-platform/terms/maps-service-terms/?&sign=0 (sec 3.4)
 

@@ -11,7 +11,7 @@
             "module": "flask",
             "justMyCode": false,
             "env": {
-                "FLASK_APP": "runrrwebapp.py",
+                "FLASK_APP": "run.py",
                 "FLASK_ENV": "development"
             },
             "args": [
@@ -25,7 +25,7 @@
             "name": "Launch Chrome",
             "request": "launch",
             "type": "pwa-chrome",
-            "url": "http://127.0.0.1:5000",
+            "url": "http://dev.localhost:5000",
             // "webRoot": "${workspaceFolder}"
             "webRoot": "${workspaceFolder}/rrwebapp"
         },

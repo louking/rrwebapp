@@ -22,21 +22,21 @@ from flask.views import MethodView
 
 # home grown
 from . import app
-from . import racedb
+from .model import insert_or_update
 from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
-from .database_flask import db   # this is ok because this module only runs under flask
+from .model import db   # this is ok because this module only runs under flask
 from .apicommon import failure_response, success_response, check_header
 from .crudapi import CrudApi
-from .racedb import Race, Series, Divisions
-from .racedb import getclubid, getyear
+from .model import Race, Series, Divisions
+from .model import getclubid, getyear
 
 from .forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 #from runningclub import racefile   # required for xlsx support
 from loutilities.csvu import DictReaderStr2Num
 from loutilities.filters import filtercontainerdiv, filterdiv
 
-# acceptable surfaces -- must match racedb.SurfaceType
-SURFACES = 'road,track,trail'.split(',')
+# acceptable surfaces -- must match model.SurfaceType
+from .model import SURFACES
 
 #----------------------------------------------------------------------
 def race_fixeddist(distance):
@@ -301,7 +301,7 @@ class AjaxImportRaces(MethodView):
                     external=False,
                 )
                 race.fixeddist = race_fixeddist(race.distance)
-                added = racedb.insert_or_update(db.session,Race,race,skipcolumns=['id'],club_id=club_id,name=race.name,year=race.year)
+                added = insert_or_update(db.session,Race,race,skipcolumns=['id'],club_id=club_id,name=race.name,year=race.year)
                 
                 # remove this race from collection of races which should be deleted in database
                 if (race.name,race.year) in inactiveraces:
@@ -525,7 +525,7 @@ class AjaxCopySeries(MethodView):
                                    series.orderby, series.hightolow, series.allowties, series.averagetie, 
                                    series.maxraces, series.multiplier, series.maxgenpoints, series.maxdivpoints, 
                                    series.maxbynumrunners, series.description)
-                racedb.insert_or_update(db.session,Series,newseries,name=newseries.name,year=thisyear,club_id=club_id,skipcolumns=['id'])
+                insert_or_update(db.session,Series,newseries,name=newseries.name,year=thisyear,club_id=club_id,skipcolumns=['id'])
                 
                 # any series we updated is not obsolete
                 if newseries.name in obsoleteseries:
@@ -645,7 +645,7 @@ class AjaxCopyDivisions(MethodView):
                 series = Series.query.filter_by(club_id=club_id,active=True,year=thisyear,name=division.series.name).first()
                 if series:
                     newdivision = Divisions(club_id,thisyear,series.id,division.divisionlow,division.divisionhigh)
-                    racedb.insert_or_update(db.session,Divisions,newdivision,year=thisyear,club_id=club_id,
+                    insert_or_update(db.session,Divisions,newdivision,year=thisyear,club_id=club_id,
                                             seriesid=newdivision.seriesid,divisionlow=newdivision.divisionlow,divisionhigh=newdivision.divisionhigh,
                                             skipcolumns=['id'])
                 

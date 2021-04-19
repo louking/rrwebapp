@@ -1,14 +1,7 @@
-###########################################################################################
-# raceresultswebapp.userrole - user/role views for race results web application
-#
-#       Date            Author          Reason
-#       ----            ------          ------
-#       10/11/13        Lou King        Create
-#
-#   Copyright 2013 Lou King
-#
-###########################################################################################
-
+"""
+userrole - manage users and roles
+==================================
+"""
 # standard
 import traceback
 
@@ -17,19 +10,16 @@ import flask
 import flask_login as flasklogin
 from flask_login import login_required
 from flask.views import MethodView
-import flask_principal as principal
-import flask_wtf as flaskwtf
 
 # home grown
-from . import app
-from . import racedb
-from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
-                                    UpdateClubDataPermission, ViewClubDataPermission
-from .database_flask import db   # this is ok because this module only runs under flask
+from .. import app
+from ..model import User
+from ..accesscontrol import owner_permission
+from ..model import db
 
 # module specific needs
-from .racedb import User, Role, Club
-from .forms import UserForm, UserSettingsForm
+from ..model import User, Role, Club
+from ..forms import UserForm, UserSettingsForm
 
 ########################################################################
 # Manage Users
@@ -121,7 +111,7 @@ def useraction(userid,action):
     :param action: 'delete' or 'edit'
     '''
     # get the user from the database
-    thisuser = racedb.User.query.filter_by(id=userid).first()
+    thisuser = User.query.filter_by(id=userid).first()
 
     if action == 'delete':
         pagename = 'Delete User'
@@ -209,7 +199,7 @@ class UserSettings(MethodView):
         try:
             # get the user from the database
             userid = flask.session['_user_id']
-            thisuser = racedb.User.query.filter_by(id=userid).first()
+            thisuser = User.query.filter_by(id=userid).first()
         
             pagename = 'User Settings'
             buttontext = 'Update'
@@ -245,7 +235,7 @@ class UserSettings(MethodView):
         try:
             # get the user from the database
             userid = flask.session['_user_id']
-            thisuser = racedb.User.query.filter_by(id=userid).first()
+            thisuser = User.query.filter_by(id=userid).first()
         
             pagename = 'User Settings'
             buttontext = 'Update'
@@ -384,7 +374,7 @@ def _get_permissions():
         thisuser = User.query.filter_by(id=userid).first()
     
         # set up false permissions
-        # NOTE: permissions need to match racedb.rolenames
+        # NOTE: permissions need to match model.rolenames
         admin = False
         viewer = False
         

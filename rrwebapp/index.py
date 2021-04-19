@@ -20,7 +20,7 @@ from flask.views import MethodView
 
 # home grown
 from . import app
-from .database_flask import db   # this is ok because this module only runs under flask
+from .model import db   # this is ok because this module only runs under flask
 
 # module specific needs
 from .forms import FeedbackForm

@@ -37,6 +37,9 @@ s2_ver = '4.0.13'
 # selectize
 sz_ver = '0.13.3'
 
+# smartmenus
+sm_ver = '1.1.1'
+
 # yadcf
 yadcf_ver = '0.9.4.beta.27'
 
@@ -54,6 +57,7 @@ asset_bundles = {
 
         f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.js',
 
+        f'js/smartmenus-{sm_ver}/jquery.smartmenus.js',
         f'js/lodash-{lodash_ver}/lodash.js',
 
         f'js/DataTables-{dt_datatables_ver}/js/jquery.dataTables.js',
@@ -89,6 +93,7 @@ asset_bundles = {
 
         'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
 
+        'layout.js',
         'datatables.js',
         'datatables.dataRender.ellipsis.js',
         'managemembers.js',
@@ -102,6 +107,8 @@ asset_bundles = {
         f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.css',
         f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.structure.css',
         f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.theme.css',
+        f'js/smartmenus-{sm_ver}/css/sm-core-css.css',
+        f'js/smartmenus-{sm_ver}/css/sm-blue/sm-blue.css',
         f'js/DataTables-{dt_datatables_ver}/css/dataTables.jqueryui.css',
         f'js/Buttons-{dt_buttons_ver}/css/buttons.jqueryui.css',
         f'js/DateTime-{dt_datetime_ver}/css/dataTables.dateTime.css',

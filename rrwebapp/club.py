@@ -19,7 +19,7 @@ from .accesscontrol import owner_permission, UpdateClubDataPermission
 from .crudapi import CrudApi, DbQueryApi
 
 # module specific needs
-from .racedb import Club
+from .model import Club
 
 ###########################################################################################
 # manageclubs endpoint

@@ -32,13 +32,12 @@ import flask
 # other
 
 # home grown
-from . import racedb
 from loutilities import renderrun as render
 from . import app
 
 # module speicific needs
 import time
-from .racedb import Divisions, Race, RaceResult, Runner
+from .model import Divisions, Race, RaceResult, Runner
 from loutilities import timeu
 tYmd = timeu.asctime('%Y-%m-%d')
 
@@ -391,7 +390,7 @@ class ListStandingsHandler():
         '''
 
         for fh in self.fhlist:
-            fh.setage(gen,name,stylename)
+            fh.setage(gen,age,stylename)
     
     #----------------------------------------------------------------------
     def setrace(self,gen,racenum,result,stylename='race'):

@@ -28,16 +28,15 @@ from werkzeug.utils import secure_filename
 
 # home grown
 from . import app
-from . import racedb
 from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from .database_flask import db   # this is ok because this module only runs under flask
+from .model import db   # this is ok because this module only runs under flask
 from .apicommon import failure_response, success_response
 
 # module specific needs
 import xml.etree.ElementTree as ET
 import urllib.request, urllib.parse, urllib.error
-from .racedb import dbdate, Runner, RaceResult, RaceSeries, Race, Series, Club
+from .model import dbdate, Runner, RaceResult, RaceSeries, Race, Series, Club
 from .renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
 from .forms import StandingsForm
 import loutilities.renderrun as render

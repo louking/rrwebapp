@@ -1,28 +1,7 @@
-###########################################################################################
-# racedb  -- manage race database
-#
-#	Date		Author		Reason
-#	----		------		------
-#       05/08/13        Lou King        Create
-#       01/11/14        Lou King        support Flask database
-#                                       see http://michaelmartinez.in/basic-alembic-migrations-with-flask.html
-#
-#   Copyright 2013,2014 Lou King
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
-#
-###########################################################################################
-
+"""
+env - environment for alembic
+=================================
+"""
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
@@ -35,8 +14,7 @@ sys.path.append(os.getcwd())
 # get the app model
 # from rrwebapp import app
 
-from rrwebapp import racedb   # needs to be before database_flask imported
-from rrwebapp.database_flask import db, db_uri
+from ..model import db, db_uri
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

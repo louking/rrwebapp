@@ -23,10 +23,10 @@ import wtforms
 
 # home grown
 from . import app
-from . import racedb
-from .racedb import User,Club
+from .model import find_user
+from .model import Club
 from .nav import getuserclubs
-from .database_flask import db   # this is ok because this module only runs under flask
+from .model import db   # this is ok because this module only runs under flask
 from loutilities import timeu
 from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
@@ -60,7 +60,7 @@ def load_user(userid):
     :param userid: email address of user
     '''
     # Return an instance of the User model
-    user = racedb.find_user(userid)
+    user = find_user(userid)
     #if hasattr(user,'email'):
     #    login_manager.login_message = '{}: logged in'.format(user.email)
     return user
@@ -83,7 +83,7 @@ def login():
     if form.validate_on_submit():
         try:
             # Retrieve the user from the datastore
-            user = racedb.find_user(form.email.data)
+            user = find_user(form.email.data)
             
             # flag user doesn't exist or incorrect password
             if not (user and user.check_password(form.password.data)):
@@ -204,7 +204,7 @@ def on_identity_loaded(sender, identity):
                     identity.provides.add(UpdateClubDataNeed(role.club.id))
                 elif role.name == 'owner':
                     identity.provides.add(RoleNeed('owner'))
-                    for club in racedb.Club.query.all():
+                    for club in Club.query.all():
                         if club.name == 'owner': continue
                         identity.provides.add(ViewClubDataNeed(club.id))
                         identity.provides.add(UpdateClubDataNeed(club.id))

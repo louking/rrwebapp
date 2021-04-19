@@ -30,23 +30,14 @@
 {% endblock %}
 
 {% block nav %}
-    {% if session.nav %}
-      <ul id="navigation">
-      {% for thisnav in session.nav %}
-        {# if list not present, just simple entry #}
-        {% if not thisnav.list %}
-          <li><a href="{{ thisnav.url }}"{%for a in thisnav.attr%} {{a.name}}='{{a.value}}'{%endfor%}>{{ thisnav.display }}</a></li>
-        {% else %}
-          <li>
-            <a href="#">{{ thisnav.display }}</a>
-            <ul>
-              {% for subnav in thisnav.list %}
-                <li><a href="{{ subnav.url }}"{%for a in subnav.attr%} {{a.name}}="{{a.value}}"{%endfor%}>{{ subnav.display }}</a></li>
-              {% endfor %}
-            </ul>
-          </li>
-        {% endif %}
-      {% endfor %}
-      </ul>
+    {# standard nav uses flask-nav #}
+    {% if nav %}
+        <input id="main-menu-state" type="checkbox" />
+        <label class="main-menu-btn" for="main-menu-state">
+          <span class="main-menu-btn-icon"></span> Toggle main menu visibility
+        </label>
+
+        {# note smartmenu classes are added using jquery in layout.js because nav doesn't provide api for that #}
+        {{ nav.nav_menu.render(id='navigation', renderer='nav_renderer') }}
     {% endif %}
 {% endblock %}

@@ -27,20 +27,19 @@ from werkzeug.utils import secure_filename
 
 # home grown
 from . import app
-from . import racedb
-from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
-                                    UpdateClubDataPermission, ViewClubDataPermission
-from .database_flask import db   # this is ok because this module only runs under flask
+from .model import db
+from .model import getunique, update, insert_or_update
+from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 from .apicommon import failure_response, success_response
 
 # module specific needs
 from collections import OrderedDict
 import csv
 from copy import copy
-from .racedb import Runner, Club, RaceResult, ApiCredentials
+from .model import Runner, Club, RaceResult, ApiCredentials
 from .forms import MemberForm 
 #from runningclub import memberfile   # required for xlsx support
-from loutilities.csvu import DictReaderStr2Num
+from loutilities.csvwt import wlist
 from loutilities import timeu
 from running.runsignup import RunSignUp, members2csv as rsu_members2csv
 from . import clubmember
@@ -441,13 +440,13 @@ class AjaxImportMembers(MethodView):
                     if matchingmember:
                         membername,memberdob = matchingmember
                         if memberdob == thisdob:
-                            dbmember = racedb.getunique(db.session,Runner,club_id=club_id,member=True,name=membername,dateofbirth=thisdob)
+                            dbmember = getunique(db.session,Runner,club_id=club_id,member=True,name=membername,dateofbirth=thisdob)
                     
                     # TODO: need to handle case where dob transitions from '' to actual date of birth
                     
                     # no member found, maybe there is nonmember of same name already in database
                     if dbmember is None:
-                        dbnonmember = racedb.getunique(db.session,Runner,club_id=club_id,member=False,name=thisname)
+                        dbnonmember = getunique(db.session,Runner,club_id=club_id,member=False,name=thisname)
                         # TODO: there's a slim possibility that there are two nonmembers with the same name, but I'm sure we've already
                         # bolloxed that up in importresult as there's no way to discriminate between the two
                         
@@ -470,7 +469,7 @@ class AjaxImportMembers(MethodView):
                         # overwrite member's name if necessary
                         thisrunner.name = thisname  
                         
-                        added = racedb.update(db.session,Runner,dbmember,thisrunner,skipcolumns=['id'])
+                        added = update(db.session,Runner,dbmember,thisrunner,skipcolumns=['id'])
                         found = True
                         
                     # if runner's name is in database, but not a member, see if this runner is a nonmemember which can be converted
@@ -496,7 +495,7 @@ class AjaxImportMembers(MethodView):
                             thisrunner = Runner(club_id,thisname,thisdob,thisgender,thishometown,
                                                 fname=thisfname,lname=thislname,
                                                 renewdate=thisrenewdate,expdate=thisexpdate)
-                            added = racedb.update(db.session,Runner,dbnonmember,thisrunner,skipcolumns=['id'])
+                            added = update(db.session,Runner,dbnonmember,thisrunner,skipcolumns=['id'])
                             found = True
                         else:
                             app.logger.warning('{} found in database, wrong age, expected {} found {} in {}'.format(thisname,expectedage,resultage,result))
@@ -508,7 +507,7 @@ class AjaxImportMembers(MethodView):
                         thisrunner = Runner(club_id,thisname,thisdob,thisgender,thishometown,
                                             fname=thisfname,lname=thislname,
                                             renewdate=thisrenewdate,expdate=thisexpdate)
-                        added = racedb.insert_or_update(db.session,Runner,thisrunner,skipcolumns=['id'],club_id=club_id,name=thisname,dateofbirth=thisdob)
+                        added = insert_or_update(db.session,Runner,thisrunner,skipcolumns=['id'],club_id=club_id,name=thisname,dateofbirth=thisdob)
                         
                     # remove this runner from collection of runners which should be deactivated in database
                     if (thisrunner.name,thisrunner.dateofbirth) in inactiverunners:

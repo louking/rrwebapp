@@ -19,8 +19,8 @@ import traceback
 
 # homegrown
 from . import app
-from .database_flask import db   
-from .racedb import insert_or_update, RaceResult, Runner, Race
+from .model import db   
+from .model import insert_or_update, RaceResult, Runner, Race
 from .race import race_fixeddist
 from loutilities.csvu import str2num
 from loutilities.timeu import age, asctime, epoch2dt, dt2epoch

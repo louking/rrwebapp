@@ -30,8 +30,8 @@ import traceback
 # home grown
 from . import app
 from .resultsutils import CollectServiceResults, ServiceResultFile
-from .database_flask import db   # this is ok because this module only runs under flask
-from .racedb import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
+from .model import db   # this is ok because this module only runs under flask
+from .model import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
 from .race import race_fixeddist
 
 from loutilities import timeu

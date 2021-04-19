@@ -21,10 +21,9 @@ from werkzeug.utils import secure_filename
 
 # home grown
 from . import app
-from . import racedb
 from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from .database_flask import db   # this is ok because this module only runs under flask
+from .model import db   # this is ok because this module only runs under flask
 from .apicommon import failure_response, success_response
 from .forms import ExportResultsForm
 from loutilities import timeu

@@ -19,7 +19,7 @@ from flask.views import MethodView
 # homegrown
 from . import app
 from .request import crossdomain
-from .database_flask import db   # this is ok because this module only runs under flask
+from .model import db   # this is ok because this module only runs under flask
 
 from loutilities.agegrade import AgeGrade
 ag = AgeGrade(agegradewb='config/wavacalc15.xls')

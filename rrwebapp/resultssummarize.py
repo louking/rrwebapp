@@ -37,7 +37,7 @@ import json
 from . import app
 from . import analyzeagegrade
 from .services import ServiceAttributes
-from .racedb import Club, RaceResultService, ApiCredentials, RaceResult, Race, Location, Runner
+from .model import Club, RaceResultService, ApiCredentials, RaceResult, Race, Location, Runner
 from .location import LocationServer, get_distance
 from .nav import productname
 from loutilities import timeu

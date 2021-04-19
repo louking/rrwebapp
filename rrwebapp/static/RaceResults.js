@@ -1309,8 +1309,6 @@
     };  // importspec
 
 $(function() {
-    $( "#navigation" ).menu();
-
     // layout.html
     $('.sessionoption')
         .on('change',

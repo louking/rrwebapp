@@ -18,7 +18,7 @@ from .datatables_utils import DataTablesEditor, dt_editor_response, get_request_
 
 # homegrown
 from . import app
-from .database_flask import db   # this is ok because this module only runs under flask
+from .model import db   # this is ok because this module only runs under flask
 from .request import addscripts
 from loutilities.tables import DbCrudApi
 from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission

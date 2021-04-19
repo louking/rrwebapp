@@ -26,7 +26,7 @@ import csv
 # other
 
 # home grown
-from .racedb import Runner, Race
+from .model import Runner, Race
 from loutilities import timeu
 from loutilities.csvwt import wlist
 import loutilities.renderrun as render

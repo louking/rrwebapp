@@ -20,7 +20,7 @@ from collections import OrderedDict
 from . import app
 from .crudapi import CrudApi, DbQueryApi
 from .accesscontrol import owner_permission
-from .racedb import ApiCredentials, RaceResultService, insert_or_update
+from .model import ApiCredentials, RaceResultService, insert_or_update
 
 
 ###########################################################################################

@@ -34,10 +34,10 @@ from attrdict import AttrDict
 # home grown
 from . import app
 from . import celery
-from . import racedb
+from .model import insert_or_update
 from loutilities.tables import DataTables, ColumnDT
 from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
-from .database_flask import db   # this is ok because this module only runs under flask
+from .model import db   # this is ok because this module only runs under flask
 from .apicommon import failure_response, success_response
 from .request import addscripts, crossdomain
 from .appldirs import UPLOAD_TEMP_DIR
@@ -49,10 +49,10 @@ from . import raceresults
 from . import clubmember
 from .crudapi import CrudApi
 from .request import annotatescripts
-from .racedb import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, dbdate
-from .racedb import rendertime, renderfloat, rendermember, renderlocation, renderseries
+from .model import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, dbdate
+from .model import rendertime, renderfloat, rendermember, renderlocation, renderseries
 from .services import ServiceAttributes
-from .racedb import RaceResultService, ApiCredentials
+from .model import RaceResultService, ApiCredentials
 from .location import LocationServer, get_distance
 from .datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 from .forms import SeriesResultForm
@@ -2140,7 +2140,7 @@ class AjaxUpdateManagedResult(MethodView):
                     # newname present means that this name is a new nonmember to be put in the database
                     if newname:
                         runner = Runner(club_id,newname,None,newgen,None,member=False)
-                        added = racedb.insert_or_update(db.session,Runner,runner,skipcolumns=['id'],name=newname,dateofbirth=None,member=False)
+                        added = insert_or_update(db.session,Runner,runner,skipcolumns=['id'],name=newname,dateofbirth=None,member=False)
                         respargs['action'] = 'newname'
                         respargs['actionsuccess'] = True
                         respargs['id'] = runner.id

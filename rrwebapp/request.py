@@ -8,7 +8,10 @@
 #   Copyright 2014 Lou King.  All rights reserved
 #
 ###########################################################################################
-
+"""
+request - generic request processing
+========================================
+"""
 # standard
 import os
 import os.path
@@ -26,8 +29,8 @@ from flask.views import MethodView
 # home grown
 from . import app
 
-# module specific needs
-from .nav import setnavigation
+# # module specific needs
+# from .nav import setnavigation
 
 class invalidScript(Exception): pass
 
@@ -117,6 +120,7 @@ def addscripts(scriptlist):
         return []
 
     # get filetype of first file
+    thisfile = scriptlist[0]
     firstfiletype = scriptlist[0].split('.')[-1]
     if firstfiletype not in ['css', 'js']:
         raise invalidScript('Invalid script filename: {}'.format(thisfile))
@@ -129,19 +133,20 @@ def addscripts(scriptlist):
 
     return annotatescripts(scriptlist)
 
-#----------------------------------------------------------------------
-@app.before_request
-def before_request():
-#----------------------------------------------------------------------
-    setnavigation()
+# moved to module __init__.create_app
+# #----------------------------------------------------------------------
+# @app.before_request
+# def before_request():
+# #----------------------------------------------------------------------
+#     setnavigation()
 
-#----------------------------------------------------------------------
-@app.after_request
-def after_request(response):
-#----------------------------------------------------------------------
-    if not app.config['DEBUG']:
-        app.logger.info('{}: {} {} {}'.format(request.remote_addr, request.method, request.url, response.status_code))
-    return response
+# #----------------------------------------------------------------------
+# @app.after_request
+# def after_request(response):
+# #----------------------------------------------------------------------
+#     if not app.config['DEBUG']:
+#         app.logger.info('{}: {} {} {}'.format(request.remote_addr, request.method, request.url, response.status_code))
+#     return response
 
 
 #----------------------------------------------------------------------

@@ -30,10 +30,10 @@ from csv import DictReader
 
 # home grown
 from . import version
-from . import racedb
+from .model import Runner
 from loutilities import timeu, csvwt
 from loutilities.transform import Transform
-from .database_flask import db
+from .model import db
 from . import app
 
 # exceptions for this module.  See __init__.py for package exceptions
@@ -395,7 +395,7 @@ class DbClubMember(ClubMember):
     
     :params dbfilename: database file from which club members are to be retrieved -- default is to use configured database
     :params cutoff: cutoff for getmember.  float in (0,1].  higher means strings have to match more closely to be considered "close".  Default 0.6
-    :params \*\*kwfilter: keyword parameters for racedb.Runner database filter
+    :params \*\*kwfilter: keyword parameters for Runner database filter
     '''
     
     #----------------------------------------------------------------------
@@ -434,7 +434,7 @@ class DbClubMember(ClubMember):
                   'name' : {'First':lambda s,f: ' '.join(f.split(' ')[0:-1]),'Last':lambda s,f: f.split(' ')[-1]},
                   'hometown' : {'City':_city, 'State':_state}
                     }
-        d.addtable('Sheet1',s,racedb.Runner,hdrmap,**kwfilter)
+        d.addtable('Sheet1', s, Runner, hdrmap, **kwfilter)
         
         # retrieve first sheet's csv filename
         csvfiles = d.getfiles()

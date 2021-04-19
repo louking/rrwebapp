@@ -1,49 +1,42 @@
-#!/usr/bin/python
-###########################################################################################
-# racedb  -- manage race database
-#
-#	Date		Author		Reason
-#	----		------		------
-#       01/23/13        Lou King        Create
-#       04/26/13        Lou King        temp fix for issue #20 - allow mysql+gaerdbms
-#
-#   Copyright 2013,2014 Lou King.  All rights reserved
-#
-###########################################################################################
 '''
-racedb  -- manage race database
+model  -- manage race database
 ===================================================
-
-racedb has the following tables.  See classes of same name (with camelcase) for definitions.
-
-    * runner
-    * race
-    * raceresult
-    * raceseries
-    * series
-    * divisions
-       
+      
 '''
 
 # standard
-import pdb
-import time
 
 # pypi
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import func, types, cast, case
+from sqlalchemy import func, types, cast
 from sqlalchemy.types import TypeDecorator
-
-# github
-
-# other
-from .database_flask import *
 from flask import session
+from flask_sqlalchemy import SQLAlchemy
 
 # home grown
-from . import version
 from loutilities import timeu
 import loutilities.renderrun as render
+
+db = SQLAlchemy()
+Table = db.Table
+Column = db.Column
+Integer = db.Integer
+Float = db.Float
+Boolean = db.Boolean
+String = db.String
+Text = db.Text
+Date = db.Date
+Time = db.Time
+DateTime = db.DateTime
+Sequence = db.Sequence
+Enum = db.Enum
+UniqueConstraint = db.UniqueConstraint
+ForeignKey = db.ForeignKey
+relationship = db.relationship
+backref = db.backref
+object_mapper = db.object_mapper
+Base = db.Model
+metadata = db.metadata
 
 DBDATEFMT = '%Y-%m-%d'
 t = timeu.asctime(DBDATEFMT)
@@ -202,7 +195,7 @@ class UserAccessToken(Base):
     #----------------------------------------------------------------------
     def __init__(self, user_id=None, apicredentials_id=None, accesstoken=None):
     #----------------------------------------------------------------------
-        self.user_id = User_id
+        self.user_id = user_id
         self.apicredentials_id = apicredentials_id
         self.accesstoken = accesstoken
         
@@ -470,6 +463,7 @@ class RunnerAlias(Base):
     #----------------------------------------------------------------------
         return '<RunnerAlias %s %s>' % (self.name, self.runnerid)
 
+SURFACES = 'road,track,trail'.split(',')
 ########################################################################
 class Race(Base):
 ########################################################################
@@ -498,7 +492,7 @@ class Race(Base):
     starttime = Column(String(5))
     distance = Column(Float)
     fixeddist = Column(String(10))   # null or coerced with "{:.4g}".format(distance)
-    surface = Column(Enum('road','track','trail',name='SurfaceType'))
+    surface = Column(Enum(*SURFACES,name='SurfaceType'))
     locationid = Column(Integer, ForeignKey('location.id'))
     external = Column(Boolean, default=False)
     active = Column(Boolean, default=True)
@@ -530,7 +524,7 @@ class Course(Base):
     date = Column(String(10))
     distmiles = Column(Float)
     distkm = Column(Float)
-    surface = Column(Enum('road','track','trail',name='SurfaceType'))
+    surface = Column(Enum(*SURFACES,name='SurfaceType'))
     location = Column(String(MAX_LOCATION_LEN))
     raceid = Column(Integer)
 
