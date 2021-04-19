@@ -209,3 +209,4 @@ webassets-external/
 **/.history
 
 ### don't show config
+config/
