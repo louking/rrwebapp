@@ -208,5 +208,9 @@ webassets-external/
 # Ignore all local history of files
 **/.history
 
-### don't show config
+# local configuration files
+*.json
+*.cfg
+*-config.js
+*_config.py
 config/
