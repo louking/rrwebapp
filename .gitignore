@@ -197,6 +197,13 @@ webassets-external/
 # PyCharm
 .idea/
 
+# local configuration files (before VisualStudioCode block)
+*.json
+*.cfg
+*-config.js
+*_config.py
+config/
+
 ### VisualStudioCode ###
 .vscode/*
 !.vscode/settings.json
@@ -207,10 +214,3 @@ webassets-external/
 ### VisualStudioCode Patch ###
 # Ignore all local history of files
 **/.history
-
-# local configuration files
-*.json
-*.cfg
-*-config.js
-*_config.py
-config/
