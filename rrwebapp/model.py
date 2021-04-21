@@ -36,6 +36,7 @@ relationship = db.relationship
 backref = db.backref
 object_mapper = db.object_mapper
 Base = db.Model
+LargeBinary = db.LargeBinary
 metadata = db.metadata
 
 DBDATEFMT = '%Y-%m-%d'
@@ -53,9 +54,7 @@ MAX_LOCATION_LEN = 64
 getclubid = lambda form: session['club_id']
 getyear   = lambda form: session['year']
 
-#----------------------------------------------------------------------
 def getunique(session, model, **kwargs):
-#----------------------------------------------------------------------
     '''
     retrieve a row from the database, raising exception of more than one row exists for query criteria
     
@@ -77,9 +76,7 @@ def getunique(session, model, **kwargs):
     
     return instances[0]
 
-#----------------------------------------------------------------------
 def update(session, model, oldinstance, newinstance, skipcolumns=[]):
-#----------------------------------------------------------------------
     '''
     update an existing element based on kwargs query
     
@@ -106,9 +103,7 @@ def update(session, model, oldinstance, newinstance, skipcolumns=[]):
     
     return updated
 
-#----------------------------------------------------------------------
 def insert_or_update(session, model, newinstance, skipcolumns=[], **kwargs):
-#----------------------------------------------------------------------
     '''
     insert a new element or update an existing element based on kwargs query
     
@@ -140,9 +135,7 @@ def insert_or_update(session, model, newinstance, skipcolumns=[], **kwargs):
         
     return updated
 
-#----------------------------------------------------------------------
 def find_user(userid):
-#----------------------------------------------------------------------
     '''
     find user in database
     
@@ -159,9 +152,8 @@ def find_user(userid):
     # who knows what it was, but we didn't find it
     return None
 
-########################################################################
+
 class ApiCredentials(Base):
-########################################################################
     __tablename__ = 'apicredentials'
     id = Column(Integer, Sequence('apicredentials_id_seq'), primary_key=True)
     name = Column(String(20), unique=True)
@@ -182,9 +174,8 @@ class ApiCredentials(Base):
     #----------------------------------------------------------------------
         return '<ApiCredentials %s %s %s>' % (self.name, self.key, self.secret)
 
-########################################################################
+
 class UserAccessToken(Base):
-########################################################################
     __tablename__ = 'useraccesstoken'
     __table_args__ = (UniqueConstraint('user_id', 'apicredentials_id'),)
     id = Column(Integer, Sequence('useraccesstoken_id_seq'), primary_key=True)
@@ -204,20 +195,15 @@ class UserAccessToken(Base):
     #----------------------------------------------------------------------
         return '<UserAccessToken %s %s %s>' % (self.user_id, self.apicredentials_id, self.accesstoken)
 
-########################################################################
-# userrole associates user with their roles
-########################################################################
-# TODO: can't this be declared as a class using Base?
 userrole_table = Table('userrole',metadata,
     Column('user_id', Integer, ForeignKey('user.id')),
     Column('role_id', Integer, ForeignKey('role.id')),
     UniqueConstraint('user_id', 'role_id')
     )
 
-########################################################################
-# NOTE: for flask-security see https://pythonhosted.org/Flask-Security/quickstart.html#id1
+
 class User(Base):
-########################################################################
+    # NOTE: for flask-security see https://pythonhosted.org/Flask-Security/quickstart.html#id1
     __tablename__ = 'user'
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
     email = Column(String(255), unique=True)
@@ -242,9 +228,7 @@ class User(Base):
         # many to many pattern - see http://docs.sqlalchemy.org/en/rel_0_8/orm/relationships.html
     useraccesstokens = relationship('UserAccessToken',backref='user',cascade="all, delete")
 
-    #----------------------------------------------------------------------
     def __init__(self, email, name, password, confirmed_at=None, last_login_at=None, current_login_at=None, last_login_ip=None, current_login_ip=None, login_count=0):
-    #----------------------------------------------------------------------
         self.email = email
         self.name = name
         self.set_password(password)
@@ -256,63 +240,44 @@ class User(Base):
         self.current_login_ip = current_login_ip
         self.login_count = login_count
 
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         return '<User %s %s>' % (self.email, self.name)
 
-    #----------------------------------------------------------------------
     def set_password(self, password):
-    #----------------------------------------------------------------------
         self.pw_hash = generate_password_hash(password)
 
-    #----------------------------------------------------------------------
     def check_password(self, password):
-    #----------------------------------------------------------------------
         return check_password_hash(self.pw_hash, password)
     
     ## the following methods are used by flask-login
-    #----------------------------------------------------------------------
     def is_authenticated(self):
-    #----------------------------------------------------------------------
         #return self.authenticated
         return True
     
-    #----------------------------------------------------------------------
     def is_active(self):
-    #----------------------------------------------------------------------
         return self.active
     
-    #----------------------------------------------------------------------
     def is_anonymous(self):
-    #----------------------------------------------------------------------
         return False
     
-    #----------------------------------------------------------------------
     def get_id(self):
-    #----------------------------------------------------------------------
         return self.id
     
-    #----------------------------------------------------------------------
     def __eq__(self,other):
-    #----------------------------------------------------------------------
         if isinstance(other, User):
             return self.get_id() == other.get_id()
         return NotImplemented
     
-    #----------------------------------------------------------------------
     def __ne__(self,other):
-    #----------------------------------------------------------------------
         equal = self.__eq__(other)
         if equal is NotImplemented:
             return NotImplemented
         return not equal
     ## end of methods used by flask-login
     
-########################################################################
-# NOTE: for flask-security see https://pythonhosted.org/Flask-Security/quickstart.html#id1
+
 class Role(Base):
-########################################################################
+    # NOTE: for flask-security see https://pythonhosted.org/Flask-Security/quickstart.html#id1
     __tablename__ = 'role'
     __table_args__ = (UniqueConstraint('name', 'club_id'),)
     id = Column(Integer, Sequence('role_id_seq'), primary_key=True)
@@ -320,20 +285,15 @@ class Role(Base):
     name = Column(String(80))
     description = Column(db.String(255))
 
-    #----------------------------------------------------------------------
     def __init__(self,name,description=None):
-    #----------------------------------------------------------------------
         self.name = name
         self.description = description
         
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         return '<Role %s %s>' % (Club.query.filter_by(id=self.club_id).first().shname, self.name)
 
-########################################################################
+
 class Club(Base):
-########################################################################
     __tablename__ = 'club'
     id = Column(Integer, Sequence('club_id_seq'), primary_key=True)
     shname = Column(String(10), unique=True)
@@ -349,23 +309,18 @@ class Club(Base):
     series = relationship('Series',backref='club',cascade="all, delete")
     exclusions = relationship('Exclusion',backref='club',cascade="all, delete")
 
-    #----------------------------------------------------------------------
     def __init__(self, shname=None, name=None, memberserviceapi=None, memberserviceid=None, location=None):
-    #----------------------------------------------------------------------
         self.shname = shname
         self.name = name
         self.memberserviceapi = memberserviceapi
         self.memberserviceid = memberserviceid
         self.location = location
         
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         return '<Club %s %s %s %s %s>' % (self.shname, self.name, self.memberserviceapi, self.memberserviceid, self.location)
 
-########################################################################
+
 class Runner(Base):
-########################################################################
     '''
     * runner
 
@@ -396,9 +351,7 @@ class Runner(Base):
     aliases = relationship("RunnerAlias", backref='runner', cascade="all, delete, delete-orphan")
     exclusions = relationship("Exclusion", backref='runner')
 
-    #----------------------------------------------------------------------
     def __init__(self, club_id, name=None, dateofbirth=None, gender=None, hometown=None, member=True, renewdate=None, expdate=None, fname=None, lname=None):
-    #----------------------------------------------------------------------
         try:
             if dateofbirth:
                 dobtest = t.asc2dt(dateofbirth)
@@ -429,9 +382,7 @@ class Runner(Base):
         self.member = member
         self.active = True
         
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         if self.member:
             dispmem = 'member'
         else:
@@ -442,9 +393,8 @@ class Runner(Base):
             dispactive = 'inactive'
         return "<Runner('%s','%s','%s','%s','%s','%s','%s')>" % (self.club_id, self.name, self.dateofbirth, self.gender, self.hometown, dispmem, dispactive)
     
-########################################################################
+
 class RunnerAlias(Base):
-########################################################################
     __tablename__ = 'runneralias'
     __table_args__ = (UniqueConstraint('name', 'club_id'),)
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
@@ -452,21 +402,16 @@ class RunnerAlias(Base):
     name = Column(String(50))
     runnerid = Column(Integer, ForeignKey('runner.id'))
 
-    #----------------------------------------------------------------------
     def __init__(self, club_id, name=None, runnerid=None):
-    #----------------------------------------------------------------------
         self.name = name
         self.runnerid = runnerid    
 
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         return '<RunnerAlias %s %s>' % (self.name, self.runnerid)
 
+
 SURFACES = 'road,track,trail'.split(',')
-########################################################################
 class Race(Base):
-########################################################################
     '''
     Defines race for a club
     
@@ -499,9 +444,8 @@ class Race(Base):
     results = relationship("RaceResult", backref='race', cascade="all, delete, delete-orphan")
     series = relationship("Series", backref='races', secondary="raceseries")
 
-########################################################################
+
 class Course(Base):
-########################################################################
     '''
     Defines course
     
@@ -528,9 +472,7 @@ class Course(Base):
     location = Column(String(MAX_LOCATION_LEN))
     raceid = Column(Integer)
 
-    #----------------------------------------------------------------------
     def __init__(self, club_id=None, source=None, sourceid=None, name=None, date=None, distmiles=None, distkm=None, surface=None, location=None):
-    #----------------------------------------------------------------------
 
         self.club_id = club_id
         self.source = source
@@ -542,14 +484,11 @@ class Course(Base):
         self.surface = surface
         self.location = location
 
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         return "<Course('%s','%s','%s','%s','%s','%s','%s','%s','%s')>" % (self.club_id, self.source, self.sourceid, self.name, self.date, self.distmiles, self.distkm, self.surface, self.location)
     
-########################################################################
+
 class Location(Base):
-########################################################################
     '''
     cache for race location and distance from club location
     '''
@@ -561,23 +500,18 @@ class Location(Base):
     cached_at = Column(DateTime)   # when location was cached
     lookuperror = Column(Boolean)
 
-    #----------------------------------------------------------------------
     def __init__(self, name=None, latitude=None, longitude=None, cached_at=None, lookuperror=False):
-    #----------------------------------------------------------------------
         self.name = name
         self.latitude = latitude
         self.longitude = longitude
         self.cached_at = cached_at
         self.lookuperror = lookuperror
         
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         return '<Location %s %s %s %s>' % (self.name, self.latitude, self.longitude, self.cached_at)
 
-########################################################################
+
 class Series(Base):
-########################################################################
     '''
     * series (attributes)
 
@@ -625,9 +559,8 @@ class Series(Base):
     results = relationship("RaceResult", backref='series', cascade="all, delete, delete-orphan")
 
 
-########################################################################
+
 class ManagedResult(Base):
-########################################################################
     '''
     Raw results from original official results, annotated with user's
     disposition about whether each row should be included in standings
@@ -668,12 +601,10 @@ class ManagedResult(Base):
     initialdisposition = Column(String(15))
     confirmed = Column(Boolean)
 
-    #----------------------------------------------------------------------
     def __init__(self, club_id, raceid, place=None, name=None, fname=None, lname=None,
                  gender=None,age=None,city=None,state=None,club=None,
                  time=None,
                  runnerid=None,initialdisposition=None,selectionmethod=None):
-    #----------------------------------------------------------------------
         self.club_id = club_id
         self.raceid = raceid
         self.place = place
@@ -690,35 +621,27 @@ class ManagedResult(Base):
         self.initialdisposition = initialdisposition
         self.selectionmethod = selectionmethod
 
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         return "<ManagedResult('%s','%s','%s','%s')>" % (self.raceid, self.place, self.name, self.time)
 
-########################################################################
+
 class RaceResultService(Base):
-########################################################################
     __tablename__ = 'raceresultservice'
     id = Column(Integer, Sequence('raceresultservice_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))
     apicredentials_id = Column(Integer, ForeignKey('apicredentials.id'))
     attrs = Column(String(200)) # json object with attribute items
 
-    #----------------------------------------------------------------------
     def __init__(self, club_id=None, apicredentials_id=None, attrs=None):
-    #----------------------------------------------------------------------
         self.club_id = club_id
         self.apicredentials_id = apicredentials_id
         self.attrs = attrs
         
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         return '<RaceResultService %s %s %s>' % (self.club_id, self.apicredentials_id, self.attrs)
 
-########################################################################
+
 class RaceResult(Base):
-########################################################################
     '''
     :param club_id: club.id
     :param runnerid: runner.id
@@ -774,14 +697,12 @@ class RaceResult(Base):
     instandings = Column(Boolean)   
     hidden = Column(Boolean)
 
-    #----------------------------------------------------------------------
     def __init__(self, club_id, runnerid, raceid, seriesid, time, gender, agage, divisionlow=None, divisionhigh=None,
                  overallplace=None, genderplace=None, runnername=None, divisionplace=None,
                  overallpoints=None, genderpoints=None, divisionpoints=None,
                  agtimeplace=None, agfactor=None, agtime=None, agpercent=None, 
                  source=None, sourceid=None, sourceresultid=None, fuzzyage=None,
                  instandings=False, hidden=False):
-    #----------------------------------------------------------------------
         
         self.club_id = club_id
         self.runnerid = runnerid
@@ -810,9 +731,7 @@ class RaceResult(Base):
         self.instandings = instandings
         self.hidden = hidden
 
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         # TODO: too many unlabeled fields -- need to make this clearer
         return "<RaceResult('%s','%s','%s','%s','%s','%s',div='(%s,%s)','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s', '%s')>" % (
             self.runnerid, self.runnername, self.raceid, self.seriesid, self.gender, self.agage, self.divisionlow, self.divisionhigh,
@@ -820,9 +739,8 @@ class RaceResult(Base):
             self.source, self.sourceid, self.sourceresultid,
             self.instandings, self.hidden)
     
-########################################################################
+
 class RaceSeries(Base):
-########################################################################
     '''
     * raceseries
         * race/id
@@ -838,22 +756,17 @@ class RaceSeries(Base):
     seriesid = Column(Integer, ForeignKey('series.id'))
     active = Column(Boolean)
 
-    #----------------------------------------------------------------------
     def __init__(self, raceid, seriesid):
-    #----------------------------------------------------------------------
         
         self.raceid = raceid
         self.seriesid = seriesid
         self.active = True
 
-    #----------------------------------------------------------------------
     def __repr__(self):
-    #----------------------------------------------------------------------
         return "<RaceSeries(race='%s',series='%s',active='%s')>" % (self.raceid, self.seriesid, self.active)
     
-########################################################################
+
 class Divisions(Base):
-########################################################################
     '''
     Divisions for indicated year, series
     
@@ -873,9 +786,8 @@ class Divisions(Base):
     active = Column(Boolean, default=True)
 
 
-########################################################################
+
 class Exclusion(Base):
-########################################################################
     '''
     Close names found matching a member, which are not the member runner
     
@@ -891,9 +803,33 @@ class Exclusion(Base):
     runnerid = Column(Integer, ForeignKey('runner.id'))
 
 
-#####################################################
+# created by celery
+class CeleryGroupmeta(Base):
+    __tablename__ = 'celery_groupmeta'
+
+    id = Column(Integer, primary_key=True)
+    taskset_id = Column(String(155), unique=True)
+    result = Column(LargeBinary)
+    date_done = Column(DateTime)
+
+
+class CeleryTaskmeta(Base):
+    __tablename__ = 'celery_taskmeta'
+
+    id = Column(Integer, primary_key=True)
+    task_id = Column(String(155), unique=True)
+    status = Column(String(50))
+    result = Column(LargeBinary)
+    date_done = Column(DateTime)
+    traceback = Column(Text)
+    name = Column(String(155))
+    args = Column(LargeBinary)
+    kwargs = Column(LargeBinary)
+    worker = Column(String(155))
+    retries = Column(Integer)
+    queue = Column(String(155))
+
 # for use in ColumnDT declarations
-#####################################################
 def renderfloat(expr, numdigits):
     return func.round(expr, numdigits)
 
