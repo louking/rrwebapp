@@ -21,12 +21,11 @@ from logging.handlers import TimedRotatingFileHandler
 
 # pypi
 
-# module specific needs
-from . import app
-
 #----------------------------------------------------------------------
 def setlogging():
 #----------------------------------------------------------------------
+    # need to wait until app created to import
+    from . import app
 
     # this is needed for any INFO or DEBUG logging
     app.logger.setLevel(logging.DEBUG)
