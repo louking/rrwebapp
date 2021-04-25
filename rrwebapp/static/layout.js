@@ -7,6 +7,11 @@ $( function() {
 
     // all navbar links which are not on this site (i.e., don't start with '/') open in new tab
     $( '.navbar a' ).not('[href^="/"]').attr('target', '_blank');
+    // prevent click behavior for empty navigation items which have submenu
+    $( '.navbar a[href="#"].has-submenu').click(function(e) {
+        e.stopPropagation();
+        return false;
+    });
 
     // // register interest group for all links
     // register_group('interest', '#metanav-select-interest', 'a' );
