@@ -21,10 +21,8 @@ import traceback
 
 # pypi
 import flask
-from flask import make_response,request
-from flask_login import login_required
+from flask import request
 from flask.views import MethodView
-from werkzeug.utils import secure_filename
 
 # home grown
 from . import app
@@ -90,8 +88,8 @@ class ViewStandings(MethodView):
             
             # number of rows is set based on whether len(races) is even or odd
             numcols = 2
-            even = len(races) / numcols == len(races) / (numcols*1.0)
-            numrows = len(races) / numcols if even else len(races) / numcols + 1
+            even = len(races) // numcols == len(races) / (numcols*1.0)
+            numrows = len(races) // numcols if even else len(races) // numcols + 1
             
             racerows = []
             racenum = {}
@@ -366,7 +364,7 @@ class AjaxGetSeries(MethodView):
             
             allseries = Series.query.filter_by(active=True,club_id=club_id,year=year).all()
             # see https://editor.datatables.net/plug-ins/field-type/editor.select2
-            theseseries = sorted([{'label':s.name, 'value':s.name} for s in allseries])
+            theseseries = sorted([{'label':s.name, 'value':s.name} for s in allseries], key=lambda s: s['label'])
             # choices = [{'label':'Select Series', 'value':''}] + theseseries
             choices = theseseries
 

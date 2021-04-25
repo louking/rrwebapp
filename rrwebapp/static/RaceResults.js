@@ -1444,7 +1444,7 @@ $(function() {
         }
 
         // use form to gather url arguments
-        var formopts = $(this).attr('_rrwebapp-editor-form')
+        var formopts = $(this).attr('popup_form')
         if (formopts) {
             event.preventDefault();
             var opts = JSON.parse(formopts);

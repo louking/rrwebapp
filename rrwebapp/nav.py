@@ -17,9 +17,10 @@ from flask_login import current_user
 from flask.views import MethodView
 from flask import request
 from flask_nav import Nav
-from flask_nav.elements import Navbar, View, Subgroup, Link, Separator
+from flask_nav.elements import Navbar, View, Subgroup, Link, Separator, RawTag
 from flask_nav.renderers import SimpleRenderer
 from dominate.tags import a, ul, li
+from dominate.util import raw
 from slugify import slugify
 
 # home grown
@@ -50,6 +51,9 @@ class NavRenderer(SimpleRenderer):
             group.add(li(self.visit(item)))
 
         return [title, group]
+
+    def visit_RawTag(self, node):
+        return li(raw(node.content), **node.attribs)
 
 
 class MLStripper(HTMLParser):
@@ -114,7 +118,7 @@ def nav_menu():
 
 
     super_admin_view = add_view('https://scores.readthedocs.io/en/{docversion}/super-admin-reference.html#')
-    races_admin_view = add_view('https://scores.readthedocs.io/en/{docversion}/races-admin-reference.html#')
+    scoring_view = add_view('https://scores.readthedocs.io/en/{docversion}/races-admin-reference.html#')
     analysis_admin_view = add_view('https://scores.readthedocs.io/en/{docversion}/analysis-admin-reference.html#')
     user_view = add_view('https://scores.readthedocs.io/en/{docversion}/user-guide.html#')
 
@@ -137,24 +141,23 @@ def nav_menu():
 
     if current_user.is_authenticated:
         # race handling
-        racesadmin = Subgroup('Race Administration')
+        racesadmin = Subgroup('Scoring')
         navbar.items.append(racesadmin)
   
         if club and readcheck.can():
-            races_admin_view(racesadmin, 'Members', 'managemembers')
-            races_admin_view(racesadmin, 'Races', 'manageraces')
-            races_admin_view(racesadmin, 'Series', 'manageseries')
-            races_admin_view(racesadmin, 'Divisions', 'managedivisions')
+            scoring_view(racesadmin, 'Members', 'managemembers')
+            scoring_view(racesadmin, 'Races', 'manageraces')
+            scoring_view(racesadmin, 'Series', 'manageseries')
+            scoring_view(racesadmin, 'Divisions', 'managedivisions')
 
-            # owner check to avoid duplicate navigation
-            if not owner_permission.can():
-                races_admin_view(racesadmin, 'Results Summary', 'resultsanalysissummary')
+            # this is duplicated under Results Analysis for owner
+            scoring_view(racesadmin, 'Results Summary', 'resultsanalysissummary')
 
         if club and writecheck.can():
-            races_admin_view(racesadmin, 'Exclusions', 'editexclusions')
+            scoring_view(racesadmin, 'Exclusions', 'editexclusions')
     
         if owner_permission.can():
-            superadmin = Subgroup('Super Admin')
+            superadmin = Subgroup('Super')
             navbar.items.append(superadmin)
             super_admin_view(superadmin, 'Clubs', 'manageclubs')
             super_admin_view(superadmin, 'Users', 'manageusers')
@@ -193,73 +196,76 @@ def nav_menu():
     yeardefault = session['last_standings_year'] if 'last_standings_year' in session else thisyear
 
     # anonymous access
-    navigation = []
-    navigation.append({'display':'Standings','url':'#',
-        'attr':[{'name':'_rrwebapp-editor-form',
-                 'value': json.dumps({
-                     'title': 'Choose Standings',
-                     'editoropts': {
-                         'className': 'choose-standings-form',
-                         'fields': [
-                             {'name': 'club', 'label': 'Club', 'type': 'select2', 'options': clubopts, 'def': clubsess},
-                             {'name': 'year', 'label': 'Year', 'type': 'select2', 'options': list(range(2013, thisyear+1)), 'def':yeardefault},
-                             {'name': 'series', 'label': 'Series', 'type': 'select2', 'opts': {'placeholder': 'Select series'}},
-                         ]
-                     },
-                     'buttons': [
-                         {'label': 'Show Standings',
-                          'action': '''
-                                    {{ 
-                                        var args = {{club: this.get("club"), year: this.get("year"), series: this.get("series") }};
-                                        var error = false;
-                                        this.error("");
-                                        for (var field in args) {{
-                                            this.error(field, "");
-                                            if (!args[field]) {{
-                                                error = true;
-                                                this.error(field, "must be supplied");
-                                            }}
-                                        }}
-                                        if (error) {{
-                                            this.error("check field errors");
-                                            return;
-                                        }}
-                                        args.desc = this.field("club").inst().find(":selected").text() + " - " + this.get("year") + " " + this.get("series");
-                                        this.close();
-                                        window.location.href = "{}?\" + $.param( args );
-                                    }}'''.format(url_for('viewstandings'))},
-                     ],
-                     # name of functions called with standalone editor instance and buttons field from above
-                     'onopen': 'navstandingsopen',
-                     'onclose': 'navstandingsclose',
-                 })
+    navbar.items.append(
+        RawTag( 
+            # popup_form is referenced in RaceResults.js $("a").click function
+            a('Standings', href='#', popup_form=json.dumps({
+                'title': 'Choose Standings',
+                'editoropts': {
+                    'className': 'choose-standings-form',
+                    'fields': [
+                        {'name': 'club', 'label': 'Club', 'type': 'select2', 'options': clubopts, 'def': clubsess},
+                        {'name': 'year', 'label': 'Year', 'type': 'select2', 'options': list(range(2013, thisyear+1)), 'def':yeardefault},
+                        {'name': 'series', 'label': 'Series', 'type': 'select2', 'opts': {'placeholder': 'Select series'}},
+                    ]
+                },
+                'buttons': [
+                    {'label': 'Show Standings',
+                    'action': '''
+                            {{ 
+                                var args = {{club: this.get("club"), year: this.get("year"), series: this.get("series") }};
+                                var error = false;
+                                this.error("");
+                                for (var field in args) {{
+                                    this.error(field, "");
+                                    if (!args[field]) {{
+                                        error = true;
+                                        this.error(field, "must be supplied");
+                                    }}
+                                }}
+                                if (error) {{
+                                    this.error("check field errors");
+                                    return;
+                                }}
+                                args.desc = this.field("club").inst().find(":selected").text() + " - " + this.get("year") + " " + this.get("series");
+                                this.close();
+                                window.location.href = "{}?\" + $.param( args );
+                            }}'''.format(url_for('viewstandings'))},
+                ],
+                # name of functions called with standalone editor instance and buttons field from above
+                'onopen': 'navstandingsopen',
+                'onclose': 'navstandingsclose',
+            })
+            ).render()
+    ))
 
-        }
-
-        ]})
-    navigation.append({'display':'Results','url':'#',
-        'attr':[{   'name':'_rrwebapp-editor-form',
-                    'value': json.dumps({
-                            'title' : 'Choose club',
-                            'buttons' : [
-                                {'label': 'table', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(url_for('results'))},
-                                {'label': 'chart', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(url_for('resultschart'))},
-                            ],
-                            'editoropts': {
-                                'fields': [ {
-                                    'name': 'club',
-                                    'label': 'Club:',
-                                    'type': 'select', 'options': clubopts,
-                                    'def': clubsess,
-                                    },
-                                ],
+    navbar.items.append(
+        RawTag( 
+            a('Results', href='#', popup_form=
+                json.dumps({
+                    'title' : 'Choose club',
+                    'buttons' : [
+                        {'label': 'table', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(url_for('results'))},
+                        {'label': 'chart', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(url_for('resultschart'))},
+                    ],
+                    'editoropts': {
+                        'fields': [ {
+                            'name': 'club',
+                            'label': 'Club:',
+                            'type': 'select', 'options': clubopts,
+                            'def': clubsess,
                             },
-                            })
-                  } ] 
-    })
+                        ],
+                    },
+                    })
+                    ).render()
+        )
+    )
 
+    # this isn't accessible from the menu now. todo: decide whether to keep
     if is_authenticated(thisuser):
         # TODO: when more tools are available, move writecheck to appropriate tools
+        navigation = []
         if club and writecheck.can():
             navigation.append({'display':'Tools','list':[]})
             navigation[-1]['list'].append({'display':'Normalize Members','url':url_for('normalizememberlist')})
