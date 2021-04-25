@@ -12,10 +12,12 @@ from sqlalchemy import func, types, cast
 from sqlalchemy.types import TypeDecorator
 from flask import session
 from flask_sqlalchemy import SQLAlchemy
+from flask_security import UserMixin, RoleMixin
 
 # home grown
 from loutilities import timeu
 import loutilities.renderrun as render
+# from loutilities.user.model import db
 
 db = SQLAlchemy()
 Table = db.Table
@@ -135,22 +137,22 @@ def insert_or_update(session, model, newinstance, skipcolumns=[], **kwargs):
         
     return updated
 
-def find_user(userid):
-    '''
-    find user in database
+# def find_user(userid):
+#     '''
+#     find user in database
     
-    :param userid: id or email address of user
-    '''
-    # if numeric, assume userid is id of user
-    if type(userid) in [int,int]:
-        return User.query.filter_by(id=userid).first()
+#     :param userid: id or email address of user
+#     '''
+#     # if numeric, assume userid is id of user
+#     if type(userid) in [int,int]:
+#         return User.query.filter_by(id=userid).first()
     
-    # if string assume email address
-    if type(userid) in [str,str]:
-        return User.query.filter_by(email=userid).first()
+#     # if string assume email address
+#     if type(userid) in [str,str]:
+#         return User.query.filter_by(email=userid).first()
     
-    # who knows what it was, but we didn't find it
-    return None
+#     # who knows what it was, but we didn't find it
+#     return None
 
 
 class ApiCredentials(Base):
@@ -202,7 +204,7 @@ userrole_table = Table('userrole',metadata,
     )
 
 
-class User(Base):
+class User(Base, UserMixin):
     # NOTE: for flask-security see https://pythonhosted.org/Flask-Security/quickstart.html#id1
     __tablename__ = 'user'
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
@@ -276,7 +278,7 @@ class User(Base):
     ## end of methods used by flask-login
     
 
-class Role(Base):
+class Role(Base, RoleMixin):
     # NOTE: for flask-security see https://pythonhosted.org/Flask-Security/quickstart.html#id1
     __tablename__ = 'role'
     __table_args__ = (UniqueConstraint('name', 'club_id'),)

@@ -17,8 +17,10 @@ from werkzeug.local import LocalProxy
 import loutilities
 from loutilities.configparser import getitems
 from loutilities.flask_helpers.mailer import sendmail
-from loutilities.user import UserSecurity
+# from loutilities.user import UserSecurity
+from flask_security import Security
 from .model import User, Role
+# from loutilities.user.model import User, Role
 
 # bring in js, css assets
 from . import assets
@@ -145,7 +147,9 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
     # Set up Flask-Security
     global user_datastore, security
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
-    security = UserSecurity(app, user_datastore, send_mail=security_send_mail)
+    # uncomment when working on #426
+    # security = UserSecurity(app, user_datastore, send_mail=security_send_mail)
+    security = Security(app, user_datastore, send_mail=security_send_mail)
 
     # activate views
     from .views import userrole as userroleviews

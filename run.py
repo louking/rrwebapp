@@ -17,7 +17,12 @@ from rrwebapp.settings import Development
 configfile = "rrwebapp.cfg"
 abspath = os.path.abspath(__file__)
 configpath = os.path.join(os.path.dirname(abspath), 'config', configfile)
-app = create_app(Development(configpath), configpath)
+userconfigpath = os.path.join(os.path.dirname(abspath), 'config', 'users.cfg')
+# uncomment when working on #426
+# userconfigpath first so configpath can override
+# configfiles = [userconfigpath, configpath]
+configfiles = [configpath]
+app = create_app(Development(configfiles), configfiles)
 
 from loutilities.flask_helpers.blueprints import list_routes
 

@@ -2,7 +2,7 @@
 {% block metanav %}
     <div class=metanav>
       {% if not session.logged_in %}
-        <a href="{{ url_for('login') }}">log in</a>
+        <a href="{{ url_for('security.login') }}">log in</a>
       {% else %}
         {{ session.user_name }}
         {% if not inhibityear and session.year %}
@@ -21,7 +21,7 @@
             {% endfor %}
           </select>
         {% endif %}
-        | <a href="{{ url_for('logout') }}">log out</a>
+        | <a href="{{ url_for('security.logout') }}">log out</a>
         | <a href="{{ url_for('usersettings')}}?next={{request.url}}">
             <span class="ui-icon ui-icon-gear" style="display: inline-block"></span>
           </a>
