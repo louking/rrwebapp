@@ -16,7 +16,6 @@ renderstandings - render result information within database for standings
 '''
 
 # standard
-import pdb
 import math
 import copy
 import xml.etree.ElementTree as ET
@@ -1157,7 +1156,7 @@ class StandingsRenderer():
         self.racenums = racenums
         
     #----------------------------------------------------------------------
-    def collectstandings(self,racesprocessed,gen,raceid,byrunner,divrunner): 
+    def collectstandings(self, racesprocessed, gen, raceid, byrunner, divrunner): 
     #----------------------------------------------------------------------
         '''
         collect standings for this race / series
@@ -1203,19 +1202,19 @@ class StandingsRenderer():
                 age[runnerid] = thisage
             thisage = age[runnerid]
             
-            if (runnerid,name,thisage) not in byrunner:
-                byrunner[runnerid,name,thisage] = {}
-                byrunner[runnerid,name,thisage]['bygender'] = []
+            if (runnerid, name, thisage) not in byrunner:
+                byrunner[runnerid, name, thisage] = {}
+                byrunner[runnerid, name, thisage]['bygender'] = []
                 if self.bydiv:
-                    if (runnerid,name,thisage) not in divrunner[(result.divisionlow,result.divisionhigh)]:
-                        divrunner[(result.divisionlow,result.divisionhigh)].append((runnerid,name,thisage))
-                    byrunner[runnerid,name,thisage]['bydivision'] = []
+                    if (runnerid, name, thisage) not in divrunner[(result.divisionlow, result.divisionhigh)]:
+                        divrunner[(result.divisionlow,result.divisionhigh)].append((runnerid, name, thisage))
+                    byrunner[runnerid, name, thisage]['bydivision'] = []
             
             # for this runner, catch 'bygender' and 'bydivision' up to current race position
             while len(byrunner[runnerid,name,thisage]['bygender']) < racesprocessed:
-                byrunner[runnerid,name,thisage]['bygender'].append('')
+                byrunner[runnerid, name, thisage]['bygender'].append('')
                 if self.bydiv:
-                    byrunner[runnerid,name,thisage]['bydivision'].append('')
+                    byrunner[runnerid, name, thisage]['bydivision'].append('')
                     
             # accumulate points for this result
             # if result is ordered by time, genderplace and divisionplace may be used
@@ -1298,14 +1297,14 @@ class StandingsRenderer():
         if self.bydiv:
             divisions = []
             for div in Divisions.query.filter_by(club_id=self.club_id,seriesid=self.series.id,active=True).order_by(Divisions.divisionlow).all():
-                divisions.append((div.divisionlow,div.divisionhigh))
+                divisions.append((div.divisionlow, div.divisionhigh))
             if len(divisions) == 0:
                 raise dbConsistencyError('series {0} indicates divisions to be calculated, but no divisions found'.format(self.series.name))
 
         # process each gender
         for gen in ['F','M']:
             # open file, prepare header, etc
-            fh.prepare(gen,self.series,self.year)
+            fh.prepare(gen, self.series, self.year)
                     
             # collect data for each race, within byrunner dict
             # also track names of runners within each division
@@ -1321,7 +1320,7 @@ class StandingsRenderer():
             for race in self.races:
                 # skip races not included in this series (note race.series points at raceseries table)
                 #if self.series.id not in [s.seriesid for s in race.series]: continue
-                self.collectstandings(racesprocessed,gen,race.id,byrunner,divrunner)
+                self.collectstandings(racesprocessed, gen, race.id, byrunner, divrunner)
                 racesprocessed += 1
                 
             # render standings
@@ -1354,9 +1353,9 @@ class StandingsRenderer():
                         # convert each race result to int if possible
                         byrunner[runnerid,name,age]['bydivision'] = [int(r) if isinstance(r, float) and r==int(r) else r for r in byrunner[runnerid,name,age]['bydivision']]
                         racetotals = byrunner[runnerid,name,age]['bydivision'][:]    # make a copy
-                        racetotals.sort(reverse=True)
                         # total numbers only, and convert to int if possible
                         racetotals = [r for r in racetotals if type(r) in [int,float]]
+                        racetotals.sort(reverse=True)
                         racesused = racetotals[:min(self.maxraces,len(racetotals))]
                         byrunner[runnerid,name,age]['racesused'] = racesused[:]  # NOTE: this field will be reinitialized for overall / gender standings
                         totpoints = sum(racesused)
@@ -1422,9 +1421,9 @@ class StandingsRenderer():
                 # convert each race result to int if possible
                 byrunner[runnerid,name,age]['bygender'] = [int(r) if isinstance(r, float) and r==int(r) else r for r in byrunner[runnerid,name,age]['bygender']]
                 racetotals = byrunner[runnerid,name,age]['bygender'][:]    # make a copy
-                racetotals.sort(reverse=True)
                 # total numbers only, and convert to int if possible
                 racetotals = [r for r in racetotals if type(r) in [int,float]]
+                racetotals.sort(reverse=True)
                 racesused = racetotals[:min(self.maxraces,len(racetotals))]
                 byrunner[runnerid,name,age]['racesused'] = racesused[:]  # NOTE: this field will be reinitialized for overall / gender standings
                 totpoints = sum(racesused)
