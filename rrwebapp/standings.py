@@ -32,7 +32,6 @@ from .model import db   # this is ok because this module only runs under flask
 from .apicommon import failure_response, success_response
 
 # module specific needs
-import xml.etree.ElementTree as ET
 import urllib.request, urllib.parse, urllib.error
 from .model import dbdate, Runner, RaceResult, RaceSeries, Race, Series, Club
 from .renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle

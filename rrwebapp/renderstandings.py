@@ -18,13 +18,13 @@ renderstandings - render result information within database for standings
 # standard
 import math
 import copy
-import xml.etree.ElementTree as ET
 import urllib.request, urllib.parse, urllib.error
 from datetime import datetime
 
 # pypi
 import xlwt
 import flask
+from dominate.tags import div, a
 
 # github
 
@@ -52,19 +52,10 @@ def addstyle(header,contents,style):
     :param header: true if this is to be a header element
     :param text: text for final element
     :param style: name for style class
+    :rtype: html string
     '''
-    el = ET.Element('div')
-    
-    # embed ET Elements
-    if isinstance(contents, ET.Element):
-        el.append(contents)
-    
-    # otherwise assume string
-    else:
-        el.text = contents
-    el.set('class','_rrwebapp-class-standings-data-{}'.format(style))
-    
-    return ET.tostring(el)
+    el = div(contents, _class=f'_rrwebapp-class-standings-data-{style}')
+    return el.render()
     
 #----------------------------------------------------------------------
 def makelink(href,text):
@@ -77,11 +68,7 @@ def makelink(href,text):
     :param style: name for style class
     :rtype: etree.Element
     '''
-    el = ET.Element('a')
-    
-    el.text = text
-    el.set('href',href)
-    
+    el = a(text, href=href)
     return el
     
 ########################################################################
