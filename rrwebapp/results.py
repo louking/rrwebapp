@@ -1284,16 +1284,16 @@ class AjaxRunnerResults(MethodView):
             seriesarg = request.args.get('series',None)
 
             # filter on valid runnerid, if present
-            resultfilter = {}
-            runnerfilter = {}
-            seriesfilter = {}
+            resultfilter = []
+            runnerfilter = []
+            seriesfilter = []
             name = None
             pagename = 'Results'
             if runnerid:
                 runner = Runner.query.filter_by(id=runnerid).first()
                 if runner:
-                    resultfilter['runnerid'] = runnerid
-                    runnerfilter['id'] = runnerid
+                    resultfilter.append(RaceResult.runnerid == runnerid)
+                    runnerfilter.append(Runner.id == runnerid)
                     name = runner.name
                     pagename = '{} Results'.format(name)
 
@@ -1301,19 +1301,19 @@ class AjaxRunnerResults(MethodView):
             if club_shname:
                 club = Club.query.filter_by(shname=club_shname).first()
                 if club:
-                    resultfilter['club_id'] = club.id
-                    runnerfilter['club_id'] = club.id
-                    seriesfilter['club_id'] = club.id
+                    resultfilter.append(RaceResult.club_id == club.id)
+                    runnerfilter.append(Runner.club_id == club.id)
+                    seriesfilter.append(Series.club_id == club.id)
 
             # need to filter after the fact for series, because the seriesid is different for different years
             if seriesarg:
                 series = Series.query.filter_by(name=seriesarg).first()
                 if series:
-                    seriesfilter['name'] = series.name
+                    seriesfilter.append(Series.name == series.name)
                     app.logger.debug('filter by series {}'.format(seriesarg))
 
             # limit results to that recorded by rrwebapp
-            resultfilter['source'] = productname
+            resultfilter.append(RaceResult.source == productname)
 
             columns = [
                 ColumnDT(Runner.name,                mData='name'),
@@ -1333,7 +1333,7 @@ class AjaxRunnerResults(MethodView):
             ]
 
             params = request.args.to_dict()
-            query = db.session.query().select_from(RaceResult).filter_by(**resultfilter).join("runner").join("series").filter_by(**seriesfilter).join("race")
+            query = db.session.query().select_from(RaceResult).filter(*resultfilter).join(Runner).join(Series).filter(*seriesfilter).join(Race)
             rowTable = DataTables(params, query, columns)
 
             # prepare for name, series and gender filter
@@ -1342,8 +1342,8 @@ class AjaxRunnerResults(MethodView):
             # see http://stackoverflow.com/questions/22275412/sqlalchemy-return-all-distinct-column-values
             # see http://stackoverflow.com/questions/11175519/how-to-query-distinct-on-a-joined-column
             # format depends on type of select
-            names = [row.name for row in db.session.query(Runner.name).filter_by(**runnerfilter).distinct().all()]
-            series = [row.name for row in db.session.query(Series.name).filter_by(**seriesfilter).distinct().all()]
+            names = [row.name for row in db.session.query(Runner.name).filter(*runnerfilter).distinct().all()]
+            series = [row.name for row in db.session.query(Series.name).filter(*seriesfilter).distinct().all()]
             genders = ['M','F']
 
             # add yadcf filter
@@ -1418,7 +1418,7 @@ class RunnerResultsChart(MethodView):
                 },
                 'ordering': True,
                 'serverSide': True,
-                'order': [['date:name','asc']],
+                'order': [[0,'asc']],
                 # NOTE: cannot use paging because we need to display all points on the chart
                 'paging': False,
             }
