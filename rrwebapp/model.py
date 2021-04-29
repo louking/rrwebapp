@@ -276,8 +276,15 @@ class User(Base, UserMixin):
             return NotImplemented
         return not equal
     ## end of methods used by flask-login
-    
 
+    def has_club_role(self, clubshname, rolename):
+        club = Club.query.filter_by(shname=clubshname).one()
+        role = Role.query.filter_by(name=rolename, club=club).one()
+        return role in self.roles
+    
+ROLE_SUPERADMIN = 'owner'
+ROLE_VIEWER = 'viewer'
+ROLE_ADMIN = 'admin'
 class Role(Base, RoleMixin):
     # NOTE: for flask-security see https://pythonhosted.org/Flask-Security/quickstart.html#id1
     __tablename__ = 'role'
@@ -295,6 +302,7 @@ class Role(Base, RoleMixin):
         return '<Role %s %s>' % (Club.query.filter_by(id=self.club_id).first().shname, self.name)
 
 
+CLUB_SUPERADMIN = 'owner'
 class Club(Base):
     __tablename__ = 'club'
     id = Column(Integer, Sequence('club_id_seq'), primary_key=True)
