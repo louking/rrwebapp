@@ -89,7 +89,7 @@ function datatables_chart() {
         .attr("preserveAspectRation", "xMidYMid")
 
     // filters size
-    var filters = d3.selectAll(".dt-chart-filters")
+    var filters = d3.selectAll(".filter-container")
             .style("width", viewbox_width+'px');
 
     var svg = viewbox.append("g")

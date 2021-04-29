@@ -1,13 +1,7 @@
-###########################################################################################
-# result - result views for result results web application
-#
-#       Date            Author          Reason
-#       ----            ------          ------
-#       03/01/14        Lou King        Create
-#
-#   Copyright 2014 Lou King.  All rights reserved
-#
-###########################################################################################
+"""
+result - result views for result results web application
+==============================================================
+"""
 
 # standard
 import json
@@ -20,7 +14,6 @@ import traceback
 from collections import OrderedDict
 from urllib.parse import urlencode
 from copy import copy
-import xml.etree.ElementTree as ET
 
 # pypi
 import flask
@@ -30,6 +23,7 @@ from flask.views import MethodView
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, cast
 from attrdict import AttrDict
+from dominate.tags import a, button, div
 
 # home grown
 from . import app
@@ -59,6 +53,7 @@ from .forms import SeriesResultForm
 from loutilities.namesplitter import split_full_name
 import loutilities.renderrun as render
 from loutilities import timeu, agegrade
+from loutilities.filters import filtercontainerdiv, filterdiv, yadcfoption
 
 tYmd = timeu.asctime('%Y-%m-%d')
 tmdy = timeu.asctime('%m/%d/%y')
@@ -1019,43 +1014,6 @@ def indent(elem, level=0):
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
 
-#----------------------------------------------------------------------
-def addfilters(filters, filterlines):
-#----------------------------------------------------------------------
-    '''
-    add filters and other elements to an html element
-
-    filterlines = [line_n_elements, ...]
-
-        where line_n_elements = [element_i, ...]
-
-            where element_i =
-                {'id':filter_j_id, 'text':filter_j_text}
-                        OR
-                ET.Element
-
-    :param filters: html element to add filters and other elements
-    :param filterlines: list of lines, each a list of elements as above
-    '''
-
-    # loop once for each line, use i as index so we can detect last one
-    for i in range(len(filterlines)):
-        line = filterlines[i]
-
-        # loop once for each element on the line
-        for el in line:
-            if isinstance(el, dict):
-                thisel = ET.SubElement(filters, 'label', attrib={'class' : 'Label'})
-                thisel.text = el['text']
-                spanel = ET.SubElement(filters, 'span', attrib={'id' : el['id'], 'class' : '_rrwebapp-filter'})
-            else:
-                filters.append(el)
-        
-        # add two breaks to each line except for last line
-        if i < len(filterlines)-1:
-            ET.SubElement(filters, 'br')
-            ET.SubElement(filters, 'br')
-
 #######################################################################
 class RunnerResults(MethodView):
 #######################################################################
@@ -1432,45 +1390,25 @@ class RunnerResultsChart(MethodView):
                         ]
 
             # set up pretablehtml
-            ## set up some html elements to be used pretable
-            aglink = ET.Element('a', attrib={'class' : "dt-chart-age-grade-link", 'href' : "https://usatfmasters.org/wp/2018/08/age-grading/",
-                                'target' : '_blank'})
-            aglink.text = 'learn about age grading'
-            charttablebutton = ET.Element('button', attrib={'class' : 'dt-chart-display-button', 'type' : 'button'})
-            charttablebutton.text = 'table'
-            progressbar = ET.Element('div', attrib={'id' : 'progressbar'})
+            pretable = div(_class='TextLeft PL20pxLabel')
+            with pretable:
+                filterlines = filtercontainerdiv()
+                with filterlines:
+                    button('table', _class='dt-chart-display-button', _type='button')
+                    filterdiv('_rrwebapp_filtername', 'Name (age):')
+                    filterdiv('_rrwebapp_filterseries', 'Series:')
+                    filterdiv('_rrwebapp_filterdate', 'Date (yyyy-mm-dd):')
+                    filterdiv('_rrwebapp_filterdistance', 'Dist (miles):')
+                    filterdiv('_rrwebapp_filteragpercent', 'Age Grade %age:')
+                    if adminuser:
+                        filterdiv('_rrwebapp_filtersource', 'Source:')
+                        filterdiv('_rrwebapp_filtersourceid', 'Source ID:')
+                    # this seems a bit unnecessary
+                    # a('learn about age grading', href='https://usatfmasters.org/wp/2018/08/age-grading/', target='_blank', _class='dt-chart-age-grade-link')
+                    div(id='progressbar')
 
-            ## list of lines for filters, each are represented with list of dicts having id, text;
-            ## or ET.ElementTree instances to be placed on line
-            filterlines = []
-            filterlines.append([
-                {'id' : "_rrwebapp_filtername", 'text' : 'Name (age):'},
-                {'id' : "_rrwebapp_filterseries", 'text' : 'Series:'},
-                aglink,
-            ])
-            filterlines.append([
-                {'id' : "_rrwebapp_filterdate", 'text' : 'Date (yyyy-mm-dd):'},
-                {'id' : "_rrwebapp_filterdistance", 'text' : 'Dist (miles):'},
-                {'id' : "_rrwebapp_filteragpercent", 'text' : 'Age Grade %age:'},
-            ])
-            if adminuser:
-                filterlines.append([
-                    {'id' : "_rrwebapp_filtersource", 'text' : 'Source:'},
-                    {'id' : "_rrwebapp_filtersourceid", 'text' : 'Source ID:'},
-                ])
-            filterlines.append([
-                charttablebutton,
-                progressbar,
-            ])
-
-            ## use ElementTree to set up html, based on filterlines configured above
-            pretable = ET.Element('div', attrib={'class' : 'TextLeft PL20pxLabel'})
-            filters = ET.SubElement(pretable, 'div', attrib={'class' : "dt-chart-filters"})
-            addfilters(filters, filterlines)
-
-            ## render the html nicely
-            indent(pretable)
-            pretablehtml = ET.tostring(pretable, method='html')
+            ## render the html 
+            pretablehtml = pretable.render()
 
             # set up yadcf
             getcol = lambda name: [col['name'] for col in dt_options['columns']].index(name)
