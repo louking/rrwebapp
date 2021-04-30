@@ -24,7 +24,7 @@ from datetime import timedelta
 # github
 from googlemaps import Client
 from googlemaps.geocoding import geocode
-from haversine import haversine
+from haversine import haversine, Unit
 
 # home grown
 from . import app
@@ -52,10 +52,16 @@ def get_distance(loc1, loc2, miles=True):
     if loc1.lookuperror or loc2.lookuperror:
         return None
 
+    # indicate to haversine what unit to use
+    if miles:
+        unit = Unit.MILES
+    else:
+        unit = Unit.KILOMETERS
+        
     # return great circle distance between points
     loc1latlon = (loc1.latitude, loc1.longitude)
     loc2latlon = (loc2.latitude, loc2.longitude)
-    return haversine(loc1latlon, loc2latlon, miles=miles)
+    return haversine(loc1latlon, loc2latlon, unit=unit)
 
 ###########################################################################################
 class LocationServer(object):
