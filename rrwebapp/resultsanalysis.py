@@ -140,7 +140,7 @@ class ResultsAnalysisStatus(MethodView):
                 ],
                 'select': False,
                 'ordering': True,
-                'order': [['source:name','asc']]
+                'order': [[0,'asc']]
             }
 
             # buttons just names the buttons to be included, in what order
