@@ -19,25 +19,24 @@ import json
 
 # pypi
 import flask
-from flask import make_response, request, jsonify, url_for
+from flask import request, jsonify, url_for, current_app
 from flask_login import login_required
 from flask.views import MethodView
-from celery import states
 
 # homegrown
-from . import app
-from . import celery
-from .model import ApiCredentials, Club, Runner, RaceResultService, Course
-from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
+from . import bp
+from rrwebapp import celery
+from ...model import ApiCredentials, Club, Runner, RaceResultService, Course
+from ...accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from .model import db   # this is ok because this module only runs under flask
-from .nav import productname
-from .apicommon import failure_response, success_response
+from ...model import db   # this is ok because this module only runs under flask
+from ...settings import productname
+from ...apicommon import failure_response, success_response
 from loutilities.csvwt import wlist
-from .request import addscripts
-from .crudapi import CrudApi
-from .datatables_utils import AdminDatatablesCsv
-from .resultsutils import StoreServiceResults
+from ...request import addscripts
+from ...crudapi import CrudApi
+from ...datatables_utils import AdminDatatablesCsv
+from ...resultsutils import StoreServiceResults
 from .resultssummarize import summarize
 from loutilities.timeu import asctime, timesecs
 ftime = asctime('%Y-%m-%d')
@@ -46,7 +45,7 @@ ftime = asctime('%Y-%m-%d')
 class invalidParameter(Exception): pass
 
 # set up summary file name template
-summaryfiletemplate = '{}/{{clubslug}}-summary.csv'.format(app.config['MEMBERSHIP_DIR'])
+summaryfiletemplate = lambda: '{}/{{clubslug}}-summary.csv'.format(current_app.config['MEMBERSHIP_DIR'])
 
 # set up services to collect and store data from
 normstoreattrs = 'runnername,dob,gender,sourceid,sourceresultid,racename,date,raceloc,raceage,distmiles,time,timesecs,fuzzyage'.split(',')
@@ -54,7 +53,7 @@ collectservices = {}
 storeservices = {}
 
 ## athlinks handling
-from .athlinksresults import AthlinksCollect, AthlinksResultFile
+from ...athlinksresults import AthlinksCollect, AthlinksResultFile
 athl = AthlinksCollect()
 collectservices['athlinks'] = athl.collect
 athlinksattrs = 'name,dob,gender,id,entryid,racename,racedate,raceloc,age,distmiles,resulttime,timesecs,fuzzyage'.split(',')
@@ -67,7 +66,7 @@ athlresults = AthlinksResultFile()
 storeservices['athlinks'] = StoreServiceResults('athlinks', athlresults, athlinkstransform)
 
 ## ultrasignup handling
-from .ultrasignupresults import UltraSignupCollect, UltraSignupResultFile
+from ...ultrasignupresults import UltraSignupCollect, UltraSignupResultFile
 us = UltraSignupCollect()
 collectservices['ultrasignup'] = us.collect
 usattrs = 'name,dob,gender,sourceid,sourceresultid,race,date,raceloc,age,miles,time,timesecs,fuzzyage'.split(',')
@@ -79,7 +78,7 @@ usresults = UltraSignupResultFile()
 storeservices['ultrasignup'] = StoreServiceResults('ultrasignup', usresults, ustransform)
 
 ## runningahead handling
-from .runningaheadresults import RunningAHEADCollect, RunningAHEADResultFile
+from ...runningaheadresults import RunningAHEADCollect, RunningAHEADResultFile
 ra = RunningAHEADCollect()
 collectservices['runningahead'] = ra.collect
 raattrs = 'name,dob,gender,sourceid,sourceresultid,race,date,loc,age,miles,time,timesecs,fuzzyage'.split(',')
@@ -107,6 +106,7 @@ class ResultsAnalysisStatus(MethodView):
         self.kwargs = kwargs
         args = dict(pagename = 'Results Analysis Status / Control',
                     endpoint = 'resultsanalysisstatus', 
+                    rule = '/resultsanalysisstatus'
                     )
         args.update(kwargs)        
         for key in args:
@@ -117,8 +117,8 @@ class ResultsAnalysisStatus(MethodView):
     #----------------------------------------------------------------------
         # create supported endpoints
         my_view = self.as_view(self.endpoint, **self.kwargs)
-        app.add_url_rule('/{}'.format(self.endpoint),view_func=my_view,methods=['GET',])
-        app.add_url_rule('/{}/rest'.format(self.endpoint),view_func=my_view,methods=['GET', 'POST'])
+        bp.add_url_rule('{}'.format(self.rule),view_func=my_view,methods=['GET',])
+        bp.add_url_rule('{}/rest'.format(self.rule),view_func=my_view,methods=['GET', 'POST'])
 
     #----------------------------------------------------------------------
     def _renderpage(self):
@@ -146,15 +146,15 @@ class ResultsAnalysisStatus(MethodView):
             # buttons just names the buttons to be included, in what order
             buttons = [ 
                         { 'extend':'collect', 
-                          'url': '{}/rest?action=collect'.format(url_for('resultsanalysisstatus')),
-                          'statusurl': '{}/rest'.format(url_for('resultsanalysisstatus')) 
+                          'url': '{}/rest?action=collect'.format(url_for('admin.resultsanalysisstatus')),
+                          'statusurl': '{}/rest'.format(url_for('admin.resultsanalysisstatus')) 
                         },
                         { 'extend':'summarize', 
-                          'url': '{}/rest?action=summarize'.format(url_for('resultsanalysisstatus')),
-                          'statusurl': '{}/rest'.format(url_for('resultsanalysisstatus')) 
+                          'url': '{}/rest?action=summarize'.format(url_for('admin.resultsanalysisstatus')),
+                          'statusurl': '{}/rest'.format(url_for('admin.resultsanalysisstatus')) 
                         },
                         { 'extend':'cancel', 
-                          'url': '{}/rest?action=cancel'.format(url_for('resultsanalysisstatus')), 
+                          'url': '{}/rest?action=cancel'.format(url_for('admin.resultsanalysisstatus')), 
                           'enabled': False 
                         },
                       ]
@@ -191,7 +191,7 @@ class ResultsAnalysisStatus(MethodView):
             # taskfile is used to indicate a task is currently running
             # this file gets created at start (here), 
             # and deleted at finish (by analyzeresultstask) or cancel (here)
-            taskfile = '{}/{}-task.id'.format(app.config['MEMBERSHIP_DIR'], clubslug)
+            taskfile = '{}/{}-task.id'.format(current_app.config['MEMBERSHIP_DIR'], clubslug)
             
             # if task is running, get task id from taskfile
             try:
@@ -207,7 +207,7 @@ class ResultsAnalysisStatus(MethodView):
                 return jsonify(response)
 
         task = analyzeresultstask.AsyncResult(task_id)
-        # app.logger.debug('task.state={} task.info={}'.format(task.state, task.info))
+        # current_app.logger.debug('task.state={} task.info={}'.format(task.state, task.info))
 
         if task.state == 'PENDING':
             # job did not start yet
@@ -267,10 +267,10 @@ class ResultsAnalysisStatus(MethodView):
             # taskfile is used to indicate a task is currently running
             # this file gets created at start (here), 
             # and deleted at finish (by analyzeresultstask) or cancel (here)
-            taskfile = '{}/{}-task.id'.format(app.config['MEMBERSHIP_DIR'], clubslug)
+            taskfile = '{}/{}-task.id'.format(current_app.config['MEMBERSHIP_DIR'], clubslug)
 
             # summaryfile is used to save the summary information for individual members
-            summaryfile = summaryfiletemplate.format(clubslug=clubslug)
+            summaryfile = summaryfiletemplate().format(clubslug=clubslug)
 
             # check action
             action = request.args.get('action')
@@ -289,8 +289,8 @@ class ResultsAnalysisStatus(MethodView):
                     pass
 
                 # note extra set of {{service}} brackets, which will be replace by service name
-                detailfile = '{}/{}-{{service}}-detail.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
-                fulldetailfile = '{}/{}-detail.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
+                detailfile = '{}/{}-{{service}}-detail.csv'.format(current_app.config['MEMBERSHIP_DIR'], clubslug)
+                fulldetailfile = '{}/{}-detail.csv'.format(current_app.config['MEMBERSHIP_DIR'], clubslug)
 
                 # convert members to file-like list
                 # filefields and dbattrs are used to convert db to file format
@@ -346,27 +346,30 @@ course_dbattrs = 'id,name,source,sourceid,date,distmiles,distkm,surface,location
 course_formfields = 'rowid,name,source,sourceid,date,distmiles,distkm,surface,location,raceid'.split(',')
 course_dbmapping = OrderedDict(list(zip(course_dbattrs, course_formfields)))
 course_formmapping = OrderedDict(list(zip(course_formfields, course_dbattrs)))
-course = CrudApi(pagename = 'Courses', 
-             endpoint = 'courses', 
-             dbmapping = course_dbmapping, 
-             formmapping = course_formmapping, 
-             writepermission = owner_permission.can, 
-             dbtable = Course, 
-             clientcolumns = [
-                { 'data': 'name', 'name': 'name', 'label': 'Race Name' },
-                { 'data': 'source', 'name': 'source', 'label': 'Source' },
-                { 'data': 'sourceid', 'name': 'sourceid', 'label': 'Source ID' },
-                { 'data': 'date', 'name': 'date', 'label': 'Date' },
-                { 'data': 'distmiles', 'name': 'distmiles', 'label': 'Dist (Miles)' },
-                { 'data': 'distkm', 'name': 'distkm', 'label': 'Dist (km)' },
-                { 'data': 'surface', 'name': 'surface', 'label': 'Surface' },
-                { 'data': 'location', 'name': 'location', 'label': 'Location' },
-                { 'data': 'raceid', 'name': 'raceid', 'label': 'Race ID' },
-             ], 
-             servercolumns = None,  # no ajax
-             byclub = True, 
-             idSrc = 'rowid', 
-             buttons = ['create', 'edit', 'remove'])
+course = CrudApi(
+    app = bp,
+    pagename = 'Courses', 
+    endpoint = 'admin.courses',
+    rule = '/courses', 
+    dbmapping = course_dbmapping, 
+    formmapping = course_formmapping, 
+    writepermission = owner_permission.can, 
+    dbtable = Course, 
+    clientcolumns = [
+       { 'data': 'name', 'name': 'name', 'label': 'Race Name' },
+       { 'data': 'source', 'name': 'source', 'label': 'Source' },
+       { 'data': 'sourceid', 'name': 'sourceid', 'label': 'Source ID' },
+       { 'data': 'date', 'name': 'date', 'label': 'Date' },
+       { 'data': 'distmiles', 'name': 'distmiles', 'label': 'Dist (Miles)' },
+       { 'data': 'distkm', 'name': 'distkm', 'label': 'Dist (km)' },
+       { 'data': 'surface', 'name': 'surface', 'label': 'Surface' },
+       { 'data': 'location', 'name': 'location', 'label': 'Location' },
+       { 'data': 'raceid', 'name': 'raceid', 'label': 'Race ID' },
+    ], 
+    servercolumns = None,  # no ajax
+    byclub = True, 
+    idSrc = 'rowid', 
+    buttons = ['create', 'edit', 'remove'])
 course.register()
 
 
@@ -382,14 +385,14 @@ def ras_readpermission():
 def ras_csvfile():
     club_id = flask.session['club_id']
     clubslug = Club.query.filter_by(id=club_id).first().shname
-    return summaryfiletemplate.format(clubslug=clubslug)
+    return summaryfiletemplate().format(clubslug=clubslug)
 
 # items are name:label. use label for for button text. use OrderedDict so buttons are in same order as headers
 ras_statnames = OrderedDict([('1yr-agegrade', '1yr agegrade'), ('avg-agegrade', 'avg agegrade'), ('trend', 'trend'), ('numraces', 'numraces')])
 def ras_columns():
     club_id = flask.session['club_id']
     clubslug = Club.query.filter_by(id=club_id).first().shname
-    colfile = summaryfiletemplate.format(clubslug=clubslug) + '.cols'
+    colfile = summaryfiletemplate().format(clubslug=clubslug) + '.cols'
     with open(colfile, 'r') as cols:
         cols = json.loads(cols.read())
     
@@ -435,21 +438,24 @@ def ras_buttons():
             })
     return buttons
 
-ras = AdminDatatablesCsv(pagename = 'Results Analysis Summary', 
-                         endpoint = 'resultsanalysissummary', 
-                         dtoptions =  {
-                                        'stateSave' : True,
-                                        'fixedColumns' : { 'leftColumns': 1 },
-                                        'scrollX' : True,
-                                        'scrollXInner' : '100%', 
-                                        'autoWidth' : False,
-                                      },
-                         readpermission = ras_readpermission, 
-                         csvfile = ras_csvfile,
-                         # columns labels must match labels in resultssummarize.summarize
-                         columns = ras_columns, 
-                         buttons = ras_buttons,
-                        )
+ras = AdminDatatablesCsv(
+    app = bp,
+    pagename = 'Results Analysis Summary', 
+    endpoint = 'admin.resultsanalysissummary', 
+    rule = '/resultsanalysissummary',
+    dtoptions =  {
+        'stateSave' : True,
+        'fixedColumns' : { 'leftColumns': 1 },
+        'scrollX' : True,
+        'scrollXInner' : '100%', 
+        'autoWidth' : False,
+        },
+        readpermission = ras_readpermission, 
+        csvfile = ras_csvfile,
+        # columns labels must match labels in resultssummarize.summarize
+        columns = ras_columns, 
+        buttons = ras_buttons,
+        )
 ras.register()
 
 
@@ -477,7 +483,7 @@ def analyzeresultstask(self, club_id, action, resultsurl, memberfile, detailfile
         status = {}
 
         # special processing for scoretility service
-        rrs_rrwebapp_id = ApiCredentials.query.filter_by(name=productname).first().id
+        rrs_rrwebapp_id = ApiCredentials.query.filter_by(name=productname()).first().id
         rrs_rrwebapp = RaceResultService(club_id,rrs_rrwebapp_id)
 
         # remember servicenames for status update
@@ -547,7 +553,7 @@ def analyzeresultstask(self, club_id, action, resultsurl, memberfile, detailfile
 
     except:
         # log the exception first in case there's any subsequent error
-        app.logger.error(traceback.format_exc())
+        current_app.logger.error(traceback.format_exc())
 
         # tell the admins that this happened
         celery.mail_admins('[scoretility] analyzeresultstask: exception occurred', traceback.format_exc())

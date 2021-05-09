@@ -137,7 +137,7 @@ def nav_menu():
         writecheck = UpdateClubDataPermission(session['club_id'])
   
     # menu starts here
-    user_view(navbar, 'Home', 'index')
+    user_view(navbar, 'Home', 'frontend.index')
 
     if current_user.is_authenticated:
         # race handling
@@ -145,31 +145,31 @@ def nav_menu():
         navbar.items.append(racesadmin)
   
         if club and readcheck.can():
-            scoring_view(racesadmin, 'Members', 'managemembers')
-            scoring_view(racesadmin, 'Races', 'manageraces')
-            scoring_view(racesadmin, 'Series', 'manageseries')
-            scoring_view(racesadmin, 'Divisions', 'managedivisions')
+            scoring_view(racesadmin, 'Members', 'admin.managemembers')
+            scoring_view(racesadmin, 'Races', 'admin.manageraces')
+            scoring_view(racesadmin, 'Series', 'admin.manageseries')
+            scoring_view(racesadmin, 'Divisions', 'admin.managedivisions')
 
             # this is duplicated under Results Analysis for owner
-            scoring_view(racesadmin, 'Results Summary', 'resultsanalysissummary')
+            scoring_view(racesadmin, 'Results Summary', 'admin.resultsanalysissummary')
 
         if club and writecheck.can():
-            scoring_view(racesadmin, 'Exclusions', 'editexclusions')
+            scoring_view(racesadmin, 'Exclusions', 'admin.editexclusions')
     
         if owner_permission.can():
             superadmin = Subgroup('Super')
             navbar.items.append(superadmin)
-            super_admin_view(superadmin, 'Clubs', 'manageclubs')
-            super_admin_view(superadmin, 'Users', 'manageusers')
-            super_admin_view(superadmin, 'Service Credentials', 'servicecredentials')
+            super_admin_view(superadmin, 'Clubs', 'admin.manageclubs')
+            super_admin_view(superadmin, 'Users', 'admin.manageusers')
+            super_admin_view(superadmin, 'Service Credentials', 'admin.servicecredentials')
 
             analysisadmin = Subgroup('Results Analysis')
             navbar.items.append(analysisadmin)
-            analysis_admin_view(analysisadmin, 'Status/Control', 'resultsanalysisstatus')
-            analysis_admin_view(analysisadmin, 'Summary', 'resultsanalysissummary')
-            analysis_admin_view(analysisadmin, 'Services', 'raceresultservices')
-            analysis_admin_view(analysisadmin, 'Courses', 'courses')
-            analysis_admin_view(analysisadmin, 'Locations', 'locations')
+            analysis_admin_view(analysisadmin, 'Status/Control', 'admin.resultsanalysisstatus')
+            analysis_admin_view(analysisadmin, 'Summary', 'admin.resultsanalysissummary')
+            analysis_admin_view(analysisadmin, 'Services', 'admin.raceresultservices')
+            analysis_admin_view(analysisadmin, 'Courses', 'admin.courses')
+            analysis_admin_view(analysisadmin, 'Locations', 'admin.locations')
             
     # get club option list
     clubs = Club.query.all()
@@ -245,8 +245,8 @@ def nav_menu():
                 json.dumps({
                     'title' : 'Choose club',
                     'buttons' : [
-                        {'label': 'table', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(url_for('results'))},
-                        {'label': 'chart', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(url_for('resultschart'))},
+                        {'label': 'table', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(url_for('admin.results'))},
+                        {'label': 'chart', 'action': '{{ var args = {{club: this.get("club") }}; window.location.href = "{}?\" + $.param( args ) }}'.format(url_for('admin.resultschart'))},
                     ],
                     'editoropts': {
                         'fields': [ {
@@ -272,10 +272,10 @@ def nav_menu():
             navigation[-1]['list'].append({'display':'Export Results','url':url_for('exportresults')})
     
     if is_authenticated(thisuser) and owner_permission.can():
-        super_admin_view(navbar, 'Debug', 'debug')
+        super_admin_view(navbar, 'Debug', 'admin.debug')
     
     # everyone sees
-    user_view(navbar, 'About', 'sysinfo')
+    user_view(navbar, 'About', 'frontend.sysinfo')
     
     return navbar
 

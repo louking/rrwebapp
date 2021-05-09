@@ -5,7 +5,7 @@
 {% block body %}
     {% if error %}<p class=error><strong>Error:</strong> {{ error }}{% endif %}
     <span class=TextLeft>
-        <form action={{ url_for('newuser') }}>
+        <form action={{ url_for('.newuser') }}>
             <input type="submit" value="Add User">
         </form>
     </span>
@@ -17,9 +17,9 @@
         </tr>
     {% for user in users %}
         <tr>
-            <td><a href={{ url_for('useraction',userid=user.id,action='edit') }}>{{ user.name  }}</a></td>
-            <td><a href={{ url_for('useraction',userid=user.id,action='edit') }}>{{ user.email }}</a></td>
-            <td align=center><a href={{ url_for('useraction',userid=user.id,action='delete') }}><img class=icon src={{url_for('static',filename='delete.jpg')}}></a></td>
+            <td><a href={{ url_for('.useraction',userid=user.id,action='edit') }}>{{ user.name  }}</a></td>
+            <td><a href={{ url_for('.useraction',userid=user.id,action='edit') }}>{{ user.email }}</a></td>
+            <td align=center><a href={{ url_for('.useraction',userid=user.id,action='delete') }}><img class=icon src={{url_for('static',filename='delete.jpg')}}></a></td>
         </tr>
     {% endfor %}
     </table>

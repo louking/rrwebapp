@@ -7,11 +7,11 @@ raceresults  -- retrieve race results from a file
 import os.path
 
 # pypi
+from flask import current_app
 
 # github
 
 # home grown
-from . import app
 from loutilities import textreader
 from loutilities.timeu import racetimesecs
 
@@ -223,7 +223,7 @@ class RaceResults():
                             if thischar == len(origline): break
                         
                         # set up delimiters in the file reader
-                        app.logger.debug('delimiters found at {}'.format(delimiters))
+                        current_app.logger.debug('delimiters found at {}'.format(delimiters))
                         self.file.setdelimiter(delimiters)
                                     
                     break
@@ -238,7 +238,7 @@ class RaceResults():
                 currcol = f['start'] - skipped
                 self.fieldcols.append(currcol)
                 skipped += len(f['match']) - 1  # if matched multiple columns, need to skip some
-            app.logger.debug('found fieldhdrs {}'.format(self.fieldhdrs))
+            current_app.logger.debug('found fieldhdrs {}'.format(self.fieldhdrs))
                 
         # not good to come here
         except StopIteration:

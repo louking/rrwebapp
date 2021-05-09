@@ -7,8 +7,13 @@ see http://flask.pocoo.org/docs/1.0/config/?highlight=production#configuration-b
 # standard
 import logging
 
+# pypi
+from flask import current_app
+
 # homegrown
 from loutilities.configparser import getitems
+
+PRODUCTNAME_TEXT = 'scoretility'
 
 class Config(object):
     DEBUG = False
@@ -35,7 +40,7 @@ class Config(object):
 
     # branding
     THISAPP_PRODUCTNAME = '<span class="brand-all"><span class="brand-left">score</span><span class="brand-right">tility</span></span>'
-    THISAPP_PRODUCTNAME_TEXT = 'scoretility'
+    THISAPP_PRODUCTNAME_TEXT = PRODUCTNAME_TEXT
 
 class Testing(Config):
     TESTING = True
@@ -92,3 +97,5 @@ class Production(RealDb):
     pass
 
 
+def productname():
+    return PRODUCTNAME_TEXT

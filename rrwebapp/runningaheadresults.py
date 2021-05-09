@@ -32,7 +32,7 @@ from . import app
 from .resultsutils import CollectServiceResults, ServiceResultFile
 from .model import db   # this is ok because this module only runs under flask
 from .model import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
-from .race import race_fixeddist
+from .views.admin.race import race_fixeddist
 
 from loutilities import timeu
 from loutilities import csvu
@@ -169,7 +169,7 @@ class RunningAHEADCollect(CollectServiceResults):
                 thistime = wo['details']['duration']
                 thisrace = wo['course']['name'] if 'course' in wo else 'unknown'
                 if thistime == 0:
-                    log.warning('{} has 0 time for {} {}'.format(name,thisrace,thisdate))
+                    app.logger.warning('{} has 0 time for {} {}'.format(name,thisrace,thisdate))
                     continue
                 stat = {'GivenName':fname,'FamilyName':lname,'name':name,
                         'DOB':self.dob,'Gender':gender,'race':thisrace,'date':thisdate,'age':timeu.age(dt_thisdate,dt_dob),

@@ -31,7 +31,7 @@ from .exportresults import collectresults
 
 # module specific needs
 import os.path
-from .member import normalizeRAmemberlist
+from .views.admin.member import normalizeRAmemberlist
 
 #----------------------------------------------------------------------
 def allowed_file(filename):

@@ -20,6 +20,7 @@ import time
 from datetime import timedelta
 
 # pypi
+from flask import current_app
 
 # github
 from googlemaps import Client
@@ -27,12 +28,12 @@ from googlemaps.geocoding import geocode
 from haversine import haversine, Unit
 
 # home grown
-from . import app
-from .accesscontrol import owner_permission
-from .model import ApiCredentials, Location, MAX_LOCATION_LEN, insert_or_update
-from .crudapi import CrudApi
+from . import bp
+from ...accesscontrol import owner_permission
+from ...model import ApiCredentials, Location, MAX_LOCATION_LEN, insert_or_update
+from ...crudapi import CrudApi
+from ...model import db
 from loutilities.timeu import epoch2dt
-from .model import db   # this is ok because this module only runs under flask
 
 CACHE_REFRESH = timedelta(30)   # 30 days, per https://cloud.google.com/maps-platform/terms/maps-service-terms/?&sign=0 (sec 3.4)
 
@@ -104,7 +105,7 @@ class LocationServer(object):
             if gc:
                 # notify if multiple values returned
                 if len(gc) > 1:
-                    app.logger.warning('geocode: multiple locations ({}) received from googlemaps for {}'.format(len(gc), address))
+                    current_app.logger.warning('geocode: multiple locations ({}) received from googlemaps for {}'.format(len(gc), address))
 
                 # save lat/long from first value returned
                 loc.latitude  = gc[0]['geometry']['location']['lat']
@@ -131,23 +132,27 @@ loc_dbattrs = 'id,name,latitude,longitude,cached_at,lookuperror'.split(',')
 loc_formfields = 'rowid,loc,lat,long,cached,error'.split(',')
 loc_dbmapping = dict(list(zip(loc_dbattrs, loc_formfields)))
 loc_formmapping = dict(list(zip(loc_formfields, loc_dbattrs)))
-loc = CrudApi(pagename = 'Locations', 
-             endpoint = 'locations', 
-             dbmapping = loc_dbmapping, 
-             formmapping = loc_formmapping, 
-             writepermission = owner_permission.can, 
-             dbtable = Location, 
-             clientcolumns = [
-                {'data': 'loc', 'name': 'loc', 'label': 'Location Name'},
-                {'data': 'lat', 'name': 'lat', 'label': 'Latitude'},
-                {'data': 'long', 'name': 'long', 'label': 'Longitude'},
-                {'data': 'cached', 'name': 'cached', 'label': 'Cached'},
-                {'data': 'error', 'name': 'error', 'label': 'Error', '_treatment': {'boolean': {'formfield': 'error', 'dbfield': 'lookuperror'}}},
-             ],
-             serverside = True,
-             byclub = False,
-             idSrc = 'rowid', 
-             buttons = ['create', 'edit', 'remove'])
+loc = CrudApi(
+    app = bp,
+    pagename = 'Locations', 
+    endpoint = 'admin.locations', 
+    rule = '/locations',
+    dbmapping = loc_dbmapping, 
+    formmapping = loc_formmapping, 
+    writepermission = owner_permission.can, 
+    dbtable = Location, 
+    clientcolumns = [
+       {'data': 'loc', 'name': 'loc', 'label': 'Location Name'},
+       {'data': 'lat', 'name': 'lat', 'label': 'Latitude'},
+       {'data': 'long', 'name': 'long', 'label': 'Longitude'},
+       {'data': 'cached', 'name': 'cached', 'label': 'Cached'},
+       {'data': 'error', 'name': 'error', 'label': 'Error', '_treatment': {'boolean': {'formfield': 'error', 'dbfield': 'lookuperror'}}},
+    ],
+    serverside = True,
+    byclub = False,
+    idSrc = 'rowid', 
+    buttons = ['create', 'edit', 'remove']
+    )
 loc.register()
 
 

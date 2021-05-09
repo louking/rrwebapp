@@ -16,27 +16,27 @@ import traceback
 
 # pypi
 import flask
-from flask import request, url_for
+from flask import request, url_for, current_app
 from flask_login import login_required
 from flask.views import MethodView
 
 # home grown
-from . import app
-from .model import insert_or_update
-from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
-from .model import db   # this is ok because this module only runs under flask
-from .apicommon import failure_response, success_response, check_header
-from .crudapi import CrudApi
-from .model import Race, Series, Divisions
-from .model import getclubid, getyear
+from . import bp
+from ...model import insert_or_update
+from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
+from ...model import db   # this is ok because this module only runs under flask
+from ...apicommon import failure_response, success_response, check_header
+from ...crudapi import CrudApi
+from ...model import Race, Series, Divisions
+from ...model import getclubid, getyear
 
-from .forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
+from ...forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 #from runningclub import racefile   # required for xlsx support
 from loutilities.csvu import DictReaderStr2Num
 from loutilities.filters import filtercontainerdiv, filterdiv
 
 # acceptable surfaces -- must match model.SurfaceType
-from .model import SURFACES
+from ...model import SURFACES
 
 #----------------------------------------------------------------------
 def race_fixeddist(distance):
@@ -92,10 +92,10 @@ def races_results_to_form(race):
               </button>
             </td>
         '''.format(raceid=race.id,
-                   importresults=url_for("_importresults",raceid=race.id),
+                   importresults=url_for("._importresults",raceid=race.id),
                    doc_importresults=url_for("doc_importresults"),
-                   editparticipants=url_for("editparticipants",raceid=race.id),
-                   seriesresults=url_for("seriesresults",raceid=race.id)
+                   editparticipants=url_for(".editparticipants",raceid=race.id),
+                   seriesresults=url_for(".seriesresults",raceid=race.id)
                    )
     else:
         return '''
@@ -107,9 +107,9 @@ def races_results_to_form(race):
               </button>
             </td>
         '''.format(raceid=race.id,
-                   importresults=url_for("_importresults",raceid=race.id),
+                   importresults=url_for("._importresults",raceid=race.id),
                    doc_importresults=url_for("doc_importresults"),
-                   editparticipants=url_for("editparticipants",raceid=race.id),
+                   editparticipants=url_for(".editparticipants",raceid=race.id),
                    )
 
 races_dbattrs = 'id,club_id,year,results,name,date,distance,surface,series'.split(',')
@@ -124,65 +124,68 @@ races_formmapping['results'] = races_results_to_form
 races_dbmapping['club_id'] = getclubid
 races_dbmapping['year'] = getyear
 
-races = CrudApi(pagename='Races',
-                template='manageraces.html',
-                endpoint='manageraces',
-                dbmapping=races_dbmapping,
-                formmapping=races_formmapping,
-                permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
-                dbtable=Race,
-                queryparams={'external': False, 'active': True},
-                checkrequired=True,
-                clientcolumns=[
-                    {'data': 'results', 'name': 'results', 'label': 'Results', 'type': 'readonly',
-                     'class': 'column-center',
-                     'ed': {'type': 'hidden', 'submit': False}  # don't display or allow update in edit form
-                     },
-                    {'data': 'name', 'name': 'name', 'label': 'Race Name', '_unique': True,
-                     'className': 'field_req',
-                     },
-                    {'data': 'date',
-                     'name': 'date', 'label': 'Date', 'type': 'datetime',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     'ed': {'label': 'Date (yyyy-mm-dd)', 'format': 'YYYY-MM-DD',
-                            # first day of week for date picker is Sunday, strict date format required
-                            'opts': {'momentStrict': True, 'firstDay': 0}},
-                     },
-                    {'data': 'distance', 'name': 'distance', 'label': 'Miles',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     },
-                    {'data': 'surface', 'name': 'surface', 'label': 'Surface', 'type': 'select2',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     'options': SURFACES,
-                     },
-                    {'data': 'series', 'name': 'series', 'label': 'Series', 'type': 'select2',
-                     '_treatment': {'relationship':
-                         {
-                             'dbfield': 'series',
-                             'fieldmodel': Series,
-                             'labelfield': 'name',
-                             'formfield': 'series',
-                             'uselist': True,
-                             'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
-                         }
-                     }
-                     },
-                ],
-                serverside=False,
-                byclub=True,
-                byyear=True,
-                idSrc='rowid',
-                buttons=['create', 'edit', 'remove', 'csv',
-                         {'name': 'tools', 'text': 'Tools'}
-                         ],
-                addltemplateargs={'inhibityear': False},
-                pretablehtml=lambda: filters.render(),
-                dtoptions=dt_options,
-                yadcfoptions=yadcf_options,
-                )
+races = CrudApi(
+    app=bp,
+    pagename='Races',
+    template='manageraces.html',
+    endpoint='.manageraces',
+    rule='/manageraces',
+    dbmapping=races_dbmapping,
+    formmapping=races_formmapping,
+    permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+    dbtable=Race,
+    queryparams={'external': False, 'active': True},
+    checkrequired=True,
+    clientcolumns=[
+        {'data': 'results', 'name': 'results', 'label': 'Results', 'type': 'readonly',
+         'class': 'column-center',
+         'ed': {'type': 'hidden', 'submit': False}  # don't display or allow update in edit form
+         },
+        {'data': 'name', 'name': 'name', 'label': 'Race Name', '_unique': True,
+         'className': 'field_req',
+         },
+        {'data': 'date',
+         'name': 'date', 'label': 'Date', 'type': 'datetime',
+         'className': 'field_req',
+         'class': 'column-center',
+         'ed': {'label': 'Date (yyyy-mm-dd)', 'format': 'YYYY-MM-DD',
+                # first day of week for date picker is Sunday, strict date format required
+                'opts': {'momentStrict': True, 'firstDay': 0}},
+         },
+        {'data': 'distance', 'name': 'distance', 'label': 'Miles',
+         'className': 'field_req',
+         'class': 'column-center',
+         },
+        {'data': 'surface', 'name': 'surface', 'label': 'Surface', 'type': 'select2',
+         'className': 'field_req',
+         'class': 'column-center',
+         'options': SURFACES,
+         },
+        {'data': 'series', 'name': 'series', 'label': 'Series', 'type': 'select2',
+         '_treatment': {'relationship':
+             {
+                 'dbfield': 'series',
+                 'fieldmodel': Series,
+                 'labelfield': 'name',
+                 'formfield': 'series',
+                 'uselist': True,
+                 'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
+             }
+         }
+         },
+    ],
+    serverside=False,
+    byclub=True,
+    byyear=True,
+    idSrc='rowid',
+    buttons=['create', 'edit', 'remove', 'csv',
+             {'name': 'tools', 'text': 'Tools'}
+             ],
+    addltemplateargs={'inhibityear': False},
+    pretablehtml=lambda: filters.render(),
+    dtoptions=dt_options,
+    yadcfoptions=yadcf_options,
+    )
 races.register()
 
 #######################################################################
@@ -218,12 +221,12 @@ class AjaxImportRaces(MethodView):
             if not thisfile:
                 db.session.rollback()
                 cause = 'Unexpected Error: Missing file'
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             if not allowed_file(thisfile.filename):
                 db.session.rollback()
                 cause = 'Invalid file type "{}"'.format(thisfileext)
-                app.logger.warning(cause)
+                current_app.logger.warning(cause)
                 return failure_response(cause=cause)
 
             # handle csv file
@@ -235,7 +238,7 @@ class AjaxImportRaces(MethodView):
                 if not check_header(requiredfields, thisfilecsv.fieldnames):
                     db.session.rollback()
                     cause = "invalid races file - one or more header fields missing, must have all of '{}'".format("', '".join(requiredfields))
-                    app.logger.error(cause)
+                    current_app.logger.error(cause)
                     return failure_response(cause=cause)
 
                 fileraces = []
@@ -244,7 +247,7 @@ class AjaxImportRaces(MethodView):
                     if int(row['year']) != flask.session['year']:
                         db.session.rollback()
                         cause = 'File year {} does not match session year {}'.format(row['year'],flask.session['year'])
-                        app.logger.warning(cause)
+                        current_app.logger.warning(cause)
                         return failure_response(cause=cause)
                     fileraces.append(row)
                     
@@ -259,7 +262,7 @@ class AjaxImportRaces(MethodView):
             else:
                 db.session.rollback()
                 cause = 'Unexpected Error: Invalid file extention encountered "{}"'.format(thisfileext)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             
             # get all the races currently in the database for the indicated club,year
@@ -281,7 +284,7 @@ class AjaxImportRaces(MethodView):
                 if thisrace['surface'] not in SURFACES:
                     db.session.rollback()
                     cause = 'Bad surface "{}" encountered for race "{}". Must be one of {}'.format(thisrace['surface'],thisrace['race'],SURFACES)
-                    app.logger.error(cause)
+                    current_app.logger.error(cause)
                     return failure_response(cause=cause)
 
                 # time field is optional
@@ -320,10 +323,10 @@ class AjaxImportRaces(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             cause = traceback.format_exc()
-            app.logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
-app.add_url_rule('/_importraces',view_func=AjaxImportRaces.as_view('_importraces'),methods=['POST'])
+bp.add_url_rule('/_importraces',view_func=AjaxImportRaces.as_view('_importraces'),methods=['POST'])
 #----------------------------------------------------------------------
 
 ########################################################################
@@ -354,8 +357,8 @@ app.add_url_rule('/_importraces',view_func=AjaxImportRaces.as_view('_importraces
 #            raise
 ##----------------------------------------------------------------------
 #series_api_view = SeriesAPI.as_view('series_api')
-#app.add_url_rule('/_series/<int:club_id>/',defaults={'year':-1},view_func=series_api_view,methods=['POST'])
-#app.add_url_rule('/_series/<int:club_id>/','/_series/<int:club_id>/<int:year>/',defaults={'year':-1},view_func=series_api_view,methods=['POST'])
+#bp.add_url_rule('/_series/<int:club_id>/',defaults={'year':-1},view_func=series_api_view,methods=['POST'])
+#bp.add_url_rule('/_series/<int:club_id>/','/_series/<int:club_id>/<int:year>/',defaults={'year':-1},view_func=series_api_view,methods=['POST'])
 ##----------------------------------------------------------------------
 
 ###########################################################################################
@@ -375,92 +378,95 @@ series_formmapping = dict(list(zip(series_formfields, series_dbattrs)))
 series_dbmapping['club_id'] = getclubid
 series_dbmapping['year'] = getyear
 
-series = CrudApi(pagename='series',
-                endpoint='manageseries',
-                dbmapping=series_dbmapping,
-                formmapping=series_formmapping,
-                permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
-                dbtable=Series,
-                queryparams={'active': True},
-                checkrequired=True,
-                clientcolumns=[
-                    {'data': 'name', 'name': 'name', 'label': 'Series Name', '_unique': True,
-                     'className': 'field_req',
-                     },
-                    {'data': 'maxraces', 'name': 'maxraces', 'label': 'Max Races',
-                     'class': 'column-center',
-                     },
-                    {'data': 'multiplier', 'name': 'multiplier', 'label': 'Multiplier',
-                     'class': 'column-center',
-                     },
-                    {'data': 'maxgenpoints', 'name': 'maxgenpoints', 'label': 'Max Gen Pts',
-                     'class': 'column-center',
-                     },
-                    {'data': 'maxdivpoints', 'name': 'maxdivpoints', 'label': 'Max Div Pts',
-                     'class': 'column-center',
-                     },
-                    {'data': 'maxbynumrunners', 'name': 'maxbynumrunners', 'label': 'Max by Num Rnrs',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'maxbynumrunners', 'dbfield': 'maxbynumrunners', 'truedisplay': 'yes', 'falsedisplay': 'no'}},
-                     },
-                    {'data': 'orderby', 'name': 'orderby', 'label': 'Order By', 'type': 'select2',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     'options': ['agtime','agpercent','time','overallplace'],
-                     },
-                    {'data': 'hightolow', 'name': 'hightolow', 'label': 'Order', 'type': 'select2',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'hightolow', 'dbfield': 'hightolow', 'truedisplay': 'descending', 'falsedisplay': 'ascending'}},
-                     },
-                    {'data': 'membersonly', 'name': 'membersonly', 'label': 'Members Only',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'membersonly', 'dbfield': 'membersonly', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
-                    {'data': 'averagetie', 'name': 'averagetie', 'label': 'Avg Ties',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'averagetie', 'dbfield': 'averagetie', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
-                    {'data': 'calcoverall', 'name': 'calcoverall', 'label': 'Overall',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'calcoverall', 'dbfield': 'calcoverall', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
-                    {'data': 'calcdivisions', 'name': 'calcdivisions', 'label': 'Divisions',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'calcdivisions', 'dbfield': 'calcdivisions', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
-                    {'data': 'calcagegrade', 'name': 'calcagegrade', 'label': 'Age Grade',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     '_treatment': {'boolean': {'formfield': 'calcagegrade', 'dbfield': 'calcagegrade', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
-                    {'data': 'races', 'name': 'races', 'label': 'Races', 'type': 'select2',
-                     '_treatment': {'relationship':
-                         {
-                             'dbfield': 'races',
-                             'fieldmodel': Race,
-                             'labelfield': 'name',
-                             'formfield': 'races',
-                             'uselist': True,
-                             'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
-                         }
-                     },
-                     'render': '$.fn.dataTable.render.ellipsis( 20 )',
-                     },
-                ],
-                serverside=False,
-                byclub=True,
-                byyear=True,
-                addltemplateargs={'inhibityear': False},
-                idSrc='rowid',
-                buttons=['create', 'edit', 'remove',
-                         {
-                             'extend': 'csv',
-                             'exportOptions': {'orthogonal': 'export'},
-                         },
-                         ],
-                dtoptions=dt_options,
-                )
+series = CrudApi(
+    app=bp,
+    pagename='series',
+    endpoint='.manageseries',
+    rule='/manageseries',
+    dbmapping=series_dbmapping,
+    formmapping=series_formmapping,
+    permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+    dbtable=Series,
+    queryparams={'active': True},
+    checkrequired=True,
+    clientcolumns=[
+        {'data': 'name', 'name': 'name', 'label': 'Series Name', '_unique': True,
+         'className': 'field_req',
+         },
+        {'data': 'maxraces', 'name': 'maxraces', 'label': 'Max Races',
+         'class': 'column-center',
+         },
+        {'data': 'multiplier', 'name': 'multiplier', 'label': 'Multiplier',
+         'class': 'column-center',
+         },
+        {'data': 'maxgenpoints', 'name': 'maxgenpoints', 'label': 'Max Gen Pts',
+         'class': 'column-center',
+         },
+        {'data': 'maxdivpoints', 'name': 'maxdivpoints', 'label': 'Max Div Pts',
+         'class': 'column-center',
+         },
+        {'data': 'maxbynumrunners', 'name': 'maxbynumrunners', 'label': 'Max by Num Rnrs',
+         'className': 'field_req',
+         'class': 'column-center',
+         '_treatment': {'boolean': {'formfield': 'maxbynumrunners', 'dbfield': 'maxbynumrunners', 'truedisplay': 'yes', 'falsedisplay': 'no'}},
+         },
+        {'data': 'orderby', 'name': 'orderby', 'label': 'Order By', 'type': 'select2',
+         'className': 'field_req',
+         'class': 'column-center',
+         'options': ['agtime','agpercent','time','overallplace'],
+         },
+        {'data': 'hightolow', 'name': 'hightolow', 'label': 'Order', 'type': 'select2',
+         'className': 'field_req',
+         'class': 'column-center',
+         '_treatment': {'boolean': {'formfield': 'hightolow', 'dbfield': 'hightolow', 'truedisplay': 'descending', 'falsedisplay': 'ascending'}},
+         },
+        {'data': 'membersonly', 'name': 'membersonly', 'label': 'Members Only',
+         'className': 'field_req',
+         'class': 'column-center',
+         '_treatment': {'boolean': {'formfield': 'membersonly', 'dbfield': 'membersonly', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
+        {'data': 'averagetie', 'name': 'averagetie', 'label': 'Avg Ties',
+         'className': 'field_req',
+         'class': 'column-center',
+         '_treatment': {'boolean': {'formfield': 'averagetie', 'dbfield': 'averagetie', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
+        {'data': 'calcoverall', 'name': 'calcoverall', 'label': 'Overall',
+         'className': 'field_req',
+         'class': 'column-center',
+         '_treatment': {'boolean': {'formfield': 'calcoverall', 'dbfield': 'calcoverall', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
+        {'data': 'calcdivisions', 'name': 'calcdivisions', 'label': 'Divisions',
+         'className': 'field_req',
+         'class': 'column-center',
+         '_treatment': {'boolean': {'formfield': 'calcdivisions', 'dbfield': 'calcdivisions', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
+        {'data': 'calcagegrade', 'name': 'calcagegrade', 'label': 'Age Grade',
+         'className': 'field_req',
+         'class': 'column-center',
+         '_treatment': {'boolean': {'formfield': 'calcagegrade', 'dbfield': 'calcagegrade', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
+        {'data': 'races', 'name': 'races', 'label': 'Races', 'type': 'select2',
+         '_treatment': {'relationship':
+             {
+                 'dbfield': 'races',
+                 'fieldmodel': Race,
+                 'labelfield': 'name',
+                 'formfield': 'races',
+                 'uselist': True,
+                 'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
+             }
+         },
+         'render': '$.fn.dataTable.render.ellipsis( 20 )',
+         },
+    ],
+    serverside=False,
+    byclub=True,
+    byyear=True,
+    addltemplateargs={'inhibityear': False},
+    idSrc='rowid',
+    buttons=['create', 'edit', 'remove',
+             {
+                 'extend': 'csv',
+                 'exportOptions': {'orthogonal': 'export'},
+             },
+             ],
+    dtoptions=dt_options,
+    )
 series.register()
 
 
@@ -517,7 +523,7 @@ class AjaxCopySeries(MethodView):
                 # seriesparms['overall'] = seriesparms.pop('calcoverall')
                 # seriesparms['divisions'] = seriesparms.pop('calcdivisions')
                 # seriesparms['agegrade'] = seriesparms.pop('calcagegrade')
-                # app.logger.debug('seriesparms={}'.format(seriesparms))
+                # current_app.logger.debug('seriesparms={}'.format(seriesparms))
                 # newseries = Series(series.club_id, thisyear, **seriesparms)
                 newseries = Series(series.club_id, thisyear, 
                                    series.name, series.membersonly, 
@@ -545,7 +551,7 @@ class AjaxCopySeries(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/_copyseries',view_func=AjaxCopySeries.as_view('_copyseries'),methods=['POST'])
+bp.add_url_rule('/_copyseries',view_func=AjaxCopySeries.as_view('_copyseries'),methods=['POST'])
 #----------------------------------------------------------------------
 
 ###########################################################################################
@@ -561,45 +567,48 @@ divisions_formmapping = dict(list(zip(divisions_formfields, divisions_dbattrs)))
 divisions_dbmapping['club_id'] = getclubid
 divisions_dbmapping['year'] = getyear
 
-divisions = CrudApi(pagename='divisions',
-                endpoint='managedivisions',
-                dbmapping=divisions_dbmapping,
-                formmapping=divisions_formmapping,
-                permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
-                dbtable=Divisions,
-                queryparams={'active': True},
-                checkrequired=True,
-                clientcolumns=[
-                    {'data': 'series', 'name': 'series', 'label': 'Series', 'type': 'select2',
-                     'className': 'field_req',
-                     '_treatment': {'relationship':
-                         {
-                             'dbfield': 'series',
-                             'fieldmodel': Series,
-                             'labelfield': 'name',
-                             'formfield': 'series',
-                             'uselist': False,
-                             'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
-                         }
-                     },
-                     },
-                    {'data': 'divisionlow', 'name': 'divisionlow', 'label': 'Low Age',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     },
-                    {'data': 'divisionhigh', 'name': 'divisionhigh', 'label': 'High Age',
-                     'className': 'field_req',
-                     'class': 'column-center',
-                     },
-                ],
-                serverside=False,
-                byclub=True,
-                byyear=True,
-                addltemplateargs={'inhibityear': False},
-                idSrc='rowid',
-                buttons=['create', 'edit', 'remove', 'csv',
-                         ],
-                )
+divisions = CrudApi(
+    app=bp,
+    pagename='divisions',
+    endpoint='.managedivisions',
+    rule='/managedivisions',
+    dbmapping=divisions_dbmapping,
+    formmapping=divisions_formmapping,
+    permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+    dbtable=Divisions,
+    queryparams={'active': True},
+    checkrequired=True,
+    clientcolumns=[
+        {'data': 'series', 'name': 'series', 'label': 'Series', 'type': 'select2',
+         'className': 'field_req',
+         '_treatment': {'relationship':
+             {
+                 'dbfield': 'series',
+                 'fieldmodel': Series,
+                 'labelfield': 'name',
+                 'formfield': 'series',
+                 'uselist': False,
+                 'queryparams': lambda: {'club_id': flask.session['club_id'], 'year': flask.session['year']}
+             }
+         },
+         },
+        {'data': 'divisionlow', 'name': 'divisionlow', 'label': 'Low Age',
+         'className': 'field_req',
+         'class': 'column-center',
+         },
+        {'data': 'divisionhigh', 'name': 'divisionhigh', 'label': 'High Age',
+         'className': 'field_req',
+         'class': 'column-center',
+         },
+    ],
+    serverside=False,
+    byclub=True,
+    byyear=True,
+    addltemplateargs={'inhibityear': False},
+    idSrc='rowid',
+    buttons=['create', 'edit', 'remove', 'csv',
+             ],
+    )
 divisions.register()
 
 
@@ -666,7 +675,7 @@ class AjaxCopyDivisions(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/_copydivisions',view_func=AjaxCopyDivisions.as_view('_copydivisions'),methods=['POST'])
+bp.add_url_rule('/_copydivisions',view_func=AjaxCopyDivisions.as_view('_copydivisions'),methods=['POST'])
 #----------------------------------------------------------------------
 
 

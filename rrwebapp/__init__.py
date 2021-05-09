@@ -151,8 +151,15 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
     # security = UserSecurity(app, user_datastore, send_mail=security_send_mail)
     security = Security(app, user_datastore, send_mail=security_send_mail)
 
+    global celery
+    celery = Celery('rrwebapp')
+
+    configpath = os.path.join('config', 'rrwebapp.cfg')
+    celeryconfig = getitems(configpath, 'celery')
+    celery.conf.update(celeryconfig)
+
     # activate views
-    from .views import userrole as userroleviews
+    # from .views import userrole as userroleviews
     # # uncomment when working on #426
     # from loutilities.user.views import bp as userrole
     # app.register_blueprint(userrole)
@@ -224,13 +231,6 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
                 '{}: {} {} {}'.format(request.remote_addr, request.method, request.url, response.status_code))
         return response
 
-    global celery
-    celery = Celery('rrwebapp')
-
-    configpath = os.path.join('config', 'rrwebapp.cfg')
-    celeryconfig = getitems(configpath, 'celery')
-    celery.conf.update(celeryconfig)
-
     import time
     from loutilities import timeu
     tu = timeu.asctime('%Y-%m-%d %H:%M:%S')
@@ -241,19 +241,10 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
     applogging.setlogging()
 
     # import all views
-    from . import services
     from . import request
-    from . import index
     from . import login
-    from . import club
-    from . import race
-    from . import member
-    from . import results
-    from . import resultsanalysis
     from . import standings
-    from . import location
     from . import tools
-    from . import sysinfo
     from . import docs
     from . import staticfiles
     from . import agegradeapi

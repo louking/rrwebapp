@@ -1,0 +1,130 @@
+{# copied from loutilities because of url_for('terms') todo: maybe there's a better way to take care of optional blueprint name #}
+<!doctype html>
+<html>
+<head>
+  <title>{{self.pagename()|striptags}}</title>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <script type="text/javascript">
+    var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+  </script>
+
+{% block prescripts %}
+{% endblock %}
+
+{% set development = False %}
+{% set sandbox = False %}
+{% set urlparts = request.url.split('/') %}
+{% set hostname = urlparts[2].split(':')[0] %}
+{% if not config.DEMO_MODE and (hostname[0:9] == "127.0.0.1" or hostname[-9:] == "localhost") %}
+    {% set development = True %}
+{% elif hostname[0:8] == "sandbox." %}
+    {% set sandbox = True %}
+{% endif %}
+
+{# font for branding, see branding.css #}
+<link href="https://fonts.googleapis.com/css?family=Kanit:800&display=swap" rel="stylesheet">
+{# see assets.py for list of css, js files #}
+{% if assets_css %}
+  {% assets assets_css %}
+    <link rel=stylesheet type=text/css href="{{ ASSET_URL }}">
+  {% endassets %}
+{# backwards compatibility #}
+{% else %}
+    {% assets "admin_css" %}
+      <link rel=stylesheet type=text/css href="{{ ASSET_URL }}">
+    {% endassets %}
+{% endif %}
+{# backwards compatibility #}
+{% for css in pagecssfiles %}
+  <link rel=stylesheet type=text/css href="{{ css }}">
+{% endfor %}
+<style>
+  {% if development %}
+    html {background: antiquewhite;}
+  {% elif sandbox %}
+    html {background: lightcyan;}
+  {% endif %}
+</style>
+{% block css %}
+{% endblock %}
+
+<script>var _productname = "{{ _productname_text|safe }}";</script>
+{% if assets_js %}
+    {% assets assets_js %}
+        <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %}
+{# backwards compatibility #}
+{% else %}
+    {% assets "admin_js" %}
+        <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %}
+{% endif %}
+{# backwards compatibility #}
+{% for js in pagejsfiles %}
+  <script type="text/javascript" src="{{ js }}"></script>
+{% endfor %}
+
+{% block signin %}
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}
+</head>
+<body>
+{% if not printerfriendly %}
+  <div class=heading>
+    <h1>{{_productname|safe}}
+    {% if development %} (development){% endif %}
+    {% if sandbox %} (sandbox){% endif %}
+  </h1>
+    <div class=pagename>{{self.pagename()}}</div>
+    {# metanav for login buttons, etc #}
+    {% block metanav %}
+    {% endblock %}
+  </div>
+  <noscript>
+    <style type="text/css">
+        .wrapper {display:none;}
+    </style>
+    <div class="noscriptmsg">
+        <h1>JavaScript does not appear to be enabled</h1>
+        <p>For this site to function it is necessary to have JavaScript enabled.</p>
+        <p>Here are the <a href="https://www.whatismybrowser.com/guides/how-to-enable-javascript" target="_blank">
+             instructions how to enable JavaScript in your web browser</a>.</p>
+    </div>
+  </noscript>
+  <div class=wrapper>
+    {# render navigation bar - see https://pythonhosted.org/flask-nav/index.html #}
+    {% block nav %}
+    {% endblock %}
+
+    <div class=body>
+      {% if error %}<p class=error><strong>Error: {{ error }}</strong></p>{% endif %}
+      {% for message in get_flashed_messages() %}
+        <div class=flash><p>{{ message }}</p></div>
+      {% endfor %}
+      <div id="widgets" style="{display: none}"></div>
+      <div id="progressbar-container"></div>
+      {% block body %}
+      {% endblock %}
+        <div class="Footer">
+          <div>
+          {% if addfooter %}
+            <a href="{{url_for('frontend.terms') }}">Terms of Service</a>
+            <a href="{{url_for('frontend.feedback')}}?next={{request.url}}">Questions/Feedback</a>
+          </div>
+          {% endif %}
+          <span>&copy; 2021 loutilities (Lou King). All rights reserved.</span>
+        </div>
+    </div>
+  </div>
+{% else %}
+  <div class=body-printerfriendly>
+    {{ self.body() }}
+  </div>
+{% endif %}
+
+</body>
+</html>

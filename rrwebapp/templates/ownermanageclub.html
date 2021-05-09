@@ -9,7 +9,7 @@
     <div class="W9emLabel W25emTextBox FloatLeft">
         {{ render_field(form.shname,displayonly,size=25 )}}
         {{ render_field(form.name,displayonly,size=25 )}}
-        <center><a href={{url_for('manageclubs')}}><input type=button name=cancel value=Cancel /></a>
+        <center><a href={{url_for('.manageclubs')}}><input type=button name=cancel value=Cancel /></a>
             {% if action %}
                 <input type=submit value="{{action}}" >
             {% endif %}

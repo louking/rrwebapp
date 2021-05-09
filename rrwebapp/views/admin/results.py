@@ -17,7 +17,7 @@ from copy import copy
 
 # pypi
 import flask
-from flask import make_response, request, jsonify, url_for, current_app
+from flask import request, jsonify, url_for, current_app
 from flask_login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
@@ -26,30 +26,28 @@ from attrdict import AttrDict
 from dominate.tags import a, button, div
 
 # home grown
-from . import app
-from . import celery
-from .model import insert_or_update
+from . import bp
+from rrwebapp import celery
+from ...model import insert_or_update
 from loutilities.tables import DataTables, ColumnDT
-from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
-from .model import db   # this is ok because this module only runs under flask
-from .apicommon import failure_response, success_response
-from .request import addscripts, crossdomain
-from .appldirs import UPLOAD_TEMP_DIR
-from .apicommon import MapDict
-from .nav import productname
-
-# module specific needs
-from . import raceresults
-from . import clubmember
-from .crudapi import CrudApi
-from .request import annotatescripts
-from .model import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, dbdate
-from .model import rendertime, renderfloat, rendermember, renderlocation, renderseries
+from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
+from ...model import db   # this is ok because this module only runs under flask
+from ...apicommon import failure_response, success_response
+from ...request import addscripts, crossdomain
+from ...appldirs import UPLOAD_TEMP_DIR
+from ...apicommon import MapDict
+from ...settings import productname
+from ...raceresults import RaceResults, headerError, dataError, normalizeracetime
+from ...clubmember import DbClubMember
+from ...crudapi import CrudApi
+from ...request import annotatescripts
+from ...model import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, dbdate
+from ...model import rendertime, renderfloat, rendermember, renderlocation, renderseries
 from .services import ServiceAttributes
-from .model import RaceResultService, ApiCredentials
+from ...model import RaceResultService, ApiCredentials
 from .location import LocationServer, get_distance
-from .datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
-from .forms import SeriesResultForm
+from ...datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
+from ...forms import SeriesResultForm
 from loutilities.namesplitter import split_full_name
 import loutilities.renderrun as render
 from loutilities import timeu, agegrade
@@ -189,9 +187,9 @@ class ImportResults():
         # determine candidate pool based on membersonly
         membersonly = self.race.series[0].membersonly
         if membersonly:
-            self.pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
+            self.pool = DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
         else:
-            self.pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
+            self.pool = DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
 
         ### all the "work" is here to set up the dbmapping from input result
         # use OrderedDict because some dbattrs depend on others to have been done first (e.g., confirmed must be after initialdisposition)
@@ -275,7 +273,7 @@ class ImportResults():
                 if ascdob:
                     dbresult.initialdisposition = DISP_MATCH
                     dbresult.confirmed = True
-                    # app.logger.debug('    DISP_MATCH')
+                    # current_app.logger.debug('    DISP_MATCH')
                     
                 # otherwise was nonmember, included from some non memberonly race
                 else:
@@ -293,7 +291,7 @@ class ImportResults():
                         if abs(deltaage - deltayears) <= 1:
                             dbresult.initialdisposition = DISP_MATCH
                             dbresult.confirmed = True
-                            # app.logger.debug('    DISP_MATCH')
+                            # current_app.logger.debug('    DISP_MATCH')
 
                         # if inconsistent, ignore candidate
                         else:
@@ -313,7 +311,7 @@ class ImportResults():
                 if not exclusion:
                     dbresult.initialdisposition = DISP_CLOSE
                     dbresult.confirmed = False
-                    # app.logger.debug('    DISP_CLOSE')
+                    # current_app.logger.debug('    DISP_CLOSE')
                     
                 # results name vs this runner id has been excluded
                 else:
@@ -327,25 +325,25 @@ class ImportResults():
             # favor active members, then inactive members
             # note: nonmembers are not looked at for missed because filtermissed() depends on DOB
             missed = self.pool.getmissedmatches()
-            # app.logger.debug('  self.pool.getmissedmatches() = {}'.format(missed))
+            # current_app.logger.debug('  self.pool.getmissedmatches() = {}'.format(missed))
             
             # don't consider 'missed matches' where age difference from result is too large, or excluded
-            # app.logger.debug('  missed before filter = {}'.format(missed))
+            # current_app.logger.debug('  missed before filter = {}'.format(missed))
             missed = filtermissed(club_id,missed,race.date,dbresult.age)
-            # app.logger.debug('  missed after filter = {}'.format(missed))
+            # current_app.logger.debug('  missed after filter = {}'.format(missed))
 
             # if there remain are any missed results, indicate missed (due to age difference)
             # or missed (due to new member proposed for not membersonly)
             if len(missed) > 0 or not membersonly:
                 dbresult.initialdisposition = DISP_MISSED
                 dbresult.confirmed = False
-                # app.logger.debug('    DISP_MISSED')
+                # current_app.logger.debug('    DISP_MISSED')
                 
             # otherwise, this result isn't used
             else:
                 dbresult.initialdisposition = DISP_NOTUSED
                 dbresult.confirmed = True
-                # app.logger.debug('    DISP_NOTUSED')
+                # current_app.logger.debug('    DISP_NOTUSED')
 
         # this needs to be the same as what was already stored in the record
         return dbresult.initialdisposition
@@ -364,7 +362,7 @@ class ImportResults():
 
         # convert inresult keys
         thisinresult = self.map.convert(inresult)
-        app.logger.debug('thisinresult={}'.format(thisinresult))
+        current_app.logger.debug('thisinresult={}'.format(thisinresult))
 
         # this makes the dbresult accessible to the dbmapping functions
         self.dbresult = dbresult
@@ -550,16 +548,16 @@ class EditParticipants(MethodView):
             if len(race.series) == 0:
                 db.session.rollback()
                 cause =  "Race '{}' not found for this club".format(race.name)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 flask.flash(cause)
                 return flask.redirect(url_for('manageraces'))
 
             # active is ClubMember object for active members; if race isn't for members only nonmember is ClubMember object for nonmembers
             membersonly = race.series[0].membersonly
             if membersonly:
-                pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
+                pool = DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
             else:
-                pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
+                pool = DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
 
             # convert members for page select
             memberrecs = pool.getmembers()
@@ -605,13 +603,13 @@ class EditParticipants(MethodView):
             db.session.commit()
             return flask.render_template('editparticipants.html', 
                                          race=race, 
-                                         data=url_for('_editparticipants',raceid=raceid), 
+                                         data=url_for('._editparticipants',raceid=raceid), 
                                          selects=tableselects,
                                          membernames=membernames, 
                                          memberages=memberages, 
                                          memberagegens=memberagegens,
-                                         crudapi=url_for('_editparticipantscrud',raceid=0)[0:-1],  
-                                         fieldapi=url_for('_updatemanagedresult',resultid=0)[0:-1],
+                                         crudapi=url_for('._editparticipantscrud',raceid=0)[0:-1],  
+                                         fieldapi=url_for('._updatemanagedresult',resultid=0)[0:-1],
                                          membersonly=membersonly, 
                                          inhibityear=True,inhibitclub=True,
                                          pagejsfiles=annotatescripts(['editparticipants.js']),
@@ -622,7 +620,7 @@ class EditParticipants(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/editparticipants/<int:raceid>',view_func=EditParticipants.as_view('editparticipants'),methods=['GET'])
+bp.add_url_rule('/editparticipants/<int:raceid>',view_func=EditParticipants.as_view('editparticipants'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -698,9 +696,9 @@ class AjaxEditParticipants(MethodView):
             # then get appropriate pool of runners for possible inclusion in tableselects
             membersonly = race.series[0].membersonly
             if membersonly:
-                pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
+                pool = DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
             else:
-                pool = clubmember.DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
+                pool = DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
 
             # determine possible choices for this runner if not definite
             tableselects = {}
@@ -721,7 +719,7 @@ class AjaxEditParticipants(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/_editparticipants/<int:raceid>',view_func=AjaxEditParticipants.as_view('_editparticipants'),methods=['GET'])
+bp.add_url_rule('/_editparticipants/<int:raceid>',view_func=AjaxEditParticipants.as_view('_editparticipants'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -754,25 +752,25 @@ class AjaxEditParticipantsCRUD(MethodView):
 
             # get data from form
             data = get_request_data(request.form)
-            app.logger.debug('action={}, data={}, form={}'.format(action, data, request.form))
+            current_app.logger.debug('action={}, data={}, form={}'.format(action, data, request.form))
 
             if action not in ['create','edit','remove']:
                 db.session.rollback()
                 cause = 'unknown action "{}"'.format(action)
-                app.logger.warning(cause)
+                current_app.logger.warning(cause)
                 return dt_editor_response(error=cause)
 
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
             if not race:
                 db.session.rollback()
                 cause = 'race id={} does not exist for this club'.format(raceid)
-                app.logger.warning(cause)
+                current_app.logger.warning(cause)
                 return dt_editor_response(error=cause)
 
             if len(race.series) == 0:
                 db.session.rollback()
                 cause =  'Race needs to be included in at least one series to import results'
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return dt_editor_response(error=cause)
             
             # determine precision for time output
@@ -780,7 +778,7 @@ class AjaxEditParticipantsCRUD(MethodView):
 
             # dataTables Editor helper
             dbmapping = dict(list(zip(self.dbfields,self.formfields)))
-            dbmapping['time']     = lambda inrow: raceresults.normalizeracetime(inrow['time'], race.distance)
+            dbmapping['time']     = lambda inrow: normalizeracetime(inrow['time'], race.distance)
 
             formmapping = dict(list(zip(self.formfields,self.dbfields)))
             formmapping['time'] = lambda dbrow: render.rendertime(dbrow.time,timeprecision)
@@ -834,17 +832,17 @@ class AjaxEditParticipantsCRUD(MethodView):
                     # set up response object
                     thisrow = dte.get_response_data(dbresult)
                     responsedata.append(thisrow)
-                    app.logger.debug('thisrow={}'.format(thisrow))
+                    current_app.logger.debug('thisrow={}'.format(thisrow))
 
                     # update thisresult.runnerchoice for resultid
                     runnerchoices[dbresult.id] = runner_choices
-                    app.logger.debug('resultid={} runnerchoices={}'.format(dbresult.id, runner_choices))
+                    current_app.logger.debug('resultid={} runnerchoices={}'.format(dbresult.id, runner_choices))
 
                 # remove
                 else:
                     resultid = thisdata['id']
                     dbresult = ManagedResult.query.filter_by(id=resultid).first()
-                    app.logger.debug('deleting id={}, name={}'.format(resultid,dbresult.name))
+                    current_app.logger.debug('deleting id={}, name={}'.format(resultid,dbresult.name))
                     db.session.delete(dbresult)
 
             # commit database updates and close transaction
@@ -860,10 +858,10 @@ class AjaxEditParticipantsCRUD(MethodView):
                 cause = error
             else:
                 cause = traceback.format_exc()
-                app.logger.error(traceback.format_exc())
+                current_app.logger.error(traceback.format_exc())
             return dt_editor_response(data=[], error=cause, fieldErrors=fielderrors)
 #----------------------------------------------------------------------
-app.add_url_rule('/_editparticipantscrud/<int:raceid>',view_func=AjaxEditParticipantsCRUD.as_view('_editparticipantscrud'),methods=['POST'])
+bp.add_url_rule('/_editparticipantscrud/<int:raceid>',view_func=AjaxEditParticipantsCRUD.as_view('_editparticipantscrud'),methods=['POST'])
 #----------------------------------------------------------------------
 
 ###########################################################################################
@@ -875,35 +873,38 @@ editexclusions_formfields = 'rowid,club_id,foundname,runner'.split(',')
 editexclusions_dbmapping = dict(list(zip(editexclusions_dbattrs, editexclusions_formfields)))
 editexclusions_formmapping = dict(list(zip(editexclusions_formfields, editexclusions_dbattrs)))
 
-editexclusions = CrudApi(pagename='edit exclusions',
-                endpoint='editexclusions',
-                dbmapping=editexclusions_dbmapping,
-                formmapping=editexclusions_formmapping,
-                permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
-                dbtable=Exclusion,
-                clientcolumns=[
-                    {'data': 'foundname', 'name': 'foundname', 'label': 'Result Name',
-                     },
-                    {'data': 'runner', 'name': 'runner', 'label': 'Member Name', 'type': 'select2',
-                     '_treatment': {'relationship':
-                         {
-                             'dbfield': 'runner',
-                             'fieldmodel': Runner,
-                             'labelfield': 'name',
-                             'formfield': 'runner',
-                             'uselist': False,
-                             'queryparams': lambda: {'club_id': flask.session['club_id']}
-                         }
-                     },
-                     },
+editexclusions = CrudApi(
+    app=bp,
+    pagename='edit exclusions',
+    endpoint='admin.editexclusions',
+    rule='/editexclusions',
+    dbmapping=editexclusions_dbmapping,
+    formmapping=editexclusions_formmapping,
+    permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+    dbtable=Exclusion,
+    clientcolumns=[
+        {'data': 'foundname', 'name': 'foundname', 'label': 'Result Name',
+            },
+        {'data': 'runner', 'name': 'runner', 'label': 'Member Name', 'type': 'select2',
+            '_treatment': {'relationship':
+                {
+                    'dbfield': 'runner',
+                    'fieldmodel': Runner,
+                    'labelfield': 'name',
+                    'formfield': 'runner',
+                    'uselist': False,
+                    'queryparams': lambda: {'club_id': flask.session['club_id']}
+                }
+            },
+            },
+    ],
+    serverside=False,
+    byclub=True,
+    addltemplateargs={'inhibityear': True},
+    idSrc='rowid',
+    buttons=['remove', 'csv',
                 ],
-                serverside=False,
-                byclub=True,
-                addltemplateargs={'inhibityear': True},
-                idSrc='rowid',
-                buttons=['remove', 'csv',
-                         ],
-                )
+    )
 editexclusions.register()
 
 
@@ -927,7 +928,7 @@ class SeriesResults(MethodView):
             if len(race.series) == 0:
                 db.session.rollback()
                 cause =  "Race '{}' is not included in any series".format(race.name)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 flask.flash(cause)
                 return flask.redirect(url_for('manageraces'))
             
@@ -988,7 +989,7 @@ class SeriesResults(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/seriesresults/<int:raceid>',view_func=SeriesResults.as_view('seriesresults'),methods=['GET'])
+bp.add_url_rule('/seriesresults/<int:raceid>',view_func=SeriesResults.as_view('seriesresults'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -1038,7 +1039,7 @@ class RunnerResults(MethodView):
                     pagename = '{} Results'.format(name)
 
             # limit results to those recorded by rrwebapp
-            resultfilter['source'] = productname
+            resultfilter['source'] = productname()
 
             # DataTables options string, data: and buttons: are passed separately
             dt_options = {
@@ -1127,7 +1128,7 @@ class RunnerResults(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/results',view_func=RunnerResults.as_view('results'),methods=['GET'])
+bp.add_url_rule('/results',view_func=RunnerResults.as_view('results'),methods=['GET'])
 #----------------------------------------------------------------------
 
 
@@ -1268,10 +1269,10 @@ class AjaxRunnerResults(MethodView):
                 series = Series.query.filter_by(name=seriesarg).first()
                 if series:
                     seriesfilter.append(Series.name == series.name)
-                    app.logger.debug('filter by series {}'.format(seriesarg))
+                    current_app.logger.debug('filter by series {}'.format(seriesarg))
 
             # limit results to that recorded by rrwebapp
-            resultfilter.append(RaceResult.source == productname)
+            resultfilter.append(RaceResult.source == productname())
 
             columns = [
                 ColumnDT(Runner.name,                mData='name'),
@@ -1318,7 +1319,7 @@ class AjaxRunnerResults(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/_results',view_func=AjaxRunnerResults.as_view('_results'),methods=['GET'])
+bp.add_url_rule('/_results',view_func=AjaxRunnerResults.as_view('_results'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -1496,7 +1497,7 @@ class RunnerResultsChart(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/resultschart',view_func=RunnerResultsChart.as_view('resultschart'),methods=['GET'])
+bp.add_url_rule('/resultschart',view_func=RunnerResultsChart.as_view('resultschart'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -1543,7 +1544,7 @@ class AjaxRunnerResultsChart(MethodView):
 
             # if not admin, limit source to rrwebapp product name
             if not adminuser:
-                resultfilter['source'] = productname
+                resultfilter['source'] = productname()
 
             getcol = lambda name: [col.mData for col in columns].index(name)
 
@@ -1648,7 +1649,7 @@ class AjaxRunnerResultsChart(MethodView):
                     if name not in names:
                         names.append(name)
                 names.sort(key=lambda item: item['label'].lower())
-                # app.logger.debug('after names sort')
+                # current_app.logger.debug('after names sort')
 
                 # avoid exception if club not specified in query
                 if club:
@@ -1672,14 +1673,14 @@ class AjaxRunnerResultsChart(MethodView):
                 # q = q.join(Series).filter_by(**seriesfilter)
                 q = q.join(RaceResult.series).filter_by(**seriesfilter)
             # q = q.join(Race).join(Location)
-            # app.logger.debug('resultfilter = {}, seriesfilter = {}'.format(resultfilter, seriesfilter))
-            # app.logger.debug('query = \n{}'.format(q))
+            # current_app.logger.debug('resultfilter = {}, seriesfilter = {}'.format(resultfilter, seriesfilter))
+            # current_app.logger.debug('query = \n{}'.format(q))
 
             # note there's no paging (see RunnerResultsChart) so can do some filtering after retrieval of all results from database
             rowTable = DataTables(args, q, columns, set_yadcf_data=set_yadcf_data)
             output_result = rowTable.output_result()
 
-            # app.logger.debug('after race results filtered query')
+            # current_app.logger.debug('after race results filtered query')
 
             # filter by service / maxdistance
             ## get maxdistance by service
@@ -1692,7 +1693,7 @@ class AjaxRunnerResultsChart(MethodView):
                         maxdistance[service.apicredentials.name] = attrs.maxdistance
                     else:
                         maxdistance[service.apicredentials.name] = None
-                maxdistance[productname] = None
+                maxdistance[productname()] = None
 
                 ## update data
                 locsvr = LocationServer()
@@ -1712,7 +1713,7 @@ class AjaxRunnerResultsChart(MethodView):
                 if runneridsearch:
                     sources = [row.source for row in db.session.query(RaceResult.source).filter_by(club_id=club.id, runnerid=runneridsearch).distinct().all()]
                     sourceids = [row.sourceid for row in db.session.query(RaceResult.sourceid).filter_by(club_id=club.id, runnerid=runneridsearch).distinct().all()]
-                    # app.logger.debug('after source and source id queries')
+                    # current_app.logger.debug('after source and source id queries')
                     output_result['yadcf_data_{}'.format(getcol('source'))] = sources
                     # output_result['yadcf_data_{}'.format(getcol('sourceid'))] = sourceids
                 else:
@@ -1730,7 +1731,7 @@ class AjaxRunnerResultsChart(MethodView):
                 if runner:
                     output_result['yadcf_default_{}'.format(getcol('runnerid'))] = runnerid
                 else:
-                    app.logger.warning('runnerid {} not found'.format(runnerid))
+                    current_app.logger.warning('runnerid {} not found'.format(runnerid))
 
             ## for date
             if (datefromarg or datetoarg) and not datesearch:
@@ -1743,7 +1744,7 @@ class AjaxRunnerResultsChart(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/_resultschart',view_func=AjaxRunnerResultsChart.as_view('_resultschart'),methods=['GET'])
+bp.add_url_rule('/_resultschart',view_func=AjaxRunnerResultsChart.as_view('_resultschart'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #----------------------------------------------------------------------
@@ -1782,25 +1783,25 @@ class AjaxImportResults(MethodView):
             if not resultfile:
                 db.session.rollback()
                 cause = 'Unexpected Error: Missing file'
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             if not allowed_file(resultfile.filename):
                 db.session.rollback()
                 cause = 'Invalid file type {} for file {}'.format(ext,resultfile.filename)
-                app.logger.warning(cause)
+                current_app.logger.warning(cause)
                 return failure_response(cause=cause)
 
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
             if not race:
                 db.session.rollback()
                 cause = 'race id={} does not exist for this club'.format(raceid)
-                app.logger.warning(cause)
+                current_app.logger.warning(cause)
                 return failure_response(cause=cause)
 
             if len(race.series) == 0:
                 db.session.rollback()
                 cause =  'Race needs to be included in at least one series to import results'
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             
             # do we have any results yet?  If so, make sure it is ok to overwrite them
@@ -1814,15 +1815,15 @@ class AjaxImportResults(MethodView):
                     return failure_response(cause='Overwrite results?',confirm=True)
                 # force is true.  delete all the current results for this race
                 else:
-                    app.logger.debug('editparticipants overwrite started')
+                    current_app.logger.debug('editparticipants overwrite started')
                     nummrdeleted = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
                     numrrdeleted = RaceResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
-                    app.logger.debug('{} managedresults deleted; {} raceresults deleted'.format(nummrdeleted,numrrdeleted))
+                    current_app.logger.debug('{} managedresults deleted; {} raceresults deleted'.format(nummrdeleted,numrrdeleted))
                     # also delete any nonmembers who do not have results, as these were most likely brought in by past version of this race
                     nonmembers = Runner.query.filter_by(club_id=club_id,member=False)
                     for nonmember in nonmembers:
                         nonmemberresults = RaceResult.query.filter_by(club_id=club_id,runnerid=nonmember.id).all()
-                        # app.logger.debug('nonmember={}/{} nonmemberresults={}'.format(nonmember.name,nonmember.id,nonmemberresults))
+                        # current_app.logger.debug('nonmember={}/{} nonmemberresults={}'.format(nonmember.name,nonmember.id,nonmemberresults))
                         if len(nonmemberresults) == 0:
                             db.session.delete(nonmember)
                     # pick up any deletes for later processing
@@ -1836,21 +1837,21 @@ class AjaxImportResults(MethodView):
             resultfile.save(resultpathname)            
 
             try:
-                rr = raceresults.RaceResults(resultpathname,race.distance)
+                rr = RaceResults(resultpathname,race.distance)
                 rr.close()
             
             # format not good enough
-            except raceresults.headerError as e:
+            except headerError as e:
                 db.session.rollback()
                 cause = '{}'.format(e)
-                app.logger.warning(cause)
+                current_app.logger.warning(cause)
                 return failure_response(cause=cause)
                 
             # how did this happen?  check allowed_file() for bugs
-            except raceresults.dataError as e:
+            except dataError as e:
                 db.session.rollback()
                 cause =  'Program Error: {}'.format(e)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
 
             # start task to import results
@@ -1859,7 +1860,7 @@ class AjaxImportResults(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             return jsonify({'success': True, 'current': 0, 'total':100, 'location': url_for('importresultsstatus', task_id=task.id)}), 202, {}
-            #return success_response(redirect=url_for('editparticipants',raceid=raceid))
+            #return success_response(redirect=url_for('.editparticipants',raceid=raceid))
         
         except Exception as e:
             # close rr if created, otherwise NOP
@@ -1870,10 +1871,10 @@ class AjaxImportResults(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             cause = traceback.format_exc()
-            app.logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
-app.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_view('_importresults'),methods=['POST'])
+bp.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_view('_importresults'),methods=['POST'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -1904,7 +1905,7 @@ class ImportResultsStatus(MethodView):
                 # check for traceback, which indicates an error occurred
                 response['cause'] = task.info.get('traceback','')
                 if response['cause'] == '':
-                    response['redirect'] = url_for('editparticipants',raceid=task.info.get('raceid'))
+                    response['redirect'] = url_for('.editparticipants',raceid=task.info.get('raceid'))
                 task.forget()
 
         # doesn't seem like this can happen, but just in case
@@ -1918,7 +1919,7 @@ class ImportResultsStatus(MethodView):
             }
         return jsonify(response)
 #----------------------------------------------------------------------
-app.add_url_rule('/importresultsstatus/<task_id>',view_func=ImportResultsStatus.as_view('importresultsstatus'), methods=['GET',])
+bp.add_url_rule('/importresultsstatus/<task_id>',view_func=ImportResultsStatus.as_view('importresultsstatus'), methods=['GET',])
 #----------------------------------------------------------------------
 
 #----------------------------------------------------------------------
@@ -1935,9 +1936,9 @@ def importresultstask(self, club_id, raceid, resultpathname):
     try:
         # create race results iterator
         race = Race.query.filter_by(club_id=club_id,id=raceid).first()
-        rr = raceresults.RaceResults(resultpathname,race.distance)
+        rr = RaceResults(resultpathname,race.distance)
 
-        # count rows, inefficiently. TODO: add count() method to raceresults.RaceResults class
+        # count rows, inefficiently. TODO: add count() method to RaceResults class
         try:
             total = 0
             while True:
@@ -1953,7 +1954,7 @@ def importresultstask(self, club_id, raceid, resultpathname):
 
         # start over
         rr.close()
-        rr = raceresults.RaceResults(resultpathname,race.distance)
+        rr = RaceResults(resultpathname,race.distance)
 
         # create importer
         importresults = ImportResults(club_id, raceid)
@@ -1968,7 +1969,7 @@ def importresultstask(self, club_id, raceid, resultpathname):
                     self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
                 fileresult = next(rr)
                 if logfirst:
-                    app.logger.debug('first file result {}'.format(fileresult))
+                    current_app.logger.debug('first file result {}'.format(fileresult))
                     logfirst = False
                 dbresult   = ManagedResult(club_id,raceid)
 
@@ -2029,7 +2030,7 @@ class AjaxUpdateManagedResult(MethodView):
             if not result:
                 db.session.rollback()
                 cause = 'Unexpected Error: result id {} not found'.format(resultid)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             
             # which field changed?  if not allowed, return failure response
@@ -2037,7 +2038,7 @@ class AjaxUpdateManagedResult(MethodView):
             if field not in ['runnerid','confirmed']:
                 db.session.rollback()
                 cause = 'Unexpected Error: field {} not supported'.format(field)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             
             # is value ok? if not allowed, return failure response
@@ -2045,7 +2046,7 @@ class AjaxUpdateManagedResult(MethodView):
             if value == '':
                 db.session.rollback()
                 cause = 'Unexpected Error: value must be supplied'
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             
             # handle argmuments provided if nonmember is to be added or removed from runner table
@@ -2056,7 +2057,7 @@ class AjaxUpdateManagedResult(MethodView):
             if newgen and (newgen not in ['M','F'] or not newname):
                 db.session.rollback()
                 cause = 'Unexpected Error: invalid gender'
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             # verify exclusivity of newname and removeid
             # let exception handler catch if removeid not an integer
@@ -2064,7 +2065,7 @@ class AjaxUpdateManagedResult(MethodView):
                 if newname:
                     db.session.rollback()
                     cause = 'Unexpected Error: cannot have newname and removeid in same request'
-                    app.logger.error(cause)
+                    current_app.logger.error(cause)
                     return failure_response(cause=cause)
                 removeid = int(removeid)
             
@@ -2073,7 +2074,7 @@ class AjaxUpdateManagedResult(MethodView):
                 # maybe response needs arguments
                 respargs = {}
                 
-                #app.logger.debug("field='{}', value='{}'".format(field,value))
+                #current_app.logger.debug("field='{}', value='{}'".format(field,value))
                 if field == 'runnerid':
                     # newname present means that this name is a new nonmember to be put in the database
                     if newname:
@@ -2084,7 +2085,7 @@ class AjaxUpdateManagedResult(MethodView):
                         respargs['id'] = runner.id
                         respargs['name'] = runner.name
                         value = runner.id
-                        app.logger.debug('new member value={}'.format(value))
+                        current_app.logger.debug('new member value={}'.format(value))
                     
                     # removeid present means that this id should be removed from the database, if possible
                     if removeid:
@@ -2092,7 +2093,7 @@ class AjaxUpdateManagedResult(MethodView):
                         if not runner:
                             db.session.rollback()
                             cause = 'Unexpected Error: member with id={} not found for club'.format(removeid)
-                            app.logger.error(cause)
+                            current_app.logger.error(cause)
                             return failure_response(cause=cause)
                             
                         # make sure no results for member
@@ -2110,7 +2111,7 @@ class AjaxUpdateManagedResult(MethodView):
                             #respargs['removefailcause'] = 'Could not remove id={}.  Had results'.format(removeid)
                             db.session.rollback()
                             cause = 'Unexpected Error: Could not remove id={}.  Had results'.format(removeid)
-                            app.logger.error(cause)
+                            current_app.logger.error(cause)
                             return failure_response(cause=cause)
 
                     if value != 'None':
@@ -2132,7 +2133,7 @@ class AjaxUpdateManagedResult(MethodView):
                 include = flask.request.args.get('include')
                 # remove included entry from exclusions, add excluded entries
                 if include:
-                    #app.logger.debug("include='{}'".format(include))
+                    #current_app.logger.debug("include='{}'".format(include))
                     if include not in ['None','new']:
                         incl = Exclusion.query.filter_by(club_id=club_id,foundname=result.name,runnerid=int(include)).first()
                         if incl:
@@ -2140,7 +2141,7 @@ class AjaxUpdateManagedResult(MethodView):
                             db.session.delete(incl)
                 # exclude contains a list of runnerids which should be excluded
                 if exclude:
-                    #app.logger.debug("exclude='{}'".format(exclude))
+                    #current_app.logger.debug("exclude='{}'".format(exclude))
                     exclude = eval(exclude) 
                     for thisexcludeid in exclude:
                         # None might get passed in as well as runnerids, so skip that item
@@ -2165,7 +2166,7 @@ class AjaxUpdateManagedResult(MethodView):
             except Exception as e:
                 db.session.rollback()
                 cause = "Unexpected Error: value '{}' not allowed for field {}, {}".format(value,field,e)
-                app.logger.error(traceback.format_exc())
+                current_app.logger.error(traceback.format_exc())
                 return failure_response(cause=cause)
                 
                 
@@ -2177,10 +2178,10 @@ class AjaxUpdateManagedResult(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}'.format(e)
-            app.logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
-app.add_url_rule('/_updatemanagedresult/<int:resultid>',view_func=AjaxUpdateManagedResult.as_view('_updatemanagedresult'),methods=['POST'])
+bp.add_url_rule('/_updatemanagedresult/<int:resultid>',view_func=AjaxUpdateManagedResult.as_view('_updatemanagedresult'),methods=['POST'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -2224,7 +2225,7 @@ class AjaxTabulateResults(MethodView):
             if len(race.series) == 0:
                 db.session.rollback()
                 cause =  "Race '{}' is not included in any series".format(race.name)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             
             # need race date division date later for age calculation
@@ -2245,7 +2246,7 @@ class AjaxTabulateResults(MethodView):
                     if len(alldivs) == 0:
                         cause = "Series '{0}' indicates divisions to be calculated, but no divisions found".format(series.name)
                         db.session.rollback()
-                        app.logger.error(cause)
+                        current_app.logger.error(cause)
                         return failure_response(cause=cause)
                     
                     divisions = []
@@ -2292,7 +2293,7 @@ class AjaxTabulateResults(MethodView):
                     raceresult = RaceResult(club_id, runnerid, race.id, series.id, resulttime, gender, agegradeage, overallplace=thisresult.place)
 
                     # set source fields
-                    raceresult.source = productname
+                    raceresult.source = productname()
                     raceresult.sourceid = runnerid
             
                     # always add age grade to result if we know the age
@@ -2483,7 +2484,7 @@ class AjaxTabulateResults(MethodView):
                             dbresults.reverse()
             
                         numresults = len(dbresults)
-                        #app.logger.debug('orderby=agpercent, club_id={}, race.id={}, series.id={}, gender={}, numresults={}'.format(club_id,race.id,series.id,gender,numresults))
+                        #current_app.logger.debug('orderby=agpercent, club_id={}, race.id={}, series.id={}, gender={}, numresults={}'.format(club_id,race.id,series.id,gender,numresults))
                         for rrndx in range(numresults):
                             raceresult = dbresults[rrndx]
                             thisplace = rrndx+1                                
@@ -2491,15 +2492,15 @@ class AjaxTabulateResults(MethodView):
 
             # commit database updates and close transaction
             db.session.commit()
-            return success_response(redirect=url_for('seriesresults',raceid=raceid))
+            return success_response(redirect=url_for('.seriesresults',raceid=raceid))
         
         except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}'.format(e)
-            app.logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
-app.add_url_rule('/_tabulateresults/<int:raceid>',view_func=AjaxTabulateResults.as_view('_tabulateresults'),methods=['POST'])
+bp.add_url_rule('/_tabulateresults/<int:raceid>',view_func=AjaxTabulateResults.as_view('_tabulateresults'),methods=['POST'])
 #----------------------------------------------------------------------
 

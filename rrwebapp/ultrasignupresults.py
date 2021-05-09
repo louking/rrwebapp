@@ -36,7 +36,7 @@ from .resultsutils import CollectServiceResults, ServiceResultFile
 from running import ultrasignup
 from .model import db   # this is ok because this module only runs under flask
 from .model import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
-from .race import race_fixeddist
+from .views.admin.race import race_fixeddist
 
 
 ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')

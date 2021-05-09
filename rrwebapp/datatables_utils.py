@@ -18,7 +18,6 @@ from flask.views import MethodView
 from flask_login import login_required
 
 # homegrown
-from . import app
 from .model import db   # this is ok because this module only runs under flask
 from .request import addscripts
 from loutilities.transform import Transform
@@ -228,23 +227,30 @@ class DatatablesCsv(MethodView):
         # caller supplied keyword args are used to update the defaults
         # all arguments are made into attributes for self
         self.kwargs = kwargs
-        args = dict(pagename = None, 
-                    endpoint = None, 
-                    dtoptions = {},
-                    csvfile = None,
-                    readpermission = lambda: False, 
-                    columns = None, 
-                    buttons = ['csv'])
-        args.update(kwargs)        
+        args = dict(
+            app = None,
+            pagename = None, 
+            endpoint = None, 
+            rule = None,
+            dtoptions = {},
+            csvfile = None,
+            readpermission = lambda: False, 
+            columns = None, 
+            buttons = ['csv'])
+        args.update(kwargs)
+        args['rule'] = args['rule'] or f'/{args["endpoint"]}'
         for key in args:
             setattr(self, key, args[key])
 
     #----------------------------------------------------------------------
     def register(self):
     #----------------------------------------------------------------------
+        # name for view is last bit of fully named endpoint
+        name = self.endpoint.split('.')[-1]
+
         # create supported endpoints
-        my_view = self.as_view(self.endpoint, **self.kwargs)
-        app.add_url_rule('/{}'.format(self.endpoint),view_func=my_view,methods=['GET',])
+        my_view = self.as_view(name, **self.kwargs)
+        self.app.add_url_rule('{}'.format(self.rule),view_func=my_view,methods=['GET',])
 
     #----------------------------------------------------------------------
     def get(self):

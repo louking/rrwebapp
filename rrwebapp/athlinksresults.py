@@ -1,13 +1,3 @@
-###########################################################################################
-#   athlinksresults - collect race results data from athlinks
-#
-#   Date        Author      Reason
-#   ----        ------      ------
-#   11/13/13    Lou King    Create
-#   10/22/16    Lou King    Copied from running/athlinksresults.py
-#
-#   Copyright 2013, 2016 Lou King
-###########################################################################################
 '''
 athlinksresults - collect race results data from athlinks
 ===================================================================
@@ -22,14 +12,14 @@ import time
 import traceback
 
 # pypi
+from flask import current_app
 
 # github
 
 # other
 
 # home grown
-from . import app
-from .location import LocationServer
+from .views.admin.location import LocationServer
 from loutilities import timeu
 from loutilities import csvu
 from loutilities import agegrade
@@ -37,7 +27,7 @@ from .resultsutils import CollectServiceResults, ServiceResultFile
 from running import athlinks
 from .model import db   # this is ok because this module only runs under flask
 from .model import ApiCredentials, Club, Course, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN, insert_or_update
-from .race import race_fixeddist
+from .views.admin.race import race_fixeddist
 
 
 # see http://api.athlinks.com/Enums/RaceCategories
@@ -104,7 +94,7 @@ class AthlinksCollect(CollectServiceResults):
         debugrace = True
         if debugrace:
             clubslug = Club.query.filter_by(id=club_id).first().shname
-            self.racefile = '{}/{}-athlinks-race.csv'.format(app.config['MEMBERSHIP_DIR'], clubslug)
+            self.racefile = '{}/{}-athlinks-race.csv'.format(current_app.config['MEMBERSHIP_DIR'], clubslug)
         else:
             self.racefile = None
 
@@ -316,13 +306,13 @@ class AthlinksCollect(CollectServiceResults):
             # may need to create the race again if there was an error after creating course but before creating race
             race = self.get_race(course)
         if not race.locationid and course.location:
-            # app.logger.debug('updating race with location {}'.format(course.location))
+            # current_app.logger.debug('updating race with location {}'.format(course.location))
             loc = self.locsvr.getlocation(course.location)
             race.locationid = loc.id
             insert_or_update(db.session, Race, race, skipcolumns=['id'], 
                              club_id=self.club_id, name=course.name, year=ftime.asc2dt(course.date).year, fixeddist=race_fixeddist(course.distmiles))
         # else:
-        #     app.logger.debug('race.locationid={} course.location="{}"'.format(race.locationid, course.location))
+        #     current_app.logger.debug('race.locationid={} course.location="{}"'.format(race.locationid, course.location))
 
         # debug races
         if self.racefile:
@@ -386,7 +376,7 @@ class AthlinksCollect(CollectServiceResults):
             outrec['ag'] = agpercent
             if agpercent < 15 or agpercent >= 100: return None # skip obvious outliers
         except:
-            app.logger.warning(traceback.format_exc())
+            current_app.logger.warning(traceback.format_exc())
             pass
 
         # and we're done

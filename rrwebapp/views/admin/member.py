@@ -20,33 +20,33 @@ import traceback
 
 # pypi
 import flask
-from flask import make_response, request
+from flask import request, current_app
 from flask_login import login_required, current_user
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
 
 # home grown
-from . import app
-from .model import db
-from .model import getunique, update, insert_or_update
-from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
-from .apicommon import failure_response, success_response
+from . import bp
+from ...model import db
+from ...model import getunique, update, insert_or_update
+from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
+from ...apicommon import failure_response, success_response
 
 # module specific needs
 from collections import OrderedDict
 import csv
 from copy import copy
-from .model import Runner, Club, RaceResult, ApiCredentials
-from .forms import MemberForm 
+from ...model import Runner, Club, RaceResult, ApiCredentials
+from ...forms import MemberForm 
 #from runningclub import memberfile   # required for xlsx support
 from loutilities.csvwt import wlist
 from loutilities import timeu
 from running.runsignup import RunSignUp, members2csv as rsu_members2csv
-from . import clubmember
-from .clubmember import rsu_api2filemapping
-from .request import addscripts
-from .crudapi import CrudApi
-from .datatables_utils import getDataTableParams
+from ... import clubmember
+from ...clubmember import rsu_api2filemapping
+from ...request import addscripts
+from ...crudapi import CrudApi
+from ...datatables_utils import getDataTableParams
 
 # module globals
 tYmd = timeu.asctime('%Y-%m-%d')
@@ -129,40 +129,43 @@ mm_formmapping = OrderedDict(list(zip(mm_formfields, mm_dbattrs)))
 mm_dbmapping['member'] = lambda form: 1 if form['member'] == 'is-member' or form['member'] == 'true' else 0
 mm_formmapping['member'] = lambda dbrow: 'is-member' if dbrow.member else 'non-member'
 
-mm = CrudApi(pagename = 'Manage Members',
-             template='managemembers.html',
-             endpoint = 'managemembers',
-             dbmapping = mm_dbmapping, 
-             formmapping = mm_formmapping, 
-             permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
-             dbtable = Runner,
-             queryparams = { 'active' : True },
-             clientcolumns = [
-                { 'data': 'name', 'name': 'name', 'label': 'Name' },
-                { 'data': 'fname', 'name': 'fname', 'label': 'First Name' },
-                { 'data': 'lname', 'name': 'lname', 'label': 'Last Name' },
-                { 'data': 'dob', 'name': 'dob', 'label': 'Date of Birth' }, 
-                { 'data': 'gender', 'name': 'gender', 'label': 'Gender' }, 
-                { 'data': 'hometown', 'name': 'hometown', 'label': 'Hometown' }, 
-                { 'data': 'renewal', 'name': 'renewal', 'label': 'Renewal Date' }, 
-                { 'data': 'expiration', 'name': 'expiration', 'label': 'Expiration Date' }, 
-                { 'data': 'member', 'name': 'member', 'label': 'Member' }
-             ], 
-             servercolumns = None,  # no ajax
-             byclub = True, 
-             idSrc = 'rowid', 
-             buttons = [
-                 'edit',
-                 'csv',
-                 {'name': 'tools', 'text': 'Import'},
-             ],
-             dtoptions = {
-                            'scrollCollapse': True,
-                            'scrollX': True,
-                            'scrollXInner': "100%",
-                            'scrollY': True,
-                        },
-             )
+mm = CrudApi(
+    app=bp,
+    pagename = 'Manage Members',
+    template='managemembers.html',
+    endpoint = '.managemembers',
+    rule='/managemembers',
+    dbmapping = mm_dbmapping, 
+    formmapping = mm_formmapping, 
+    permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+    dbtable = Runner,
+    queryparams = { 'active' : True },
+    clientcolumns = [
+       { 'data': 'name', 'name': 'name', 'label': 'Name' },
+       { 'data': 'fname', 'name': 'fname', 'label': 'First Name' },
+       { 'data': 'lname', 'name': 'lname', 'label': 'Last Name' },
+       { 'data': 'dob', 'name': 'dob', 'label': 'Date of Birth' }, 
+       { 'data': 'gender', 'name': 'gender', 'label': 'Gender' }, 
+       { 'data': 'hometown', 'name': 'hometown', 'label': 'Hometown' }, 
+       { 'data': 'renewal', 'name': 'renewal', 'label': 'Renewal Date' }, 
+       { 'data': 'expiration', 'name': 'expiration', 'label': 'Expiration Date' }, 
+       { 'data': 'member', 'name': 'member', 'label': 'Member' }
+    ], 
+    servercolumns = None,  # no ajax
+    byclub = True, 
+    idSrc = 'rowid', 
+    buttons = [
+        'edit',
+        'csv',
+        {'name': 'tools', 'text': 'Import'},
+    ],
+    dtoptions = {
+                   'scrollCollapse': True,
+                   'scrollX': True,
+                   'scrollXInner': "100%",
+                   'scrollY': True,
+               },
+    )
 mm.register()
 
 # # NOTE: THIS HAS NOT BEEN TESTED AND IS NOT CURRENTLY USED
@@ -233,7 +236,7 @@ mm.register()
 #             # handle Cancel
 #             if request.form['whichbutton'] == 'Cancel':
 #                 db.session.rollback() # throw out any changes which have been made
-#                 return flask.redirect(flask.url_for('managemembers'))
+#                 return flask.redirect(flask.url_for('.managemembers'))
     
 #             # handle Delete
 #             elif request.form['whichbutton'] == 'Delete':
@@ -243,7 +246,7 @@ mm.register()
 
 #                 # commit database updates and close transaction
 #                 db.session.commit()
-#                 return flask.redirect(flask.url_for('managemembers'))
+#                 return flask.redirect(flask.url_for('.managemembers'))
 
 #             # handle Update and Add
 #             elif request.form['whichbutton'] in ['Update','Add']:
@@ -279,7 +282,7 @@ mm.register()
 
 #                 # commit database updates and close transaction
 #                 db.session.commit()
-#                 return flask.redirect(flask.url_for('managemembers'))
+#                 return flask.redirect(flask.url_for('.managemembers'))
             
 #         except:
 #             # roll back database updates and close transaction
@@ -324,20 +327,20 @@ class AjaxImportMembers(MethodView):
                 if not apitype or not apiid:
                     db.session.rollback()
                     cause = 'Unexpected Error: API requested but not configured'
-                    app.logger.error(cause)
+                    current_app.logger.error(cause)
                     return failure_response(cause=cause)
                 thisapi = ApiCredentials.query.filter_by(name=apitype).first()
                 if not thisapi:
                     db.session.rollback()
                     cause = "Unexpected Error: API credentials for '{}' not configured".format(apitype)
-                    app.logger.error(cause)
+                    current_app.logger.error(cause)
                     return failure_response(cause=cause)
                 apikey = thisapi.key
                 apisecret = thisapi.secret
                 if not apikey or not apisecret:
                     db.session.rollback()
                     cause = "Unexpected Error: API credentials for '{}' not configured with key or secret".format(apitype)
-                    app.logger.error(cause)
+                    current_app.logger.error(cause)
                     return failure_response(cause=cause)
 
             # if we're not using api, file came in with request
@@ -351,12 +354,12 @@ class AjaxImportMembers(MethodView):
                 if not memberfile:
                     db.session.rollback()
                     cause = 'Unexpected Error: Missing file'
-                    app.logger.error(cause)
+                    current_app.logger.error(cause)
                     return failure_response(cause=cause)
                 if not allowed_file(memberfile.filename):
                     db.session.rollback()
                     cause = 'Invalid file type {} for file {}'.format(ext,memberfile.filename)
-                    app.logger.error(cause)
+                    current_app.logger.error(cause)
                     return failure_response(cause=cause)
 
             # get all the member runners currently in the database
@@ -398,7 +401,7 @@ class AjaxImportMembers(MethodView):
             else:
                 db.session.rollback()
                 cause =  'Program Error: Invalid file type {} for file {} path {} (unexpected)'.format(ext,memberfilename,memberpathname)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             
             # remove file and temporary directory
@@ -407,7 +410,7 @@ class AjaxImportMembers(MethodView):
                 os.rmdir(tempdir)
             # no idea why this can happen; hopefully doesn't happen on linux
             except WindowsError as e:
-                app.logger.debug('WindowsError exception ignored: {}'.format(e))
+                current_app.logger.debug('WindowsError exception ignored: {}'.format(e))
 
             # get old clubmembers from database
             dbmembers = clubmember.DbClubMember(club_id=club_id)   # use default database
@@ -498,7 +501,7 @@ class AjaxImportMembers(MethodView):
                             added = update(db.session,Runner,dbnonmember,thisrunner,skipcolumns=['id'])
                             found = True
                         else:
-                            app.logger.warning('{} found in database, wrong age, expected {} found {} in {}'.format(thisname,expectedage,resultage,result))
+                            current_app.logger.warning('{} found in database, wrong age, expected {} found {} in {}'.format(thisname,expectedage,resultage,result))
                             # TODO: need to make file for these, also need way to force update, because maybe bad date in database for result
                             # currently this will cause a new runner entry
                     
@@ -526,10 +529,10 @@ class AjaxImportMembers(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             cause = traceback.format_exc()
-            app.logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
-app.add_url_rule('/_importmembers',view_func=AjaxImportMembers.as_view('_importmembers'),methods=['POST'])
+bp.add_url_rule('/_importmembers',view_func=AjaxImportMembers.as_view('_importmembers'),methods=['POST'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -589,9 +592,9 @@ class AjaxLoadMembers(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             cause = traceback.format_exc()
-            app.logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
-app.add_url_rule('/_loadmembers',view_func=AjaxLoadMembers.as_view('_loadmembers'),methods=['GET'])
+bp.add_url_rule('/_loadmembers',view_func=AjaxLoadMembers.as_view('_loadmembers'),methods=['GET'])
 #----------------------------------------------------------------------
 

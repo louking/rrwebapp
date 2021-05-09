@@ -15,16 +15,16 @@ import urllib.request, urllib.parse, urllib.error
 
 # pypi
 import flask
-from flask import make_response,request
+from flask import current_app, request, g
 from flask.views import MethodView
 
 # home grown
-from . import app
-from .model import db   # this is ok because this module only runs under flask
+from . import bp
+from ...model import db   # this is ok because this module only runs under flask
 
 # module specific needs
-from .forms import FeedbackForm
-from . import version
+from ...forms import FeedbackForm
+from ... import version
 
 #######################################################################
 class ViewIndex(MethodView):
@@ -42,7 +42,7 @@ class ViewIndex(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/',view_func=ViewIndex.as_view('index'),methods=['GET'])
+bp.add_url_rule('/',view_func=ViewIndex.as_view('index'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -62,7 +62,7 @@ class ViewFeatures(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/features',view_func=ViewFeatures.as_view('features'),methods=['GET'])
+bp.add_url_rule('/features',view_func=ViewFeatures.as_view('features'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -82,7 +82,7 @@ class ViewTerms(MethodView):
             db.session.rollback()
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/termsofservice',view_func=ViewTerms.as_view('terms'),methods=['GET'])
+bp.add_url_rule('/termsofservice',view_func=ViewTerms.as_view('terms'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -99,9 +99,9 @@ class GetFeedback(MethodView):
             frompage = flask.request.args.get('next',None)
             if frompage:
                 params = {'next':frompage}
-                actionurl = '{}?{}'.format(flask.url_for('feedback'),urllib.parse.urlencode(params))
+                actionurl = '{}?{}'.format(flask.url_for('frontend.feedback'),urllib.parse.urlencode(params))
             else:
-                actionurl = flask.url_for('feedback')
+                actionurl = flask.url_for('frontend.feedback')
                 
             # commit database updates and close transaction
             db.session.commit()
@@ -129,7 +129,7 @@ class GetFeedback(MethodView):
                 msg = 'From: {}\nTo: {}\nSubject: {}\n\n{}'.format(fromaddr, ', '.join(toaddrs), subject, form.message.data)
                 
                 # this doesn't work in development environment
-                if not app.debug:
+                if not current_app.debug:
                     mailer = smtplib.SMTP('localhost')
                     mailer.sendmail(fromaddr,toaddrs,msg)
                     mailer.quit()
@@ -147,6 +147,6 @@ class GetFeedback(MethodView):
             raise
 
 #----------------------------------------------------------------------
-app.add_url_rule('/feedback/',view_func=GetFeedback.as_view('feedback'),methods=['GET','POST'])
+bp.add_url_rule('/feedback/',view_func=GetFeedback.as_view('feedback'),methods=['GET','POST'])
 #----------------------------------------------------------------------
 

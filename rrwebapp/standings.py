@@ -83,7 +83,7 @@ class ViewStandings(MethodView):
             # get races for this series, in date order
             races = Race.query.join("series").filter_by(id=seriesid,active=True).order_by(Race.date).all()
             racenums = list(range(1,len(races)+1))
-            resulturls = [flask.url_for('seriesresults',raceid=r.id) for r in races]
+            resulturls = [flask.url_for('.seriesresults',raceid=r.id) for r in races]
             
             # number of rows is set based on whether len(races) is even or odd
             numcols = 2
@@ -204,7 +204,7 @@ class TestStandings(MethodView):
             # get races for this series, in date order
             races = Race.query.join("series").filter_by(id=seriesid,active=True).order_by(Race.date).all()
             racenums = list(range(1,len(races)+1))
-            resulturls = [flask.url_for('seriesresults',raceid=r.id) for r in races]
+            resulturls = [flask.url_for('.seriesresults',raceid=r.id) for r in races]
             
             # number of rows is set based on whether len(races) is even or odd
             numcols = 2

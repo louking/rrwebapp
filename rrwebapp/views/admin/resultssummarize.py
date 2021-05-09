@@ -30,16 +30,16 @@ from copy import copy
 import json
 
 # pypi
+from flask import current_app
 
 # github
 
 # home grown
-from . import app
-from . import analyzeagegrade
+from ... import analyzeagegrade
 from .services import ServiceAttributes
-from .model import Club, RaceResultService, ApiCredentials, RaceResult, Race, Location, Runner
+from ...model import Club, RaceResultService, ApiCredentials, RaceResult, Race, Location, Runner
 from .location import LocationServer, get_distance
-from .nav import productname
+from ...settings import productname
 from loutilities import timeu
 from loutilities.renderrun import rendertime
 
@@ -67,7 +67,7 @@ PRIO_ATHLINKS = 3
 PRIO_RUNNINGAHEAD = 4
 PRIO_STRAVA = 5
 priority = {
-    productname:    PRIO_CLUBRACES,
+    productname():    PRIO_CLUBRACES,
     'ultrasignup':  PRIO_ULTRASIGNUP,
     'athlinks':     PRIO_ATHLINKS,
     'runningahead': PRIO_RUNNINGAHEAD,
@@ -129,12 +129,12 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
     maxdistance = {}
     for service in services:
         attrs = ServiceAttributes(club_id, service.apicredentials.name)
-        # app.logger.debug('service {} attrs {}'.format(service, attrs.__dict__))
+        # current_app.logger.debug('service {} attrs {}'.format(service, attrs.__dict__))
         if attrs.maxdistance:
             maxdistance[service.apicredentials.name] = attrs.maxdistance
         else:
             maxdistance[service.apicredentials.name] = None
-    maxdistance[productname] = None
+    maxdistance[productname()] = None
 
     # set up date range. begindate and enddate take precedence, else use numyears from today
     if not (begindate and enddate):
@@ -329,7 +329,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
                 try:
                     trend = aag[thisname].get_trendline(thesestats=tstats)
                 except ZeroDivisionError:
-                    app.logger.debug('ZeroDivisionError - processing {}'.format(rendername))
+                    current_app.logger.debug('ZeroDivisionError - processing {}'.format(rendername))
                     trend = None
                 # ignore trends which can't be calculated
                 if trend:

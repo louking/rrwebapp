@@ -21,7 +21,7 @@ import traceback
 from . import app
 from .model import db   
 from .model import insert_or_update, RaceResult, Runner, Race
-from .race import race_fixeddist
+from .views.admin.race import race_fixeddist
 from loutilities.csvu import str2num
 from loutilities.timeu import age, asctime, epoch2dt, dt2epoch
 from loutilities.agegrade import AgeGrade
@@ -354,15 +354,7 @@ class ServiceResult():
     represents single result from service
     '''
 
-    #----------------------------------------------------------------------
-    def __repr__(self):
-    #----------------------------------------------------------------------
-        
-        reprstr = 'ServiceResult('
-        for attr in resultattrs:
-            reprstr += '{}={},'.format(attr,getattr(self,attr))
-        reprstr = reprstr[:-1] + ')'
-        return reprstr
+    pass
     
 ########################################################################
 class ServiceResultFile(object):
@@ -389,7 +381,7 @@ class ServiceResultFile(object):
         :param mode: 'r' or 'w' -- TODO: support 'w'
         '''
         if mode[0] not in ['r']:
-            raise invalidParameter('mode {} not currently supported'.format(mode))
+            raise ParameterError('mode {} not currently supported'.format(mode))
     
         self._fh = open(filename, mode, newline='')
 

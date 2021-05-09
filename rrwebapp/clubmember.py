@@ -1,15 +1,3 @@
-#!/usr/bin/python
-###########################################################################################
-# clubmember - manage club member information 
-#
-#	Date		Author		Reason
-#	----		------		------
-#       01/07/13        Lou King        Create
-#       03/03/14        Lou King        Copy from runningclub
-#
-#   Copyright 2013 Lou King
-#
-###########################################################################################
 '''
 clubmember - manage club member information
 ===================================================
@@ -23,8 +11,7 @@ from collections import OrderedDict
 from csv import DictReader
 
 # pypi
-# this isn't needed any more with python 3, per https://stackoverflow.com/q/61279985/799921
-# import unicodecsv
+from flask import current_app
 
 # github
 
@@ -34,7 +21,6 @@ from .model import Runner
 from loutilities import timeu, csvwt
 from loutilities.transform import Transform
 from .model import db
-from . import app
 
 # exceptions for this module.  See __init__.py for package exceptions
 
@@ -121,7 +107,7 @@ class ClubMember():
 
         # check header to see if RunSignUp file -- making some assumptions here
         header = _IN.readline().strip().split(',')
-        app.logger.debug('header = {}'.format(header))
+        current_app.logger.debug('header = {}'.format(header))
         if (        'Membership ID' in header
                 and 'Amount Paid'   in header
                 and 'E-mail'        in header

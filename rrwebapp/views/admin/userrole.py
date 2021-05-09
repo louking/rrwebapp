@@ -7,25 +7,26 @@ import traceback
 
 # pypi
 import flask
+from flask import current_app
 import flask_login as flasklogin
 from flask_login import login_required
 from flask.views import MethodView
 
 # home grown
-from .. import app
-from ..model import User
-from ..accesscontrol import owner_permission
-from ..model import db
+from . import bp
+from ...model import User
+from ...accesscontrol import owner_permission
+from ...model import db
 
 # module specific needs
-from ..model import User, Role, Club
-from ..forms import UserForm, UserSettingsForm
+from ...model import User, Role, Club
+from ...forms import UserForm, UserSettingsForm
 
 ########################################################################
 # Manage Users
 ########################################################################
 #----------------------------------------------------------------------
-@app.route('/manageusers')
+@bp.route('/manageusers')
 @flasklogin.login_required
 @owner_permission.require()
 def manageusers():
@@ -48,7 +49,7 @@ def manageusers():
     return flask.render_template('manageusers.html',users=users)
 
 #----------------------------------------------------------------------
-@app.route('/newuser', methods=['GET', 'POST'])
+@bp.route('/newuser', methods=['GET', 'POST'])
 @flasklogin.login_required
 @owner_permission.require()
 def newuser():
@@ -86,7 +87,7 @@ def newuser():
                 # TODO: get rid of this???  It should not work
                 elif flask.request.form['whichbutton'] == 'Cancel':
                     #db.session.expunge_all() # throw out any changes which have been made
-                    return flask.redirect(flask.url_for('manageusers'))
+                    return flask.redirect(flask.url_for('.manageusers'))
     
         # commit database updates and close transaction
         db.session.commit()
@@ -99,7 +100,7 @@ def newuser():
     return flask.render_template('ownermanageuser.html', form=form, thispagename='New User', action=flask.escape(buttontext), newuser=True)
 
 #----------------------------------------------------------------------
-@app.route('/user/<userid>/<action>', methods=['GET','POST'])
+@bp.route('/user/<userid>/<action>', methods=['GET','POST'])
 @flasklogin.login_required
 @owner_permission.require()
 def useraction(userid,action):
@@ -163,13 +164,13 @@ def useraction(userid,action):
                         
                     # commit database updates and close transaction
                     db.session.commit()
-                    return flask.redirect(flask.url_for('manageusers'))
+                    return flask.redirect(flask.url_for('.manageusers'))
                 
                 # cancel requested - note changes may have been made in url_for('updatepermissions') which need to be rolled back
                 # TODO: get rid of this???  It should not work
                 elif flask.request.form['whichbutton'] == 'Cancel':
                     # db.session.expunge_all() # throw out any changes which have been made
-                    return flask.redirect(flask.url_for('manageusers'))
+                    return flask.redirect(flask.url_for('.manageusers'))
     
         # commit database updates and close transaction
         db.session.commit()
@@ -213,7 +214,7 @@ class UserSettings(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('usersettings.html', form=form,
-                                         userurl=flask.url_for('usersettings'),
+                                         userurl=flask.url_for('.usersettings'),
                                          displayonly=displayonly,
                                          thispagename=pagename, action=buttontext)
             
@@ -222,7 +223,7 @@ class UserSettings(MethodView):
             db.session.rollback()
             cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())
             flask.flash(cause)
-            app.logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             raise
     
 
@@ -259,27 +260,27 @@ class UserSettings(MethodView):
 
                     # commit database updates and close transaction
                     db.session.commit()
-                    return flask.redirect(flask.request.args.get('next') or flask.url_for('index'))
+                    return flask.redirect(flask.request.args.get('next') or flask.url_for('frontend.index'))
                 
                 # cancel requested - note changes may have been made in url_for('updatepermissions') which need to be rolled back
                 # TODO: get rid of this???  It should not work
                 elif flask.request.form['whichbutton'] == 'Cancel':
                     db.session.rollback() # throw out any changes which have been made
-                    return flask.redirect(flask.request.args.get('next') or flask.url_for('index'))
+                    return flask.redirect(flask.request.args.get('next') or flask.url_for('frontend.index'))
         
             # commit database updates and close transaction
             db.session.commit()
-            return (flask.redirect(flask.request.args.get('next')) or flask.url_for('index'))
+            return (flask.redirect(flask.request.args.get('next')) or flask.url_for('frontend.index'))
             
         except Exception as e:
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())
             flask.flash(cause)
-            app.logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             raise
 #----------------------------------------------------------------------
-app.add_url_rule('/usersettings/',view_func=UserSettings.as_view('usersettings'),methods=['GET','POST'])
+bp.add_url_rule('/usersettings/',view_func=UserSettings.as_view('usersettings'),methods=['GET','POST'])
 #----------------------------------------------------------------------
 
 #----------------------------------------------------------------------
@@ -320,7 +321,7 @@ def _setpermission(club,user,rolename,setrole):
     return True
 
 #----------------------------------------------------------------------
-@app.route('/_setpermission')
+@bp.route('/_setpermission')
 @flasklogin.login_required
 @owner_permission.require()
 def _set_permission():
@@ -358,7 +359,7 @@ def _set_permission():
     return flask.jsonify(success=success)
     
 #----------------------------------------------------------------------
-@app.route('/_getpermissions')
+@bp.route('/_getpermissions')
 @flasklogin.login_required
 @owner_permission.require()
 def _get_permissions():
