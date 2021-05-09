@@ -116,31 +116,26 @@ rrs_services = DbQueryApi(
 )
 rrs_services.register()
 
-rrs_dbattrs = 'id,apicredentials_id,attrs'.split(',')
+rrs_dbattrs = 'id,apicredentials,attrs'.split(',')
 rrs_formfields = 'rowid,service,attrs'.split(',')
 rrs_dbmapping = OrderedDict(list(zip(rrs_dbattrs, rrs_formfields)))
 rrs_formmapping = OrderedDict(list(zip(rrs_formfields, rrs_dbattrs)))
-rrs_formmapping['service'] = lambda rrsrow: ApiCredentials.query.filter_by(id=rrsrow.apicredentials_id).first().name
 rrs = CrudApi(
     app = bp,
     pagename = 'Race Result Services', 
-    endpoint = 'raceresultservices', 
+    endpoint = '.raceresultservices', 
+    rule = '/raceresultservices',
     dbmapping = rrs_dbmapping, 
     formmapping = rrs_formmapping, 
     writepermission = owner_permission.can, 
     dbtable = RaceResultService, 
     clientcolumns = [
        { 'data': 'service', 'name': 'service', 'label': 'Service Name',
-         'type': 'selectize', 'options': [],
-         'opts': { 
-           'searchField': 'label',
-           'openOnFocus': False
-          },
-         '_update': {
-           'endpoint': 'services',
-           'wrapper' : {'options': {'service':'_response_'} },
-           'on': 'open',
-         }
+         '_treatment': {
+             'relationship': {'fieldmodel': ApiCredentials, 'labelfield': 'name', 'formfield': 'service',
+                              'dbfield': 'apicredentials', 'uselist': False,
+                              'sortkey': lambda row: row.name
+                              }}
        },
        { 'data': 'attrs', 'name': 'attrs', 'label': 'Attributes (json object)' },
     ], 
