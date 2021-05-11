@@ -19,7 +19,7 @@ from flask import current_app
 # other
 
 # home grown
-from .views.admin.location import LocationServer
+from .resultsutils import LocationServer, race_fixeddist
 from loutilities import timeu
 from loutilities import csvu
 from loutilities import agegrade
@@ -27,7 +27,6 @@ from .resultsutils import CollectServiceResults, ServiceResultFile
 from running import athlinks
 from .model import db   # this is ok because this module only runs under flask
 from .model import ApiCredentials, Club, Course, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN, insert_or_update
-from .views.admin.race import race_fixeddist
 
 
 # see http://api.athlinks.com/Enums/RaceCategories

@@ -32,12 +32,10 @@ from . import app
 from loutilities import timeu
 from loutilities import csvu
 from loutilities import agegrade
-from .resultsutils import CollectServiceResults, ServiceResultFile
+from .resultsutils import CollectServiceResults, ServiceResultFile, race_fixeddist
 from running import ultrasignup
 from .model import db   # this is ok because this module only runs under flask
 from .model import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
-from .views.admin.race import race_fixeddist
-
 
 ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
 class invalidParameter(Exception): pass

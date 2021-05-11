@@ -3,7 +3,6 @@ services - external service access
 =====================================
 """
 # standard
-from json import loads, dumps
 
 # pypi
 from flask import url_for
@@ -14,62 +13,6 @@ from . import bp
 from ...crudapi import CrudApi, DbQueryApi
 from ...accesscontrol import owner_permission
 from ...model import db, ApiCredentials, RaceResultService, insert_or_update
-
-
-###########################################################################################
-class ServiceAttributes(object):
-###########################################################################################
-    '''
-    access for service attributes in RaceResultService
-
-    :param servicename: name of service
-    '''
-
-    #----------------------------------------------------------------------
-    def _getconfigattrs(self):
-    #----------------------------------------------------------------------
-        apicredentials = ApiCredentials.query.filter_by(name=self.servicename).first()
-        if not apicredentials:
-            return {}
-
-        self.rrs = RaceResultService.query.filter_by(club_id=self.club_id, apicredentials_id=apicredentials.id).first()
-        if not self.rrs or not self.rrs.attrs:
-            return {}
-
-        # current_app.logger.debug('self.rrs.attrs {}'.format(self.rrs.attrs))
-        return loads(self.rrs.attrs)
-
-    #----------------------------------------------------------------------
-    def __init__(self, club_id, servicename):
-    #----------------------------------------------------------------------
-        self.club_id = club_id
-        self.servicename = servicename
-        
-        # update defaults here
-        self.attrs = dict(
-                         maxdistance = None,
-                        )
-
-        # get configured attributes
-        configattrs = self._getconfigattrs()
-
-        # bring in configuration, if any
-        self.attrs.update(configattrs)
-        # current_app.logger.debug('service {} configattrs {} self.attrs {}'.format(servicename, configattrs, self.attrs))
-
-        # attrs become attributes of this object
-        for attr in self.attrs:
-            setattr(self, attr, self.attrs[attr])
-
-    #----------------------------------------------------------------------
-    def set_attr(self, name, value):
-    #----------------------------------------------------------------------
-        configattrs = self._getconfigattrs()
-        configattrs[name] = value
-        
-        # update database
-        self.rrs.attrs = dumps(configattrs)
-        insert_or_update(db.session, RaceResultService, self.rrs, skipcolumns=['id'], name=self.service)
 
 
 #----------------------------------------------------------------------

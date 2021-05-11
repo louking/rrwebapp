@@ -16,113 +16,17 @@ Update the cache as necessary
 '''
 
 # standard
-import time
 from datetime import timedelta
 
 # pypi
 from flask import current_app
 
-# github
-from googlemaps import Client
-from googlemaps.geocoding import geocode
-from haversine import haversine, Unit
-
 # home grown
 from . import bp
 from ...accesscontrol import owner_permission
-from ...model import ApiCredentials, Location, MAX_LOCATION_LEN, insert_or_update
 from ...crudapi import CrudApi
-from ...model import db
-from loutilities.timeu import epoch2dt
+from ...model import Location
 
-CACHE_REFRESH = timedelta(30)   # 30 days, per https://cloud.google.com/maps-platform/terms/maps-service-terms/?&sign=0 (sec 3.4)
-
-#----------------------------------------------------------------------
-def get_distance(loc1, loc2, miles=True):
-#----------------------------------------------------------------------
-    '''
-    retrieves distance between two Location objects
-    if either location is unknown (lookuperror occurred), None is returned
-    NOTE: must check for error like "if get_distance() != None" because 0 is a valid return value
-
-    :param loc1: Location object
-    :param loc2: Location object
-    :rtype: distance between loc1 and loc2, or None if error
-    '''
-    # check for bad data
-    if loc1.lookuperror or loc2.lookuperror:
-        return None
-
-    # indicate to haversine what unit to use
-    if miles:
-        unit = Unit.MILES
-    else:
-        unit = Unit.KILOMETERS
-        
-    # return great circle distance between points
-    loc1latlon = (loc1.latitude, loc1.longitude)
-    loc2latlon = (loc2.latitude, loc2.longitude)
-    return haversine(loc1latlon, loc2latlon, unit=unit)
-
-###########################################################################################
-class LocationServer(object):
-###########################################################################################
-
-    #----------------------------------------------------------------------
-    def __init__(self):
-    #----------------------------------------------------------------------
-
-        googlekey = ApiCredentials.query.filter_by(name='googlemaps').first().key
-        self.client = Client(key=googlekey)
-
-    #----------------------------------------------------------------------
-    def getlocation(self, address):
-    #----------------------------------------------------------------------
-        '''
-        retrieve location from database, if available, else get from googlemaps api
-
-        :param address: address for lookup
-        :rtype: Location instance
-        '''
-
-        dbaddress = address
-        if len(dbaddress) > MAX_LOCATION_LEN:
-            dbaddress = dbaddress[0:MAX_LOCATION_LEN]
-
-        loc = Location.query.filter_by(name=dbaddress).first()
-
-        now = epoch2dt(time.time())
-        if not loc or (now - loc.cached_at > CACHE_REFRESH):
-            # new location
-            loc = Location(name=dbaddress)
-
-            # get geocode from google
-            # use the full address, not dbaddress which gets s
-            gc = geocode(self.client, address=address)
-
-            # if we got good data, fill in the particulars
-            # assume first in list is good, give warning if multiple entries received back
-            if gc:
-                # notify if multiple values returned
-                if len(gc) > 1:
-                    current_app.logger.warning('geocode: multiple locations ({}) received from googlemaps for {}'.format(len(gc), address))
-
-                # save lat/long from first value returned
-                loc.latitude  = gc[0]['geometry']['location']['lat']
-                loc.longitude = gc[0]['geometry']['location']['lng']
-
-            # if no response, still store in database, but flag as error
-            else:
-                loc.lookuperror = True
-
-            # remember when last retrieved
-            loc.cached_at = now
-
-            # insert or update -- flush is done within, so id should be set after this
-            insert_or_update(db.session, Location, loc, skipcolumns=['id'], name=dbaddress)
-
-        # and back to caller
-        return loc
 
 ###########################################################################################
 # locations endpoint

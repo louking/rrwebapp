@@ -10,7 +10,6 @@ from flask import Flask, send_from_directory, current_app, g, render_template, u
 from flask_security import SQLAlchemyUserDatastore, current_user
 from flask_mail import Mail
 from jinja2 import ChoiceLoader, PackageLoader
-from celery import Celery
 from werkzeug.local import LocalProxy
 
 # homegrown
@@ -32,7 +31,6 @@ security = None
 
 # hold application here
 app = None
-celery = None
 
 # create application
 def create_app(config_obj, configfiles=None, init_for_operation=True):
@@ -150,13 +148,6 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
     # uncomment when working on #426
     # security = UserSecurity(app, user_datastore, send_mail=security_send_mail)
     security = Security(app, user_datastore, send_mail=security_send_mail)
-
-    global celery
-    celery = Celery('rrwebapp')
-
-    configpath = os.path.join('config', 'rrwebapp.cfg')
-    celeryconfig = getitems(configpath, 'celery')
-    celery.conf.update(celeryconfig)
 
     # activate views
     # from .views import userrole as userroleviews

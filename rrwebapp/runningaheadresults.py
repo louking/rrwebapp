@@ -29,10 +29,9 @@ import traceback
 
 # home grown
 from . import app
-from .resultsutils import CollectServiceResults, ServiceResultFile
+from .resultsutils import CollectServiceResults, ServiceResultFile, race_fixeddist
 from .model import db   # this is ok because this module only runs under flask
 from .model import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
-from .views.admin.race import race_fixeddist
 
 from loutilities import timeu
 from loutilities import csvu

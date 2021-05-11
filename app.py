@@ -12,15 +12,11 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 # homegrown
 from rrwebapp import create_app
-from rrwebapp.settings import Production
+from rrwebapp.settings import Production, get_configfiles
 from rrwebapp.model import db
 from rrwebapp.applogging import setlogging
 
-abspath = os.path.abspath(__file__)
-configpath = os.path.join('config', 'rrwebapp.cfg')
-# userconfigpath = os.path.join('config', 'users.cfg')
-# userconfigpath first so configpath can override
-configfiles = [configpath]
+configfiles = get_configfiles()
 
 # init_for_operation=False because when we create app this would use database and cause
 # sqlalchemy.exc.OperationalError if one of the updating tables needs migration

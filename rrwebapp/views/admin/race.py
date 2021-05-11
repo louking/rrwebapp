@@ -22,13 +22,14 @@ from flask.views import MethodView
 
 # home grown
 from . import bp
-from ...model import insert_or_update
 from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
+from ...model import insert_or_update
 from ...model import db   # this is ok because this module only runs under flask
-from ...apicommon import failure_response, success_response, check_header
-from ...crudapi import CrudApi
 from ...model import Race, Series, Divisions
 from ...model import getclubid, getyear
+from ...apicommon import failure_response, success_response, check_header
+from ...crudapi import CrudApi
+from ...resultsutils import race_fixeddist
 
 from ...forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 #from runningclub import racefile   # required for xlsx support
@@ -38,16 +39,6 @@ from loutilities.filters import filtercontainerdiv, filterdiv
 # acceptable surfaces -- must match model.SurfaceType
 from ...model import SURFACES
 
-#----------------------------------------------------------------------
-def race_fixeddist(distance):
-#----------------------------------------------------------------------
-    '''
-    return fixeddist value for distance
-
-    :param distance: distance of the race (miles)
-    :rtype: string containing value for race.fixeddist field
-    '''
-    return '{:.4g}'.format(float(distance))
 
 ###########################################################################################
 # manageraces endpoint

@@ -31,17 +31,14 @@ import json
 
 # pypi
 from flask import current_app
-
-# github
-
-# home grown
-from ... import analyzeagegrade
-from .services import ServiceAttributes
-from ...model import Club, RaceResultService, ApiCredentials, RaceResult, Race, Location, Runner
-from .location import LocationServer, get_distance
-from ...settings import productname
 from loutilities import timeu
 from loutilities.renderrun import rendertime
+
+# home grown
+from . import analyzeagegrade
+from .resultsutils import ServiceAttributes, LocationServer, get_distance
+from .model import Club, RaceResultService, ApiCredentials, RaceResult, Race, Location, Runner
+from .settings import productname
 
 ftime = timeu.asctime('%Y-%m-%d')
 

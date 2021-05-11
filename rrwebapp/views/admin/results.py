@@ -4,14 +4,11 @@ result - result views for result results web application
 """
 
 # standard
-import json
-import csv
 import os.path
 import os
 from datetime import timedelta
 from time import time
 import traceback
-from collections import OrderedDict
 from urllib.parse import urlencode
 from copy import copy
 
@@ -24,18 +21,19 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import func, cast
 from attrdict import AttrDict
 from dominate.tags import a, button, div
+import loutilities.renderrun as render
+from loutilities import timeu, agegrade
+from loutilities.filters import filtercontainerdiv, filterdiv, yadcfoption
+from loutilities.tables import DataTables, ColumnDT
 
 # home grown
 from . import bp
-from rrwebapp import celery
 from ...model import insert_or_update
-from loutilities.tables import DataTables, ColumnDT
 from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 from ...model import db   # this is ok because this module only runs under flask
 from ...apicommon import failure_response, success_response
 from ...request import addscripts, crossdomain
 from ...appldirs import UPLOAD_TEMP_DIR
-from ...apicommon import MapDict
 from ...settings import productname
 from ...raceresults import RaceResults, headerError, dataError, normalizeracetime
 from ...clubmember import DbClubMember
@@ -43,89 +41,22 @@ from ...crudapi import CrudApi
 from ...request import annotatescripts
 from ...model import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, dbdate
 from ...model import rendertime, renderfloat, rendermember, renderlocation, renderseries
-from .services import ServiceAttributes
+from ...resultsutils import ServiceAttributes, LocationServer, get_distance
+from ...resultsutils import DIFF_CUTOFF, DISP_MATCH, DISP_CLOSE, DISP_MISSED
+from ...resultsutils import ImportResults, tYmd, getrunnerchoices
 from ...model import RaceResultService, ApiCredentials
-from .location import LocationServer, get_distance
 from ...datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 from ...forms import SeriesResultForm
-from loutilities.namesplitter import split_full_name
-import loutilities.renderrun as render
-from loutilities import timeu, agegrade
-from loutilities.filters import filtercontainerdiv, filterdiv, yadcfoption
-
-tYmd = timeu.asctime('%Y-%m-%d')
-tmdy = timeu.asctime('%m/%d/%y')
-
-# control behavior of import
-DIFF_CUTOFF = 0.7   # ratio of matching characters for cutoff handled by 'clubmember'
-NONMEMBERCUTOFF = 0.9   # insist on high cutoff for nonmember matching
-AGE_DELTAMAX = 3    # +/- num years to be included in DISP_MISSED
-JOIN_GRACEPERIOD = timedelta(7) # allow runner to join 1 week beyond race date
+from ...tasks import importresultstask
 
 # support age grade
 ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
-
-# initialdisposition values
-# * match - exact name match found in runner table, with age consistent with dateofbirth
-# * close - close name match found, with age consistent with dateofbirth
-# * missed - close name match found, but age is inconsistent with dateofbirth
-# * excluded - this name is in the exclusion table, either prior to import **or as a result of user decision**
-
-DISP_MATCH = 'definite'         # exact match of member (or non-member for non 'membersonly' race)
-DISP_CLOSE = 'similar'          # similar match to member, matching age
-DISP_MISSED = 'missed'          # similar to some member(s), age mismatch (within window)
-DISP_EXCLUDED = 'excluded'      # DISP_CLOSE match, but found in exclusions table
-DISP_NOTUSED = ''               # not used for results
 
 class BooleanError(Exception): pass
 class ParameterError(Exception): pass
 
 
-#----------------------------------------------------------------------
-def filtermissed(club_id,missed,racedate,resultage):
-#----------------------------------------------------------------------
-    '''
-    filter missed matches which are greater than a configured max age delta
-    also filter missed matches which were in the exclusions table
-    
-    :param club_id: club id for missed matches
-    :param missed: list of missed matches, as returned from clubmember.xxx().getmissedmatches()
-    :param racedate: race date in dbdate format
-    :param age: resultage from race result, if None, '', 0, empty list is returned
-    
-    :rtype: missed list, including only elements within the allowed age range
-    '''
-    # make a local copy in case the caller wants to preserve the original list
-    localmissed = missed[:]
-    
-    # if age in result is invalid, empty list is returned
-    if not resultage:
-        return []
-    
-    racedatedt = dbdate.asc2dt(racedate)
-    for thismissed in missed:
-        # don't consider 'missed matches' where age difference from result is too large
-        dobdt = dbdate.asc2dt(thismissed['dob'])
-        if abs(timeu.age(racedatedt,dobdt) - resultage) > AGE_DELTAMAX:
-            localmissed.remove(thismissed)
-        else:
-            resultname = thismissed['name']
-            runnername = thismissed['dbname']
-            ascdob = thismissed['dob']
-            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
-            exclusion = Exclusion.query.filter_by(club_id=club_id,foundname=resultname,runnerid=runner.id).first()
-            if exclusion:
-                localmissed.remove(thismissed)
-                
-            # TODO: also need to skip runners who were not members at the time of the race
-            #if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(racedate)+JOIN_GRACEPERIOD:
-            #    localmissed.remove(thismissed)
-
-    return localmissed
-
-#----------------------------------------------------------------------
 def getmembertype(runnerid):
-#----------------------------------------------------------------------
     '''
     determine member type based on runner field values
     
@@ -149,337 +80,10 @@ def getmembertype(runnerid):
     else:
         return 'nonmember'
 
-#######################################################################
-class ImportResults():
-#######################################################################
-    '''
-    takes input result and maps to database result
 
-    optional mapping is dict like {'dbattr_n':'inkey_n', 'dbattr_m':'inkey_m', ...}
-    if mapping is not present, inresult keys must match dbattrs + dbmetaattrs
-
-    :param club_id: id for club race should be found under
-    :param raceid: id for race
-    :param mapping: dict with key for each db row to be updated
-    '''
-    dbattrs = 'place,name,fname,lname,gender,age,city,state,hometown,club,time'.split(',')
-    # don't include runnerid or confirmed, as these are updated as side effects of set_initialdisposition()
-    dbmetaattrs = 'initialdisposition'.split(',')   
-    defaultmapping = dict(list(zip(dbattrs+dbmetaattrs,dbattrs+dbmetaattrs)))
-    #----------------------------------------------------------------------
-    def __init__(self, club_id, raceid, mapping=defaultmapping):
-    #----------------------------------------------------------------------
-
-        # remember what we need later
-        self.club_id = club_id
-
-        # mapping method for each database field from input row
-        self.map = MapDict(mapping)
-
-        # get race and list of runners who should be included in this race, based on race's membersonly configuration
-        self.race = Race.query.filter_by(club_id=club_id,id=raceid).first()
-        self.racedatedt = dbdate.asc2dt(self.race.date)
-        self.timeprecision,agtimeprecision = render.getprecision(self.race.distance,surface=self.race.surface)
-
-        if len(self.race.series) == 0:
-            raise ParameterError('Race needs to be included in at least one series to import results')
-
-        # determine candidate pool based on membersonly
-        membersonly = self.race.series[0].membersonly
-        if membersonly:
-            self.pool = DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
-        else:
-            self.pool = DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
-
-        ### all the "work" is here to set up the dbmapping from input result
-        # use OrderedDict because some dbattrs depend on others to have been done first (e.g., confirmed must be after initialdisposition)
-        # first overwrite a few of these to make sure name, lname, fname, hometown, city, state filled in
-        dbmapping = OrderedDict(list(zip(self.dbattrs,self.dbattrs)))
-        dbmapping['name']     = lambda inrow: inrow['name'] if inrow.get('name') \
-                                else ' '.join([inrow['fname'], inrow['lname']]) if inrow.get('fname') or inrow.get('lname') \
-                                else None
-        dbmapping['fname']    = lambda inrow: inrow['fname'] if inrow.get('fname') \
-                                else split_full_name(inrow['name'])['fname'] if inrow.get('name') \
-                                else None
-        dbmapping['lname']    = lambda inrow: inrow['lname'] if inrow.get('lname') \
-                                else split_full_name(inrow['name'])['lname'] if inrow.get('name') \
-                                else None
-        dbmapping['hometown'] = lambda inrow: inrow['hometown'] if inrow.get('hometown') \
-                                else ', '.join([inrow['city'], inrow['state']]) if inrow.get('city') and inrow.get('state') \
-                                else None
-        dbmapping['city']     = lambda inrow: inrow['city'] if inrow.get('city') \
-                                else inrow['hometown'].split(', ')[0] if inrow.get('hometown') \
-                                else None
-        dbmapping['state']    = lambda inrow: inrow['state'] if inrow.get('state') \
-                                else inrow['hometown'].split(', ')[1] if inrow.get('hometown') \
-                                else None
-        dbmapping['gender']   = lambda inrow: inrow['gender'].upper() if inrow.get('gender') \
-                                else None
-        dbmapping['age']      = lambda inrow: int(inrow['age']) if inrow.get('age') \
-                                else 0
-        dbmapping['time']     = lambda inrow: float(inrow['time'])
-        dbmapping['initialdisposition'] = self.set_initialdisposition
-
-        # set up DataTablesEditor object
-        # no formmapping needed because we are not creating a form
-        self.dte = DataTablesEditor(dbmapping, {})
-
-    #----------------------------------------------------------------------
-    def set_initialdisposition(self, inrow):
-    #----------------------------------------------------------------------
-        '''
-        nominally this is a dbmapping function which returns value for initialdisposition
-        however, this also has side-effects of updating runnerid and confirmed fields 
-        self.runner_choices is updated to include close matches or None as appropriate
-
-        before entry, self.dbresult must be set for the targeted db record
-
-        :param inrow: input row to be translated into dbresult 
-        :rtype: initialdisposition
-        '''
-
-        # make come convenience assignments
-        club_id = self.club_id
-        dbresult = self.dbresult
-        race = self.race
-        racedatedt = dbdate.asc2dt(race.date)
-
-        # need to initialize missed
-        missed = []
-
-        # assumes all series for same race have same membersonly
-        membersonly = race.series[0].membersonly
-
-        # for members or people who were once members, set age based on date of birth in database
-        # note this clause will be executed for membersonly races
-        candidate = self.pool.findmember(dbresult.name,dbresult.age,self.race.date)
-        if candidate:
-            # note some candidates' ascdob may come back as None (these must be nonmembers because we have dob for all current/previous members)
-            runnername,ascdob = candidate
-            
-            # set active or inactive member's id
-            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
-            dbresult.runnerid = runner.id
-        
-            # if candidate has renewdate and did not join in time for member's only race, indicate this result isn't used
-            if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(self.race.date)+JOIN_GRACEPERIOD:
-                    # discard candidate
-                    candidate = None
-                    
-            # runner joined in time for race, or not member's only race
-            # if exact match, indicate we have a match
-            elif runnername.lower() == dbresult.name.lower():
-                # if current or former member
-                if ascdob:
-                    dbresult.initialdisposition = DISP_MATCH
-                    dbresult.confirmed = True
-                    # current_app.logger.debug('    DISP_MATCH')
-                    
-                # otherwise was nonmember, included from some non memberonly race
-                else:
-                    # must check current result age against any previous result age
-                    thisresultage = dbresult.age
-                    if thisresultage:
-                        thisracedate = tYmd.asc2dt(self.race.date)
-                        pastresult = RaceResult.query.filter_by(club_id=club_id,runnerid=runner.id).first()
-                        pastresultage = pastresult.agage
-                        pastracedate = tYmd.asc2dt(pastresult.race.date)
-                        
-                        # make sure this result age is consistent with previous result +/- 1 year
-                        deltayears = abs((thisracedate - pastracedate).days / 365.25)
-                        deltaage = abs(int(thisresultage) - pastresultage)
-                        if abs(deltaage - deltayears) <= 1:
-                            dbresult.initialdisposition = DISP_MATCH
-                            dbresult.confirmed = True
-                            # current_app.logger.debug('    DISP_MATCH')
-
-                        # if inconsistent, ignore candidate
-                        else:
-                            candidate = None
-
-                    # ignore candidates when we do not have age in result
-                    else:
-                        candidate = None
-                        dbresult.runnerid = None
-
-            # runner joined in time for race, or not member's only race, but match wasn't exact
-            # check for exclusions
-            else:
-                exclusion = Exclusion.query.filter_by(club_id=club_id,foundname=dbresult.name,runnerid=dbresult.runnerid).first()
-                
-                # if results name not found against this runner id in exclusions table, indicate we found close match
-                if not exclusion:
-                    dbresult.initialdisposition = DISP_CLOSE
-                    dbresult.confirmed = False
-                    # current_app.logger.debug('    DISP_CLOSE')
-                    
-                # results name vs this runner id has been excluded
-                else:
-                    candidate = None
-                           
-        # didn't find runner on initial search, or candidate was discarded
-        if not candidate:
-            # clear runnerid in case we discarded candidate above
-            dbresult.runnerid = None
-
-            # favor active members, then inactive members
-            # note: nonmembers are not looked at for missed because filtermissed() depends on DOB
-            missed = self.pool.getmissedmatches()
-            # current_app.logger.debug('  self.pool.getmissedmatches() = {}'.format(missed))
-            
-            # don't consider 'missed matches' where age difference from result is too large, or excluded
-            # current_app.logger.debug('  missed before filter = {}'.format(missed))
-            missed = filtermissed(club_id,missed,race.date,dbresult.age)
-            # current_app.logger.debug('  missed after filter = {}'.format(missed))
-
-            # if there remain are any missed results, indicate missed (due to age difference)
-            # or missed (due to new member proposed for not membersonly)
-            if len(missed) > 0 or not membersonly:
-                dbresult.initialdisposition = DISP_MISSED
-                dbresult.confirmed = False
-                # current_app.logger.debug('    DISP_MISSED')
-                
-            # otherwise, this result isn't used
-            else:
-                dbresult.initialdisposition = DISP_NOTUSED
-                dbresult.confirmed = True
-                # current_app.logger.debug('    DISP_NOTUSED')
-
-        # this needs to be the same as what was already stored in the record
-        return dbresult.initialdisposition
-    
-    #----------------------------------------------------------------------
-    def update_dbresult(self, inresult, dbresult):
-    #----------------------------------------------------------------------
-        '''
-        updates dbresult based on inresult
-
-        :param inresult: dict-like object which has keys per mapping defined at instantiation
-        :param dbresult: ManagedResult instance to be initialized or updated
-
-        :rtype: missed - list of missed matches if not exact match
-        '''
-
-        # convert inresult keys
-        thisinresult = self.map.convert(inresult)
-        current_app.logger.debug('thisinresult={}'.format(thisinresult))
-
-        # this makes the dbresult accessible to the dbmapping functions
-        self.dbresult = dbresult
-
-        # update dbresult - this executes dbmapping function for each dbresult attribute
-        self.dte.set_dbrow(thisinresult, dbresult)
-
-        # return missed matches for select rendering
-        runner_choices = getrunnerchoices(self.club_id, self.race, self.pool, dbresult)
-
-        return runner_choices
-
-#----------------------------------------------------------------------
-def getrunnerchoices(club_id, race, pool, result):
-#----------------------------------------------------------------------
-    '''
-    get runner choice possibilies for rendering on editresults
-
-    :param club_id: club id
-    :param race: race entry from database
-    :param pool: candidate pool
-    :param result: database result
-    :rtype: choices for use in Standings Name select
-    '''
-
-    membersonly = race.series[0].membersonly
-    racedatedt = dbdate.asc2dt(race.date)
-
-    # object should have either disposition or initialdisposition
-    # see http://stackoverflow.com/questions/610883/how-to-know-if-an-object-has-an-attribute-in-python
-    try:
-        thisdisposition = result.disposition
-    except AttributeError:
-        thisdisposition = result.initialdisposition
-
-    # object should have either name or resultname
-    try:
-        thisname = result.name
-    except AttributeError:
-        thisname = result.resultname
-
-    # current runnerid may change later depending on choice
-    thisrunnerid = result.runnerid
-    thisrunnerchoice = [(None,'[not included]')]
-
-    # need to repeat logic from AjaxImportResults() because AjaxImportResults() may leave null in runnerid field of managedresult
-    candidate = pool.findmember(thisname,result.age,race.date)
-    
-    runner = None
-    runnername = ''
-    if thisdisposition in [DISP_MATCH,DISP_CLOSE]:
-        # found a possible runner
-        if candidate:
-            runnername,ascdob = candidate
-            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
-            try:
-                dobdt = dbdate.asc2dt(ascdob)
-                nameage = '{} ({})'.format(runner.name,timeu.age(racedatedt,dobdt))
-            # possibly no date of birth
-            except ValueError:
-                nameage = runner.name
-            thisrunnerchoice.append([runner.id,nameage])
-        
-        # see issue #183
-        else:
-            pass    # TODO: this is a bug -- that to do?
-
-    # didn't find runner, what were other possibilities?
-    elif thisdisposition == DISP_MISSED:
-        # this is possible because maybe (new) member was chosen in prior use of editparticipants
-        if candidate:
-            runnername,ascdob = candidate
-            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
-            try:
-                dobdt = dbdate.asc2dt(ascdob)
-                nameage = '{} ({})'.format(runner.name,timeu.age(racedatedt,dobdt))
-            # possibly no date of birth
-            except ValueError:
-                nameage = runner.name
-            thisrunnerchoice.append([runner.id,nameage])
-        
-        # this handles case where age mismatch was chosen in prior use of editparticipants
-        elif thisrunnerid:
-            runner = Runner.query.filter_by(club_id=club_id,id=thisrunnerid).first()
-
-        # remove runners who were not within the age window, or who were excluded
-        missed = pool.getmissedmatches()                        
-        missed = filtermissed(club_id,missed,race.date,result.age)
-        for thismissed in missed:
-            missedrunner = Runner.query.filter_by(club_id=club_id,name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
-            dobdt = dbdate.asc2dt(thismissed['dob'])
-            nameage = '{} ({})'.format(missedrunner.name,timeu.age(racedatedt,dobdt))
-            thisrunnerchoice.append((missedrunner.id,nameage))
-        
-    # for no match and excluded entries, change choice
-    elif thisdisposition in [DISP_NOTUSED,DISP_EXCLUDED]:
-        if membersonly:
-            thisrunnerchoice = [(None,'n/a')]
-        else:
-            # leave default
-            pass
-    
-    # for non membersonly race, maybe need to add new name to member database, give that option
-    if not membersonly and thisdisposition != DISP_MATCH:
-        # it's possible that thisname == runnername if (new) member was added in prior use of editparticipants
-        if thisname != runnername:
-            thisrunnerchoice.append(('new','{} (new)'.format(thisname)))
-
-    return thisrunnerchoice
-
-#######################################################################
 class FixupResult():
-#######################################################################
 
-    #----------------------------------------------------------------------
     def __init__(self, race, pool, result, timeprecision):
-    #----------------------------------------------------------------------
         '''
         fix up result
         
@@ -505,9 +109,7 @@ class FixupResult():
         # get choices for this result
         self.runnerchoice = getrunnerchoices(club_id, race, pool, result)
 
-    #----------------------------------------------------------------------
     def renderable_result(self):
-    #----------------------------------------------------------------------
         # make renderable result
         # include all the metadata for this result
         return {
@@ -527,9 +129,7 @@ class FixupResult():
 
 class EditParticipants(MethodView):
     decorators = [login_required]
-    #----------------------------------------------------------------------
     def get(self,raceid):
-    #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
             thisyear = flask.session['year']
@@ -619,16 +219,11 @@ class EditParticipants(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-#----------------------------------------------------------------------
 bp.add_url_rule('/editparticipants/<int:raceid>',view_func=EditParticipants.as_view('editparticipants'),methods=['GET'])
-#----------------------------------------------------------------------
 
-#######################################################################
+
 class AjaxEditParticipants(MethodView):
-#######################################################################
-    #----------------------------------------------------------------------
     def get(self,raceid):
-    #----------------------------------------------------------------------
         try:
 
             club_id = flask.session['club_id']
@@ -718,19 +313,15 @@ class AjaxEditParticipants(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-#----------------------------------------------------------------------
 bp.add_url_rule('/_editparticipants/<int:raceid>',view_func=AjaxEditParticipants.as_view('_editparticipants'),methods=['GET'])
-#----------------------------------------------------------------------
 
-#######################################################################
+
 class AjaxEditParticipantsCRUD(MethodView):
-#######################################################################
     decorators = [login_required]
     formfields = 'age,club,confirm,disposition,gender,hometown,id,place,resultname,runnerid,time'.split(',')
     dbfields   = 'age,club,confirmed,initialdisposition,gender,hometown,id,place,name,runnerid,time'.split(',')
-    #----------------------------------------------------------------------
+
     def post(self, raceid):
-    #----------------------------------------------------------------------
         # prepare for possible errors
         error = ''
         fielderrors = []
@@ -860,9 +451,8 @@ class AjaxEditParticipantsCRUD(MethodView):
                 cause = traceback.format_exc()
                 current_app.logger.error(traceback.format_exc())
             return dt_editor_response(data=[], error=cause, fieldErrors=fielderrors)
-#----------------------------------------------------------------------
+
 bp.add_url_rule('/_editparticipantscrud/<int:raceid>',view_func=AjaxEditParticipantsCRUD.as_view('_editparticipantscrud'),methods=['POST'])
-#----------------------------------------------------------------------
 
 ###########################################################################################
 # editexclusions endpoint
@@ -908,12 +498,9 @@ editexclusions = CrudApi(
 editexclusions.register()
 
 
-#######################################################################
 class SeriesResults(MethodView):
-#######################################################################
-    #----------------------------------------------------------------------
+
     def get(self,raceid):
-    #----------------------------------------------------------------------
         try:
             seriesarg = request.args.get('series','')
             division = request.args.get('div','')
@@ -988,17 +575,13 @@ class SeriesResults(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-#----------------------------------------------------------------------
 bp.add_url_rule('/seriesresults/<int:raceid>',view_func=SeriesResults.as_view('seriesresults'),methods=['GET'])
-#----------------------------------------------------------------------
 
 #######################################################################
 # following functions used to set up pretablehtml
 #######################################################################
 
-#----------------------------------------------------------------------
 def indent(elem, level=0):
-#----------------------------------------------------------------------
 # in-place prettyprint formatter
 # see http://effbot.org/zone/element-lib.htm#prettyprint
     i = "\n" + level*"  "
@@ -1015,12 +598,10 @@ def indent(elem, level=0):
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
 
-#######################################################################
+
 class RunnerResults(MethodView):
-#######################################################################
-    #----------------------------------------------------------------------
+
     def get(self):
-    #----------------------------------------------------------------------
         try:
             club_shname = request.args.get('club',None)
             runnerid = request.args.get('participant',None)
@@ -1127,14 +708,9 @@ class RunnerResults(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-#----------------------------------------------------------------------
 bp.add_url_rule('/results',view_func=RunnerResults.as_view('results'),methods=['GET'])
-#----------------------------------------------------------------------
 
-
-#----------------------------------------------------------------------
 def renderage(result):
-#----------------------------------------------------------------------
     '''
     render age string for result
     any exceptions returns empty string - probably bad dateofbirth
@@ -1150,9 +726,7 @@ def renderage(result):
 
     return thisage
 
-#----------------------------------------------------------------------
 def renderagtime(result):
-#----------------------------------------------------------------------
     '''
     render age grade time for result
     any exceptions returns empty string - probably bad dateofbirth
@@ -1170,9 +744,7 @@ def renderagtime(result):
 
     return agtime
 
-#----------------------------------------------------------------------
 def renderagpercent(result):
-#----------------------------------------------------------------------
     '''
     render age grade percentage for result
     any exceptions returns empty string - probably bad dateofbirth
@@ -1190,9 +762,7 @@ def renderagpercent(result):
 
     return agpercent
 
-#----------------------------------------------------------------------
 def renderintstr(cell):
-#----------------------------------------------------------------------
     '''
     render int string for cell
     any exceptions returns 0
@@ -1208,9 +778,7 @@ def renderintstr(cell):
 
     return this
 
-#----------------------------------------------------------------------
 def rendermembertype(result):
-#----------------------------------------------------------------------
     '''
     render membertype
 
@@ -1230,13 +798,11 @@ def rendermembertype(result):
 
     return this
 
-#######################################################################
+
 class AjaxRunnerResults(MethodView):
-#######################################################################
-    #----------------------------------------------------------------------
+
     @crossdomain(origin='*')
     def get(self):
-    #----------------------------------------------------------------------
         try:
             club_shname = request.args.get('club',None)
             runnerid = request.args.get('participant',None)
@@ -1318,16 +884,12 @@ class AjaxRunnerResults(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-#----------------------------------------------------------------------
 bp.add_url_rule('/_results',view_func=AjaxRunnerResults.as_view('_results'),methods=['GET'])
-#----------------------------------------------------------------------
 
-#######################################################################
+
 class RunnerResultsChart(MethodView):
-#######################################################################
-    #----------------------------------------------------------------------
+
     def get(self):
-    #----------------------------------------------------------------------
         try:
             club_shname = request.args.get('club',None)
             runnerid = request.args.get('participant',None)
@@ -1496,16 +1058,13 @@ class RunnerResultsChart(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-#----------------------------------------------------------------------
-bp.add_url_rule('/resultschart',view_func=RunnerResultsChart.as_view('resultschart'),methods=['GET'])
-#----------------------------------------------------------------------
 
-#######################################################################
+bp.add_url_rule('/resultschart',view_func=RunnerResultsChart.as_view('resultschart'),methods=['GET'])
+
+
 class AjaxRunnerResultsChart(MethodView):
-#######################################################################
-    #----------------------------------------------------------------------
+
     def get(self):
-    #----------------------------------------------------------------------
         try:
             club_shname = request.args.get('club',None)
             runnerid = request.args.get('runnerid',None)
@@ -1743,24 +1302,17 @@ class AjaxRunnerResultsChart(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-#----------------------------------------------------------------------
-bp.add_url_rule('/_resultschart',view_func=AjaxRunnerResultsChart.as_view('_resultschart'),methods=['GET'])
-#----------------------------------------------------------------------
 
-#----------------------------------------------------------------------
+bp.add_url_rule('/_resultschart',view_func=AjaxRunnerResultsChart.as_view('_resultschart'),methods=['GET'])
+
 def allowed_file(filename):
-#----------------------------------------------------------------------
     return '.' in filename and filename.split('.')[-1] in ['xls','xlsx','txt','csv']
 
 
-#######################################################################
 class AjaxImportResults(MethodView):
-#######################################################################
     decorators = [login_required]
     
-    #----------------------------------------------------------------------
     def post(self,raceid):
-    #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
             thisyear = flask.session['year']
@@ -1873,13 +1425,12 @@ class AjaxImportResults(MethodView):
             cause = traceback.format_exc()
             current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
-#----------------------------------------------------------------------
-bp.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_view('_importresults'),methods=['POST'])
-#----------------------------------------------------------------------
 
-#######################################################################
+bp.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_view('_importresults'),methods=['POST'])
+
+
 class ImportResultsStatus(MethodView):
-#######################################################################
+
     def get(self, task_id):
         task = importresultstask.AsyncResult(task_id)
         current_app.logger.debug(f'task.state: {task.state}, task.info {task.info}')
@@ -1918,101 +1469,14 @@ class ImportResultsStatus(MethodView):
                 'cause': str(task.info),  # this is the exception raised
             }
         return jsonify(response)
-#----------------------------------------------------------------------
+
 bp.add_url_rule('/importresultsstatus/<task_id>',view_func=ImportResultsStatus.as_view('importresultsstatus'), methods=['GET',])
-#----------------------------------------------------------------------
 
-#----------------------------------------------------------------------
-@celery.task(bind=True)
-def importresultstask(self, club_id, raceid, resultpathname):
-#----------------------------------------------------------------------
-    '''
-    background task to import results
 
-    :param club_id: club identifier
-    :param raceid: race identifier
-    :param resultpathname: full pathname of results file
-    '''
-    try:
-        # create race results iterator
-        race = Race.query.filter_by(club_id=club_id,id=raceid).first()
-        rr = RaceResults(resultpathname,race.distance)
-
-        # count rows, inefficiently. TODO: add count() method to RaceResults class
-        try:
-            total = 0
-            while True:
-                next(rr)
-                total += 1
-        except StopIteration:
-            pass
-
-        # only update state max 100 times over course of file, but don't make it too small
-        statemod = total // 100
-        if statemod == 0:
-            statemod = 1
-
-        # start over
-        rr.close()
-        rr = RaceResults(resultpathname,race.distance)
-
-        # create importer
-        importresults = ImportResults(club_id, raceid)
-        
-        # collect results from resultsfile
-        numentries = 0
-        dbresults = []
-        logfirst = True
-        while True:
-            try:
-                if numentries % statemod == 0:
-                    self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
-                fileresult = next(rr)
-                if logfirst:
-                    current_app.logger.debug('first file result {}'.format(fileresult))
-                    logfirst = False
-                dbresult   = ManagedResult(club_id,raceid)
-
-                # update database entry
-                runner_choices = importresults.update_dbresult(fileresult, dbresult)
-
-                # add to database
-                db.session.add(dbresult)
-                dbresults.append(dbresult)
-            except StopIteration:
-                break
-            numentries += 1
-
-        # not sure this is necessary, but final state update
-        self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
-
-        # remove file and temporary directory
-        rr.close()
-        os.remove(resultpathname)
-
-        # we're done
-        db.session.commit()
-        return {'current': total, 'total': total, 'raceid': raceid}
-
-    except:
-        # close database session and roll back
-        # see http://stackoverflow.com/questions/7672327/how-to-make-a-celery-task-fail-from-within-the-task
-        db.session.rollback()
-
-        # tell the admins that this happened
-        celery.mail_admins('[scoretility] importtaskresults: exception occurred', traceback.format_exc())
-
-        # report this as success, but since traceback is present, server will tell user
-        return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}
-
-#######################################################################
 class AjaxUpdateManagedResult(MethodView):
-#######################################################################
     decorators = [login_required]
     
-    #----------------------------------------------------------------------
     def post(self,resultid):
-    #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
             thisyear = flask.session['year']
@@ -2180,17 +1644,14 @@ class AjaxUpdateManagedResult(MethodView):
             cause = 'Unexpected Error: {}'.format(e)
             current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
-#----------------------------------------------------------------------
-bp.add_url_rule('/_updatemanagedresult/<int:resultid>',view_func=AjaxUpdateManagedResult.as_view('_updatemanagedresult'),methods=['POST'])
-#----------------------------------------------------------------------
 
-#######################################################################
+bp.add_url_rule('/_updatemanagedresult/<int:resultid>',view_func=AjaxUpdateManagedResult.as_view('_updatemanagedresult'),methods=['POST'])
+
+
 class AjaxTabulateResults(MethodView):
-#######################################################################
     decorators = [login_required]
-    #----------------------------------------------------------------------
+
     def post(self,raceid):
-    #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
             thisyear = flask.session['year']
@@ -2500,7 +1961,5 @@ class AjaxTabulateResults(MethodView):
             cause = 'Unexpected Error: {}'.format(e)
             current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
-#----------------------------------------------------------------------
-bp.add_url_rule('/_tabulateresults/<int:raceid>',view_func=AjaxTabulateResults.as_view('_tabulateresults'),methods=['POST'])
-#----------------------------------------------------------------------
 
+bp.add_url_rule('/_tabulateresults/<int:raceid>',view_func=AjaxTabulateResults.as_view('_tabulateresults'),methods=['POST'])

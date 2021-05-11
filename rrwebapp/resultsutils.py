@@ -14,34 +14,452 @@ import csv
 from datetime import datetime
 import time
 import traceback
+from json import loads, dumps
+from datetime import timedelta
+from collections import OrderedDict
 
 # pypi
-
-# homegrown
-from . import app
-from .model import db   
-from .model import insert_or_update, RaceResult, Runner, Race
-from .views.admin.race import race_fixeddist
+from flask import current_app
+from googlemaps import Client
+from googlemaps.geocoding import geocode
+from haversine import haversine, Unit
+import loutilities.renderrun as render
 from loutilities.csvu import str2num
 from loutilities.timeu import age, asctime, epoch2dt, dt2epoch
 from loutilities.agegrade import AgeGrade
 from loutilities.transform import Transform
+from loutilities.namesplitter import split_full_name
+
+# homegrown
+from . import app
+from .model import db, MAX_LOCATION_LEN, dbdate
+from .model import insert_or_update, RaceResult, Runner, Race, ApiCredentials, RaceResultService, Location, Exclusion
+from .apicommon import MapDict
+from .clubmember import DbClubMember
+from .datatables_utils import DataTablesEditor
 
 ftime = asctime('%Y-%m-%d')
+tYmd = asctime('%Y-%m-%d')
+tmdy = asctime('%m/%d/%y')
 
 RACEEPSILON = .01  # in miles, to allow for floating point precision error in database
 ag = AgeGrade(agegradewb='config/wavacalc15.xls')
+CACHE_REFRESH = timedelta(30)   # 30 days, per https://cloud.google.com/maps-platform/terms/maps-service-terms/?&sign=0 (sec 3.4)
+
+# control behavior of import
+DIFF_CUTOFF = 0.7   # ratio of matching characters for cutoff handled by 'clubmember'
+NONMEMBERCUTOFF = 0.9   # insist on high cutoff for nonmember matching
+AGE_DELTAMAX = 3    # +/- num years to be included in DISP_MISSED
+JOIN_GRACEPERIOD = timedelta(7) # allow runner to join 1 week beyond race date
+
+# initialdisposition values
+# * match - exact name match found in runner table, with age consistent with dateofbirth
+# * close - close name match found, with age consistent with dateofbirth
+# * missed - close name match found, but age is inconsistent with dateofbirth
+# * excluded - this name is in the exclusion table, either prior to import **or as a result of user decision**
+DISP_MATCH = 'definite'         # exact match of member (or non-member for non 'membersonly' race)
+DISP_CLOSE = 'similar'          # similar match to member, matching age
+DISP_MISSED = 'missed'          # similar to some member(s), age mismatch (within window)
+DISP_EXCLUDED = 'excluded'      # DISP_CLOSE match, but found in exclusions table
+DISP_NOTUSED = ''               # not used for results
+
 
 class ParameterError(Exception): pass
 
-########################################################################
+def race_fixeddist(distance):
+    '''
+    return fixeddist value for distance
+
+    :param distance: distance of the race (miles)
+    :rtype: string containing value for race.fixeddist field
+    '''
+    return '{:.4g}'.format(float(distance))
+
+def get_distance(loc1, loc2, miles=True):
+    '''
+    retrieves distance between two Location objects
+    if either location is unknown (lookuperror occurred), None is returned
+    NOTE: must check for error like "if get_distance() != None" because 0 is a valid return value
+
+    :param loc1: Location object
+    :param loc2: Location object
+    :rtype: distance between loc1 and loc2, or None if error
+    '''
+    # check for bad data
+    if loc1.lookuperror or loc2.lookuperror:
+        return None
+
+    # indicate to haversine what unit to use
+    if miles:
+        unit = Unit.MILES
+    else:
+        unit = Unit.KILOMETERS
+        
+    # return great circle distance between points
+    loc1latlon = (loc1.latitude, loc1.longitude)
+    loc2latlon = (loc2.latitude, loc2.longitude)
+    return haversine(loc1latlon, loc2latlon, unit=unit)
+
+def getrunnerchoices(club_id, race, pool, result):
+    '''
+    get runner choice possibilies for rendering on editresults
+
+    :param club_id: club id
+    :param race: race entry from database
+    :param pool: candidate pool
+    :param result: database result
+    :rtype: choices for use in Standings Name select
+    '''
+
+    membersonly = race.series[0].membersonly
+    racedatedt = dbdate.asc2dt(race.date)
+
+    # object should have either disposition or initialdisposition
+    # see http://stackoverflow.com/questions/610883/how-to-know-if-an-object-has-an-attribute-in-python
+    try:
+        thisdisposition = result.disposition
+    except AttributeError:
+        thisdisposition = result.initialdisposition
+
+    # object should have either name or resultname
+    try:
+        thisname = result.name
+    except AttributeError:
+        thisname = result.resultname
+
+    # current runnerid may change later depending on choice
+    thisrunnerid = result.runnerid
+    thisrunnerchoice = [(None,'[not included]')]
+
+    # need to repeat logic from AjaxImportResults() because AjaxImportResults() may leave null in runnerid field of managedresult
+    candidate = pool.findmember(thisname,result.age,race.date)
+    
+    runner = None
+    runnername = ''
+    if thisdisposition in [DISP_MATCH,DISP_CLOSE]:
+        # found a possible runner
+        if candidate:
+            runnername,ascdob = candidate
+            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
+            try:
+                dobdt = dbdate.asc2dt(ascdob)
+                nameage = '{} ({})'.format(runner.name, age(racedatedt,dobdt))
+            # possibly no date of birth
+            except ValueError:
+                nameage = runner.name
+            thisrunnerchoice.append([runner.id,nameage])
+        
+        # see issue #183
+        else:
+            pass    # TODO: this is a bug -- that to do?
+
+    # didn't find runner, what were other possibilities?
+    elif thisdisposition == DISP_MISSED:
+        # this is possible because maybe (new) member was chosen in prior use of editparticipants
+        if candidate:
+            runnername,ascdob = candidate
+            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
+            try:
+                dobdt = dbdate.asc2dt(ascdob)
+                nameage = '{} ({})'.format(runner.name, age(racedatedt,dobdt))
+            # possibly no date of birth
+            except ValueError:
+                nameage = runner.name
+            thisrunnerchoice.append([runner.id,nameage])
+        
+        # this handles case where age mismatch was chosen in prior use of editparticipants
+        elif thisrunnerid:
+            runner = Runner.query.filter_by(club_id=club_id,id=thisrunnerid).first()
+
+        # remove runners who were not within the age window, or who were excluded
+        missed = pool.getmissedmatches()                        
+        missed = filtermissed(club_id,missed,race.date,result.age)
+        for thismissed in missed:
+            missedrunner = Runner.query.filter_by(club_id=club_id,name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
+            dobdt = dbdate.asc2dt(thismissed['dob'])
+            nameage = '{} ({})'.format(missedrunner.name, age(racedatedt,dobdt))
+            thisrunnerchoice.append((missedrunner.id,nameage))
+        
+    # for no match and excluded entries, change choice
+    elif thisdisposition in [DISP_NOTUSED,DISP_EXCLUDED]:
+        if membersonly:
+            thisrunnerchoice = [(None,'n/a')]
+        else:
+            # leave default
+            pass
+    
+    # for non membersonly race, maybe need to add new name to member database, give that option
+    if not membersonly and thisdisposition != DISP_MATCH:
+        # it's possible that thisname == runnername if (new) member was added in prior use of editparticipants
+        if thisname != runnername:
+            thisrunnerchoice.append(('new','{} (new)'.format(thisname)))
+
+    return thisrunnerchoice
+
+def filtermissed(club_id,missed,racedate,resultage):
+    '''
+    filter missed matches which are greater than a configured max age delta
+    also filter missed matches which were in the exclusions table
+    
+    :param club_id: club id for missed matches
+    :param missed: list of missed matches, as returned from clubmember.xxx().getmissedmatches()
+    :param racedate: race date in dbdate format
+    :param age: resultage from race result, if None, '', 0, empty list is returned
+    
+    :rtype: missed list, including only elements within the allowed age range
+    '''
+    # make a local copy in case the caller wants to preserve the original list
+    localmissed = missed[:]
+    
+    # if age in result is invalid, empty list is returned
+    if not resultage:
+        return []
+    
+    racedatedt = dbdate.asc2dt(racedate)
+    for thismissed in missed:
+        # don't consider 'missed matches' where age difference from result is too large
+        dobdt = dbdate.asc2dt(thismissed['dob'])
+        if abs(age(racedatedt,dobdt) - resultage) > AGE_DELTAMAX:
+            localmissed.remove(thismissed)
+        else:
+            resultname = thismissed['name']
+            runnername = thismissed['dbname']
+            ascdob = thismissed['dob']
+            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
+            exclusion = Exclusion.query.filter_by(club_id=club_id,foundname=resultname,runnerid=runner.id).first()
+            if exclusion:
+                localmissed.remove(thismissed)
+                
+            # TODO: also need to skip runners who were not members at the time of the race
+            #if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(racedate)+JOIN_GRACEPERIOD:
+            #    localmissed.remove(thismissed)
+
+    return localmissed
+
+
 class Record():
-########################################################################
     pass
 
-########################################################################
+class ImportResults():
+    '''
+    takes input result and maps to database result
+
+    optional mapping is dict like {'dbattr_n':'inkey_n', 'dbattr_m':'inkey_m', ...}
+    if mapping is not present, inresult keys must match dbattrs + dbmetaattrs
+
+    :param club_id: id for club race should be found under
+    :param raceid: id for race
+    :param mapping: dict with key for each db row to be updated
+    '''
+    dbattrs = 'place,name,fname,lname,gender,age,city,state,hometown,club,time'.split(',')
+    # don't include runnerid or confirmed, as these are updated as side effects of set_initialdisposition()
+    dbmetaattrs = 'initialdisposition'.split(',')   
+    defaultmapping = dict(list(zip(dbattrs+dbmetaattrs,dbattrs+dbmetaattrs)))
+
+    def __init__(self, club_id, raceid, mapping=defaultmapping):
+
+        # remember what we need later
+        self.club_id = club_id
+
+        # mapping method for each database field from input row
+        self.map = MapDict(mapping)
+
+        # get race and list of runners who should be included in this race, based on race's membersonly configuration
+        self.race = Race.query.filter_by(club_id=club_id,id=raceid).first()
+        self.racedatedt = dbdate.asc2dt(self.race.date)
+        self.timeprecision,agtimeprecision = render.getprecision(self.race.distance,surface=self.race.surface)
+
+        if len(self.race.series) == 0:
+            raise ParameterError('Race needs to be included in at least one series to import results')
+
+        # determine candidate pool based on membersonly
+        membersonly = self.race.series[0].membersonly
+        if membersonly:
+            self.pool = DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id,member=True,active=True)
+        else:
+            self.pool = DbClubMember(cutoff=DIFF_CUTOFF,club_id=club_id)
+
+        ### all the "work" is here to set up the dbmapping from input result
+        # use OrderedDict because some dbattrs depend on others to have been done first (e.g., confirmed must be after initialdisposition)
+        # first overwrite a few of these to make sure name, lname, fname, hometown, city, state filled in
+        dbmapping = OrderedDict(list(zip(self.dbattrs,self.dbattrs)))
+        dbmapping['name']     = lambda inrow: inrow['name'] if inrow.get('name') \
+                                else ' '.join([inrow['fname'], inrow['lname']]) if inrow.get('fname') or inrow.get('lname') \
+                                else None
+        dbmapping['fname']    = lambda inrow: inrow['fname'] if inrow.get('fname') \
+                                else split_full_name(inrow['name'])['fname'] if inrow.get('name') \
+                                else None
+        dbmapping['lname']    = lambda inrow: inrow['lname'] if inrow.get('lname') \
+                                else split_full_name(inrow['name'])['lname'] if inrow.get('name') \
+                                else None
+        dbmapping['hometown'] = lambda inrow: inrow['hometown'] if inrow.get('hometown') \
+                                else ', '.join([inrow['city'], inrow['state']]) if inrow.get('city') and inrow.get('state') \
+                                else None
+        dbmapping['city']     = lambda inrow: inrow['city'] if inrow.get('city') \
+                                else inrow['hometown'].split(', ')[0] if inrow.get('hometown') \
+                                else None
+        dbmapping['state']    = lambda inrow: inrow['state'] if inrow.get('state') \
+                                else inrow['hometown'].split(', ')[1] if inrow.get('hometown') \
+                                else None
+        dbmapping['gender']   = lambda inrow: inrow['gender'].upper() if inrow.get('gender') \
+                                else None
+        dbmapping['age']      = lambda inrow: int(inrow['age']) if inrow.get('age') \
+                                else 0
+        dbmapping['time']     = lambda inrow: float(inrow['time'])
+        dbmapping['initialdisposition'] = self.set_initialdisposition
+
+        # set up DataTablesEditor object
+        # no formmapping needed because we are not creating a form
+        self.dte = DataTablesEditor(dbmapping, {})
+
+    def set_initialdisposition(self, inrow):
+        '''
+        nominally this is a dbmapping function which returns value for initialdisposition
+        however, this also has side-effects of updating runnerid and confirmed fields 
+        self.runner_choices is updated to include close matches or None as appropriate
+
+        before entry, self.dbresult must be set for the targeted db record
+
+        :param inrow: input row to be translated into dbresult 
+        :rtype: initialdisposition
+        '''
+
+        # make come convenience assignments
+        club_id = self.club_id
+        dbresult = self.dbresult
+        race = self.race
+        racedatedt = dbdate.asc2dt(race.date)
+
+        # need to initialize missed
+        missed = []
+
+        # assumes all series for same race have same membersonly
+        membersonly = race.series[0].membersonly
+
+        # for members or people who were once members, set age based on date of birth in database
+        # note this clause will be executed for membersonly races
+        candidate = self.pool.findmember(dbresult.name,dbresult.age,self.race.date)
+        if candidate:
+            # note some candidates' ascdob may come back as None (these must be nonmembers because we have dob for all current/previous members)
+            runnername,ascdob = candidate
+            
+            # set active or inactive member's id
+            runner = Runner.query.filter_by(club_id=club_id,name=runnername,dateofbirth=ascdob).first()
+            dbresult.runnerid = runner.id
+        
+            # if candidate has renewdate and did not join in time for member's only race, indicate this result isn't used
+            if membersonly and runner.renewdate and dbdate.asc2dt(runner.renewdate) > dbdate.asc2dt(self.race.date)+JOIN_GRACEPERIOD:
+                    # discard candidate
+                    candidate = None
+                    
+            # runner joined in time for race, or not member's only race
+            # if exact match, indicate we have a match
+            elif runnername.lower() == dbresult.name.lower():
+                # if current or former member
+                if ascdob:
+                    dbresult.initialdisposition = DISP_MATCH
+                    dbresult.confirmed = True
+                    # current_app.logger.debug('    DISP_MATCH')
+                    
+                # otherwise was nonmember, included from some non memberonly race
+                else:
+                    # must check current result age against any previous result age
+                    thisresultage = dbresult.age
+                    if thisresultage:
+                        thisracedate = tYmd.asc2dt(self.race.date)
+                        pastresult = RaceResult.query.filter_by(club_id=club_id,runnerid=runner.id).first()
+                        pastresultage = pastresult.agage
+                        pastracedate = tYmd.asc2dt(pastresult.race.date)
+                        
+                        # make sure this result age is consistent with previous result +/- 1 year
+                        deltayears = abs((thisracedate - pastracedate).days / 365.25)
+                        deltaage = abs(int(thisresultage) - pastresultage)
+                        if abs(deltaage - deltayears) <= 1:
+                            dbresult.initialdisposition = DISP_MATCH
+                            dbresult.confirmed = True
+                            # current_app.logger.debug('    DISP_MATCH')
+
+                        # if inconsistent, ignore candidate
+                        else:
+                            candidate = None
+
+                    # ignore candidates when we do not have age in result
+                    else:
+                        candidate = None
+                        dbresult.runnerid = None
+
+            # runner joined in time for race, or not member's only race, but match wasn't exact
+            # check for exclusions
+            else:
+                exclusion = Exclusion.query.filter_by(club_id=club_id,foundname=dbresult.name,runnerid=dbresult.runnerid).first()
+                
+                # if results name not found against this runner id in exclusions table, indicate we found close match
+                if not exclusion:
+                    dbresult.initialdisposition = DISP_CLOSE
+                    dbresult.confirmed = False
+                    # current_app.logger.debug('    DISP_CLOSE')
+                    
+                # results name vs this runner id has been excluded
+                else:
+                    candidate = None
+                           
+        # didn't find runner on initial search, or candidate was discarded
+        if not candidate:
+            # clear runnerid in case we discarded candidate above
+            dbresult.runnerid = None
+
+            # favor active members, then inactive members
+            # note: nonmembers are not looked at for missed because filtermissed() depends on DOB
+            missed = self.pool.getmissedmatches()
+            # current_app.logger.debug('  self.pool.getmissedmatches() = {}'.format(missed))
+            
+            # don't consider 'missed matches' where age difference from result is too large, or excluded
+            # current_app.logger.debug('  missed before filter = {}'.format(missed))
+            missed = filtermissed(club_id,missed,race.date,dbresult.age)
+            # current_app.logger.debug('  missed after filter = {}'.format(missed))
+
+            # if there remain are any missed results, indicate missed (due to age difference)
+            # or missed (due to new member proposed for not membersonly)
+            if len(missed) > 0 or not membersonly:
+                dbresult.initialdisposition = DISP_MISSED
+                dbresult.confirmed = False
+                # current_app.logger.debug('    DISP_MISSED')
+                
+            # otherwise, this result isn't used
+            else:
+                dbresult.initialdisposition = DISP_NOTUSED
+                dbresult.confirmed = True
+                # current_app.logger.debug('    DISP_NOTUSED')
+
+        # this needs to be the same as what was already stored in the record
+        return dbresult.initialdisposition
+    
+    def update_dbresult(self, inresult, dbresult):
+        '''
+        updates dbresult based on inresult
+
+        :param inresult: dict-like object which has keys per mapping defined at instantiation
+        :param dbresult: ManagedResult instance to be initialized or updated
+
+        :rtype: missed - list of missed matches if not exact match
+        '''
+
+        # convert inresult keys
+        thisinresult = self.map.convert(inresult)
+        current_app.logger.debug('thisinresult={}'.format(thisinresult))
+
+        # this makes the dbresult accessible to the dbmapping functions
+        self.dbresult = dbresult
+
+        # update dbresult - this executes dbmapping function for each dbresult attribute
+        self.dte.set_dbrow(thisinresult, dbresult)
+
+        # return missed matches for select rendering
+        runner_choices = getrunnerchoices(self.club_id, self.race, self.pool, dbresult)
+
+        return runner_choices
+
 class StoreServiceResults():
-########################################################################
     '''
     store results retrieved from a service, using service's file access class
 
@@ -59,16 +477,12 @@ class StoreServiceResults():
     :param xservice2norm: {'normattr_n':'serviceattr_n', 'normattr_m':f(servicerow), ...}
     '''
 
-    #----------------------------------------------------------------------
     def __init__(self, servicename, serviceaccessor, xservice2norm):
-    #----------------------------------------------------------------------
         self.servicename = servicename
         self.serviceaccessor = serviceaccessor
         self.service2norm = Transform(xservice2norm, sourceattr=True, targetattr=True)
 
-    #----------------------------------------------------------------------
     def get_count(self, filename):
-    #----------------------------------------------------------------------
         '''
         return the length of the service accessor file
 
@@ -81,9 +495,7 @@ class StoreServiceResults():
 
         return numlines
 
-    #----------------------------------------------------------------------
     def storeresults(self, thistask, status, club_id, filename):
-    #----------------------------------------------------------------------
         '''
         create service accessor and open file
         get location if known
@@ -165,13 +577,10 @@ class StoreServiceResults():
         # finished reading results, close input file
         self.serviceaccessor.close()
 
-########################################################################
-class CollectServiceResults(object):
-########################################################################
 
-    #----------------------------------------------------------------------
+class CollectServiceResults(object):
+
     def __init__(self, servicename, resultfilehdr, resultattrs):
-    #----------------------------------------------------------------------
         '''
         initialize object instance
 
@@ -187,9 +596,7 @@ class CollectServiceResults(object):
         self.resultfilehdr = resultfilehdr
         self.resultattrs = resultattrs
 
-    #----------------------------------------------------------------------
     def openservice(self, club_id):
-    #----------------------------------------------------------------------
         '''
         initialize service
         recommended that the overriding method save service instance in `self.service`
@@ -200,9 +607,7 @@ class CollectServiceResults(object):
         '''
         pass
 
-    #----------------------------------------------------------------------
     def getresults(self, name, fname, lname, gender, dt_dob, begindate, enddate):
-    #----------------------------------------------------------------------
         '''
         retrieves a list of results for a single name
 
@@ -221,9 +626,7 @@ class CollectServiceResults(object):
         '''
         pass
 
-    #----------------------------------------------------------------------
     def convertserviceresult(self, result):
-    #----------------------------------------------------------------------
         '''
         converts a single service result to dict suitable to be saved in resultfile
 
@@ -238,9 +641,7 @@ class CollectServiceResults(object):
         '''
         pass
 
-    #----------------------------------------------------------------------
     def closeservice(self):
-    #----------------------------------------------------------------------
         '''
         closes service, if necessary
 
@@ -249,9 +650,7 @@ class CollectServiceResults(object):
         pass
 
 
-    #----------------------------------------------------------------------
     def collect(self, thistask, club_id, searchfile, resultfile, status, begindate=ftime.asc2epoch('1970-01-01'), enddate=ftime.asc2epoch('2999-12-31')):
-    #----------------------------------------------------------------------
         '''
         collect race results from a service
         
@@ -273,10 +672,10 @@ class CollectServiceResults(object):
         if isinstance(searchfile, list):
             _IN = searchfile
         else:
-            _IN = open(searchfile,'r')
-        IN = csv.DictReader(_IN, newline='')
+            _IN = open(searchfile, 'r', newline='')
+        IN = csv.DictReader(_IN)
 
-        _OUT = open(resultfile, 'w' , newline='')
+        _OUT = open(resultfile, 'w', newline='')
         OUT = csv.DictWriter(_OUT, self.resultfilehdr)
         OUT.writeheader()
 
@@ -347,34 +746,28 @@ class CollectServiceResults(object):
         finish = time.time()
         app.logger.debug('elapsed time (min) = {}'.format((finish-start)/60))
     
-########################################################################
+
 class ServiceResult():
-########################################################################
     '''
     represents single result from service
     '''
 
     pass
     
-########################################################################
+
 class ServiceResultFile(object):
-########################################################################
     '''
     represents file of athlinks results collected from athlinks
     
     TODO:: add write methods, and update :func:`collect` to use :class:`ServiceResult` class
     '''
    
-    #----------------------------------------------------------------------
     def __init__(self, servicename, mapping):
-    #----------------------------------------------------------------------
         self.servicename = servicename
         self.mapping = mapping
         self.transform = Transform(mapping, sourceattr=False, targetattr=True).transform
         
-    #----------------------------------------------------------------------
     def open(self, filename, mode='r'):
-    #----------------------------------------------------------------------
         '''
         open athlinks result file
         
@@ -392,9 +785,7 @@ class ServiceResultFile(object):
         # create the DictReader object
         self._csv = csv.DictReader(self._fh)
         
-    #----------------------------------------------------------------------
     def close(self):
-    #----------------------------------------------------------------------
         '''
         close athlinks result file
         '''
@@ -404,14 +795,10 @@ class ServiceResultFile(object):
             delattr(self,'_csv')
             delattr(self,'_numlines')
         
-    #----------------------------------------------------------------------
     def count(self):
-    #----------------------------------------------------------------------
         return self._numlines
     
-    #----------------------------------------------------------------------
     def __next__(self):
-    #----------------------------------------------------------------------
         '''
         get next :class:`AthlinksResult`
         
@@ -428,3 +815,107 @@ class ServiceResultFile(object):
                 
         return serviceresult
     
+
+class ServiceAttributes(object):
+    '''
+    access for service attributes in RaceResultService
+
+    :param servicename: name of service
+    '''
+
+    def _getconfigattrs(self):
+        apicredentials = ApiCredentials.query.filter_by(name=self.servicename).first()
+        if not apicredentials:
+            return {}
+
+        self.rrs = RaceResultService.query.filter_by(club_id=self.club_id, apicredentials_id=apicredentials.id).first()
+        if not self.rrs or not self.rrs.attrs:
+            return {}
+
+        # current_app.logger.debug('self.rrs.attrs {}'.format(self.rrs.attrs))
+        return loads(self.rrs.attrs)
+
+    def __init__(self, club_id, servicename):
+        self.club_id = club_id
+        self.servicename = servicename
+        
+        # update defaults here
+        self.attrs = dict(
+                         maxdistance = None,
+                        )
+
+        # get configured attributes
+        configattrs = self._getconfigattrs()
+
+        # bring in configuration, if any
+        self.attrs.update(configattrs)
+        # current_app.logger.debug('service {} configattrs {} self.attrs {}'.format(servicename, configattrs, self.attrs))
+
+        # attrs become attributes of this object
+        for attr in self.attrs:
+            setattr(self, attr, self.attrs[attr])
+
+    #----------------------------------------------------------------------
+    def set_attr(self, name, value):
+    #----------------------------------------------------------------------
+        configattrs = self._getconfigattrs()
+        configattrs[name] = value
+        
+        # update database
+        self.rrs.attrs = dumps(configattrs)
+        insert_or_update(db.session, RaceResultService, self.rrs, skipcolumns=['id'], name=self.service)
+
+
+class LocationServer(object):
+
+    def __init__(self):
+
+        googlekey = ApiCredentials.query.filter_by(name='googlemaps').first().key
+        self.client = Client(key=googlekey)
+
+    def getlocation(self, address):
+        '''
+        retrieve location from database, if available, else get from googlemaps api
+
+        :param address: address for lookup
+        :rtype: Location instance
+        '''
+
+        dbaddress = address
+        if len(dbaddress) > MAX_LOCATION_LEN:
+            dbaddress = dbaddress[0:MAX_LOCATION_LEN]
+
+        loc = Location.query.filter_by(name=dbaddress).first()
+
+        now = epoch2dt(time.time())
+        if not loc or (now - loc.cached_at > CACHE_REFRESH):
+            # new location
+            loc = Location(name=dbaddress)
+
+            # get geocode from google
+            # use the full address, not dbaddress which gets s
+            gc = geocode(self.client, address=address)
+
+            # if we got good data, fill in the particulars
+            # assume first in list is good, give warning if multiple entries received back
+            if gc:
+                # notify if multiple values returned
+                if len(gc) > 1:
+                    app.logger.warning('geocode: multiple locations ({}) received from googlemaps for {}'.format(len(gc), address))
+
+                # save lat/long from first value returned
+                loc.latitude  = gc[0]['geometry']['location']['lat']
+                loc.longitude = gc[0]['geometry']['location']['lng']
+
+            # if no response, still store in database, but flag as error
+            else:
+                loc.lookuperror = True
+
+            # remember when last retrieved
+            loc.cached_at = now
+
+            # insert or update -- flush is done within, so id should be set after this
+            insert_or_update(db.session, Location, loc, skipcolumns=['id'], name=dbaddress)
+
+        # and back to caller
+        return loc
