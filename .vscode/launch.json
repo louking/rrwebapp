@@ -67,6 +67,10 @@
             "request": "launch",
             "module": "celery",
             "console": "integratedTerminal",
+            "env": {
+                // https://github.com/celery/celery/issues/4081#issuecomment-349535810
+                "FORKED_BY_MULTIPROCESSING": "1"
+            },
             "args": [
                 "-A",
                 "rrwebapp.celery",
