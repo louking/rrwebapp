@@ -6,9 +6,11 @@ tasks - define background tasks
 import os.path
 import os
 import traceback
+from flask.globals import current_app
 
 # pypi
 from loutilities.timeu import timesecs
+from loutilities.flask_helpers.mailer import sendmail
 from celery.utils.log import get_task_logger
 
 # home grown
@@ -156,7 +158,9 @@ def importresultstask(self, club_id, raceid, resultpathname):
         db.session.rollback()
 
         # tell the admins that this happened
-        celery.mail_admins('[scoretility] importtaskresults: exception occurred', traceback.format_exc())
+        admins = current_app.config['APP_ADMINS']
+        sendmail('[scoretility] importtaskresults: exception occurred', 'noreply@scoretility.com', admins, '', text=traceback.format_exc())
+        # celery.mail_admins('[scoretility] importtaskresults: exception occurred', traceback.format_exc())
 
         # report this as success, but since traceback is present, server will tell user
         return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}
@@ -242,7 +246,9 @@ def analyzeresultstask(self, club_id, action, resultsurl, memberfile, detailfile
         logger.error(traceback.format_exc())
 
         # tell the admins that this happened
-        celery.mail_admins('[scoretility] analyzeresultstask: exception occurred', traceback.format_exc())
+        admins = current_app.config['APP_ADMINS']
+        sendmail('[scoretility] analyzeresultstask: exception occurred', 'noreply@scoretility.com', admins, '', text=traceback.format_exc())
+        # celery.mail_admins('[scoretility] analyzeresultstask: exception occurred', traceback.format_exc())
 
         # not in a task any more
         if os.path.isfile(taskfile):

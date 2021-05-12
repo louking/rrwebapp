@@ -567,7 +567,7 @@ class StoreServiceResults():
 
             # otherwise just log and ignore result
             except: 
-                app.logger.warning('exception for "{}", result ignored, processing {} result {}\n{}'.format(runner.name, self.servicename, result.__dict__, traceback.format_exc()))
+                current_app.logger.warning('exception for "{}", result ignored, processing {} result {}\n{}'.format(runner.name, self.servicename, result.__dict__, traceback.format_exc()))
 
             # update the number of results processed and pass back the status
             status[self.servicename]['lastname'] = result.runnername
@@ -721,7 +721,7 @@ class CollectServiceResults(object):
 
                     # otherwise just log and ignore result
                     except:
-                        app.logger.warning('exception for "{}", result ignored, processing {} result {}\n{}'.format(name, self.servicename, result, traceback.format_exc()))
+                        current_app.logger.warning('exception for "{}", result ignored, processing {} result {}\n{}'.format(name, self.servicename, result, traceback.format_exc()))
                         outrec = None
 
                     # only save if service wanted to save
@@ -744,7 +744,7 @@ class CollectServiceResults(object):
         thistask.update_state(state='PROGRESS', meta={'progress': status})
 
         finish = time.time()
-        app.logger.debug('elapsed time (min) = {}'.format((finish-start)/60))
+        current_app.logger.debug('elapsed time (min) = {}'.format((finish-start)/60))
     
 
 class ServiceResult():
@@ -901,7 +901,7 @@ class LocationServer(object):
             if gc:
                 # notify if multiple values returned
                 if len(gc) > 1:
-                    app.logger.warning('geocode: multiple locations ({}) received from googlemaps for {}'.format(len(gc), address))
+                    current_app.logger.warning('geocode: multiple locations ({}) received from googlemaps for {}'.format(len(gc), address))
 
                 # save lat/long from first value returned
                 loc.latitude  = gc[0]['geometry']['location']['lat']
