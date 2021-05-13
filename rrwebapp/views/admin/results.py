@@ -1047,7 +1047,7 @@ class RunnerResultsChart(MethodView):
                                          pagecssfiles=addscripts(['d3.legend.css', 'dt_chart.css']),
                                          # serverSide must be True to pass url
                                          # add the request args to the ajax function
-                                         tabledata=url_for('_resultschart')+'?'+urlencode(request.args),
+                                         tabledata=url_for('._resultschart')+'?'+urlencode(request.args),
                                          tablebuttons= ['csv'],
                                          tablefiles=None,
                                          options = options,
