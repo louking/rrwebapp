@@ -25,8 +25,9 @@ import time
 from flask import current_app
 
 # home grown libraries
-from loutilities import timeu
+from loutilities.timeu import asctime, dt2epoch
 from loutilities import agegrade
+from running.runningahead import RunningAhead, dist2meters, FIELD
 
 class unexpectedEOF(Exception): pass
 class invalidParameter(Exception): pass
@@ -34,8 +35,10 @@ class invalidParameter(Exception): pass
 METERSPERMILE = 1609.344
 
 # pull in age grade object
+# TODO: this should be from current_app config object, so needs to be moved somewhere current_app is defined
 ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
     
+tdisp = asctime('%Y-%m-%d')
 
 #-------------------------------------------------------------------------------
 def distmap(dist):
@@ -376,9 +379,9 @@ class AnalyzeAgeGrade():
         :rtype: dists,stats,dob,gender where dists =  set of distances included in stats, stats = {'date':[datetime of race,...], 'dist':[distance(meters),...], 'time':[racetime(seconds),...]}, dob = date of birth (datetime), gender = 'M'|'F'
         '''
         # set up RunningAhead object and get users we're allowed to look at
-        ra = runningahead.RunningAhead()    
+        ra = RunningAhead()    
         users = ra.listusers()
-        day = timeu.asctime('%Y-%m-%d') # date format in RunningAhead workout object
+        day = asctime('%Y-%m-%d') # date format in RunningAhead workout object
         
         # find correct user, grab their workouts
         workouts = None
@@ -410,7 +413,7 @@ class AnalyzeAgeGrade():
             for wo in workouts:
                 if wo['workoutName'].lower() != 'race': continue
                 thisdate = day.asc2dt(wo['date'])
-                thisdist = runningahead.dist2meters(wo['details']['distance'])
+                thisdist = dist2meters(wo['details']['distance'])
                 thistime = wo['details']['duration']
                 
                 tempstats.append((thisdate,AgeGradeStat(thisdate,thisdist,thistime)))
@@ -433,7 +436,7 @@ class AnalyzeAgeGrade():
         ### DEBUG>
         debug = False
         if debug:
-            tim = timeu.asctime('%Y-%m-%d-%H%M')
+            tim = asctime('%Y-%m-%d-%H%M')
             _DEB = open('analyzeagegrade-debug-{}-crunch-{}.csv'.format(tim.epoch2asc(self.exectime,self.who)), 'w', newline='')
             fields = ['date','dist','time','ag']
             DEB = csv.DictWriter(_DEB, fields)
@@ -476,7 +479,7 @@ class AnalyzeAgeGrade():
         if not thesestats:
             thesestats = self.stats
         
-        X = [timeu.dt2epoch(s.date) for s in thesestats]
+        X = [dt2epoch(s.date) for s in thesestats]
         Y = [s.ag for s in thesestats]
         
         try:
