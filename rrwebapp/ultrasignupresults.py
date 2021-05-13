@@ -221,7 +221,7 @@ class UltraSignupCollect(CollectServiceResults):
         ### TODO: should the above be .all() then check for first race within epsilon distance?
         if not race:
             racecached = False
-            race = Race(self.club_id, raceyear)
+            race = Race(club_id=self.club_id, year=raceyear)
             race.name = racename
             race.distance = distmiles
             race.fixeddist = race_fixeddist(race.distance)
