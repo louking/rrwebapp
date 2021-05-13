@@ -693,7 +693,7 @@ class CollectServiceResults(object):
             enddate = dt2epoch(adj_enddate)
 
             # only update state max 100 times over course of file, but don't make it too small
-            statemod = status[self.servicename]['total'] / 100;
+            statemod = status[self.servicename]['total'] // 100;
             if statemod == 0:
                 statemod = 1;
 
