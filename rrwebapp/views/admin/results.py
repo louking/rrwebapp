@@ -1457,7 +1457,11 @@ class ImportResultsStatus(MethodView):
                 response['cause'] = task.info.get('traceback','')
                 if response['cause'] == '':
                     response['redirect'] = url_for('.editparticipants',raceid=task.info.get('raceid'))
-                task.forget()
+                try:
+                    task.forget()
+                except NotImplementedError:
+                    # some backends don't implement forget
+                    pass
 
         # doesn't seem like this can happen, but just in case
         else:

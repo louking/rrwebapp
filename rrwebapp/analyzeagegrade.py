@@ -21,8 +21,10 @@ import csv
 import math
 import time
 
+# pypi
+from flask import current_app
+
 # home grown libraries
-from . import app
 from loutilities import timeu
 from loutilities import agegrade
 
@@ -205,7 +207,7 @@ class AnalyzeAgeGrade():
         try:
             self.stats.remove(stat)
         except ValueError:
-            app.logger.warning('del_stat: failed to delete {}'.format(stat))
+            current_app.logger.warning('del_stat: failed to delete {}'.format(stat))
         
     #-------------------------------------------------------------------------------
     def get_stats(self):
@@ -234,8 +236,9 @@ class AnalyzeAgeGrade():
         TIME_EPS = 2.0   # if time is within this tolerance (seconds), assumed to be the same
 
         # sort self.stats into stats, by date,distance
-        decstats = sorted([((s.date,s.dist),s) for s in self.stats])
-        stats = [ds[1] for ds in decstats]
+        # decstats = sorted([((s.date,s.dist),s) for s in self.stats])
+        # stats = [ds[1] for ds in decstats]
+        stats = sorted(self.stats, key=lambda s: (s.date, s.dist))
         
         # deduplicate stats, paying attention to priority when races determined to be the same
         deduped = []
@@ -253,14 +256,14 @@ class AnalyzeAgeGrade():
                 stat = stats.pop(0)
                 sameraces.append((stat.priority,stat))
             
-            # sort same races by priority, and add highes priority (lowest valued) to deduped list
-            sameraces.sort()
+            # sort same races by priority, and add highest priority (lowest valued) to deduped list
+            sameraces.sort(key=lambda r: r[0])
             prio,stat = sameraces[0]
             deduped.append(stat)
         
         dupremoved = len(self.stats) - len(deduped)
         if dupremoved > 0:
-            app.logger.debug('{} duplicate points removed, runner {}'.format(dupremoved,self.who))
+            current_app.logger.debug('{} duplicate points removed, runner {}'.format(dupremoved,self.who))
 
         # replace self.stats with deduplicated version
         self.stats = deduped
@@ -479,7 +482,7 @@ class AnalyzeAgeGrade():
         try:
             lr = linear_regression(Y, X)
         except ZeroDivisionError:
-            app.logger.debug(('ZeroDivisionError\n   len(thesestats)={}\n   X={}\n   Y={}\n' +
+            current_app.logger.debug(('ZeroDivisionError\n   len(thesestats)={}\n   X={}\n   Y={}\n' +
                               '   thesestats[0].date={}').format(len(thesestats), X, Y, thesestats[0].date))
             raise
 

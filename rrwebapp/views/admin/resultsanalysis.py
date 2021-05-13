@@ -182,6 +182,11 @@ class ResultsAnalysisStatus(MethodView):
             if task.state == 'SUCCESS':
                 # check for traceback, which indicates an error occurred
                 response['cause'] = task.info.get('traceback','')
+                try:
+                    task.forget()
+                except NotImplementedError:
+                    # some backends don't implement forget
+                    pass
 
         # doesn't seem like this can happen, but just in case
         else:
@@ -276,7 +281,11 @@ class ResultsAnalysisStatus(MethodView):
             # cancel indicated task
             elif action == 'cancel':
                 task_id = request.args.get('task_id')
-                os.remove(taskfile)
+                try:
+                    os.remove(taskfile)
+                except:
+                    # ignore exceptions removing file
+                    pass
                 celery.control.revoke(task_id, terminate=True)
                 db.session.commit()
                 return jsonify({'success': True, 'task_id': task_id})
