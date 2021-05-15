@@ -25,7 +25,6 @@ from .accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 
 class parameterError(Exception): pass
 
-#----------------------------------------------------------------------
 def _editormethod(checkaction='', formrequest=True):
     '''
     decorator for CrudApi methods used by Editor
@@ -93,7 +92,6 @@ def _editormethod(checkaction='', formrequest=True):
     return wrap
 
 
-#######################################################################
 class CrudApi(DbCrudApi):
     '''
     provides initial render and RESTful CRUD api
@@ -165,7 +163,6 @@ class CrudApi(DbCrudApi):
 
     decorators = [login_required]
 
-    #----------------------------------------------------------------------
     def __init__(self, **kwargs):
         # the args dict has all the defined parameters to
         # caller supplied keyword args are used to update the defaults
@@ -209,24 +206,36 @@ class CrudApi(DbCrudApi):
         # initialize inherited class, and a couple of attributes
         super(CrudApi, self).__init__(**args)
 
-    #----------------------------------------------------------------------
     def beforequery(self):
         if self.byclub:
             self.queryparams['club_id'] = flask.session['club_id']
         if self.byyear:
             self.queryparams['year'] = flask.session['year']
 
-    #----------------------------------------------------------------------
+    def createrow(self, formdata):
+        '''
+        creates row in database
+
+        :param formdata: data from create form
+        :rtype: returned row for rendering, e.g., from DataTablesEditor.get_response_data()
+        '''
+        # make sure we record the row's club_id
+        formdata['club_id'] = flask.session['club_id']
+
+        # return the row
+        row = super().createrow(formdata)
+
+        return row
+
     def _renderpage(self):
         self._club_id = flask.session['club_id']
         return super(CrudApi, self)._renderpage()
 
-    #----------------------------------------------------------------------
     def _retrieverows(self):
         self._club_id = flask.session['club_id']
         return super(CrudApi, self)._retrieverows()
 
-#----------------------------------------------------------------------
+
 def deepupdate(obj, val, newval):
     '''
     recursively searches obj object and replaces any val values with newval
@@ -254,7 +263,6 @@ def deepupdate(obj, val, newval):
     return thisobj
 
 
-#######################################################################
 class DbQueryApi(MethodView):
     '''
     class to set up api to get fields from dbtable
@@ -275,7 +283,6 @@ class DbQueryApi(MethodView):
     :param jsonmapping: dict {'jsonkey':'dbattr', 'jsonkey':f(dbrow), ...}
     '''
 
-    #----------------------------------------------------------------------
     def __init__(self, **kwargs):
 
         # the args dict has all the defined parameters to 
@@ -296,12 +303,10 @@ class DbQueryApi(MethodView):
         self.convert2json = DataTablesEditor({}, self.jsonmapping)
 
 
-    #----------------------------------------------------------------------
     def register(self):
         my_view = self.as_view(self.endpoint, **self.kwargs)
         app.add_url_rule('/{}/query'.format(self.endpoint),view_func=my_view,methods=['POST',])
 
-    #----------------------------------------------------------------------
     def post(self):
         # maybe some filters, maybe club_id required
         filters = request.args.copy()

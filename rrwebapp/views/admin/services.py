@@ -59,8 +59,8 @@ rrs_services = DbQueryApi(
 )
 rrs_services.register()
 
-rrs_dbattrs = 'id,apicredentials,attrs'.split(',')
-rrs_formfields = 'rowid,service,attrs'.split(',')
+rrs_dbattrs = 'id,club_id,apicredentials,attrs'.split(',')
+rrs_formfields = 'rowid,club_id,service,attrs'.split(',')
 rrs_dbmapping = OrderedDict(list(zip(rrs_dbattrs, rrs_formfields)))
 rrs_formmapping = OrderedDict(list(zip(rrs_formfields, rrs_dbattrs)))
 rrs = CrudApi(
