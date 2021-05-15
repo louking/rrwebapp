@@ -160,8 +160,8 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
     ## prepare to save detail file, for debugging
     detlfields = 'runnername,runnerid,dob,gender,resultid,racename,racedate,series,distmiles,distkm,time,timesecs,agpercent,source,sourceid'.split(',')
     detailfname = detailfile
-    _DETL = open(detailfname,'w')
-    DETL = csv.DictWriter(_DETL,detlfields)
+    _DETL = open(detailfname,'w', newline='')
+    DETL = csv.DictWriter(_DETL, detlfields)
     DETL.writeheader()
 
     ## then fill in data structure to hold AnalyzeAgeGrade objects
