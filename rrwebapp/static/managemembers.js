@@ -19,7 +19,7 @@
         var clubid = $('#club_select').val();
         $.ajax({
             type: 'POST',
-            url: '/_clubservice/query?id='+clubid,
+            url: '/admin/_clubservice/query?id='+clubid,
             contentType: false,
             cache: false,
             async: true,

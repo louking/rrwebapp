@@ -273,7 +273,7 @@ class DbQueryApi(MethodView):
 
     a list of {jsonkey: dbattr_value, ...} is returned to the api caller
 
-    url [endpoint]/query is created
+    url [rule]/query is created
     if request has args, the arg=value pairs are treated as a filter into dbtable
 
     :param endpoint: endpoint parameter used by flask.url_for()
@@ -290,7 +290,9 @@ class DbQueryApi(MethodView):
         # all arguments are made into attributes for self
         self.kwargs = kwargs
         args = dict(
+                    app = None,
                     endpoint = None,
+                    rule = None,
                     permission = None,
                     byclub = False,
                     dbtable = None,
@@ -304,8 +306,10 @@ class DbQueryApi(MethodView):
 
 
     def register(self):
-        my_view = self.as_view(self.endpoint, **self.kwargs)
-        app.add_url_rule('/{}/query'.format(self.endpoint),view_func=my_view,methods=['POST',])
+        # name for view is last bit of fully named endpoint
+        name = self.endpoint.split('.')[-1]
+        my_view = self.as_view(name, **self.kwargs)
+        self.app.add_url_rule('{}/query'.format(self.rule),view_func=my_view,methods=['POST',])
 
     def post(self):
         # maybe some filters, maybe club_id required
