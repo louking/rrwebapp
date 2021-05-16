@@ -306,8 +306,8 @@ ras.register()
 # courses endpoint
 #----------------------------------------------------------------------
 
-course_dbattrs = 'id,name,source,sourceid,date,distmiles,distkm,surface,location,raceid'.split(',')
-course_formfields = 'rowid,name,source,sourceid,date,distmiles,distkm,surface,location,raceid'.split(',')
+course_dbattrs = 'id,club_id,name,source,sourceid,date,distmiles,distkm,surface,location,raceid'.split(',')
+course_formfields = 'rowid,club_id,name,source,sourceid,date,distmiles,distkm,surface,location,raceid'.split(',')
 course_dbmapping = OrderedDict(list(zip(course_dbattrs, course_formfields)))
 course_formmapping = OrderedDict(list(zip(course_formfields, course_dbattrs)))
 course = CrudApi(
