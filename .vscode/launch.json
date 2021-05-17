@@ -12,6 +12,7 @@
             "justMyCode": false,
             "env": {
                 "FLASK_APP": "run.py",
+                // normally development, production for test of applogging
                 "FLASK_ENV": "development"
             },
             "args": [

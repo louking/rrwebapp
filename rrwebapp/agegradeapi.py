@@ -18,7 +18,7 @@ from flask.views import MethodView
 
 # homegrown
 from . import app
-from .request import crossdomain
+from .request_helpers import crossdomain
 from .model import db   # this is ok because this module only runs under flask
 
 from loutilities.agegrade import AgeGrade

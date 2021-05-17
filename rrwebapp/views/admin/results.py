@@ -32,13 +32,12 @@ from ...model import insert_or_update
 from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 from ...model import db   # this is ok because this module only runs under flask
 from ...apicommon import failure_response, success_response
-from ...request import addscripts, crossdomain
+from ...request_helpers import addscripts, crossdomain, annotatescripts
 from ...appldirs import UPLOAD_TEMP_DIR
 from ...settings import productname
 from ...raceresults import RaceResults, headerError, dataError, normalizeracetime
 from ...clubmember import DbClubMember
 from ...crudapi import CrudApi
-from ...request import annotatescripts
 from ...model import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, dbdate
 from ...model import rendertime, renderfloat, rendermember, renderlocation, renderseries
 from ...resultsutils import ServiceAttributes, LocationServer, get_distance

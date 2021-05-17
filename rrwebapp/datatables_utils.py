@@ -19,7 +19,7 @@ from flask_login import login_required
 
 # homegrown
 from .model import db   # this is ok because this module only runs under flask
-from .request import addscripts
+from .request_helpers import addscripts
 from loutilities.transform import Transform
 
 class ParameterError(Exception): pass;

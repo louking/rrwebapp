@@ -92,6 +92,7 @@ class RealDb(Config):
         # }
 
 class Development(RealDb):
+    # normally True, set to False for test of applogging
     DEBUG = True
 
 class Production(RealDb):

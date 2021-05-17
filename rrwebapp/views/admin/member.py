@@ -44,7 +44,6 @@ from loutilities import timeu
 from running.runsignup import RunSignUp, members2csv as rsu_members2csv
 from ... import clubmember
 from ...clubmember import rsu_api2filemapping
-from ...request import addscripts
 from ...crudapi import CrudApi
 from ...datatables_utils import getDataTableParams
 

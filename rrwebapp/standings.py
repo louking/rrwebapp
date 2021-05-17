@@ -38,7 +38,7 @@ from .renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
 from .forms import StandingsForm
 import loutilities.renderrun as render
 from loutilities import timeu
-from .request import addscripts
+from .request_helpers import addscripts
 
 
 #######################################################################

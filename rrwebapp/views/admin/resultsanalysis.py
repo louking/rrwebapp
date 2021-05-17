@@ -33,7 +33,7 @@ from ...accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed,
 from ...model import db   # this is ok because this module only runs under flask
 from ...apicommon import failure_response, success_response
 from loutilities.csvwt import wlist
-from ...request import addscripts
+from ...request_helpers import addscripts
 from ...crudapi import CrudApi
 from ...datatables_utils import AdminDatatablesCsv
 from loutilities.timeu import asctime

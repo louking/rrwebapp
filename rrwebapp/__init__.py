@@ -6,7 +6,7 @@ rrwebapp - package
 import os.path
 
 # pypi
-from flask import Flask, send_from_directory, current_app, g, render_template, url_for, session
+from flask import Flask, send_from_directory, current_app, g, render_template, url_for, session, request
 from flask_security import SQLAlchemyUserDatastore, current_user
 from flask_mail import Mail
 from jinja2 import ChoiceLoader, PackageLoader
@@ -227,12 +227,7 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
     tu = timeu.asctime('%Y-%m-%d %H:%M:%S')
     app.configtime = tu.epoch2asc(time.time())
 
-    # must set up logging after setting configuration
-    from . import applogging
-    applogging.setlogging()
-
     # import all views
-    from . import request
     from . import login
     from . import standings
     from . import tools
