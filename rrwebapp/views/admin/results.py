@@ -1410,7 +1410,7 @@ class AjaxImportResults(MethodView):
             
             # commit database updates and close transaction
             db.session.commit()
-            return jsonify({'success': True, 'current': 0, 'total':100, 'location': url_for('importresultsstatus', task_id=task.id)}), 202, {}
+            return jsonify({'success': True, 'current': 0, 'total':100, 'location': url_for('.importresultsstatus', task_id=task.id)}), 202, {}
             #return success_response(redirect=url_for('.editparticipants',raceid=raceid))
         
         except Exception as e:
