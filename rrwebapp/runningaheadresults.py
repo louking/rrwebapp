@@ -22,13 +22,13 @@ import time
 import traceback
 
 # pypi
+from flask import current_app
 
 # github
 
 # other
 
 # home grown
-from . import app
 from .resultsutils import CollectServiceResults, ServiceResultFile, race_fixeddist
 from .model import db   # this is ok because this module only runs under flask
 from .model import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
@@ -147,7 +147,7 @@ class RunningAHEADCollect(CollectServiceResults):
             rausername = '{} {}'.format(givenName,familyName)
             if rausername == name and dt_dob == ftime.asc2dt(rauser['birthDate']):
                 foundmember = True
-                app.logger.debug('found {}'.format(name))
+                current_app.logger.debug('found {}'.format(name))
                 break
         if not foundmember: return []
 
@@ -168,7 +168,7 @@ class RunningAHEADCollect(CollectServiceResults):
                 thistime = wo['details']['duration']
                 thisrace = wo['course']['name'] if 'course' in wo else 'unknown'
                 if thistime == 0:
-                    app.logger.warning('{} has 0 time for {} {}'.format(name,thisrace,thisdate))
+                    current_app.logger.warning('{} has 0 time for {} {}'.format(name,thisrace,thisdate))
                     continue
                 stat = {'GivenName':fname,'FamilyName':lname,'name':name,
                         'DOB':self.dob,'Gender':gender,'race':thisrace,'date':thisdate,'age':timeu.age(dt_thisdate,dt_dob),
@@ -248,7 +248,7 @@ class RunningAHEADCollect(CollectServiceResults):
         ### TODO: should the above be .all() then check for first race within epsilon distance?
         if not race:
             racecached = False
-            race = Race(self.club_id, raceyear)
+            race = Race(club_id=self.club_id, year=raceyear)
             race.name = racename
             race.distance = distmiles
             race.fixeddist = race_fixeddist(race.distance)
@@ -271,7 +271,7 @@ class RunningAHEADCollect(CollectServiceResults):
             outrec['ag'] = agpercent
             if agpercent < 15 or agpercent >= 100: return None # skip obvious outliers
         except:
-            app.logger.warning(traceback.format_exc())
+            current_app.logger.warning(traceback.format_exc())
             pass
 
         # and we're done
