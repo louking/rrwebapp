@@ -10,8 +10,6 @@
 ###########################################################################################
 
 # standard
-import json
-import csv
 import traceback
 
 # pypi
@@ -222,7 +220,8 @@ class AjaxImportRaces(MethodView):
 
             # handle csv file
             if thisfileext == 'csv':
-                thisfilecsv = DictReaderStr2Num(thisfile.stream)
+                decoded = thisfile.stream.read().decode('utf-8').splitlines()
+                thisfilecsv = DictReaderStr2Num(decoded)
 
                 # verify file has required fields
                 requiredfields = 'year,race,date,distance,surface'.split(',')
