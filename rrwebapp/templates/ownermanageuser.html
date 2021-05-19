@@ -7,7 +7,7 @@
     <script type=text/javascript>
       $(function() {
         $('#club').on('change', function() {
-          $.getJSON($SCRIPT_ROOT + '/_getpermissions', {
+          $.getJSON($SCRIPT_ROOT + '/admin/_getpermissions', {
             clubid: $('#club').val(),
             userid: hidden_userid.value
           }, function(data) {
@@ -18,7 +18,7 @@
         });
       });
       function setpermission(checkboxid) {
-        $.getJSON($SCRIPT_ROOT + '/_setpermission', {
+        $.getJSON($SCRIPT_ROOT + '/admin/_setpermission', {
             clubid: $('#club').val(),
             userid: hidden_userid.value,
             rolename: checkboxid,

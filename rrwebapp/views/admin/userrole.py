@@ -81,9 +81,9 @@ def newuser():
 
                     # roll back database updates and close transaction
                     db.session.commit()
-                    return flask.redirect(flask.url_for('useraction',userid=thisuser.id,action='edit'))
+                    return flask.redirect(flask.url_for('.useraction',userid=thisuser.id,action='edit'))
     
-                # cancel requested - note changes may have been made in url_for('_setpermission') which need to be rolled back
+                # cancel requested - note changes may have been made in url_for('._setpermission') which need to be rolled back
                 # TODO: get rid of this???  It should not work
                 elif flask.request.form['whichbutton'] == 'Cancel':
                     #db.session.expunge_all() # throw out any changes which have been made
@@ -181,7 +181,7 @@ def useraction(userid,action):
         raise
 
     return flask.render_template('ownermanageuser.html', form=form,
-                                 userurl=flask.url_for('useraction',userid=userid,action=action),
+                                 userurl=flask.url_for('.useraction',userid=userid,action=action),
                                  displayonly=displayonly,
                                  cancancel=cancancel,
                                  thispagename=pagename, action=buttontext)
