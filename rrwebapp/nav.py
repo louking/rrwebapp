@@ -262,15 +262,16 @@ def nav_menu():
         )
     )
 
-    # this isn't accessible from the menu now. todo: decide whether to keep
-    if is_authenticated(thisuser):
-        # TODO: when more tools are available, move writecheck to appropriate tools
-        navigation = []
-        if club and writecheck.can():
-            navigation.append({'display':'Tools','list':[]})
-            navigation[-1]['list'].append({'display':'Normalize Members','url':url_for('normalizememberlist')})
-            navigation[-1]['list'].append({'display':'Export Results','url':url_for('exportresults')})
+    # # this isn't accessible from the menu now. todo: decide whether to keep
+    # if is_authenticated(thisuser):
+    #     # TODO: when more tools are available, move writecheck to appropriate tools
+    #     navigation = []
+    #     if club and writecheck.can():
+    #         navigation.append({'display':'Tools','list':[]})
+    #         navigation[-1]['list'].append({'display':'Normalize Members','url':url_for('normalizememberlist')})
+    #         navigation[-1]['list'].append({'display':'Export Results','url':url_for('exportresults')})
     
+    # superadmin
     if is_authenticated(thisuser) and owner_permission.can():
         super_admin_view(navbar, 'Debug', 'admin.debug')
     

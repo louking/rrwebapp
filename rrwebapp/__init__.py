@@ -230,7 +230,6 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
     # import all views
     from . import login
     from . import standings
-    from . import tools
     from . import docs
     from . import staticfiles
     from . import agegradeapi

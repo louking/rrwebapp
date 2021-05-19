@@ -101,7 +101,8 @@ class FormatMemberlist(MethodView):
                 return flask.redirect(flask.url_for('normalizememberlist'))
 
             # return normalized multiple record inputfile
-            response = make_response(normalizeRAmemberlist(requestfile.stream,filterexpdate=expdate))
+            decoded = requestfile.stream.read().decode('utf-8').splitlines()
+            response = make_response(normalizeRAmemberlist(decoded, filterexpdate=expdate))
             response.headers["Content-Disposition"] = "attachment; filename={}-normalized{}".format(root,ext)
             
             # commit database updates and close transaction
