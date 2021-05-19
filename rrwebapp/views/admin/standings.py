@@ -21,24 +21,24 @@ import traceback
 
 # pypi
 import flask
-from flask import request
+from flask import request, current_app
 from flask.views import MethodView
 
 # home grown
-from . import app
-from .accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
+from . import bp
+from ...accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
                                     UpdateClubDataPermission, ViewClubDataPermission
-from .model import db   # this is ok because this module only runs under flask
-from .apicommon import failure_response, success_response
+from ...model import db   # this is ok because this module only runs under flask
+from ...apicommon import failure_response, success_response
 
 # module specific needs
 import urllib.request, urllib.parse, urllib.error
-from .model import dbdate, Runner, RaceResult, RaceSeries, Race, Series, Club
-from .renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
-from .forms import StandingsForm
+from ...model import dbdate, Runner, RaceResult, RaceSeries, Race, Series, Club
+from ...renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
+from ...forms import StandingsForm
 import loutilities.renderrun as render
 from loutilities import timeu
-from .request_helpers import addscripts
+from ...request_helpers import addscripts
 
 
 #######################################################################
@@ -62,7 +62,7 @@ class ViewStandings(MethodView):
                 db.session.rollback()
                 cause = "Error: club '{}' does not exist".format(club)
                 flask.flash(cause)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return flask.redirect(flask.url_for('index'))
             
             club_id = thisclub.id
@@ -72,7 +72,7 @@ class ViewStandings(MethodView):
                 db.session.rollback()
                 cause = "Error: series '{}' does not exist for '{}' club".format(series,clubname)
                 flask.flash(cause)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return flask.redirect(flask.url_for('index'))
             
             seriesid = thisseries.id
@@ -155,11 +155,11 @@ class ViewStandings(MethodView):
             db.session.rollback()
             cause = 'Unexpected Error: {}'.format(e)
             flask.flash(cause)
-            app.logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             raise
             return flask.redirect(flask.url_for('index'))
 #----------------------------------------------------------------------
-app.add_url_rule('/viewstandings/',view_func=ViewStandings.as_view('viewstandings'),methods=['GET'])
+bp.add_url_rule('/viewstandings/',view_func=ViewStandings.as_view('viewstandings'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -183,7 +183,7 @@ class TestStandings(MethodView):
                 db.session.rollback()
                 cause = "Error: club '{}' does not exist".format(club)
                 flask.flash(cause)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return flask.redirect(flask.url_for('home'))  
             
             club_id = thisclub.id
@@ -193,7 +193,7 @@ class TestStandings(MethodView):
                 db.session.rollback()
                 cause = "Error: series '{}' does not exist for '{}' club".format(series,clubname)
                 flask.flash(cause)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return flask.redirect(flask.url_for('home'))  
             
             seriesid = thisseries.id
@@ -277,11 +277,11 @@ class TestStandings(MethodView):
             db.session.rollback()
             cause = 'Unexpected Error: {}'.format(e)
             flask.flash(cause)
-            app.logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             raise
             return flask.redirect(flask.url_for('home'))  
 #----------------------------------------------------------------------
-app.add_url_rule('/_teststandings/',view_func=TestStandings.as_view('teststandings'),methods=['GET'])
+bp.add_url_rule('/_teststandings/',view_func=TestStandings.as_view('teststandings'),methods=['GET'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -297,14 +297,14 @@ class AjaxGetYears(MethodView):
             if not clubsh:
                 db.session.rollback()
                 cause = 'Unexpected Error: both club and year must be specified'
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
                 
             club = Club.query.filter_by(shname=clubsh).first()
             if not club:
                 db.session.rollback()
                 cause = 'Unexpected Error: club {} does not exist'.format(clubsh)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             
             club_id = club.id
@@ -328,10 +328,10 @@ class AjaxGetYears(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())
-            app.logger.error(cause)
+            current_app.logger.error(cause)
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
-app.add_url_rule('/standings/_getyears',view_func=AjaxGetYears.as_view('standings/_getyears'),methods=['POST'])
+bp.add_url_rule('/standings/_getyears',view_func=AjaxGetYears.as_view('standings/_getyears'),methods=['POST'])
 #----------------------------------------------------------------------
 
 #######################################################################
@@ -349,14 +349,14 @@ class AjaxGetSeries(MethodView):
                 db.session.rollback()
                 cause = 'Unexpected Error: both club and year must be specified'
                 # this can happen if user has no cookie initialized when the popup is initially brought up
-                # app.logger.error(cause)
+                # current_app.logger.error(cause)
                 return failure_response(cause=cause)
                 
             club = Club.query.filter_by(shname=clubsh).first()
             if not club:
                 db.session.rollback()
                 cause = 'Unexpected Error: club {} does not exist'.format(clubsh)
-                app.logger.error(cause)
+                current_app.logger.error(cause)
                 return failure_response(cause=cause)
             
             club_id = club.id
@@ -375,9 +375,9 @@ class AjaxGetSeries(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             cause = 'Unexpected Error: {}\n{}'.format(e,traceback.format_exc())
-            app.logger.error(cause)
+            current_app.logger.error(cause)
             return failure_response(cause=cause)
 #----------------------------------------------------------------------
-app.add_url_rule('/standings/_getseries',view_func=AjaxGetSeries.as_view('standings/_getseries'),methods=['POST'])
+bp.add_url_rule('/standings/_getseries',view_func=AjaxGetSeries.as_view('standings/_getseries'),methods=['POST'])
 #----------------------------------------------------------------------
 

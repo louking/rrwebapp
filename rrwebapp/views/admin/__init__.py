@@ -14,4 +14,5 @@ from . import results
 from . import resultsanalysis
 from . import race
 from . import club
+from . import standings
 from . import debug

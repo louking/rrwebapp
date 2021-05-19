@@ -741,7 +741,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         '''
         name = str(name)
         if runnerid:
-            nameurl = makelink('{}?{}'.format(flask.url_for('results'),urllib.parse.urlencode({'participant':runnerid,'series':self.seriesname})),name)
+            nameurl = makelink('{}?{}'.format(flask.url_for('admin.results'),urllib.parse.urlencode({'participant':runnerid,'series':self.seriesname})),name)
         else:
             nameurl = name
         self.pline[gen]['name'] = addstyle(self.pline[gen]['header'],nameurl,stylename)

@@ -1404,7 +1404,7 @@ $(function() {
             }
             editor.buttons(localbuttons);
 
-            $.post('/standings/_getseries?' + $.param({club:editor.field('club').val(), year:editor.field('year').val()}),
+            $.post('/admin/standings/_getseries?' + $.param({club:editor.field('club').val(), year:editor.field('year').val()}),
                 success=function(data, textStatus, jqXHR) {
                     navstandingsdepth -= 1;
                     if (data.success) {
