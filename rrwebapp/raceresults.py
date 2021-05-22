@@ -19,7 +19,7 @@ from loutilities.timeu import racetimesecs
 # the value for a particular key contains a list with possible header entries which might be used to represent that key
 # field used is prioritized by order in list
 # TODO: get these from a configuration file
-# IF THESE CHANGE, MUST CHANGE static/docs/importresults.csv
+# IF THESE CHANGE, MUST CHANGE static/doc/importresults.csv
 fieldxform = {
     'place':['place','pl','gunplace','overall place'],
     'lastname':[['last','name'],'last name','lastname','last'],
@@ -116,7 +116,7 @@ class RaceResults():
                 else:
                     for word in origline:
                         line.append(str(word).lower())  # str() called in case non-string returned in origline
-                    
+                
                 # loop for each potential self.field in a header
                 for fieldndx in range(len(fields)):
                     f = fields[fieldndx]
@@ -334,7 +334,7 @@ class RaceResults():
                             raise dataError("invalid place '{}' for record with name '{}'".format(result['place'],result['name']))
                 
             # look for some obvious errors in name
-            if result['name'] is None or result['name'][0] in '=-/!':
+            if result['name'] is None or result['name'] == '' or result['name'][0] in '=-/!':
                 if not self.contiguousrows:
                     textfound = False
                     continue
@@ -343,9 +343,14 @@ class RaceResults():
             
             # TODO: add normalization for gender
             
+            # results with empty times are ignored
+            if 'time' not in result or result['time'].strip() == '':
+                textfound = False
+                continue
+
             # add normalization for race time (e.g., convert hours to minutes if misuse of excel)
-            if 'time' in result:
-                result['time'] = self._normalizetime(result['time'],self.distance)
+            # current_app.logger.debug(f"name={result['name']} time (unnormalized)={result['time']}")
+            result['time'] = self._normalizetime(result['time'],self.distance)
         
         # and return result
         return result
