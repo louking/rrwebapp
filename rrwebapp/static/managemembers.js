@@ -37,24 +37,40 @@
             },
         });
 
+        // create background post data handler for member update by file
+        var import_file_background = new BackgroundPostDataManager({
+            urlpath: $('#managemembersImport').attr('_rrwebapp-formaction'),
+            get_postdata: function() {
+                return new FormData($('#import-members')[0]);
+            },
+            aftersuccesshook: function() {
+                location.reload();
+            }
+        });
+
         var $importmembers = $('#managemembersImport');
         $importmembers.click( function( event ) {
             event.preventDefault();
-            var url = $(this).attr('_rrwebapp-formaction')
-            ajax_import_file(url, '#import-members', false);
+            import_file_background.post(false);
             tools.close();
+        });
+
+        // create background post data handler for member update by service
+        var import_service_background = new BackgroundPostDataManager({
+            urlpath: $('#managemembersImportApi').attr('_rrwebapp-formaction'),
+            urlparams: {'useapi': true},
+            aftersuccesshook: function() {
+                location.reload();
+            }
         });
 
         // handle Download from Service button within Import dialog
         var $importmembersapi = $('#managemembersImportApi');
         $importmembersapi.click( function( event ) {
             event.preventDefault();
-            var url = $(this).attr('_rrwebapp-formaction')
             // reload page after api import. Note if importing file (above) reload
             // handling is in ajax_import_file_resp
-            ajax_update_db_noform(url, {'useapi':true}, this, false, function() {
-                location.reload(true);
-            }, true);
+            import_service_background.post(false);
             tools.close();
         });
     };  // managemembers

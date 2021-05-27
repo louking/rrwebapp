@@ -4,29 +4,34 @@ tasks - define background tasks
 """
 # standard
 import os.path
+from os.path import splitext
 import os
 import traceback
 from flask.globals import current_app
+from time import time
 
 # pypi
-from loutilities.timeu import timesecs
+from loutilities.timeu import timesecs, epoch2dt, asctime, age as ageasof
 from loutilities.flask_helpers.mailer import sendmail
 from celery.utils.log import get_task_logger
 
 # home grown
 from .celery import celery
-from .model import ManagedResult, Race
+from .model import ManagedResult, Race, Runner, RaceResult
 from .model import db, ApiCredentials, RaceResultService
+from .model import getunique, update, insert_or_update
 from .settings import productname
 from .resultsutils import StoreServiceResults
 from .resultssummarize import summarize
 from .resultsutils import ImportResults
 from .raceresults import RaceResults
+from . import clubmember
 
 class ParameterError(Exception): pass
 
-# set up logger
+# set up logger, time
 logger = get_task_logger(__name__)
+tYmd = asctime('%Y-%m-%d')
 
 # set up services to collect and store data from
 normstoreattrs = 'runnername,dob,gender,sourceid,sourceresultid,racename,date,raceloc,raceage,distmiles,time,timesecs,fuzzyage'.split(',')
@@ -159,11 +164,189 @@ def importresultstask(self, club_id, raceid, resultpathname):
 
         # tell the admins that this happened
         admins = current_app.config['APP_ADMINS']
-        sendmail('[scoretility] importtaskresults: exception occurred', 'noreply@scoretility.com', admins, '', text=traceback.format_exc())
-        # celery.mail_admins('[scoretility] importtaskresults: exception occurred', traceback.format_exc())
+        sendmail('[scoretility] importresultstask: exception occurred', 'noreply@scoretility.com', admins, '', text=traceback.format_exc())
 
         # report this as success, but since traceback is present, server will tell user
         return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}
+
+@celery.task(bind=True)
+def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
+    try:
+        # get file extention
+        root,ext = splitext(memberfilename)
+
+        # bring in data from the file
+        if ext in ['.xls','.xlsx']:
+            members = clubmember.XlClubMember(memberpathname)
+        elif ext in ['.csv']:
+            members = clubmember.CsvClubMember(memberpathname)
+        
+        # how did this happen?  check member.AjaxImportMembers.allowed_file() for bugs
+        else:
+            db.session.rollback()
+            cause =  'Program Error: Invalid file type {} for file {} path {} (unexpected)'.format(ext, memberfilename, memberpathname)
+            raise ParameterError(cause)
+        
+        # remove file and temporary directory
+        os.remove(memberpathname)
+        try:
+            os.rmdir(tempdir)
+        # no idea why this can happen; hopefully doesn't happen on linux
+        except WindowsError as e:
+            current_app.logger.debug('WindowsError exception ignored: {}'.format(e))
+
+        # get all the member runners currently in the database
+        # hash them into dict by (name,dateofbirth)
+        allrunners = Runner.query.filter_by(club_id=club_id, member=True, active=True).all()
+        inactiverunners = {}
+        for thisrunner in allrunners:
+            inactiverunners[thisrunner.name,thisrunner.dateofbirth] = thisrunner
+
+        # get old clubmembers from database
+        dbmembers = clubmember.DbClubMember(club_id=club_id)   # use default database
+
+        # prepare for age check
+        thisyear = epoch2dt(time()).year
+        asofasc = '{}-1-1'.format(thisyear) # jan 1 of current year
+        asof = tYmd.asc2dt(asofasc) 
+
+        # get current list of members
+        allmembers = members.getmembers()
+
+        # count rows
+        total = len(allmembers)
+
+        # only update state max 100 times over course of file, but don't make it too small
+        statemod = total // 100
+        if statemod == 0:
+            statemod = 1
+
+        # process each name in new membership list
+        numentries = 0
+        for name in allmembers:
+            # track progress for front end, make sure we update state immediately on start
+            if numentries % statemod == 0:
+                self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
+            numentries += 1
+
+            current_app.logger.debug(f'tasks.importmemberstask: processing {name}')
+            thesemembers = allmembers[name]
+            # NOTE: may be multiple members with same name
+            for thismember in thesemembers:
+                thisname = thismember['name']
+                thisfname = thismember['fname']
+                thislname = thismember['lname']
+                thisdob = thismember['dob']
+                thisgender = thismember['gender'][0].upper()    # male -> M, female -> F
+                thishometown = thismember['hometown']
+                thisrenewdate = thismember['renewdate']
+                thisexpdate = thismember['expdate']
+
+                # prep for if .. elif below by running some queries
+                # handle close matches, if DOB does match
+                age = ageasof(asof,tYmd.asc2dt(thisdob))
+                matchingmember = dbmembers.findmember(thisname,age,asofasc)
+                dbmember = None
+                if matchingmember:
+                    membername,memberdob = matchingmember
+                    if memberdob == thisdob:
+                        dbmember = getunique(db.session,Runner,club_id=club_id,member=True,name=membername,dateofbirth=thisdob)
+                
+                # TODO: need to handle case where dob transitions from '' to actual date of birth
+                
+                # no member found, maybe there is nonmember of same name already in database
+                if dbmember is None:
+                    dbnonmember = getunique(db.session,Runner,club_id=club_id,member=False,name=thisname)
+                    # TODO: there's a slim possibility that there are two nonmembers with the same name, but I'm sure we've already
+                    # bolloxed that up in importresult as there's no way to discriminate between the two
+                    
+                    ## make report for new members
+                    #NEWMEMCSV.writerow({'name':thisname,'dob':thisdob})
+                    
+                # see if this runner is a member in the database already, or was a member once and make the update
+                # add or update runner in database
+                # get instance, if it exists, and make any updates
+                found = False
+                if dbmember is not None:
+                    thisrunner = Runner(club_id,membername,thisdob,thisgender,thishometown,
+                                        fname=thisfname,lname=thislname,
+                                        renewdate=thisrenewdate,expdate=thisexpdate)
+                    
+                    # this is also done down below, but must be done here in case member's name has changed
+                    if (thisrunner.name,thisrunner.dateofbirth) in inactiverunners:
+                        inactiverunners.pop((thisrunner.name,thisrunner.dateofbirth))
+
+                    # overwrite member's name if necessary
+                    thisrunner.name = thisname  
+                    
+                    added = update(db.session,Runner,dbmember,thisrunner,skipcolumns=['id'])
+                    found = True
+                    
+                # if runner's name is in database, but not a member, see if this runner is a nonmemember which can be converted
+                # Check first result for age against age within the input file
+                # if ages match, convert nonmember to member
+                elif dbnonmember is not None:
+                    # get dt for date of birth, if specified
+                    try:
+                        dob = tYmd.asc2dt(thisdob)
+                    except ValueError:
+                        dob = None
+                        
+                    # nonmember came into the database due to a nonmember race result, so we can use any race result to check nonmember's age
+                    if dob:
+                        result = RaceResult.query.filter_by(runnerid=dbnonmember.id).first()
+                        resultage = result.agage
+                        racedate = tYmd.asc2dt(result.race.date)
+                        expectedage = ageasof(racedate,dob)
+                        #expectedage = racedate.year - dob.year - int((racedate.month, racedate.day) < (dob.month, dob.day))
+                    
+                    # we found the right person, always if dob isn't specified, but preferably check race result for correct age
+                    if dob is None or resultage == expectedage:
+                        thisrunner = Runner(club_id,thisname,thisdob,thisgender,thishometown,
+                                            fname=thisfname,lname=thislname,
+                                            renewdate=thisrenewdate,expdate=thisexpdate)
+                        added = update(db.session,Runner,dbnonmember,thisrunner,skipcolumns=['id'])
+                        found = True
+                    else:
+                        current_app.logger.warning('{} found in database, wrong age, expected {} found {} in {}'.format(thisname,expectedage,resultage,result))
+                        # TODO: need to make file for these, also need way to force update, because maybe bad date in database for result
+                        # currently this will cause a new runner entry
+                
+                # if runner was not found in database, just insert new runner
+                if not found:
+                    thisrunner = Runner(club_id,thisname,thisdob,thisgender,thishometown,
+                                        fname=thisfname,lname=thislname,
+                                        renewdate=thisrenewdate,expdate=thisexpdate)
+                    added = insert_or_update(db.session,Runner,thisrunner,skipcolumns=['id'],club_id=club_id,name=thisname,dateofbirth=thisdob)
+                    
+                # remove this runner from collection of runners which should be deactivated in database
+                if (thisrunner.name,thisrunner.dateofbirth) in inactiverunners:
+                    inactiverunners.pop((thisrunner.name,thisrunner.dateofbirth))
+            
+        # any runners remaining in 'inactiverunners' should be deactivated
+        for (name,dateofbirth) in inactiverunners:
+            thisrunner = Runner.query.filter_by(club_id=club_id,name=name,dateofbirth=dateofbirth).first() # should be only one returned by filter
+            thisrunner.active = False
+    
+        # not sure this is necessary, but final state update
+        self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
+
+        # we're done
+        db.session.commit()
+        return {'current': total, 'total': total, 'club_id': club_id}
+
+    except:
+        # close database session and roll back
+        # see http://stackoverflow.com/questions/7672327/how-to-make-a-celery-task-fail-from-within-the-task
+        db.session.rollback()
+
+        # tell the admins that this happened
+        admins = current_app.config['APP_ADMINS']
+        sendmail('[scoretility] importmemberstask: exception occurred', 'noreply@scoretility.com', admins, '', text=traceback.format_exc())
+
+        # report this as success, but since traceback is present, server will tell user
+        return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}
+
 
 @celery.task(bind=True)
 def analyzeresultstask(self, club_id, action, resultsurl, memberfile, detailfile, summaryfile, fulldetailfile, taskfile):
@@ -248,7 +431,6 @@ def analyzeresultstask(self, club_id, action, resultsurl, memberfile, detailfile
         # tell the admins that this happened
         admins = current_app.config['APP_ADMINS']
         sendmail('[scoretility] analyzeresultstask: exception occurred', 'noreply@scoretility.com', admins, '', text=traceback.format_exc())
-        # celery.mail_admins('[scoretility] analyzeresultstask: exception occurred', traceback.format_exc())
 
         # not in a task any more
         if os.path.isfile(taskfile):

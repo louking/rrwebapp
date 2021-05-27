@@ -94,8 +94,9 @@ asset_bundles = {
         'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
 
         'layout.js',
-        'datatables.js',
-        'datatables.dataRender.ellipsis.js',
+        'datatables.js',                            # loutilities
+        'datatables.dataRender.ellipsis.js',        # loutilities
+        'background-post-data-manager.js',          # loutilities
         'managemembers.js',
         'RaceResults.js',
 

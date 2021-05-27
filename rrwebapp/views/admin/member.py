@@ -1,61 +1,48 @@
-###########################################################################################
-# member - member views for member results web application
-#
-#       Date            Author          Reason
-#       ----            ------          ------
-#       03/01/14        Lou King        Create
-#
-#   Copyright 2014 Lou King
-#
-###########################################################################################
+"""
+member - member views for member results web application
+==========================================================
+"""
 
 # standard
 import json
 import csv
 import os.path
-import time
 import tempfile
 import os
 import traceback
+from collections import OrderedDict
+import csv
+from copy import copy
 
 # pypi
 import flask
-from flask import request, current_app
+from flask import request, current_app, url_for, jsonify
 from flask_login import login_required, current_user
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
+from loutilities.csvwt import wlist
+from loutilities.timeu import asctime
+from running.runsignup import members2csv as rsu_members2csv
 
 # home grown
 from . import bp
 from ...model import db
-from ...model import getunique, update, insert_or_update
 from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 from ...apicommon import failure_response, success_response
-
-# module specific needs
-from collections import OrderedDict
-import csv
-from copy import copy
-from ...model import Runner, Club, RaceResult, ApiCredentials
+from ...model import Runner, Club, ApiCredentials
 from ...forms import MemberForm 
-#from runningclub import memberfile   # required for xlsx support
-from loutilities.csvwt import wlist
-from loutilities import timeu
-from running.runsignup import RunSignUp, members2csv as rsu_members2csv
-from ... import clubmember
+from ...tasks import importmemberstask
 from ...clubmember import rsu_api2filemapping
 from ...crudapi import CrudApi
 from ...datatables_utils import getDataTableParams
 
 # module globals
-tYmd = timeu.asctime('%Y-%m-%d')
+tYmd = asctime('%Y-%m-%d')
 MINHDR = ['FamilyName','GivenName','Gender','DOB','RenewalDate','ExpirationDate','City','State']
 
 class InvalidUser(Exception): pass
 
-#----------------------------------------------------------------------
 def normalizeRAmemberlist(inputstream,filterexpdate=None):
-#----------------------------------------------------------------------
     '''
     Take RunningAHEAD membership list (Export individual membership records), and produce member list.
     For a given expiration date, the earliest renewal date is used
@@ -291,14 +278,11 @@ mm.register()
 # app.add_url_rule('/membersettings/<int:memberid>',view_func=MemberSettings.as_view('membersettings'),methods=['GET','POST'])
 # #----------------------------------------------------------------------
 
-#######################################################################
+
 class AjaxImportMembers(MethodView):
-#######################################################################
     decorators = [login_required]
     
-    #----------------------------------------------------------------------
     def post(self):
-    #----------------------------------------------------------------------
         def allowed_file(filename):
             return '.' in filename and filename.split('.')[-1] in ['csv','xlsx','xls']
     
@@ -361,14 +345,8 @@ class AjaxImportMembers(MethodView):
                     current_app.logger.error(cause)
                     return failure_response(cause=cause)
 
-            # get all the member runners currently in the database
-            # hash them into dict by (name,dateofbirth)
-            allrunners = Runner.query.filter_by(club_id=club_id,member=True,active=True).all()
-            inactiverunners = {}
-            for thisrunner in allrunners:
-                inactiverunners[thisrunner.name,thisrunner.dateofbirth] = thisrunner
-
             # if some members exist, verify user wants to overwrite
+            allrunners = Runner.query.filter_by(club_id=club_id,member=True,active=True).all()
             if allrunners and not request.args.get('force')=='true':
                 db.session.rollback()
                 return failure_response(cause='Overwrite members?',confirm=True)
@@ -389,140 +367,12 @@ class AjaxImportMembers(MethodView):
                 memberpathname = os.path.join(tempdir,memberfilename)
                 memberfile.save(memberpathname)            
 
+            # start task
+            task = importmemberstask.apply_async((club_id, tempdir, memberpathname, memberfilename))
 
-            # bring in data from the file
-            if ext in ['.xls','.xlsx']:
-                members = clubmember.XlClubMember(memberpathname)
-            elif ext in ['.csv']:
-                members = clubmember.CsvClubMember(memberpathname)
-            
-            # how did this happen?  check allowed_file() for bugs
-            else:
-                db.session.rollback()
-                cause =  'Program Error: Invalid file type {} for file {} path {} (unexpected)'.format(ext,memberfilename,memberpathname)
-                current_app.logger.error(cause)
-                return failure_response(cause=cause)
-            
-            # remove file and temporary directory
-            os.remove(memberpathname)
-            try:
-                os.rmdir(tempdir)
-            # no idea why this can happen; hopefully doesn't happen on linux
-            except WindowsError as e:
-                current_app.logger.debug('WindowsError exception ignored: {}'.format(e))
-
-            # get old clubmembers from database
-            dbmembers = clubmember.DbClubMember(club_id=club_id)   # use default database
-
-            # prepare for age check
-            thisyear = timeu.epoch2dt(time.time()).year
-            asofasc = '{}-1-1'.format(thisyear) # jan 1 of current year
-            asof = tYmd.asc2dt(asofasc) 
-    
-            # process each name in new membership list
-            allmembers = members.getmembers()
-            for name in allmembers:
-                thesemembers = allmembers[name]
-                # NOTE: may be multiple members with same name
-                for thismember in thesemembers:
-                    thisname = thismember['name']
-                    thisfname = thismember['fname']
-                    thislname = thismember['lname']
-                    thisdob = thismember['dob']
-                    thisgender = thismember['gender'][0].upper()    # male -> M, female -> F
-                    thishometown = thismember['hometown']
-                    thisrenewdate = thismember['renewdate']
-                    thisexpdate = thismember['expdate']
-        
-                    # prep for if .. elif below by running some queries
-                    # handle close matches, if DOB does match
-                    age = timeu.age(asof,tYmd.asc2dt(thisdob))
-                    matchingmember = dbmembers.findmember(thisname,age,asofasc)
-                    dbmember = None
-                    if matchingmember:
-                        membername,memberdob = matchingmember
-                        if memberdob == thisdob:
-                            dbmember = getunique(db.session,Runner,club_id=club_id,member=True,name=membername,dateofbirth=thisdob)
-                    
-                    # TODO: need to handle case where dob transitions from '' to actual date of birth
-                    
-                    # no member found, maybe there is nonmember of same name already in database
-                    if dbmember is None:
-                        dbnonmember = getunique(db.session,Runner,club_id=club_id,member=False,name=thisname)
-                        # TODO: there's a slim possibility that there are two nonmembers with the same name, but I'm sure we've already
-                        # bolloxed that up in importresult as there's no way to discriminate between the two
-                        
-                        ## make report for new members
-                        #NEWMEMCSV.writerow({'name':thisname,'dob':thisdob})
-                        
-                    # see if this runner is a member in the database already, or was a member once and make the update
-                    # add or update runner in database
-                    # get instance, if it exists, and make any updates
-                    found = False
-                    if dbmember is not None:
-                        thisrunner = Runner(club_id,membername,thisdob,thisgender,thishometown,
-                                            fname=thisfname,lname=thislname,
-                                            renewdate=thisrenewdate,expdate=thisexpdate)
-                        
-                        # this is also done down below, but must be done here in case member's name has changed
-                        if (thisrunner.name,thisrunner.dateofbirth) in inactiverunners:
-                            inactiverunners.pop((thisrunner.name,thisrunner.dateofbirth))
-        
-                        # overwrite member's name if necessary
-                        thisrunner.name = thisname  
-                        
-                        added = update(db.session,Runner,dbmember,thisrunner,skipcolumns=['id'])
-                        found = True
-                        
-                    # if runner's name is in database, but not a member, see if this runner is a nonmemember which can be converted
-                    # Check first result for age against age within the input file
-                    # if ages match, convert nonmember to member
-                    elif dbnonmember is not None:
-                        # get dt for date of birth, if specified
-                        try:
-                            dob = tYmd.asc2dt(thisdob)
-                        except ValueError:
-                            dob = None
-                            
-                        # nonmember came into the database due to a nonmember race result, so we can use any race result to check nonmember's age
-                        if dob:
-                            result = RaceResult.query.filter_by(runnerid=dbnonmember.id).first()
-                            resultage = result.agage
-                            racedate = tYmd.asc2dt(result.race.date)
-                            expectedage = timeu.age(racedate,dob)
-                            #expectedage = racedate.year - dob.year - int((racedate.month, racedate.day) < (dob.month, dob.day))
-                        
-                        # we found the right person, always if dob isn't specified, but preferably check race result for correct age
-                        if dob is None or resultage == expectedage:
-                            thisrunner = Runner(club_id,thisname,thisdob,thisgender,thishometown,
-                                                fname=thisfname,lname=thislname,
-                                                renewdate=thisrenewdate,expdate=thisexpdate)
-                            added = update(db.session,Runner,dbnonmember,thisrunner,skipcolumns=['id'])
-                            found = True
-                        else:
-                            current_app.logger.warning('{} found in database, wrong age, expected {} found {} in {}'.format(thisname,expectedage,resultage,result))
-                            # TODO: need to make file for these, also need way to force update, because maybe bad date in database for result
-                            # currently this will cause a new runner entry
-                    
-                    # if runner was not found in database, just insert new runner
-                    if not found:
-                        thisrunner = Runner(club_id,thisname,thisdob,thisgender,thishometown,
-                                            fname=thisfname,lname=thislname,
-                                            renewdate=thisrenewdate,expdate=thisexpdate)
-                        added = insert_or_update(db.session,Runner,thisrunner,skipcolumns=['id'],club_id=club_id,name=thisname,dateofbirth=thisdob)
-                        
-                    # remove this runner from collection of runners which should be deactivated in database
-                    if (thisrunner.name,thisrunner.dateofbirth) in inactiverunners:
-                        inactiverunners.pop((thisrunner.name,thisrunner.dateofbirth))
-                
-            # any runners remaining in 'inactiverunners' should be deactivated
-            for (name,dateofbirth) in inactiverunners:
-                thisrunner = Runner.query.filter_by(club_id=club_id,name=name,dateofbirth=dateofbirth).first() # should be only one returned by filter
-                thisrunner.active = False
-        
             # commit database updates and close transaction
             db.session.commit()
-            return success_response()
+            return jsonify({'success': True, 'current': 0, 'total':100, 'location': url_for('.importmembersstatus', task_id=task.id)}), 202, {}
         
         except Exception as e:
             # roll back database updates and close transaction
@@ -530,17 +380,60 @@ class AjaxImportMembers(MethodView):
             cause = traceback.format_exc()
             current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
-#----------------------------------------------------------------------
-bp.add_url_rule('/_importmembers',view_func=AjaxImportMembers.as_view('_importmembers'),methods=['POST'])
-#----------------------------------------------------------------------
 
-#######################################################################
+bp.add_url_rule('/_importmembers',view_func=AjaxImportMembers.as_view('_importmembers'),methods=['POST'])
+
+class ImportMembersStatus(MethodView):
+
+    def get(self, task_id):
+        task = importmemberstask.AsyncResult(task_id)
+        current_app.logger.debug(f'task.state: {task.state}, task.info {task.info}')
+
+        if task.state == 'PENDING':
+            # job did not start yet
+            response = {
+                'state': task.state,
+                'current': 0,
+                'total': 100,
+                'status': 'Pending...'
+            }
+        elif task.state != 'FAILURE':
+            response = {
+                'state': task.state,
+                'current': task.info.get('current', 0),
+                'total': task.info.get('total', 1),
+                'status': task.info.get('status', '')
+            }
+            
+            # task is finished, check for traceback, which indicates an error occurred
+            if task.state == 'SUCCESS':
+                # check for traceback, which indicates an error occurred
+                response['cause'] = task.info.get('traceback','')
+                if response['cause'] == '':
+                    response['redirect'] = url_for('.managemembers')
+                try:
+                    task.forget()
+                except NotImplementedError:
+                    # some backends don't implement forget
+                    pass
+
+        # doesn't seem like this can happen, but just in case
+        else:
+            # something went wrong in the background job
+            response = {
+                'state': task.state,
+                'current': 100,
+                'total': 100,
+                'cause': str(task.info),  # this is the exception raised
+            }
+        return jsonify(response)
+
+bp.add_url_rule('/importmembersstatus/<task_id>',view_func=ImportMembersStatus.as_view('importmembersstatus'), methods=['GET',])
+
+
 class AjaxLoadMembers(MethodView):
-#######################################################################
     
-    #----------------------------------------------------------------------
     def get(self):
-    #----------------------------------------------------------------------
    
         try:
             if not current_user.is_active:
@@ -593,7 +486,6 @@ class AjaxLoadMembers(MethodView):
             cause = traceback.format_exc()
             current_app.logger.error(traceback.format_exc())
             return failure_response(cause=cause)
-#----------------------------------------------------------------------
+
 bp.add_url_rule('/_loadmembers',view_func=AjaxLoadMembers.as_view('_loadmembers'),methods=['GET'])
-#----------------------------------------------------------------------
 
