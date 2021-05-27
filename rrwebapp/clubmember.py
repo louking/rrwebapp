@@ -102,7 +102,8 @@ class ClubMember():
             closeit = False
             _IN = csvfile
         else:
-            _IN = open(csvfile, 'r', newline='')
+            # need iso-8859-1 to handle certain characters which may have been entered by the user
+            _IN = open(csvfile, 'r', encoding='iso-8859-1', newline='')
             closeit = True
 
         # check header to see if RunSignUp file -- making some assumptions here
