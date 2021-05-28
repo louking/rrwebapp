@@ -48,8 +48,8 @@ lodash_ver = '4.17.21'      # lodash.js (see https://lodash.com)
 
 # d3
 d3_cdn = 'https://d3js.org'
-d3_ver = '5.9.2'
-d3_sc_ver = '1.3.3'    # d3-scale-chromatic
+d3_ver = '6.7.0'
+d3_sc_ver = '2.0.0'    # d3-scale-chromatic
 
 asset_bundles = {
     'admin_js' : Bundle(

@@ -38,9 +38,9 @@ function htmlEntities(str) {
 // see http://bl.ocks.org/enjalot/1378144
 // to drag div element
 var dragdiv = d3.drag()
-    .on("drag", function(d,i) {
-        d.x += d3.event.dx
-        d.y += d3.event.dy
+    .on("drag", function(event, d,i) {
+        d.x += event.dx
+        d.y += event.dy
         d3.select(this)
             .style("left", d.x+'px')
             .style("top", d.y+'px');

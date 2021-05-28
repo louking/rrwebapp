@@ -20,7 +20,7 @@ d3.legend = function(g) {
         }
       });
 
-    items = d3.entries(items).sort(function(a,b) { return a.value.pos-b.value.pos});
+    items = Object.entries(items).sort((a,b) => a[1].pos-b[1].pos);
 
     // first create legend box if it doesn't exist
     var lbcreate = g.selectAll(".legend-box")
@@ -38,44 +38,44 @@ d3.legend = function(g) {
     var li = g.selectAll(".legend-items");
 
     var textli = li.selectAll("text")
-        .data(items,function(d) { return d.key})
+        .data(items, d => d[0])
 
     textli.exit()
         .remove();
     
     textli
-        .attr("y",function(d,i) { return i+"em"})
+        .attr("y", (d,i) => i+"em")
         .attr("x","1em")
-        .text(function(d) { ;return d.key});
+        .text( d => d[0]);
 
     textli.enter()
         .append("text")
         // .call(function(d) { d.enter().append("text")})
         // .call(function(d) { d.exit().remove()})
-        .attr("y",function(d,i) { return i+"em"})
+        .attr("y", (d,i) => i+"em")
         .attr("x","1em")
-        .text(function(d) { ;return d.key});
+        .text(d => d[0]);
 
     var circleli = li.selectAll("circle")
-        .data(items,function(d) { return d.key})
+        .data(items, d => d[0])
 
     circleli.exit()
         .remove();
     
     circleli
-        .attr("cy",function(d,i) { return i-0.25+"em"})
+        .attr("cy", (d,i) => i-0.25+"em")
         .attr("cx",0)
         .attr("r","0.4em")
-        .style("fill",function(d) { return d.value.color});
+        .style("fill", d => d[1].color);
     
     circleli.enter()
         // .call(function(d) { d.enter().append("circle")})
         // .call(function(d) { d.exit().remove()})
         .append("circle")
-        .attr("cy",function(d,i) { return i-0.25+"em"})
+        .attr("cy", (d,i) => i-0.25+"em")
         .attr("cx",0)
         .attr("r","0.4em")
-        .style("fill",function(d) { return d.value.color });
+        .style("fill", d => d[1].color );
     
     // Reposition and resize the box
     var lbbox = li.node().getBBox();

@@ -467,7 +467,7 @@ function datatables_chart() {
             .attr("data-legend-pos", function(d) { return d.miles; })
             .style("fill", function(d) { return color(cValue(d));}) 
             .style("fill-opacity", 1e-6)
-            .on("mouseover", function(d) {
+            .on("mouseover", function(event, d) {
                 tooltip.transition()
                      .duration(200)
                      .style("opacity", 1);
@@ -477,17 +477,17 @@ function datatables_chart() {
                     tooltiphtml += '<br/>' + d.source;
                 }
                 tooltip.html(tooltiphtml)
-                     .style("left", (d3.event.pageX + 10) + "px")
-                     .style("top", (d3.event.pageY - 50) + "px");
+                     .style("left", (event.pageX + 10) + "px")
+                     .style("top", (event.pageY - 50) + "px");
             })  // .on("mouseover"
-            .on("mouseout", function(d) {
+            .on("mouseout", function(event, d) {
                 tooltip.transition()
                      .duration(500)
                      .style("opacity", 0);
             })  // .on("mouseout"
           .transition(t)
             .style("fill-opacity", 1)
-            .on("end", function(d,i) {legend.call(d3.legend)})
+            .on("end", function(event, d,i) {legend.call(d3.legend)})
 
         // update legend after updating dots
         // remove and replace legend for case where empty
