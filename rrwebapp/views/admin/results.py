@@ -696,7 +696,7 @@ class RunnerResults(MethodView):
                                          pretablehtml=pretablehtml,
                                          # serverSide must be True to pass url
                                          # add the request args to the ajax function
-                                         tabledata=url_for('_results')+'?'+urlencode(request.args),
+                                         tabledata=url_for('._results')+'?'+urlencode(request.args),
                                          tablebuttons= buttons,
                                          tablefiles=None,
                                          options = options,
