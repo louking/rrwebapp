@@ -64,7 +64,7 @@ jedi==0.17.2
 Jinja2==2.11.3
 jsmin==2.2.2
 kombu==5.0.2
-loutilities==3.4.5.0
+loutilities==3.4.5.1
 lxml==4.6.3
 Mako==1.1.4
 MarkupSafe==1.1.1
