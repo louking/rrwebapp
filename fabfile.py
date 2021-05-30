@@ -37,29 +37,27 @@ JS_SOURCE = '/home/scoretility/devhome/js'
 
 @task
 def deploy(c, branchname='master'):
-    print(('c.user={} c.host={} branchname={}'.format(c.user, c.host, branchname)))
+    print((f'c.user={c.user} c.host={c.host} branchname={branchname}'))
 
     # TODO: rrwebapp should be venv, separate from application, fix for python 3
-    venv_dir = '/var/www/{server}/rrwebapp'.format(server=c.host)
-    project_dir = '/var/www/{server}/{appname}'.format(server=c.host, appname=APP_NAME)
+    venv_dir = f'/var/www/{c.host}/{APP_NAME}'
+    project_dir = f'/var/www/{c.host}/{APP_NAME}'
 
-    c.run('cd {} && git pull'.format(project_dir))
+    c.run(f'cd {project_dir} && git pull')
 
-    if not c.run('cd {} && git show-ref --verify --quiet refs/heads/{}'.format(project_dir, branchname), warn=True):
-        raise Exit('branchname {} does not exist'.format(branchname))
+    if not c.run(f'cd {project_dir} && git show-ref --verify --quiet refs/heads/{branchname}', warn=True):
+        raise Exit(f'branchname {branchname} does not exist')
 
-    c.run('cd {} && git checkout {}'.format(project_dir, branchname))
+    c.run(f'cd {project_dir} && git checkout {branchname}')
     # NOTE: this may be application specific
-    c.run('cd {project_dir} && cp -R {js_source} {appname}/static'.format(project_dir=project_dir, appname=APP_NAME, js_source=JS_SOURCE))
+    c.run(f'cd {project_dir} && cp -R {JS_SOURCE} {APP_NAME}/static')
     # must source bin/activate before each command which must be done under venv
     # because each is a separate process
-    c.run('cd {} && source {}/bin/activate && pip install -r requirements.txt'.format(project_dir, venv_dir))
+    c.run(f'cd {project_dir} && source {venv_dir}/bin/activate && pip install -r requirements.txt')
 
-    versions_dir = '{project_dir}/{appname}/versioning/versions'.format(project_dir=project_dir, appname=APP_NAME)
-    if not c.run('test -d {}'.format(versions_dir), warn=True):
-        c.run('mkdir -p {}'.format(versions_dir))
+    versions_dir = f'{project_dir}/{APP_NAME}/versioning/versions'
+    if not c.run(f'test -d {versions_dir}', warn=True):
+        c.run(f'mkdir -p {versions_dir}')
 
-    c.run('cd {project_dir} && source {venv_dir}/bin/activate && alembic -c {appname}/alembic.ini upgrade head'.format(project_dir=project_dir,
-                                                                                                                       appname=APP_NAME,
-                                                                                                                       venv_dir=venv_dir))
-    c.run('cd {} && touch {}'.format(project_dir, WSGI_SCRIPT))
+    c.run(f'cd {project_dir} && source {venv_dir}/bin/activate && flask db upgrade')
+    c.run(f'cd {project_dir} && touch {WSGI_SCRIPT}')
