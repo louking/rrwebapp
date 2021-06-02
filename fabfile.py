@@ -55,7 +55,7 @@ def deploy(c, branchname='master'):
     # because each is a separate process
     c.run(f'cd {project_dir} && source {venv_dir}/bin/activate && pip install -r requirements.txt')
 
-    versions_dir = f'{project_dir}/{APP_NAME}/versioning/versions'
+    versions_dir = f'{project_dir}/migrations/versions'
     if not c.run(f'test -d {versions_dir}', warn=True):
         c.run(f'mkdir -p {versions_dir}')
 
