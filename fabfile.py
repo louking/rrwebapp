@@ -40,7 +40,7 @@ def deploy(c, branchname='master'):
     print((f'c.user={c.user} c.host={c.host} branchname={branchname}'))
 
     # TODO: rrwebapp should be venv, separate from application, fix for python 3
-    venv_dir = f'/var/www/{c.host}/{APP_NAME}/venv'
+    venv_dir = f'/var/www/{c.host}/venv'
     project_dir = f'/var/www/{c.host}/{APP_NAME}'
 
     c.run(f'cd {project_dir} && git pull')
