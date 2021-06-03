@@ -25,7 +25,7 @@ from flask.views import MethodView
 
 # homegrown
 from . import bp
-from ...celery import celery
+from ...celery import celeryapp
 from ...tasks import analyzeresultstask
 from ...model import ApiCredentials, Club, Runner, RaceResultService, Course
 from ...accesscontrol import owner_permission, ClubDataNeed, UpdateClubDataNeed, ViewClubDataNeed, \
@@ -286,7 +286,7 @@ class ResultsAnalysisStatus(MethodView):
                 except:
                     # ignore exceptions removing file
                     pass
-                celery.control.revoke(task_id, terminate=True)
+                celeryapp.control.revoke(task_id, terminate=True)
                 db.session.commit()
                 return jsonify({'success': True, 'task_id': task_id})
 

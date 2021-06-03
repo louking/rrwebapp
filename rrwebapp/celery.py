@@ -14,13 +14,13 @@ from loutilities.configparser import getitems
 from . import create_app
 from .settings import Production, get_configfiles
 
-celery = Celery(
+celeryapp = Celery(
     'rrwebapp',
     include=['rrwebapp.tasks'])
 
 configpath = join('config', 'rrwebapp.cfg')
 celeryconfig = getitems(configpath, 'celery')
-celery.conf.update(celeryconfig)
+celeryapp.conf.update(celeryconfig)
 
 # adapted from https://stackoverflow.com/a/37649636/799921
 @worker_process_init.connect

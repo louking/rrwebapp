@@ -16,7 +16,7 @@ from loutilities.flask_helpers.mailer import sendmail
 from celery.utils.log import get_task_logger
 
 # home grown
-from .celery import celery
+from .celery import celeryapp
 from .model import ManagedResult, Race, Runner, RaceResult
 from .model import db, ApiCredentials, RaceResultService
 from .model import getunique, update, insert_or_update
@@ -87,7 +87,7 @@ def getservicekey(service):
     servicekey = apicredential.key
     return servicekey
 
-@celery.task(bind=True)
+@celeryapp.task(bind=True)
 def importresultstask(self, club_id, raceid, resultpathname):
     '''
     background task to import results
@@ -169,7 +169,7 @@ def importresultstask(self, club_id, raceid, resultpathname):
         # report this as success, but since traceback is present, server will tell user
         return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}
 
-@celery.task(bind=True)
+@celeryapp.task(bind=True)
 def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
     try:
         # get file extention
@@ -348,7 +348,7 @@ def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
         return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}
 
 
-@celery.task(bind=True)
+@celeryapp.task(bind=True)
 def analyzeresultstask(self, club_id, action, resultsurl, memberfile, detailfile, summaryfile, fulldetailfile, taskfile):
     
     try:
