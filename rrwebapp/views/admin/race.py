@@ -84,7 +84,7 @@ def races_results_to_form(race):
                    importresults=url_for("._importresults",raceid=race.id),
                    doc_importresults=url_for("doc_importresults"),
                    editparticipants=url_for(".editparticipants",raceid=race.id),
-                   seriesresults=url_for(".seriesresults",raceid=race.id)
+                   seriesresults=url_for("frontend.seriesresults",raceid=race.id)
                    )
     else:
         return '''

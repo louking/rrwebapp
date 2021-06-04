@@ -230,7 +230,7 @@ def nav_menu():
                                 args.desc = this.field("club").inst().find(":selected").text() + " - " + this.get("year") + " " + this.get("series");
                                 this.close();
                                 window.location.href = "{}?\" + $.param( args );
-                            }}'''.format(url_for('admin.viewstandings'))},
+                            }}'''.format(url_for('frontend.viewstandings'))},
                 ],
                 # name of functions called with standalone editor instance and buttons field from above
                 'onopen': 'navstandingsopen',

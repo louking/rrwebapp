@@ -497,85 +497,6 @@ editexclusions = CrudApi(
 editexclusions.register()
 
 
-class SeriesResults(MethodView):
-
-    def get(self,raceid):
-        try:
-            seriesarg = request.args.get('series','')
-            division = request.args.get('div','')
-            gender = request.args.get('gen','')
-            printerarg = request.args.get('printerfriendly','false')
-            printerfriendly = (printerarg == 'true')
-
-            form = SeriesResultForm()
-    
-            # get race record
-            race = Race.query.filter_by(id=raceid).first()
-            if len(race.series) == 0:
-                db.session.rollback()
-                cause =  "Race '{}' is not included in any series".format(race.name)
-                current_app.logger.error(cause)
-                flask.flash(cause)
-                return flask.redirect(url_for('manageraces'))
-            
-            # determine precision for rendered output
-            timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
-            
-            # get all the results, and the race record
-            results = []
-            for series in race.series:
-                seriesid = series.id
-                seriesresults = RaceResult.query.filter_by(raceid=raceid,seriesid=seriesid).order_by(series.orderby).all()
-                # this is easier, code-wise, than using sqlalchemy desc() function
-                if series.hightolow:
-                    seriesresults.reverse()
-                results += seriesresults
-            
-            # fix up the following:
-            #   * time gets converted from seconds
-            #   * determine member matching, set runnerid choices and initially selected choice
-            #   * based on matching, set disposition
-            displayresults = []
-            for result in results:
-                runner = Runner.query.filter_by(id=result.runnerid).first()
-                thisname = runner.name
-                series = Series.query.filter_by(id=result.seriesid).first()
-                thisseries = series.name
-                thistime = render.rendertime(result.time,timeprecision)
-                thisagtime = render.rendertime(result.agtime,agtimeprecision)
-                thispace = render.rendertime(result.time / race.distance, 0, useceiling=False)
-                if result.divisionlow:
-                    if result.divisionlow == 0:
-                        thisdiv = 'up to {}'.format(result.divisionhigh)
-                    elif result.divisionhigh == 99:
-                        thisdiv = '{} and up'.format(result.divisionlow)
-                    else:
-                        thisdiv = '{} - {}'.format(result.divisionlow,result.divisionhigh)
-                else:
-                    thisdiv = ''
-
-                if result.genderplace:
-                    thisplace = result.genderplace
-                elif result.agtimeplace:
-                    thisplace = result.agtimeplace
-                else:
-                    thisplace = None
-
-                # order must match that which is expected within seriesresults.html
-                displayresults.append((result,thisseries,thisplace,thisname,thistime,thisdiv,thisagtime,thispace))
-            
-            # commit database updates and close transaction
-            db.session.commit()
-            return flask.render_template('seriesresults.html',form=form,race=race,resultsdata=displayresults,
-                                         series=seriesarg,division=division,gender=gender,printerfriendly=printerfriendly,
-                                         inhibityear=True,inhibitclub=True)
-        
-        except:
-            # roll back database updates and close transaction
-            db.session.rollback()
-            raise
-bp.add_url_rule('/seriesresults/<int:raceid>',view_func=SeriesResults.as_view('seriesresults'),methods=['GET'])
-
 #######################################################################
 # following functions used to set up pretablehtml
 #######################################################################
@@ -1956,7 +1877,7 @@ class AjaxTabulateResults(MethodView):
 
             # commit database updates and close transaction
             db.session.commit()
-            return success_response(redirect=url_for('.seriesresults',raceid=raceid))
+            return success_response(redirect=url_for('frontend.seriesresults',raceid=raceid))
         
         except Exception as e:
             # roll back database updates and close transaction
