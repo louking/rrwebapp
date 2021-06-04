@@ -67,7 +67,7 @@ asset_bundles = {
         f'js/Buttons-{dt_buttons_ver}/js/buttons.jqueryui.js',
         f'js/Buttons-{dt_buttons_ver}/js/buttons.html5.js',
         f'js/Buttons-{dt_colvis_ver}/js/buttons.colVis.js',
-        f'js/DateTime-{dt_datetime_ver}/js/datatables.dateTime.js',
+        f'js/DateTime-{dt_datetime_ver}/js/dataTables.dateTime.js',
 
         f'js/FixedColumns-{dt_fixedcolumns_ver}/js/dataTables.fixedColumns.js',
         f'js/Editor-{dt_editor_ver}/js/dataTables.editor.js',
