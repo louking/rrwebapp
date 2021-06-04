@@ -1343,7 +1343,8 @@ class StandingsRenderer():
                         # total numbers only, and convert to int if possible
                         racetotals = [r for r in racetotals if type(r) in [int,float]]
                         racetotals.sort(reverse=True)
-                        racesused = racetotals[:min(self.maxraces,len(racetotals))]
+                        numracesused = min(self.maxraces, len(racetotals)) if self.maxraces else len(racetotals)
+                        racesused = racetotals[0:numracesused]
                         byrunner[runnerid,name,age]['racesused'] = racesused[:]  # NOTE: this field will be reinitialized for overall / gender standings
                         totpoints = sum(racesused)
                         # render as integer if result same as integer
@@ -1411,7 +1412,8 @@ class StandingsRenderer():
                 # total numbers only, and convert to int if possible
                 racetotals = [r for r in racetotals if type(r) in [int,float]]
                 racetotals.sort(reverse=True)
-                racesused = racetotals[:min(self.maxraces,len(racetotals))]
+                numracesused = min(self.maxraces, len(racetotals)) if self.maxraces else len(racetotals)
+                racesused = racetotals[0:numracesused]
                 byrunner[runnerid,name,age]['racesused'] = racesused[:]  # NOTE: this field will be reinitialized for overall / gender standings
                 totpoints = sum(racesused)
                 totpoints = int(totpoints) if totpoints == int(totpoints) else totpoints
