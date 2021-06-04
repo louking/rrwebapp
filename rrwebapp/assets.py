@@ -53,7 +53,7 @@ d3_sc_ver = '2.0.0'    # d3-scale-chromatic
 
 asset_bundles = {
     'admin_js' : Bundle(
-        f'js/jQuery-{jq_ver}/jquery.js',
+        f'js/jquery-{jq_ver}/jquery.js',
 
         f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.js',
 
