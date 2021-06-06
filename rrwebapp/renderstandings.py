@@ -1163,7 +1163,8 @@ class StandingsRenderer():
         # byrunner = {name:{'bygender':[points,points,...],'bydivision':[points,points,...]}, ...}
         allresults = RaceResult.query.order_by(self.orderby).filter_by(club_id=self.club_id,raceid=raceid,seriesid=self.series.id,gender=gen).all()
         #app.logger.debug('gather results for: clubid={}, raceid={}, seriesid={}, gen={}'.format(self.club_id,raceid,self.series.id,gen))
-        if self.hightolow: allresults.sort(reverse=True)
+        if self.hightolow: 
+            allresults.reverse()
         
         # determine age for all runners for which there are results
         age = {}
