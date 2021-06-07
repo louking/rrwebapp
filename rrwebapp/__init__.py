@@ -163,7 +163,7 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
     #    RuntimeError: Working outside of application context.
     #    RuntimeError: Attempted to generate a URL without the application context being pushed.
     # see http://kronosapiens.github.io/blog/2014/08/14/understanding-contexts-in-flask.html
-    with app.app_context():
+    with app.app_context(), app.test_request_context():
         # import navigation after views created
         from . import nav
 
