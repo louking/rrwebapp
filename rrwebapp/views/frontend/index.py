@@ -139,7 +139,7 @@ class GetFeedback(MethodView):
                 
             # commit database updates and close transaction
             db.session.commit()
-            return (flask.redirect(flask.request.args.get('next')) or flask.url_for('index'))
+            return (flask.redirect(flask.request.args.get('next')) or flask.url_for('frontend.index'))
             
         except:
             # roll back database updates and close transaction

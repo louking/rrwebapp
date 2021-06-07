@@ -127,7 +127,7 @@ class ViewStandings(MethodView):
                 cause = "Error: club '{}' does not exist".format(club)
                 flask.flash(cause)
                 current_app.logger.error(cause)
-                return flask.redirect(flask.url_for('index'))
+                return flask.redirect(flask.url_for('frontend.index'))
             
             club_id = thisclub.id
             clubname = thisclub.name
@@ -137,7 +137,7 @@ class ViewStandings(MethodView):
                 cause = "Error: series '{}' does not exist for '{}' club".format(series,clubname)
                 flask.flash(cause)
                 current_app.logger.error(cause)
-                return flask.redirect(flask.url_for('index'))
+                return flask.redirect(flask.url_for('frontend.index'))
             
             seriesid = thisseries.id
             thisyear = year
@@ -221,7 +221,7 @@ class ViewStandings(MethodView):
             flask.flash(cause)
             current_app.logger.error(traceback.format_exc())
             raise
-            return flask.redirect(flask.url_for('index'))
+            return flask.redirect(flask.url_for('frontend.index'))
 
 bp.add_url_rule('/viewstandings/',view_func=ViewStandings.as_view('viewstandings'),methods=['GET'])
 

@@ -172,7 +172,7 @@ def setclub():
             
             # commit database updates and close transaction
             db.session.commit()
-            return redirect(request.args.get('next') or url_for('index'))
+            return redirect(request.args.get('next') or url_for('frontend.index'))
         
         # commit database updates and close transaction
         db.session.commit()
@@ -204,7 +204,7 @@ def setyear():
         if form.validate_on_submit():
             # Retrieve the year picked by the user
             year = form.year.data
-            if not isinstance(year, int) or year < 2013 or year > 2050:
+            if not isinstance(year, int) or year < 2013 or year > 2200:
                 error = 'invalid year'
                 db.session.rollback()
                 return render_template('setyear.html', form=form, pagename='Set Year', action='Set Year', error=error)
@@ -212,7 +212,7 @@ def setyear():
             
             # commit database updates and close transaction
             db.session.commit()
-            return redirect(request.args.get('next') or url_for('index'))
+            return redirect(request.args.get('next') or url_for('frontend.index'))
         
         # commit database updates and close transaction
         db.session.commit()
