@@ -9,8 +9,7 @@ $( function() {
     $( '.navbar a' ).not('[href^="/"]').attr('target', '_blank');
     // prevent click behavior for empty navigation items which have submenu
     $( '.navbar a[href="#"].has-submenu').click(function(e) {
-        e.stopPropagation();
-        return false;
+        e.preventDefault();
     });
 
     // // register interest group for all links
