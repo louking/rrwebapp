@@ -5,6 +5,7 @@ raceresults  -- retrieve race results from a file
 
 # standard
 import os.path
+from datetime import timedelta, time as datetime_time
 
 # pypi
 from flask import current_app
@@ -37,6 +38,7 @@ fieldxform = {
 # exceptions for this module.  See __init__.py for package exceptions
 class headerError(Exception): pass
 class dataError(Exception): pass
+class parameterError(Exception): pass
 
 # for _normalizetime
 PACE_FAST = 2.5 * 60.0  # 2:30/mile is pretty fast
@@ -260,8 +262,29 @@ class RaceResults():
         if type(time) in [str,str]:
             thistime = time
     
-        # if float or int, assume it came from excel, and is in days
+        # if datetime.time, maybe came from excel using openpyxl
+        elif type(time) == datetime_time:
+            hours = time.hour
+            minutes = time.minute
+            seconds = time.second + time.microsecond/1000000
+            thistime = f'{hours}:{minutes}:{seconds}'
+
+        # if timedelta, maybe came from excel using openpyxl
+        elif type(time) == timedelta:
+            tottime = time.seconds + time.microseconds/1000000
+            
+            # to avoid quantization error through excel, round with epsilon of 0.00005
+            tottime = round(tottime*10000)/10000.0
+            hours = int(tottime/3600)
+            tottime -= hours*3600
+            minutes = int(tottime/60)
+            tottime -= minutes*60
+            seconds = tottime
+            thistime = f'{hours}:{minutes}:{seconds}'
+
+        # if float or int, maybe came from excel using xlrd, and is in days
         elif type(time) in [float,int]:
+            # convert to seconds
             tottime = time * (24*60*60.0)
             
             # to avoid quantization error through excel, round with epsilon of 0.00005
@@ -271,7 +294,10 @@ class RaceResults():
             minutes = int(tottime/60)
             tottime -= minutes*60
             seconds = tottime
-            thistime = '{}:{}:{}'.format(hours, minutes, seconds)
+            thistime = f'{hours}:{minutes}:{seconds}'
+        
+        else:
+            raise parameterError(f'unexpected time type {type(time)} for {time}')
         
         return normalizeracetime(thistime, distance)
     
@@ -344,7 +370,7 @@ class RaceResults():
             # TODO: add normalization for gender
             
             # results with empty times are ignored
-            if 'time' not in result or result['time'].strip() == '':
+            if 'time' not in result or (isinstance(result['time'], str) and result['time'].strip() == ''):
                 textfound = False
                 continue
 
