@@ -186,13 +186,12 @@ class EditParticipants(MethodView):
                     # note only want to save the names for use on the name select
                     # annotate for easy sort
                     # TODO: is this an issue if two with the same name have different capitalization?
-                    thismemberoption = (thismember['name'].lower(), {'label':thismember['name'],'value':thismember['name']})
+                    thismemberoption = {'label':thismember['name'],'value':thismember['name']}
                     if thismemberoption not in membernames:
                         membernames.append(thismemberoption)
 
-            # sort membernames and remove annotation
-            membernames.sort()
-            membernames = [m[1] for m in membernames]
+            # sort membernames
+            membernames.sort(key=lambda i: i['label'].lower())
 
             # start with empty data
             tabledata = []
