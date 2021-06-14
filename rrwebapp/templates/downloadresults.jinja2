@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% from '_formhelpers.html' import render_field %}
+{% block pagename %}
+    {{ pagename }}
+{% endblock %}
+{% block scripts %}
+    <style>
+        .runsignup {
+            display: none;
+        }
+        .submitbutton {
+            display: none;
+        }
+    </style>
+    <script type="text/javascript">
+        $( function() {
+            downloadresults();
+        });
+    </script>
+    {{ super() }}
+{% endblock %}
+{% block body %}
+  <div id="error-container" class="DTE_Form_Error" style="display: none;"></div>
+  <div class=preform>
+    <p>Enter URL of results page. Currently supports</p>
+    <ul>
+    <li>RunSignUp</li>
+    </ul>
+  </div>
+  <form action="{{ thisurl }}" method=post>
+    {{ form.hidden_tag() }}
+    <div class="W9emLabel W25emTextBox FloatLeft">
+      {{ render_field(form.url) }}
+      <div class="runsignup">
+            {{ render_field(form.rsu_year) }}
+            {{ render_field(form.rsu_distance) }}
+            {{ render_field(form.rsu_resultsset) }}
+      </div>
+      <div style="display: none">{{ render_field(form.service) }}</div>
+      {% if action %}
+      <div class="submitbutton", style="text-align: right;">
+          <input type=submit name=whichbutton value="{{action}}" >
+      </div>
+      {% endif %}
+  </form>
+{% endblock %}

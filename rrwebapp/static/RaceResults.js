@@ -830,7 +830,7 @@
 
                 if (writeallowed) {
                     popupcontent = popupcontent + "\
-                        <p>Import the selected races's results as a CSV file. Please read the <a href='"+importdoc+"' target='_blank'>Import Guide</a> for information on the column headers and data format.</p>\
+                        <p>Import the selected race's results as a CSV file. Please read the <a href='"+importdoc+"' target='_blank'>Import Guide</a> for information on the column headers and data format.</p>\
                         <form action='"+action+"', id='"+formid+"' method='post' enctype='multipart/form-data'> \
                             <input type='file' name=file /> <button id='"+buttonid+"'>Import</button> \
                         </form>\

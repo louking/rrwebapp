@@ -34,8 +34,8 @@ from .model import db   # this is ok because this module only runs under flask
 # see http://pythonhosted.org/Flask-Principal/ section on Granular Resource Protection
 principals = Principal(app)
 owner_permission = Permission(RoleNeed('owner'))
-#admin_permission = Permission(RoleNeed('admin'))
-#viewer_permission = Permission(RoleNeed('viewer'))
+admin_permission = Permission(RoleNeed('admin'))
+viewer_permission = Permission(RoleNeed('viewer'))
 
 ClubDataNeed = namedtuple('club_data', ['method', 'value'])
 UpdateClubDataNeed = partial(ClubDataNeed,'update')

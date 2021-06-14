@@ -6,15 +6,20 @@ result - result views for result results web application
 # standard
 import os.path
 import os
-from datetime import timedelta
+import sys
 from time import time
 import traceback
 from urllib.parse import urlencode
 from copy import copy
+from re import search
+from traceback import format_exc, format_exception_only
+from csv import DictWriter, reader, writer
+from tempfile import TemporaryDirectory
 
 # pypi
 import flask
-from flask import request, jsonify, url_for, current_app
+from flask import request, jsonify, url_for, current_app, render_template, abort
+from flask.helpers import send_file
 from flask_login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
@@ -25,11 +30,17 @@ import loutilities.renderrun as render
 from loutilities import timeu, agegrade
 from loutilities.filters import filtercontainerdiv, filterdiv, yadcfoption
 from loutilities.tables import DataTables, ColumnDT
+from loutilities.timeu import asctime
+from flask_wtf import FlaskForm
+from wtforms import StringField, SelectField
+from wtforms.validators import DataRequired
+from requests import get as requests_get
+from running.runsignup import RunSignUp
 
 # home grown
 from . import bp
 from ...model import insert_or_update
-from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
+from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission, viewer_permission
 from ...model import db   # this is ok because this module only runs under flask
 from ...apicommon import failure_response, success_response
 from ...request_helpers import addscripts, crossdomain, annotatescripts
@@ -1886,3 +1897,143 @@ class AjaxTabulateResults(MethodView):
             return failure_response(cause=cause)
 
 bp.add_url_rule('/_tabulateresults/<int:raceid>',view_func=AjaxTabulateResults.as_view('_tabulateresults'),methods=['POST'])
+
+###########################################################################################
+# downloadresults endpoint
+###########################################################################################
+
+class DownloadResultsForm(FlaskForm):
+    service = StringField('Service')    # hidden
+    url = StringField('Results URL')
+    rsu_year = SelectField('Year')
+    rsu_distance = SelectField('Distance')
+    rsu_resultsset = SelectField('Result Set')
+
+
+class DownloadResults(MethodView):
+    def permission(self):
+        return viewer_permission.can()
+
+    def get(self):
+        if not self.permission():
+            return abort(403)
+
+        form = DownloadResultsForm()
+        return render_template(
+            'downloadresults.jinja2', 
+            form=form, 
+            pagename='Download Results', 
+            action='Download Results'
+        )
+    
+    def post(self):
+        service = request.form.get('service', None)
+        if service == 'runsignup':
+            resultssets = request.form.getlist('rsu_resultsset')
+            headers = {}
+            results = []
+            race = None
+
+            # use credentials for home club's children's full names
+            with RunSignUp() as rsu:
+                for resultsset in resultssets:
+                    race_id, event_id, resultsset_id = resultsset.split('/')
+                    if not race:
+                        race = rsu.getrace(race_id)
+                    resultsmeta = rsu.geteventresults(race_id, event_id, resultsset_id)
+                    headers.update(resultsmeta['headers'])
+                    results += resultsmeta['results']
+            
+            # write file and send to browser, not sure how/whether temporary directory gets deleted
+            td = TemporaryDirectory(prefix='rrwebapp_results_')
+            csvfilepath = os.path.join(td.name, 'runsignupresults.csv')
+            with open(csvfilepath, 'w', newline='') as csvfile:
+                # skipping custom and division columns for now, these are the RunSignUp standard headers
+                fileheaders = 'result_id,place,bib,first_name,last_name,gender,age,city,state,' \
+                            'country_code,clock_time,chip_time,pace,age_percentage'.split(',')
+                dw = DictWriter(csvfile, fieldnames=fileheaders, extrasaction='ignore')
+                dw.writeheader()
+                dw.writerows(results)
+
+            # convert file heading
+            updfilepath = os.path.join(td.name, 'runsignupresults_updated.csv')
+            with open(csvfilepath, newline='') as infile, open(updfilepath, 'w', newline='') as outfile:
+                r = reader(infile)
+                w = writer(outfile)
+                rsuheading = next(r)
+                newheading = [headers[r] for r in rsuheading]
+                w.writerow(newheading)
+                for row in r:
+                    w.writerow(row)
+
+            return send_file(updfilepath, as_attachment=True, attachment_filename=f"results-{race['name']}.csv")
+
+        else:
+            return jsonify(error='unknown service')
+
+bp.add_url_rule('/downloadresults',view_func=DownloadResults.as_view('downloadresults'),methods=['GET', 'POST'])
+
+class AjaxDownloadResults(MethodView):
+    def permission(self):
+        return viewer_permission.can()
+
+    def get(self):
+        if not self.permission():
+            return abort(403)
+
+        url = request.args.get('url', None)
+        
+        # url was supplied. that's good as we need it
+        if url:
+            try:
+                # retrieve indicated page
+                resultspage = requests_get(url)
+
+                # check for errors, exception if problems
+                resultspage.raise_for_status()
+
+                # if this is runsignup page
+                if search('cdnjs\.runsignup\.com', resultspage.text):
+                    respdata = {'service': 'runsignup', 'options': {}}
+                    # convenience handle
+                    options = respdata['options']
+
+                    rsuraceurl = search('\/Race\/Results\/([0-9]*)\/', resultspage.text)
+                    if not rsuraceurl:
+                        return jsonify(error='could not find downloadable results in page')
+
+                    race_id = rsuraceurl.group(1)
+                
+                    # get result set information from race
+                    with RunSignUp() as rsu:
+                        raceevents = rsu.getraceevents(race_id)
+                        rsutime = asctime('%m/%d/%Y %H:%M')
+                        for event in raceevents:
+                            event_id = event['event_id']
+                            year = rsutime.asc2dt(event['start_time']).year
+                            distance = event['distance']
+                            options.setdefault(year, {})
+                            options[year].setdefault(distance, [])
+                            event_name = event['name']
+                            resultsets = rsu.getresultsets(race_id, event_id)
+                            for resultset in resultsets:
+                                result_set_id = resultset['individual_result_set_id']
+                                result_set_name = resultset['individual_result_set_name']
+                                options[year][distance].append({'text': result_set_name, 'id': f'{race_id}/{event_id}/{result_set_id}'})
+
+                    return jsonify(**respdata)
+
+                # we don't handle this type of page yet
+                else:
+                    return jsonify(error='could not find downloadable results in page')
+        
+            except Exception as e:
+                cause = format_exc()
+                current_app.logger.error(cause)
+                return jsonify(error=cause)
+
+        # url not supplied
+        else:
+            return jsonify(error='url required')
+
+bp.add_url_rule('/_downloadresults',view_func=AjaxDownloadResults.as_view('_downloadresults'),methods=['GET'])

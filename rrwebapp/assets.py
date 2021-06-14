@@ -98,6 +98,7 @@ asset_bundles = {
         'datatables.dataRender.ellipsis.js',        # loutilities
         'background-post-data-manager.js',          # loutilities
         'managemembers.js',
+        'downloadresults.js',
         'RaceResults.js',
 
         output='gen/admin.js',
