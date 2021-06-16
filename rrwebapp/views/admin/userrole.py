@@ -310,12 +310,16 @@ def _setpermission(club,user,rolename,setrole):
     
     # adding the permission
     if setrole:
-        if thisrole not in user.roles:
+        # not clear why the next line doesn't work, see #498
+        # if thisrole not in user.roles:
+        if thisrole.id not in [r.id for r in user.roles]:
             user.roles.append(thisrole)
     
     # removing the permission
     else:
-        if thisrole in user.roles:
+        # not clear why the next line doesn't work, see #498
+        # if thisrole in user.roles:
+        if thisrole.id in [r.id for r in user.roles]:
             user.roles.remove(thisrole)
     
     return True
