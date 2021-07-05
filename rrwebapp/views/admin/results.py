@@ -15,6 +15,7 @@ from re import search
 from traceback import format_exc, format_exception_only
 from csv import DictWriter, reader, writer
 from tempfile import TemporaryDirectory
+from datetime import datetime
 
 # pypi
 import flask
@@ -55,6 +56,7 @@ from ...resultsutils import ServiceAttributes, LocationServer, get_distance
 from ...resultsutils import DIFF_CUTOFF, DISP_MATCH, DISP_CLOSE, DISP_MISSED
 from ...resultsutils import ImportResults, tYmd, getrunnerchoices
 from ...model import RaceResultService, ApiCredentials
+from ...model import SERIES_OPTION_PROPORTIONAL_SCORING
 from ...datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 from ...forms import SeriesResultForm
 from ...tasks import importresultstask
@@ -65,6 +67,7 @@ ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
 class BooleanError(Exception): pass
 class ParameterError(Exception): pass
 
+dbdate = asctime('%Y-%m-%d')
 
 def getmembertype(runnerid):
     '''
@@ -1476,8 +1479,23 @@ class AjaxUpdateManagedResult(MethodView):
                 if field == 'runnerid':
                     # newname present means that this name is a new nonmember to be put in the database
                     if newname:
-                        runner = Runner(club_id,newname,None,newgen,None,member=False)
-                        added = insert_or_update(db.session,Runner,runner,skipcolumns=['id'],name=newname,dateofbirth=None,member=False)
+                        # the admin has already decided this is a new entry, based on the possiblities offered (see clubmember.ClubMember.findmember)
+                        # estimate this non-member's birth date to be date of race in the year indicated by age
+                        racedatedt = dbdate.asc2dt(result.race.date)
+                        dobdt = datetime(racedatedt.year-result.age, racedatedt.month, racedatedt.day)
+
+                        runner = Runner(
+                            club_id, 
+                            name=newname, 
+                            gender=newgen, 
+                            member=False, 
+                            dateofbirth=dbdate.dt2asc(dobdt), 
+                            estdateofbirth=True
+                        )
+                        
+                        db.session.add(runner)
+                        db.session.flush()
+
                         respargs['action'] = 'newname'
                         respargs['actionsuccess'] = True
                         respargs['id'] = runner.id
@@ -1514,8 +1532,22 @@ class AjaxUpdateManagedResult(MethodView):
 
                     if value != 'None':
                         result.runnerid = int(value)
+
+                        # may have to update dob if nonmember, and this race is earlier in the year than previous races
+                        runner = Runner.query.filter_by(id=result.runnerid).one()
+                        if not runner.member:
+                            # estimate this non-member's birth date to be date of race in the year indicated by age
+                            racedatedt = dbdate.asc2dt(result.race.date)
+                            dobdt = datetime(racedatedt.year-result.age, racedatedt.month, racedatedt.day)
+                            # this assumes previously recorded age was correct, probably ok for most series
+                            if not runner.dateofbirth or dobdt < dbdate.asc2dt(runner.dateofbirth):
+                                # handle legacy entries which may need to indicate dob is estimate
+                                runner.estdateofbirth = True
+                                runner.dateofbirth = dbdate.dt2asc(dobdt)
+
                     else:
                         result.runnerid = None
+
                 elif field == 'confirmed':
                     if value in ['true','false']:
                         result.confirmed = (value == 'true')
@@ -1537,6 +1569,7 @@ class AjaxUpdateManagedResult(MethodView):
                         if incl:
                             # not excluded from future results any more
                             db.session.delete(incl)
+                
                 # exclude contains a list of runnerids which should be excluded
                 if exclude:
                     #current_app.logger.debug("exclude='{}'".format(exclude))
@@ -1624,9 +1657,7 @@ class AjaxTabulateResults(MethodView):
                 return failure_response(cause=cause)
             
             # need race date division date later for age calculation
-            # "date" for division's age calculation is Jan 1 of date race was run
             racedate = dbdate.asc2dt(race.date)
-            divdate = racedate.replace(month=1,day=1)
 
             # get precision for time rendering
             timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
@@ -1668,12 +1699,26 @@ class AjaxTabulateResults(MethodView):
                     else:
                         dob = None
             
-                    # for members, set agegrade age (race date based)
-                    # NOTE: the code below assumes that races by divisions are only for members
-                    # this is because we need to know the runner's age as of Jan 1 for division standings
+                    # set agegrade age (race date based)
+                    # set division age (based on Jan 1 if we know dob, based on earliest race this year if we don't)
                     if dob:
                         agegradeage = timeu.age(racedate,dob)
-                        divage = timeu.age(divdate,dob)
+                        # if we know dob, date for division's age calculation is Jan 1 of year race was run
+                        if not runner.estdateofbirth:
+                            divdate = racedate.replace(month=1,day=1)
+                            divage = timeu.age(divdate, dob)
+                        
+                        # if we have estimated dob, date for division's age calculation is earliest race run this year by this runner
+                        else:
+                            results = ManagedResult.query.filter_by(runnerid=runner.id).join(Race).order_by(Race.date.desc()).all()
+                            divdate = racedate
+                            for divresult in results:
+                                resultdate = dbdate.asc2dt(divresult.race.date)
+                                if racedate.year > resultdate.year: break
+                                if resultdate < divdate:
+                                    divdate = resultdate
+                            divage = timeu.age(divdate, dob)
+
                     else:
                         try:
                             agegradeage = int(thisresult.age)
@@ -1692,7 +1737,7 @@ class AjaxTabulateResults(MethodView):
                     raceresult.sourceid = runnerid
             
                     # always add age grade to result if we know the age
-                    # we will decide whether to render, later based on series.calcagegrade, in another script
+                    # we will decide whether to render, later based on series.agegrade, in another script
                     if agegradeage:
                         timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
                         adjtime = render.adjusttime(resulttime,timeprecision)    # ceiling for adjtime
@@ -1743,7 +1788,7 @@ class AjaxTabulateResults(MethodView):
                     #         # detect tie in subsequent results based on rendering,
                     #         # which rounds to a specific precision based on distance
                     #         # but do this only if averaging ties
-                    #         if series.averagetie:
+                    #         if series.has_series_option(SERIES_OPTION_AVERAGETIE):
                     #             # TODO: need to change this code to support orderby=='overallplace' and averagetie==True
                     #             time = render.rendertime(raceresult.time,timeprecision)
                     #             for tiendx in range(rrndx+1,numresults):
@@ -1753,7 +1798,7 @@ class AjaxTabulateResults(MethodView):
                     #             lasttie = tieindeces[-1] + 1
                     #         for tiendx in tieindeces:
                     #             numsametime = len(tieindeces)
-                    #             if numsametime > 1 and series.averagetie:
+                    #             if numsametime > 1 and series.has_series_option(SERIES_OPTION_AVERAGETIE):
                     #                 dbresults[tiendx].overallplace = (thisplace+lasttie) / 2.0
                     #             else:
                     #                 dbresults[tiendx].overallplace = thisplace

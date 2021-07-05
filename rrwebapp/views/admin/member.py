@@ -106,8 +106,8 @@ def normalizeRAmemberlist(inputstream,filterexpdate=None):
 # managemembers endpoint
 #----------------------------------------------------------------------
 
-mm_dbattrs = 'id,name,fname,lname,dateofbirth,gender,hometown,renewdate,expdate,member'.split(',')
-mm_formfields = 'rowid,name,fname,lname,dob,gender,hometown,renewal,expiration,member'.split(',')
+mm_dbattrs = 'id,name,fname,lname,dateofbirth,estdateofbirth,gender,hometown,renewdate,expdate,member'.split(',')
+mm_formfields = 'rowid,name,fname,lname,dob,estdateofbirth,gender,hometown,renewal,expiration,member'.split(',')
 mm_dbmapping = OrderedDict(list(zip(mm_dbattrs, mm_formfields)))
 mm_formmapping = OrderedDict(list(zip(mm_formfields, mm_dbattrs)))
 
@@ -131,6 +131,11 @@ mm = CrudApi(
        { 'data': 'fname', 'name': 'fname', 'label': 'First Name' },
        { 'data': 'lname', 'name': 'lname', 'label': 'Last Name' },
        { 'data': 'dob', 'name': 'dob', 'label': 'Date of Birth' }, 
+       { 'data': 'estdateofbirth', 'name': 'estdateofbirth', 'label': 'Estimated DOB',
+           'class': 'TextCenter',
+           '_treatment': {'boolean': {'formfield': 'estdateofbirth', 'dbfield': 'estdateofbirth'}},
+           'ed': {'def': 'no'},
+           },
        { 'data': 'gender', 'name': 'gender', 'label': 'Gender' }, 
        { 'data': 'hometown', 'name': 'hometown', 'label': 'Hometown' }, 
        { 'data': 'renewal', 'name': 'renewal', 'label': 'Renewal Date' }, 

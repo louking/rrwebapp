@@ -12,6 +12,7 @@ from csv import DictReader
 
 # pypi
 from flask import current_app
+from loutilities.timeu import age
 
 # github
 
@@ -234,7 +235,7 @@ class ClubMember():
         return rval
         
     #----------------------------------------------------------------------
-    def findmember(self,name,age,asofdate):
+    def findmember(self, name, theage, asofdate):
     #----------------------------------------------------------------------
         '''
         returns (name,dateofbirth) for a specific member, after checking age
@@ -243,7 +244,7 @@ class ClubMember():
         if no dob in members file, None is returned for dateofbirth
         
         :param name: name to search for
-        :param age: age to match for
+        :param theage: age to match for
         :param asofdate: 'yyyy-mm-dd' date for which age is to be matched
         :rtype: (name,dateofbirth) or None if not found.  dateofbirth is ascii yyyy-mm-dd
         '''
@@ -268,15 +269,14 @@ class ClubMember():
                 asofdate_dt = tYmd.asc2dt(asofdate)
                 try:
                     memberdob = tYmd.asc2dt(member['dob'])
-                    # note below that True==1 and False==0
-                    memberage = asofdate_dt.year - memberdob.year - int((asofdate_dt.month, asofdate_dt.day) < (memberdob.month, memberdob.day))
-                    if memberage == age:
+                    memberage = age(asofdate_dt, memberdob)
+                    if memberage == theage:
                         foundmember = True
                         membername = member['name']
                     else:
-                        self.missedmatches.append({'name':name,'asofdate':asofdate,'age':age,
-                                                   'dbname':member['name'],'dob':member['dob'],
-                                                   'ratio':getratio(name.strip().lower(),member['name'].strip().lower())})
+                        self.missedmatches.append({'name': name, 'asofdate': asofdate, 'age': theage,
+                                                   'dbname': member['name'], 'dob': member['dob'],
+                                                   'ratio': getratio(name.strip().lower(),member['name'].strip().lower())})
                 # invalid dob in member database
                 except ValueError:
                     foundmember = True
@@ -284,7 +284,8 @@ class ClubMember():
                 if foundmember: break
                 
         if foundmember:
-            return membername,member['dob']
+            return membername, member['dob']
+
         else:
             return None
         
