@@ -351,6 +351,7 @@ class Runner(Base):
     fname = Column(String(50))
     lname = Column(String(50))
     dateofbirth = Column(String(10))
+    estdateofbirth = Column(Boolean)       # indicates estimated date of birth for non-members
     gender = Column(String(1))
     hometown = Column(String(50))
     renewdate = Column(String(10))
@@ -361,7 +362,7 @@ class Runner(Base):
     aliases = relationship("RunnerAlias", backref='runner', cascade="all, delete, delete-orphan")
     exclusions = relationship("Exclusion", backref='runner')
 
-    def __init__(self, club_id, name=None, dateofbirth=None, gender=None, hometown=None, member=True, renewdate=None, expdate=None, fname=None, lname=None):
+    def __init__(self, club_id, name=None, dateofbirth=None, gender=None, hometown=None, member=True, renewdate=None, expdate=None, fname=None, lname=None, estdateofbirth=None):
         try:
             if dateofbirth:
                 dobtest = t.asc2dt(dateofbirth)
@@ -385,6 +386,7 @@ class Runner(Base):
         self.fname = fname    
         self.lname = lname    
         self.dateofbirth = dateofbirth
+        self.estdateofbirth = estdateofbirth
         self.gender = gender
         self.hometown = hometown
         self.renewdate = renewdate
@@ -521,6 +523,34 @@ class Location(Base):
         return '<Location %s %s %s %s>' % (self.name, self.latitude, self.longitude, self.cached_at)
 
 
+# values of boolean options must be same as Series column name for that option
+SERIES_OPTION_MEMBERSONLY = 'membersonly'
+SERIES_OPTION_CALCOVERALL = 'calcoverall'
+SERIES_OPTION_CALCDIVISIONS = 'calcdivisions'
+SERIES_OPTION_HIGHTOLOW = 'hightolow'
+SERIES_OPTION_ALLOWTIES = 'allowties'
+SERIES_OPTION_AVERAGETIE = 'averagetie'
+SERIES_OPTION_MAXBYNUMRUNNERS = 'maxbynumrunners'
+SERIES_BOOLEAN_OPTIONS = [
+    SERIES_OPTION_MEMBERSONLY,
+    SERIES_OPTION_CALCOVERALL,
+    SERIES_OPTION_CALCDIVISIONS,
+    SERIES_OPTION_HIGHTOLOW,
+    SERIES_OPTION_ALLOWTIES,
+    SERIES_OPTION_AVERAGETIE,
+    SERIES_OPTION_MAXBYNUMRUNNERS,
+]
+SERIES_OPTION_SEPARATOR = ','
+SERIES_OPTION_PROPORTIONAL_SCORING = 'proportional_scoring'
+SERIES_OPTION_REQUIRES_CLUB = 'requires_club'
+SERIES_OPTIONS = [
+    {'value': SERIES_OPTION_PROPORTIONAL_SCORING, 'label': 'Proportional Scoring',
+     'attr': {'title': 'winner = max_xxx_points, other scores = max_xxx_points * time/winner_time'}
+    },
+    {'value': SERIES_OPTION_REQUIRES_CLUB, 'label': 'Requires Club',
+     'attr': {'title': 'if checked, only results which have club indicated are included'}
+    },
+]
 class Series(Base):
     '''
     * series (attributes)
@@ -529,9 +559,8 @@ class Series(Base):
     :param name: series name
     :param year: year of series
     :param membersonly: True if series applies to club members only
-    :param overall: True if overall results are to be calculated
-    :param divisions: True if division results are to be calculated
-    :param agegrade: True if age graded results are to be calculated
+    :param calcoverall: True if overall results are to be calculated
+    :param calcdivisions: True if division results are to be calculated
     :param orderby: text name of RaceResult field to order results by
     :param hightolow: True if results should be ordered high to low based on orderby field
     :param allowties: True if ties are allowed
@@ -541,6 +570,7 @@ class Series(Base):
     :param maxgenpoints: if set, this is the max points for first place within a gender (before multiplier)
     :param maxdivpoints: if set, this is the max points for first place within a division (before multiplier)
     :param maxbynumrunners: if True, max points is set based on number of runners
+    :param options: list of other options, comma separated, defined by SERIES_OPTIONS
     :param description: describes series
     '''
     __tablename__ = 'series'
@@ -549,14 +579,15 @@ class Series(Base):
     club_id = Column(Integer, ForeignKey('club.id'))
     name = Column(String(50))
     year = Column(Integer)
-    membersonly = Column(Boolean)
-    calcoverall = Column(Boolean)
+    membersonly = Column(Boolean)   # all the booleans should be under SERIES_OPTIONS,
+    calcoverall = Column(Boolean)   # but for legacy reasons, and to minimize potential regression are kept here
     calcdivisions = Column(Boolean)
     calcagegrade = Column(Boolean)
-    orderby = Column(String(15))
+    orderby = Column(String(15))    # values must all match a RaceResult attribute
     hightolow = Column(Boolean)
     allowties = Column(Boolean)
     averagetie = Column(Boolean)
+    options = Column(Text)          # see SERIES_OPTIONS
     maxraces = Column(Integer)
     multiplier = Column(Integer)
     maxgenpoints = Column(Integer)
@@ -568,7 +599,11 @@ class Series(Base):
     # races = relationship("Series", secondary="raceseries", backref='series')
     results = relationship("RaceResult", backref='series', cascade="all, delete, delete-orphan")
 
-
+    def has_series_option(self, option):
+        if option in SERIES_BOOLEAN_OPTIONS:
+            return getattr(self, option)
+        else:
+            return option in self.options.split(SERIES_OPTION_SEPARATOR)
 
 class ManagedResult(Base):
     '''
@@ -591,6 +626,7 @@ class ManagedResult(Base):
     id = Column(Integer, Sequence('results_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))
     raceid = Column(Integer, ForeignKey('race.id'))
+    race = relationship("Race")
     
     # from official race result file
     place = Column(Float)
@@ -671,6 +707,7 @@ class RaceResult(Base):
     :param divisionpoints: runner's point score from place within division, adjusted for rendering by series rules
     :param agtime: age grade time in seconds - default None
     :param agpercent: age grade percentage - default None
+    :param proportion: result / winner_result
     :param source: references source of result data - name not id
     :param sourceid: references runner within source
     :param fuzzyage: set to 'y' if age math is "fuzzy", for sources which only have 5 year age groups listed
