@@ -103,8 +103,9 @@ class ClubMember():
             closeit = False
             _IN = csvfile
         else:
-            # need iso-8859-1 to handle certain characters which may have been entered by the user
-            _IN = open(csvfile, 'r', encoding='iso-8859-1', newline='')
+            # need utf8 to handle certain characters which may have been entered by the user
+            # match database encoding - utf8
+            _IN = open(csvfile, 'r', encoding='utf8', newline='')
             closeit = True
 
         # check header to see if RunSignUp file -- making some assumptions here
@@ -415,7 +416,8 @@ class DbClubMember(ClubMember):
         # map database table column names to output column names, and optionally function for transformation
         # function x is x(s,f), where s is session, f is field value
         # note it is ok to split name like this, because it will just get joined together when the csv is processed in clubmember
-        d = csvwt.Db2Csv()
+        # match database encoding - utf8
+        d = csvwt.Db2Csv(encoding='utf8')
         hdrmap = {'id' : 'id',
                   'dateofbirth' : {'DOB':_dob2excel},
                   'gender' : 'Gender',
