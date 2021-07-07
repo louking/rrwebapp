@@ -26,7 +26,7 @@ from flask.views import MethodView
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, cast
 from attrdict import AttrDict
-from dominate.tags import a, button, div
+from dominate.tags import button, div, p, ul, li
 import loutilities.renderrun as render
 from loutilities import timeu, agegrade
 from loutilities.filters import filtercontainerdiv, filterdiv, yadcfoption
@@ -1677,13 +1677,17 @@ class AjaxTabulateResults(MethodView):
                         return failure_response(cause=cause)
                     
                     divisions = []
-                    for div in alldivs:
-                        divisions.append((div.divisionlow,div.divisionhigh))
+                    for thisdiv in alldivs:
+                        divisions.append((thisdiv.divisionlow, thisdiv.divisionhigh))
 
                 # collect results from database
                 # NOTE: filter() method requires fully qualified field names (e.g., *ManagedResult.*club_id)
                 results = ManagedResult.query.filter(ManagedResult.club_id==club_id, ManagedResult.raceid==race.id, ManagedResult.runnerid!=None).order_by('time').all()
                 
+                # check for duplicate RaceResult entries
+                rrentries = set()
+                rrduplicates = set()
+
                 # loop through result entries, collecting overall, bygender, division and agegrade results
                 for thisresult in results:
                     # get runner information
@@ -1733,6 +1737,11 @@ class AjaxTabulateResults(MethodView):
                     resulttime = thisresult.time
                     raceresult = RaceResult(club_id, runnerid, race.id, series.id, resulttime, gender, agegradeage, overallplace=thisresult.place)
 
+                    # check for duplicates
+                    if runnerid in rrentries:
+                        rrduplicates.add(runnerid)
+                    rrentries.add(runnerid)
+
                     # set source fields
                     raceresult.source = productname()
                     raceresult.sourceid = runnerid
@@ -1765,6 +1774,18 @@ class AjaxTabulateResults(MethodView):
                 # flush the results so they show up below
                 db.session.flush()
                 
+                # if duplicate entries found, complain to the admin
+                if rrduplicates:
+                    causedom = div()
+                    with causedom:
+                        p('Duplicate entries found for the following runners. Please correct and retabulate.')
+                        with ul():
+                            for rid in rrduplicates:
+                                runner = Runner.query.filter_by(id=rid).one()
+                                li(runner.name)
+                    cause = causedom.render()
+                    return failure_response(cause=cause)
+
                 # process bygender and division results, sorted by time or overallplace
                 # TODO: is series.overall vs. series.orderby=='time' redundant?  same question for series.agegrade vs. series.orderby=='agtime'
                 if series.orderby in ['time', 'overallplace']:
