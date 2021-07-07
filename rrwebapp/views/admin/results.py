@@ -1308,8 +1308,9 @@ class AjaxImportResults(MethodView):
                     nonmembers = Runner.query.filter_by(club_id=club_id,member=False)
                     for nonmember in nonmembers:
                         nonmemberresults = RaceResult.query.filter_by(club_id=club_id,runnerid=nonmember.id).all()
-                        # current_app.logger.debug('nonmember={}/{} nonmemberresults={}'.format(nonmember.name,nonmember.id,nonmemberresults))
-                        if len(nonmemberresults) == 0:
+                        nonmembemresults = ManagedResult.query.filter_by(club_id=club_id,runnerid=nonmember.id).all()
+                        # current_app.logger.debug(f'nonmember={nonmember.name}/{nonmember.id} nonmemberresults={nonmemberresults} nonmembermrresults={nonmembemresults}')
+                        if len(nonmemberresults) == 0 and len(nonmembemresults) == 0:
                             db.session.delete(nonmember)
                     # pick up any deletes for later processing
                     db.session.flush()
