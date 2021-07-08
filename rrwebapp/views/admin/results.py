@@ -54,9 +54,9 @@ from ...model import Runner, ManagedResult, RaceResult, Race, Exclusion, Series,
 from ...model import rendertime, renderfloat, rendermember, renderlocation, renderseries
 from ...resultsutils import ServiceAttributes, LocationServer, get_distance
 from ...resultsutils import DIFF_CUTOFF, DISP_MATCH, DISP_CLOSE, DISP_MISSED
-from ...resultsutils import ImportResults, tYmd, getrunnerchoices
+from ...resultsutils import ImportResults, tYmd, getrunnerchoices, get_earliestrace
 from ...model import RaceResultService, ApiCredentials
-from ...model import SERIES_OPTION_PROPORTIONAL_SCORING
+from ...model import SERIES_OPTION_REQUIRES_CLUB
 from ...datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 from ...forms import SeriesResultForm
 from ...tasks import importresultstask
@@ -1645,10 +1645,6 @@ class AjaxTabulateResults(MethodView):
                 else:
                     numdeleted = RaceResult.query.filter_by(club_id=club_id,raceid=raceid).delete()
     
-            # # get all the results, and the race record
-            # results = []
-            # results = ManagedResult.query.filter_by(club_id=club_id,raceid=raceid).order_by('overallplace').all()
-
             # get race and list of runners who should be included in this race, based on membersonly
             race = Race.query.filter_by(club_id=club_id,id=raceid).first()
             if len(race.series) == 0:
@@ -1681,7 +1677,6 @@ class AjaxTabulateResults(MethodView):
                         divisions.append((thisdiv.divisionlow, thisdiv.divisionhigh))
 
                 # collect results from database
-                # NOTE: filter() method requires fully qualified field names (e.g., *ManagedResult.*club_id)
                 results = ManagedResult.query.filter(ManagedResult.club_id==club_id, ManagedResult.raceid==race.id, ManagedResult.runnerid!=None).order_by('time').all()
                 
                 # check for duplicate RaceResult entries
@@ -1690,12 +1685,16 @@ class AjaxTabulateResults(MethodView):
 
                 # loop through result entries, collecting overall, bygender, division and agegrade results
                 for thisresult in results:
+                    # skip results which should not be tallied due to missing club
+                    if series.has_series_option(SERIES_OPTION_REQUIRES_CLUB) and not thisresult.club:
+                        continue
+
                     # get runner information
                     runner = Runner.query.filter_by(club_id=club_id,id=thisresult.runnerid).first()
                     runnerid = runner.id
                     gender = runner.gender
             
-                    # we don't have dateofbirth for non-members
+                    # we may not have dateofbirth for some non-members; for other non-members it's been estimated
                     if runner.dateofbirth:
                         try:
                             dob = dbdate.asc2dt(runner.dateofbirth)
@@ -1715,13 +1714,9 @@ class AjaxTabulateResults(MethodView):
                         
                         # if we have estimated dob, date for division's age calculation is earliest race run this year by this runner
                         else:
-                            results = ManagedResult.query.filter_by(runnerid=runner.id).join(Race).order_by(Race.date.desc()).all()
-                            divdate = racedate
-                            for divresult in results:
-                                resultdate = dbdate.asc2dt(divresult.race.date)
-                                if racedate.year > resultdate.year: break
-                                if resultdate < divdate:
-                                    divdate = resultdate
+                            # get_earliestrace can return None if none found, but logic to get here guarantees at least one will be found
+                            earlyresult = get_earliestrace(runner, year=racedate.year)
+                            divdate = dbdate.asc2dt(earlyresult.race.date)
                             divage = timeu.age(divdate, dob)
 
                     else:

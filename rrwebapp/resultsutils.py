@@ -34,6 +34,7 @@ from loutilities.namesplitter import split_full_name
 from . import app
 from .model import db, MAX_LOCATION_LEN, dbdate
 from .model import insert_or_update, RaceResult, Runner, Race, ApiCredentials, RaceResultService, Location, Exclusion
+from .model import ManagedResult
 from .apicommon import MapDict
 from .clubmember import DbClubMember
 from .datatables_utils import DataTablesEditor
@@ -235,6 +236,26 @@ def filtermissed(club_id,missed,racedate,resultage):
             #    localmissed.remove(thismissed)
 
     return localmissed
+
+def get_earliestrace(runner, year=None):
+    """
+    get earliest race within a year for this runner, within ManagedResult table
+
+    :param year: year in question
+    :param runner: Runner record
+    :rettype: ManagedResult record, or None
+    """
+    results = ManagedResult.query.filter_by(runnerid=runner.id).join(Race).order_by(Race.date.desc()).all()
+    divdate = None
+    theresult = None
+    for result in results:
+        resultdate = dbdate.asc2dt(result.race.date)
+        if year and year < resultdate.year: continue
+        if year and year > resultdate.year: break
+        if not divdate or resultdate < divdate:
+            divdate = resultdate
+            theresult = result
+    return theresult
 
 
 class Record():

@@ -25,6 +25,7 @@ from ...model import insert_or_update
 from ...model import db   # this is ok because this module only runs under flask
 from ...model import Race, Series, Divisions
 from ...model import getclubid, getyear
+from ...model import SERIES_OPTIONS, SERIES_OPTION_SEPARATOR
 from ...apicommon import failure_response, success_response, check_header
 from ...crudapi import CrudApi
 from ...resultsutils import race_fixeddist
@@ -359,8 +360,10 @@ dt_options = {
     'order': [[0, 'asc']],
 }
 
-series_dbattrs = 'id,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
-series_formfields = 'rowid,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races'.split(',')
+series_dbattrs = 'id,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,'\
+    'hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races,options'.split(',')
+series_formfields = 'rowid,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,'\
+    'hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races,options'.split(',')
 series_dbmapping = dict(list(zip(series_dbattrs, series_formfields)))
 series_formmapping = dict(list(zip(series_formfields, series_dbattrs)))
 
@@ -430,6 +433,13 @@ series = CrudApi(
          'className': 'field_req',
          'class': 'column-center',
          '_treatment': {'boolean': {'formfield': 'calcagegrade', 'dbfield': 'calcagegrade', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
+        {'data': 'options', 'name': 'options', 'label': 'Other Series Options',
+         'type': 'checkbox',
+         'ed': {
+             'options': SERIES_OPTIONS,
+             'separator': SERIES_OPTION_SEPARATOR,
+         }
+         },
         {'data': 'races', 'name': 'races', 'label': 'Races', 'type': 'select2',
          '_treatment': {'relationship':
              {

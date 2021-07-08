@@ -25,19 +25,13 @@ from datetime import datetime
 import xlwt
 import flask
 from dominate.tags import div, a
-
-# github
-
-# other
+from loutilities import renderrun as render
+from loutilities import timeu
 
 # home grown
-from loutilities import renderrun as render
-from . import app
+from .model import Divisions, Race, RaceResult, Runner, SERIES_OPTION_PROPORTIONAL_SCORING, SERIES_OPTION_REQUIRES_CLUB
+from .resultsutils import get_earliestrace
 
-# module speicific needs
-import time
-from .model import Divisions, Race, RaceResult, Runner
-from loutilities import timeu
 tYmd = timeu.asctime('%Y-%m-%d')
 
 class parameterError(Exception): pass
@@ -1138,6 +1132,8 @@ class StandingsRenderer():
         self.maxdivpoints = series.maxdivpoints
         self.maxraces = series.maxraces
         self.maxbynumrunners = series.maxbynumrunners
+        self.proportional_scoring = series.has_series_option(SERIES_OPTION_PROPORTIONAL_SCORING)
+        self.requires_club = series.has_series_option(SERIES_OPTION_REQUIRES_CLUB)
         self.year = year
         self.races = races
         self.racenums = racenums
@@ -1169,6 +1165,23 @@ class StandingsRenderer():
         # determine age for all runners for which there are results
         age = {}
 
+        # for proportional scoring, make a pass through the results to determine best times for gender, division
+        if self.proportional_scoring:
+            # 48 hours seems long enough
+            LONGTIME = 48*60*60
+            propbest = {
+                'M': {'time': LONGTIME, 'div': {}},
+                'F': {'time': LONGTIME, 'div': {}},
+            }
+            for result in allresults:
+                gen = result.gender
+                div = (result.divisionlow, result.divisionhigh)
+                propbest[gen]['div'].setdefault(div, LONGTIME)
+                if result.time < propbest[gen]['time']:
+                    propbest[gen]['time'] = result.time
+                if result.time < propbest[gen]['div'][div]:
+                    propbest[gen]['div'][div] = result.time
+
         # accumulate results
         for resultndx in range(len(allresults)):
             numresults += 1
@@ -1178,15 +1191,32 @@ class StandingsRenderer():
             name = result.runner.name
             runnerid = result.runnerid
             
+            # convenience variables
+            gen = result.gender
+            div = (result.divisionlow, result.divisionhigh)
+            racedate = tYmd.asc2dt(result.race.date)
+
             # get runner's age for standings
             if runnerid not in age:
                 # should be no need to filter on club here
-                runner = Runner.query.filter_by(id=runnerid).first()
-                # use age on Jan 1 from current year if dob available, else just use age from first result
+                runner = Runner.query.filter_by(id=runnerid).one()
+                # use age on Jan 1 from current year if dob available, else just use age from earliest result
                 if runner.dateofbirth:
-                    thisage = timeu.age(datetime(int(self.year),1,1),tYmd.asc2dt(runner.dateofbirth))
+                    if not runner.estdateofbirth:
+                        thisage = timeu.age(datetime(int(self.year),1,1),tYmd.asc2dt(runner.dateofbirth))
+                    else:
+                        # TODO: this doesn't quite seem right -- we want to emulate Jan 1, but don't know the real dob 
+                        # -- should we be looking at earliest race in *any* year?
+                        # get_earliestrace can return None if none found, but logic to get here guarantees at least one will be found
+                        earlyresult = get_earliestrace(runner, year=racedate.year)
+                        divdate = tYmd.asc2dt(earlyresult.race.date)
+                        thisage = timeu.age(divdate, tYmd.asc2dt(runner.dateofbirth))
+                # no dob found, so just use age from earliest race in the race's year
                 else:
-                    thisage = result.agage
+                    # get_earliestrace can return None if none found, but logic to get here guarantees at least one will be found
+                    earlyresult = get_earliestrace(runner, year=racedate.year)
+                    divdate = tYmd.asc2dt(earlyresult.race.date)
+                    thisage = earlyresult.agage
                 age[runnerid] = thisage
             thisage = age[runnerid]
             
@@ -1215,13 +1245,27 @@ class StandingsRenderer():
                 if self.maxgenpoints:
                     genpoints = self.multiplier*(self.maxgenpoints+1-result.genderplace)
                 
+                # proportional scoring means points = multiplier * toptime/thistime
+                elif self.proportional_scoring:
+                    genpoints = round(self.multiplier * (propbest[gen]['time'] / result.time))
+
                 # otherwise, accumulate from the bottom
                 else:
                     genpoints = self.multiplier*result.genderplace
                 
+                # record gender points
                 byrunner[runnerid,name,thisage]['bygender'].append(max(genpoints,0))
+
+                # handle divisions
                 if self.bydiv:
-                    divpoints = self.multiplier*(self.maxdivpoints+1-result.divisionplace)
+                    # "normal" case is by max division points
+                    if not self.proportional_scoring:
+                        divpoints = self.multiplier*(self.maxdivpoints+1-result.divisionplace)
+                    
+                    # proportional scoring means points = multiplier * toptime/thistime
+                    else:
+                        divpoints = round(self.multiplier * (propbest[gen]['div'][div] / result.time))
+                    
                     byrunner[runnerid,name,thisage]['bydivision'].append(max(divpoints,0))
             
             # if result was ordered by agpercent, agpercent is used -- assume no divisions
@@ -1327,9 +1371,12 @@ class StandingsRenderer():
                     fh.setheader(gen,True)
                     fh.clearline(gen)
                     divlow,divhigh = div
-                    if divlow == 0:     divtext = 'up to {0}'.format(divhigh)
-                    elif divhigh == 99: divtext = '{0} and up'.format(divlow)
-                    else:               divtext = '{0} to {1}'.format(divlow,divhigh)
+                    if not divlow or divlow <= 1:
+                        divtext = 'up to {0}'.format(divhigh)
+                    elif not divhigh or divhigh >= 99: 
+                        divtext = '{0} and up'.format(divlow)
+                    else:
+                        divtext = '{0} to {1}'.format(divlow,divhigh)
                     fh.setname(gen,divtext,'divhdr')
                     fh.setdivision(gen,divtext)
                     fh.render(gen)

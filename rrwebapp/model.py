@@ -707,7 +707,6 @@ class RaceResult(Base):
     :param divisionpoints: runner's point score from place within division, adjusted for rendering by series rules
     :param agtime: age grade time in seconds - default None
     :param agpercent: age grade percentage - default None
-    :param proportion: result / winner_result
     :param source: references source of result data - name not id
     :param sourceid: references runner within source
     :param fuzzyage: set to 'y' if age math is "fuzzy", for sources which only have 5 year age groups listed
