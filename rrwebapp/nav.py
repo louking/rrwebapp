@@ -149,7 +149,7 @@ def nav_menu():
             scoring_view(racesadmin, 'Races', 'admin.manageraces')
             scoring_view(racesadmin, 'Series', 'admin.manageseries')
             scoring_view(racesadmin, 'Divisions', 'admin.managedivisions')
-            scoring_view(racesadmin, 'Affiliated Clubs', 'admin.clubaffiliations')
+            scoring_view(racesadmin, 'Club Affiliations', 'admin.clubaffiliations')
             scoring_view(racesadmin, 'Download Results', 'admin.downloadresults')
 
             # this is duplicated under Results Analysis for owner
