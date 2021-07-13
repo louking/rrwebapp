@@ -21,9 +21,9 @@ from flask.views import MethodView
 # home grown
 from . import bp
 from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
-from ...model import insert_or_update
+from ...model import ClubAffiliation, insert_or_update
 from ...model import db   # this is ok because this module only runs under flask
-from ...model import Race, Series, Divisions
+from ...model import Race, Series, Divisions, ClubAffiliation
 from ...model import getclubid, getyear
 from ...model import SERIES_OPTIONS, SERIES_OPTION_SEPARATOR
 from ...apicommon import failure_response, success_response, check_header
@@ -36,7 +36,7 @@ from loutilities.csvu import DictReaderStr2Num
 from loutilities.filters import filtercontainerdiv, filterdiv
 
 # acceptable surfaces -- must match model.SurfaceType
-from ...model import SURFACES
+from ...model import SURFACES, CLUBAFFILIATION_ALTERNATES_SEPARATOR
 
 
 ###########################################################################################
@@ -678,4 +678,141 @@ class AjaxCopyDivisions(MethodView):
 bp.add_url_rule('/_copydivisions',view_func=AjaxCopyDivisions.as_view('_copydivisions'),methods=['POST'])
 #----------------------------------------------------------------------
 
+
+###########################################################################################
+# clubaffiliation_view endpoint
+###########################################################################################
+
+clubaffiliations_dbattrs = 'id,club_id,year,shortname,title,alternates'.split(',')
+clubaffiliations_formfields = 'rowid,club_id,year,shortname,title,alternates'.split(',')
+clubaffiliations_dbmapping = dict(list(zip(clubaffiliations_dbattrs, clubaffiliations_formfields)))
+clubaffiliations_formmapping = dict(list(zip(clubaffiliations_formfields, clubaffiliations_dbattrs)))
+
+def get_clubaffiliations_alternates(dbrow):
+    if not dbrow.alternates:
+        return []
+    else:
+        return dbrow.alternates.split(CLUBAFFILIATION_ALTERNATES_SEPARATOR)
+
+clubaffiliations_formmapping['alternates'] = get_clubaffiliations_alternates
+
+# force default of club id and year for new or updated records
+clubaffiliations_dbmapping['club_id'] = getclubid
+clubaffiliations_dbmapping['year'] = getyear
+
+
+class ClubAffiliationsView(CrudApi):
+    def update_alternates(self, formdata):
+        """
+        make sure title is first choice in alternates
+        """
+        alternateitems = formdata['alternates'].split(CLUBAFFILIATION_ALTERNATES_SEPARATOR) if formdata['alternates'] else []
+        if formdata['title'] not in alternateitems:
+            alternateitems.insert(0, formdata['title'])
+            formdata['alternates'] = CLUBAFFILIATION_ALTERNATES_SEPARATOR.join(alternateitems)
+
+    def createrow(self, formdata):
+        self.update_alternates(formdata)
+        return super().createrow(formdata)
+
+    def updaterow(self, thisid, formdata):
+        self.update_alternates(formdata)
+        return super().updaterow(thisid, formdata)
+
+clubaffiliations = ClubAffiliationsView(
+    app=bp,
+    template='clubaffiliations.jinja2',
+    pagename='Club Affiliations',
+    endpoint='.clubaffiliations',
+    rule='/clubaffiliations',
+    dbmapping=clubaffiliations_dbmapping,
+    formmapping=clubaffiliations_formmapping,
+    permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+    dbtable=ClubAffiliation,
+    checkrequired=True,
+    clientcolumns=[
+        {'data': 'shortname', 'name': 'shortname', 'label': 'Display Name', 
+         },
+        {'data': 'title', 'name': 'title', 'label': 'Official Name',
+         'className': 'field_req',
+         },
+        # see clubaffiliations_formmapping and RaceResults.js clubaffiliations() editor.on('initEdit', ...
+        {'data': 'alternates', 'name': 'alternates', 'label': 'Alternate Names',
+         'dt': {
+             'render': {'eval': f'render_select_as_tags()'},
+         },
+         'type': 'select2', 
+         'separator': CLUBAFFILIATION_ALTERNATES_SEPARATOR,
+         'options': [],
+         'opts': {
+             'multiple': 'multiple',
+             'tags': True,
+         }
+         },
+    ],
+    serverside=False,
+    byclub=True,
+    byyear=True,
+    addltemplateargs={'inhibityear': False},
+    idSrc='rowid',
+    buttons=['create', 'edit', 'remove', 'csv',
+             ],
+    )
+clubaffiliations.register()
+
+class AjaxCopyClubAffiliations(MethodView):
+    decorators = [login_required]
+    
+    def post(self):
+        try:
+            club_id = flask.session['club_id']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can write the data, otherwise abort
+            if not writecheck.can():
+                db.session.rollback()
+                flask.abort(403)
+            
+            # get requested year to copy and current year
+            if not request.args.get('copyyear'):
+                db.session.rollback()
+                return failure_response(cause='Unexpected Error: copyyear argument missing')
+            copyyear = int(request.args.get('copyyear'))
+            thisyear = flask.session['year']
+            
+            # if some items exists for this year, verify user wants to overwrite
+            thisyearitems = ClubAffiliation.query.filter_by(club_id=club_id, year=thisyear).all()
+            if thisyearitems and not request.args.get('force')=='true':
+                db.session.rollback()
+                return failure_response(cause='Overwrite club affiliations for this year?', confirm=True)
+
+            # user has agreed to overwrite any items -- assume all are obsolete until overwritten
+            obsoleteitems = {}
+            for item in thisyearitems:
+                obsoleteitems[item.shortname] = item
+            
+            # copy each entry from "copyyear"
+            for item in ClubAffiliation.query.filter_by(club_id=club_id, year=copyyear).all():
+                newitem = ClubAffiliation(club_id=club_id, year=thisyear)
+                insert_or_update(db.session, ClubAffiliation, newitem, year=thisyear, club_id=club_id, skipcolumns=['id'])
+                
+                # any items we updated is not obsolete
+                if newitem.shortname in obsoleteitems:
+                    obsoleteitems.pop(newitem.shortname)
+                    
+            # remove obsolete items
+            for shortname in obsoleteitems:
+                db.session.delete(obsoleteitems[shortname])
+                
+            # commit database updates and close transaction
+            db.session.commit()
+            return success_response()
+        
+        except:
+            # roll back database updates and close transaction
+            db.session.rollback()
+            raise
+bp.add_url_rule('/_copyclubaffiliations',view_func=AjaxCopyClubAffiliations.as_view('_copyclubaffiliations'),methods=['POST'])
 

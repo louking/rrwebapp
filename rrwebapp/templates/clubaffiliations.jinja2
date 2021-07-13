@@ -1,0 +1,15 @@
+{% extends "datatables.jinja2" %}
+{% block scripts %}
+  <script type="text/javascript">
+    function afterdatatables() {
+      {% if writeallowed %}
+        // needs called in afterdatatables because this will use some of the elements created above
+        clubaffiliations();
+
+      {% endif %}
+    }
+
+  </script>
+  {{ super() }}
+
+{% endblock %}

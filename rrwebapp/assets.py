@@ -19,7 +19,7 @@ jq_ui_ver = '1.12.1'
 
 # dataTables
 dt_datatables_ver = '1.10.24'
-dt_editor_ver = '2.0.1'
+dt_editor_ver = '2.0.4'
 dt_buttons_ver = '1.7.0'
 dt_colvis_ver = '1.7.0'
 dt_datetime_ver = '1.0.3'

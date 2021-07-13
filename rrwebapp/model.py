@@ -422,6 +422,17 @@ class RunnerAlias(Base):
         return '<RunnerAlias %s %s>' % (self.name, self.runnerid)
 
 
+CLUBAFFILIATION_ALTERNATES_SEPARATOR = '||'
+class ClubAffiliation(Base):
+    __tablename__ = 'clubaffiliation'
+    id = Column(Integer(), primary_key=True)
+    club_id = Column(Integer, ForeignKey('club.id'))
+    year        = Column(Integer)
+    shortname   = Column(Text)
+    title       = Column(Text)
+    alternates  = Column(Text)
+
+
 SURFACES = 'road,track,trail'.split(',')
 class Race(Base):
     '''
@@ -540,15 +551,19 @@ SERIES_BOOLEAN_OPTIONS = [
     SERIES_OPTION_AVERAGETIE,
     SERIES_OPTION_MAXBYNUMRUNNERS,
 ]
-SERIES_OPTION_SEPARATOR = ','
+SERIES_OPTION_SEPARATOR = ', '
 SERIES_OPTION_PROPORTIONAL_SCORING = 'proportional_scoring'
-SERIES_OPTION_REQUIRES_CLUB = 'requires_club'
+SERIES_OPTION_REQUIRES_CLUB = 'requires_club_affiliation'
+SERIES_OPTION_DISPLAY_CLUB = 'display_club_affiliation'
 SERIES_OPTIONS = [
     {'value': SERIES_OPTION_PROPORTIONAL_SCORING, 'label': 'Proportional Scoring',
-     'attr': {'title': 'winner = max_xxx_points, other scores = max_xxx_points * time/winner_time'}
+     'attr': {'title': 'winner = multiplier, other scores = multiplier * winner_time/time'}
     },
-    {'value': SERIES_OPTION_REQUIRES_CLUB, 'label': 'Requires Club',
-     'attr': {'title': 'if checked, only results which have club indicated are included'}
+    {'value': SERIES_OPTION_REQUIRES_CLUB, 'label': 'Requires Club Affiliation',
+     'attr': {'title': 'if checked, only results which have club affiliation indicated are included'}
+    },
+    {'value': SERIES_OPTION_DISPLAY_CLUB, 'label': 'Display Club Affiliation',
+     'attr': {'title': 'if checked, club affiliation is displayed with series results and standings'}
     },
 ]
 class Series(Base):
@@ -720,6 +735,8 @@ class RaceResult(Base):
     runnerid = Column(Integer, ForeignKey('runner.id'), index=True)
     runnername = Column(String(50)) # *** do not use!
     raceid = Column(Integer, ForeignKey('race.id'))
+    clubaffiliation_id = Column(Integer, ForeignKey('clubaffiliation.id'))
+    clubaffiliation = relationship('ClubAffiliation')
     seriesid = Column(Integer, ForeignKey('series.id'))
     gender = Column(String(1))
     agage = Column(Integer)
