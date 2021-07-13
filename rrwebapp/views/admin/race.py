@@ -700,6 +700,29 @@ clubaffiliations_formmapping['alternates'] = get_clubaffiliations_alternates
 clubaffiliations_dbmapping['club_id'] = getclubid
 clubaffiliations_dbmapping['year'] = getyear
 
+def clubaffiliations_validate(action, formdata):
+    results = []
+
+    club_id = getclubid(formdata)
+    allclubs = ClubAffiliation.query.filter_by(club_id=club_id).filter(ClubAffiliation.shortname != formdata['shortname']).all()
+    clubalternates = set()
+    for club in allclubs:
+        if club.alternates:
+            thosealternates = set([a.lower() for a in club.alternates.split(CLUBAFFILIATION_ALTERNATES_SEPARATOR)])
+            clubalternates |= thosealternates
+    thesealternates = []
+    if formdata['title']:
+        thesealternates += [formdata['title']]
+    if formdata['alternates']:
+        thesealternates += [a for a in formdata['alternates'].split(CLUBAFFILIATION_ALTERNATES_SEPARATOR) if a not in thesealternates]
+    badalternates = [a for a in thesealternates if a.lower() in clubalternates]
+
+    if badalternates:
+        badaltrender = ', '.join(badalternates)
+        results.append({'name': 'shortname', 'status': f'conflicting official name / alternates: {badaltrender}'})
+
+    return results
+
 
 class ClubAffiliationsView(CrudApi):
     def update_alternates(self, formdata):
@@ -728,6 +751,7 @@ clubaffiliations = ClubAffiliationsView(
     dbmapping=clubaffiliations_dbmapping,
     formmapping=clubaffiliations_formmapping,
     permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
+    validate=clubaffiliations_validate,
     dbtable=ClubAffiliation,
     checkrequired=True,
     clientcolumns=[
