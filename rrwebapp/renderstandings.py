@@ -668,7 +668,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         self.setheader(gen,True)
         self.setplace(gen,'Place')
         self.setname(gen,'Name')
-        self.setage(gen,'Age')
+        self.setage(gen,'Div Age')
         self.setnraces(gen,'n')
         self.setdivision(gen,'Division')
         self.settotal(gen,'Total Pts.')
