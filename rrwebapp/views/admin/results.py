@@ -2074,6 +2074,8 @@ class AjaxDownloadResults(MethodView):
                             event_id = event['event_id']
                             year = rsutime.asc2dt(event['start_time']).year
                             distance = event['distance']
+                            # some events don't have a distance; we ignore these
+                            if not distance: continue
                             options.setdefault(year, {})
                             options[year].setdefault(distance, [])
                             event_name = event['name']
