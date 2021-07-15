@@ -40,7 +40,7 @@ from running.runsignup import RunSignUp
 
 # home grown
 from . import bp
-from ...model import insert_or_update
+from ...model import CLUBAFFILIATION_ALTERNATES_SEPARATOR, insert_or_update
 from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission, viewer_permission
 from ...model import db   # this is ok because this module only runs under flask
 from ...apicommon import failure_response, success_response
@@ -50,13 +50,13 @@ from ...settings import productname
 from ...raceresults import RaceResults, headerError, dataError, normalizeracetime
 from ...clubmember import DbClubMember
 from ...crudapi import CrudApi
-from ...model import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, dbdate
+from ...model import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, ClubAffiliation, dbdate
 from ...model import rendertime, renderfloat, rendermember, renderlocation, renderseries
 from ...resultsutils import ServiceAttributes, LocationServer, get_distance
 from ...resultsutils import DIFF_CUTOFF, DISP_MATCH, DISP_CLOSE, DISP_MISSED
-from ...resultsutils import ImportResults, tYmd, getrunnerchoices, get_earliestrace
+from ...resultsutils import ImportResults, tYmd, getrunnerchoices, get_earliestrace, ClubAffiliationLookup
 from ...model import RaceResultService, ApiCredentials
-from ...model import SERIES_OPTION_REQUIRES_CLUB
+from ...model import SERIES_OPTION_REQUIRES_CLUB, SERIES_OPTION_DISPLAY_CLUB
 from ...datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 from ...forms import SeriesResultForm
 from ...tasks import importresultstask
@@ -1676,6 +1676,14 @@ class AjaxTabulateResults(MethodView):
                     for thisdiv in alldivs:
                         divisions.append((thisdiv.divisionlow, thisdiv.divisionhigh))
 
+                # if series displays club, collect club alternatives
+                if series.has_series_option(SERIES_OPTION_DISPLAY_CLUB):
+                    # make hashed lookup for known clubs
+                    clubaff = ClubAffiliationLookup(club_id, thisyear)
+                    
+                    # maybe some clubs are unknown
+                    unknownclubs = set()
+
                 # collect results from database
                 results = ManagedResult.query.filter(ManagedResult.club_id==club_id, ManagedResult.raceid==race.id, ManagedResult.runnerid!=None).order_by('time').all()
                 
@@ -1687,6 +1695,9 @@ class AjaxTabulateResults(MethodView):
                 for thisresult in results:
                     # skip results which should not be tallied due to missing club
                     if series.has_series_option(SERIES_OPTION_REQUIRES_CLUB) and not thisresult.club:
+                        continue
+                    if (series.has_series_option(SERIES_OPTION_REQUIRES_CLUB) and clubaff.knownclub(thisresult.club) 
+                                                                              and not clubaff.clubaffiliation(thisresult.club).shortname):
                         continue
 
                     # get runner information
@@ -1731,6 +1742,14 @@ class AjaxTabulateResults(MethodView):
                     # save overallplace for possible sort later (series.orderby)
                     resulttime = thisresult.time
                     raceresult = RaceResult(club_id, runnerid, race.id, series.id, resulttime, gender, agegradeage, overallplace=thisresult.place)
+                    
+                    # save club affiliation if needed
+                    if series.has_series_option(SERIES_OPTION_REQUIRES_CLUB):
+                        thisclubaff = clubaff.clubaffiliation(thisresult.club)
+                        if thisclubaff:
+                            raceresult.clubaffiliation = thisclubaff
+                        else:
+                            unknownclubs.add(thisresult.club)
 
                     # check for duplicates
                     if runnerid in rrentries:
@@ -1778,6 +1797,17 @@ class AjaxTabulateResults(MethodView):
                             for rid in rrduplicates:
                                 runner = Runner.query.filter_by(id=rid).one()
                                 li(runner.name)
+                    cause = causedom.render()
+                    return failure_response(cause=cause)
+                
+                # if unknown clubs seen in the results, complain to the admin
+                if series.has_series_option(SERIES_OPTION_DISPLAY_CLUB) and unknownclubs:
+                    causedom = div()
+                    with causedom:
+                        p('Unknown club names found. Please correct and retabulate.')
+                        with ul():
+                            for unknownclub in unknownclubs:
+                                li(unknownclub)
                     cause = causedom.render()
                     return failure_response(cause=cause)
 

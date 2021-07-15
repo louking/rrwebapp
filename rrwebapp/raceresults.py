@@ -359,6 +359,10 @@ class RaceResults():
                         else:
                             raise dataError("invalid place '{}' for record with name '{}'".format(result['place'],result['name']))
                 
+            # special processing for club - strip whitespace
+            if 'club' in result and result['club'] is not None:
+                result['club'] = result['club'].strip()
+                
             # look for some obvious errors in name
             if result['name'] is None or result['name'] == '' or result['name'][0] in '=-/!':
                 if not self.contiguousrows:

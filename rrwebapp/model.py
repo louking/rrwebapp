@@ -618,7 +618,7 @@ class Series(Base):
         if option in SERIES_BOOLEAN_OPTIONS:
             return getattr(self, option)
         else:
-            return option in self.options.split(SERIES_OPTION_SEPARATOR)
+            return option in self.options.split(SERIES_OPTION_SEPARATOR) if self.options else False
 
 class ManagedResult(Base):
     '''
@@ -645,15 +645,15 @@ class ManagedResult(Base):
     
     # from official race result file
     place = Column(Float)
-    name = Column(String(50))
-    fname = Column(String(50))
-    lname = Column(String(50))
+    name = Column(Text)
+    fname = Column(Text)
+    lname = Column(Text)
     gender = Column(String(1))
     age = Column(Integer)
-    city = Column(String(50))
-    state = Column(String(2))
-    hometown = Column(String(50))
-    club = Column(String(20))
+    city = Column(Text)
+    state = Column(Text)
+    hometown = Column(Text)
+    club = Column(Text)
     time = Column(Float)
     
     # metadata

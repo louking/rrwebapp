@@ -29,12 +29,13 @@ from loutilities.timeu import age, asctime, epoch2dt, dt2epoch
 from loutilities.agegrade import AgeGrade
 from loutilities.transform import Transform
 from loutilities.namesplitter import split_full_name
+from dominate.tags import span
 
 # homegrown
 from . import app
 from .model import db, MAX_LOCATION_LEN, dbdate
 from .model import insert_or_update, RaceResult, Runner, Race, ApiCredentials, RaceResultService, Location, Exclusion
-from .model import ManagedResult
+from .model import ManagedResult, ClubAffiliation, CLUBAFFILIATION_ALTERNATES_SEPARATOR
 from .apicommon import MapDict
 from .clubmember import DbClubMember
 from .datatables_utils import DataTablesEditor
@@ -940,3 +941,43 @@ class LocationServer(object):
 
         # and back to caller
         return loc
+
+
+class ClubAffiliationLookup():
+    """
+    lookup access by club name for club affiliations
+    """
+    def __init__(self, club_id, year):
+        # make hashed lookup for known clubs
+        allclubaffs = ClubAffiliation.query.filter_by(club_id=club_id, year=year).all()
+        self.clubaff = {}
+        for thisclubaff in allclubaffs:
+            if thisclubaff.alternates:
+                knownclubs = thisclubaff.alternates.split(CLUBAFFILIATION_ALTERNATES_SEPARATOR)
+                for knownclub in knownclubs:
+                    self.clubaff[knownclub] = thisclubaff
+    
+    def clubaffiliation(self, clubname):
+        """
+        returns ClubAffiliation 
+        """
+        if clubname in self.clubaff:
+            return self.clubaff[clubname]
+        else:
+            return None
+    
+    def knownclub(self, clubname):
+        """
+        returns True if club is a known club
+        """
+        return clubname in self.clubaff
+
+def clubaffiliationelement(result):
+    """
+    return dom element associated with clubaffiliation for a result
+    """
+    if result.clubaffiliation and result.clubaffiliation.shortname:
+        domel = span(result.clubaffiliation.shortname, title=result.clubaffiliation.title)
+    else:
+        domel = None
+    return domel

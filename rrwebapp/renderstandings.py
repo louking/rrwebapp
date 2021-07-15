@@ -25,12 +25,14 @@ from datetime import datetime
 import xlwt
 import flask
 from dominate.tags import div, a
+from dominate.util import text
 from loutilities import renderrun as render
 from loutilities import timeu
 
 # home grown
-from .model import Divisions, Race, RaceResult, Runner, SERIES_OPTION_PROPORTIONAL_SCORING, SERIES_OPTION_REQUIRES_CLUB
-from .resultsutils import get_earliestrace
+from .model import Divisions, Race, RaceResult, Runner
+from .model import SERIES_OPTION_PROPORTIONAL_SCORING, SERIES_OPTION_REQUIRES_CLUB, SERIES_OPTION_DISPLAY_CLUB
+from .resultsutils import get_earliestrace, clubaffiliationelement
 
 tYmd = timeu.asctime('%Y-%m-%d')
 
@@ -44,11 +46,23 @@ def addstyle(header,contents,style):
     add style class to table element
 
     :param header: true if this is to be a header element
-    :param text: text for final element
+    :param contents: text or dominate tag for final element, can be list of dominate tags
     :param style: name for style class
     :rtype: html string
     '''
-    el = div(contents, _class=f'_rrwebapp-class-standings-data-{style}')
+    if not isinstance(contents, list):
+        el = div(contents, _class=f'_rrwebapp-class-standings-data-{style}')
+    
+    # handle list of dominate tags
+    else:
+        el = div(_class=f'_rrwebapp-class-standings-data-{style}')
+        for item in contents:
+            el.add(item)
+            separator = text(', ')
+            el.add(separator)
+        # remove last separator
+        el.remove(separator)
+
     return el.render()
     
 #----------------------------------------------------------------------
@@ -88,6 +102,7 @@ class BaseStandingsHandler():
             'name-won-agegroup': None,
             'name-noteligable': None,
             'age': None,
+            'clubs': None,
             'nraces': None,
             'race': None,
             'race-dropped': None,
@@ -188,6 +203,19 @@ class BaseStandingsHandler():
 
         :param gen: gender M or F
         :param age: value for age column
+        :param stylename: name of style for field display
+        '''
+
+        pass
+    
+    #----------------------------------------------------------------------
+    def setclubs(self,gen,clubs,stylename='clubs'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'age' column for output
+
+        :param gen: gender M or F
+        :param clubs: value for clubs column
         :param stylename: name of style for field display
         '''
 
@@ -373,6 +401,20 @@ class ListStandingsHandler():
             fh.setage(gen,age,stylename)
     
     #----------------------------------------------------------------------
+    def setclubs(self,gen,clubs,stylename='clubs'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'clubs' column for output
+
+        :param gen: gender M or F
+        :param clubs: value for clubs column
+        :param stylename: name of style for field display
+        '''
+
+        for fh in self.fhlist:
+            fh.setclubs(gen, clubs, stylename)
+    
+    #----------------------------------------------------------------------
     def setrace(self,gen,racenum,result,stylename='race'):
     #----------------------------------------------------------------------
         '''
@@ -499,6 +541,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         self.setplace(gen,'')
         self.setname(gen,'')
         self.setage(gen,'')
+        self.setclubs(gen,'')
         self.settotal(gen,'Total Pts.')
         
         for racenum in self.racelist:
@@ -560,6 +603,19 @@ class TxtStandingsHandler(BaseStandingsHandler):
 
         self.pline[gen]['age'] = str(age)
 
+    #----------------------------------------------------------------------
+    def setclubs(self,gen,clubs,stylename='clubs'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'clubs' column for output
+
+        :param gen: gender M or F
+        :param clubs: value for clubs column
+        :param stylename: name of style for field display
+        '''
+
+        self.pline[gen]['clubs'] = str(clubs)
+    
     #----------------------------------------------------------------------
     def setrace(self,gen,racenum,result,stylename='race'):
     #----------------------------------------------------------------------
@@ -669,6 +725,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         self.setplace(gen,'Place')
         self.setname(gen,'Name')
         self.setage(gen,'Div Age')
+        self.setclubs(gen, 'Club')
         self.setnraces(gen,'n')
         self.setdivision(gen,'Division')
         self.settotal(gen,'Total Pts.')
@@ -753,6 +810,19 @@ class HtmlStandingsHandler(BaseStandingsHandler):
 
         self.pline[gen]['age'] = addstyle(self.pline[gen]['header'],str(age),stylename)
 
+    #----------------------------------------------------------------------
+    def setclubs(self,gen,clubs,stylename='clubs'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'clubs' column for output
+
+        :param gen: gender M or F
+        :param clubs: value for clubs column
+        :param stylename: name of style for field display
+        '''
+
+        self.pline[gen]['clubs'] = addstyle(self.pline[gen]['header'],clubs,stylename)
+    
     #----------------------------------------------------------------------
     def setnraces(self,gen,nraces,stylename='nraces'):
     #----------------------------------------------------------------------
@@ -958,7 +1028,8 @@ class XlStandingsHandler(BaseStandingsHandler):
         self.colnum['place'] = 0
         self.colnum['name'] = 1
         self.colnum['age'] = 2
-        thiscol = 3
+        self.colnum['clubs'] = 3
+        thiscol = 4
         for racenum in self.racelist:
             self.colnum['race{0}'.format(racenum)] = thiscol
             thiscol += 1
@@ -968,6 +1039,7 @@ class XlStandingsHandler(BaseStandingsHandler):
         self.ws[gen].col(self.colnum['place']).width = 6*256
         self.ws[gen].col(self.colnum['name']).width = 19*256
         self.ws[gen].col(self.colnum['age']).width = 6*256
+        self.ws[gen].col(self.colnum['clubs']).width = 6*256
         self.ws[gen].col(self.colnum['total']).width = 9*256
         for racenum in self.racelist:
             self.ws[gen].col(self.colnum['race{0}'.format(racenum)]).width = 6*256
@@ -1036,6 +1108,19 @@ class XlStandingsHandler(BaseStandingsHandler):
 
         self.ws[gen].write(self.rownum[gen],self.colnum['age'],age,self.style[stylename])
 
+    #----------------------------------------------------------------------
+    def setclubs(self,gen,clubs,stylename='clubs'):
+    #----------------------------------------------------------------------
+        '''
+        put value in 'clubs' column for output
+
+        :param gen: gender M or F
+        :param clubs: value for clubs column
+        :param stylename: name of style for field display
+        '''
+
+        self.ws[gen].write(self.rownum[gen],self.colnum['clubs'],clubs,self.style[stylename])
+    
     #----------------------------------------------------------------------
     def setrace(self,gen,racenum,result,stylename='race'):
     #----------------------------------------------------------------------
@@ -1134,6 +1219,7 @@ class StandingsRenderer():
         self.maxbynumrunners = series.maxbynumrunners
         self.proportional_scoring = series.has_series_option(SERIES_OPTION_PROPORTIONAL_SCORING)
         self.requires_club = series.has_series_option(SERIES_OPTION_REQUIRES_CLUB)
+        self.display_club = series.has_series_option(SERIES_OPTION_DISPLAY_CLUB)
         self.year = year
         self.races = races
         self.racenums = racenums
@@ -1195,6 +1281,7 @@ class StandingsRenderer():
             gen = result.gender
             div = (result.divisionlow, result.divisionhigh)
             racedate = tYmd.asc2dt(result.race.date)
+            clubaffiliation = clubaffiliationelement(result)
 
             # get runner's age for standings
             if runnerid not in age:
@@ -1227,7 +1314,14 @@ class StandingsRenderer():
                     if (runnerid, name, thisage) not in divrunner[(result.divisionlow, result.divisionhigh)]:
                         divrunner[(result.divisionlow,result.divisionhigh)].append((runnerid, name, thisage))
                     byrunner[runnerid, name, thisage]['bydivision'] = []
+                if self.display_club:
+                    byrunner[runnerid, name, thisage]['clubaffiliation'] = []
             
+            # pick up club affiliation if needed and not already in the list
+            if self.display_club:
+                if clubaffiliation and clubaffiliation.render() not in [c.render() for c in byrunner[runnerid, name, thisage]['clubaffiliation']]:
+                    byrunner[runnerid, name, thisage]['clubaffiliation'].append(clubaffiliation)
+
             # for this runner, catch 'bygender' and 'bydivision' up to current race position
             while len(byrunner[runnerid,name,thisage]['bygender']) < racesprocessed:
                 byrunner[runnerid, name, thisage]['bygender'].append('')
@@ -1362,7 +1456,8 @@ class StandingsRenderer():
                 fh.clearline(gen)
                 fh.setplace(gen,'Place','racehdr')
                 fh.setname(gen,'Age Group','divhdr')
-                fh.setage(gen,'Age','divhdr')
+                fh.setage(gen,'Div Age','divhdr')
+                fh.setclubs(gen,'clubs','divhdr')
                 fh.setnraces(gen,'n','divhdr')
                 fh.render(gen)
                 fh.setheader(gen,False)
@@ -1420,6 +1515,10 @@ class StandingsRenderer():
                         fh.settotal(gen,totpoints)
                         lastpoints = totpoints
                         lastplace = renderplace
+
+                        # set club affiliation, if needed
+                        if 'clubaffiliation' in byrunner[runnerid,name,age]:
+                            fh.setclubs(gen, byrunner[runnerid,name,age]['clubaffiliation'])
                         
                         # render race results
                         iracenums = iter(self.racenums)
@@ -1445,7 +1544,8 @@ class StandingsRenderer():
             fh.clearline(gen)
             fh.setplace(gen,'Place','racehdr')
             fh.setname(gen,'Overall','divhdr')
-            fh.setage(gen,'Age','divhdr')
+            fh.setage(gen,'Div Age','divhdr')
+            fh.setclubs(gen,'Club','divhdr')
             fh.setnraces(gen,'n','divhdr')
             fh.setdivision(gen,'Overall')
             fh.render(gen)
@@ -1489,6 +1589,10 @@ class StandingsRenderer():
                 lastpoints = totpoints
                 lastplace = renderplace
                 
+                # set club affiliation, if needed
+                if 'clubaffiliation' in byrunner[runnerid,name,age]:
+                    fh.setclubs(gen, byrunner[runnerid,name,age]['clubaffiliation'])
+                        
                 # render race results
                 iracenums = iter(self.racenums)
                 nraces = 0

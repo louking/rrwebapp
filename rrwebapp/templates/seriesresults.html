@@ -50,6 +50,7 @@
         <th class="" align=center>{{ form.gender.label }}</th>
         <th class="" align=center>{{ form.agage.label }}</th>
         <th class="" align=center>{{ form.division.label }}</th>
+        <th class="">{{ form.club.label }}</th>
         <th class="" align=center>{{ form.divisionplace.label }}</th>
         <th class="" align=center>{{ form.time.label }}</th>
         <th class="" align=center>{{ form.pace.label }}</th>
@@ -58,7 +59,7 @@
       </tr>
     </thead>
     <tbody>
-      {% for result,thisseries,thisplace,thisname,thistime,thisdiv,thisagtime,thispace in resultsdata %}
+      {% for result,thisseries,thisplace,thisname,thistime,thisdiv,thisclub,thisagtime,thispace in resultsdata %}
         <tr class="">
           <td>{{ thisseries }}</td>
           <td align=center>{{ num(thisplace,0) }}</td>
@@ -66,6 +67,7 @@
           <td align=center>{{ result.gender }}</td>
           <td align=center>{{ num(result.agage,0) }}</td>
           <td align=center>{{ thisdiv }}</td>
+          <td>{{ thisclub|safe }}</td>
           <td align=center>{{ num(result.divisionplace,0) }}</td>
           <td align=center>{{ thistime }}</td>
           <td align=center>{{ thispace }}</td>

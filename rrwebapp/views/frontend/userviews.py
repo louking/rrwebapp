@@ -13,11 +13,12 @@ import loutilities.renderrun as render
 
 # home grown
 from . import bp
-from ...model import db
+from ...model import SERIES_OPTION_DISPLAY_CLUB, db
 from ...model import Runner, RaceResult, Race, Series, Club
 from ...forms import SeriesResultForm, StandingsForm
 from ...renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
 from ...apicommon import failure_response, success_response
+from ...resultsutils import clubaffiliationelement
 
 
 #################################
@@ -81,6 +82,10 @@ class SeriesResults(MethodView):
                 else:
                     thisdiv = ''
 
+                clubaffiliation = clubaffiliationelement(result)
+                if not clubaffiliation:
+                    clubaffiliation = ''
+
                 if result.genderplace:
                     thisplace = result.genderplace
                 elif result.agtimeplace:
@@ -89,7 +94,7 @@ class SeriesResults(MethodView):
                     thisplace = None
 
                 # order must match that which is expected within seriesresults.html
-                displayresults.append((result,thisseries,thisplace,thisname,thistime,thisdiv,thisagtime,thispace))
+                displayresults.append((result,thisseries,thisplace,thisname,thistime,thisdiv,clubaffiliation,thisagtime,thispace))
             
             # commit database updates and close transaction
             db.session.commit()
@@ -177,14 +182,22 @@ class ViewStandings(MethodView):
             fh = HtmlStandingsHandler(racenums)
             rr.renderseries(fh)
 
-            roworder = ['division','place','name','gender','age','nraces'] + ['race{}'.format(r) for r in racenums] + ['total']
-            headerclasses = (['_rrwebapp-class-col-{}'.format(h) for h in ['division','place','name','gender','age','nraces']]
-                                + ['_rrwebapp-class-col-race' for h in racenums]
-                                + ['_rrwebapp-class-col-total'])
-            tooltips = ([None,None,None,None,None,'Number of races']
-                        + [r.name for r in races]
-                        + [None])
-            
+            roworder = ['division','place','name','gender','age'] 
+            if thisseries.has_series_option(SERIES_OPTION_DISPLAY_CLUB):
+                roworder += ['clubs']
+            roworder += ['nraces'] + ['race{}'.format(r) for r in racenums] + ['total']
+            headerclasses = ['_rrwebapp-class-col-{}'.format(h) for h in ['division','place','name','gender','age']]
+            if thisseries.has_series_option(SERIES_OPTION_DISPLAY_CLUB):
+                headerclasses += ['_rrwebapp-class-col-{}'.format(h) for h in ['clubs']]
+            headerclasses += ['_rrwebapp-class-col-{}'.format(h) for h in ['nraces']]
+            headerclasses += ['_rrwebapp-class-col-race' for h in racenums]
+            headerclasses += ['_rrwebapp-class-col-total']
+            tooltips = [None,None,None,None,None] 
+            if thisseries.has_series_option(SERIES_OPTION_DISPLAY_CLUB):
+                tooltips += [None]
+            tooltips += ['Number of races']
+            tooltips += [r.name for r in races]
+            tooltips += [None]
             
             # collect standings
             standings = []

@@ -12,7 +12,7 @@
 forms - forms for rrwebapp
 ===============================
 '''
-from flask_wtf import Form
+from flask_wtf import FlaskForm as Form
 from wtforms import HiddenField, SelectField, StringField, IntegerField, DateField
 from wtforms import FloatField, BooleanField, TextField, TextAreaField, validators
 from wtforms import SelectMultipleField, widgets
@@ -121,6 +121,7 @@ class SeriesResultForm(Form):
     divisionlow = IntegerField('Div Lo',[validators.Optional()])
     divisionhigh = IntegerField('Div Hi',[validators.Optional()])
     divisionplace = IntegerField('Div Place',[validators.Optional()])
+    club = StringField('Club',[validators.Optional()])
     time = StringField('Time',[validators.Optional()])
     pace = StringField('Pace',[validators.Optional()])
     agtime = StringField('AG Time',[validators.Optional()])
