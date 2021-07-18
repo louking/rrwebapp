@@ -730,12 +730,15 @@ def clubaffiliations_validate(action, formdata):
 class ClubAffiliationsView(CrudApi):
     def update_alternates(self, formdata):
         """
-        make sure title is first choice in alternates
+        make sure title, shortname are in alternates
         """
         alternateitems = formdata['alternates'].split(CLUBAFFILIATION_ALTERNATES_SEPARATOR) if formdata['alternates'] else []
         if formdata['title'] not in alternateitems:
             alternateitems.insert(0, formdata['title'])
-            formdata['alternates'] = CLUBAFFILIATION_ALTERNATES_SEPARATOR.join(alternateitems)
+        # be careful not to include shortname == None
+        if formdata['shortname'] and formdata['shortname'] not in alternateitems:
+            alternateitems.insert(0, formdata['shortname'])
+        formdata['alternates'] = CLUBAFFILIATION_ALTERNATES_SEPARATOR.join(alternateitems) if alternateitems else None
 
     def createrow(self, formdata):
         self.update_alternates(formdata)
