@@ -754,9 +754,9 @@ class ClubAffiliationsView(CrudApi):
                         'text': 'Copy From Year',
                         'name': 'clubaffiliations-copy-button',
                         'editor': {'eval': 'clubaffiliations_copy_saeditor.saeditor'},
-                        'url': rest_url_for('admin._copyclubaffiliations'),
+                        'url': url_for('admin._copyclubaffiliations'),
                         'action': {
-                            'eval': f"clubaffiliations_copy_button(\"{rest_url_for('admin._copyclubaffiliations')}\")"
+                            'eval': f"clubaffiliations_copy_button(\"{url_for('admin._copyclubaffiliations')}\")"
                         }
                     }
                   ]
@@ -893,5 +893,5 @@ class AjaxCopyClubAffiliations(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-bp.add_url_rule('/_copyclubaffiliations/rest',view_func=AjaxCopyClubAffiliations.as_view('_copyclubaffiliations'),methods=['GET', 'POST'])
+bp.add_url_rule('/_copyclubaffiliations',view_func=AjaxCopyClubAffiliations.as_view('_copyclubaffiliations'),methods=['GET', 'POST'])
 
