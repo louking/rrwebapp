@@ -24,6 +24,9 @@
     <div class="TextLeft W7emLabel _rrwebapp-filters">
       <label class="Label">Gender:</label><span id="_rrwebapp_filtergender" class="_rrwebapp-filter"></span>
       <label class="Label">Division:</label><span id="_rrwebapp_filterdivision" class="_rrwebapp-filter"></span>
+      {% if displayclub %}
+        <label class="Label">Club:</label><span id="_rrwebapp_filterclub" class="_rrwebapp-filter"></span>
+      {% endif %}
     </div>
     <div id="_rrwebapp-accordion-standings-races">
       <h3 id="_rrwebapp-accordion-standings-races-header">Races</h3>

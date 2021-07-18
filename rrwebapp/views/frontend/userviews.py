@@ -224,6 +224,7 @@ class ViewStandings(MethodView):
             db.session.commit()
             return flask.render_template('viewstandings.html',form=form,headingdata=headingdata,
                                          racerows=racerows,standings=standings,description=description,
+                                         displayclub=thisseries.has_series_option(SERIES_OPTION_DISPLAY_CLUB),
                                          division=division,gender=gender,printerfriendly=printerfriendly,
                                          inhibityear=True,inhibitclub=True)
         

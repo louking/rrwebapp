@@ -1169,6 +1169,8 @@
         var divisionCol = 0;
         var nameCol = 2;
         var genderCol = 3;
+        var clubCol = 5;
+        var clubfilter = '#_rrwebapp_filterclub select';
         var columndefs = [
                     {targets: [divisionCol],bVisible:false},
                     {targets:['_rrwebapp-class-col-place',
@@ -1193,21 +1195,34 @@
                 columnDefs: columndefs,
             }
         }
+        var yadcf_coldefs = [
+            {
+                column_number:divisionCol,
+                filter_container_id:"_rrwebapp_filterdivision",
+                column_data_type: "html",
+                html_data_type: "text",
+                filter_reset_button_text: false,    // no filter reset button
+            },
+            {
+                column_number:genderCol,
+                column_data_type: "html",
+                html_data_type: "text",
+                filter_container_id:"_rrwebapp_filtergender",
+                filter_reset_button_text: 'all',
+            }
+        ]
+        if ($(clubfilter)) {
+            yadcf_coldefs.push({
+                column_number:clubCol,
+                column_data_type: "html",
+                html_data_type: "text",
+                filter_container_id:"_rrwebapp_filterclub",
+                filter_reset_button_text: 'all',
+            });
+        }
         _rrwebapp_table = $('#_rrwebapp-table-standings')
             .dataTable(getDataTableParams(tableparamupdates,printerfriendly))
-            .yadcf([{
-                    column_number:divisionCol,
-                    filter_container_id:"_rrwebapp_filterdivision",
-                    column_data_type: "html",
-                    html_data_type: "text",
-                    filter_reset_button_text: false,    // no filter reset button
-                },{
-                    column_number:genderCol,
-                    column_data_type: "html",
-                    html_data_type: "text",
-                    filter_container_id:"_rrwebapp_filtergender",
-                    filter_reset_button_text: 'all',
-                },]);
+            .yadcf(yadcf_coldefs);
         if (!printerfriendly) {
             resetDataTableHW();
         }
@@ -1233,6 +1248,9 @@
         filtercolumns = [];
         var divchoices = getchoicevalues('#_rrwebapp_filterdivision select');
         var genchoices = getchoicevalues('#_rrwebapp_filtergender select');
+        if ($(clubfilter)) {
+            var clubchoices = getchoicevalues(clubfilter);
+        }
 
         // set default division, gender if included in current filter
         if ($.inArray(division, divchoices) != -1) {
