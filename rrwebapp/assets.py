@@ -91,12 +91,18 @@ asset_bundles = {
         f'js/d3-{d3_ver}/d3.js',
         f'js/d3-scale-chromatic-{d3_sc_ver}/d3-scale-chromatic.js',
 
+        # these need to be before datatables.js is loaded
         'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
-
+        'editor-saeditor.js',                       # from loutilities
+        'utils.js',                                 # from loutilities
         'layout.js',
-        'datatables.js',                            # loutilities
-        'datatables.dataRender.ellipsis.js',        # loutilities
-        'background-post-data-manager.js',          # loutilities
+        'beforedatatables.js',
+
+        'datatables.js',                            # from loutilities
+
+        # these need to be after datatables.js is loaded
+        'datatables.dataRender.ellipsis.js',        # from loutilities
+        'background-post-data-manager.js',          # from loutilities
         'managemembers.js',
         'downloadresults.js',
         'RaceResults.js',

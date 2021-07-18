@@ -898,16 +898,7 @@
             editor.field('alternates').val(data.alternates);
         })
 
-        // var $copyclubs = $('#clubaffiliations-copy-button');
-        // $copyclubs.click( function( event ) {
-        //     event.preventDefault();
-        //     var form = $(this).parent()
-        //     ajax_update_db_form('_copyclubaffiliations',form,false);
-        // });
-
-        // _rrwebapp_table = $('#_rrwebapp-table-clubaffiliations')
-        //     .dataTable(getDataTableParams({ordering:false}))
-        // setTimeout(function () {resetDataTableHW()},30);
+        clubaffiliations_copy_saeditor.init();
 
     };  // clubaffiliations
 

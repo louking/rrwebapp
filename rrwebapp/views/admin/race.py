@@ -11,19 +11,24 @@
 
 # standard
 import traceback
+from traceback import format_exception_only, format_exc
 
 # pypi
 import flask
-from flask import request, url_for, current_app
+from flask import request, url_for, current_app, jsonify
 from flask_login import login_required
 from flask.views import MethodView
+from loutilities.tables import rest_url_for
+from loutilities.csvu import DictReaderStr2Num
+from loutilities.filters import filtercontainerdiv, filterdiv
+from loutilities.tables import get_request_data
 
 # home grown
 from . import bp
 from ...accesscontrol import UpdateClubDataPermission, ViewClubDataPermission
 from ...model import ClubAffiliation, insert_or_update
 from ...model import db   # this is ok because this module only runs under flask
-from ...model import Race, Series, Divisions, ClubAffiliation
+from ...model import Race, Series, Divisions, Club
 from ...model import getclubid, getyear
 from ...model import SERIES_OPTIONS, SERIES_OPTION_SEPARATOR
 from ...apicommon import failure_response, success_response, check_header
@@ -32,8 +37,6 @@ from ...resultsutils import race_fixeddist
 
 from ...forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 #from runningclub import racefile   # required for xlsx support
-from loutilities.csvu import DictReaderStr2Num
-from loutilities.filters import filtercontainerdiv, filterdiv
 
 # acceptable surfaces -- must match model.SurfaceType
 from ...model import SURFACES, CLUBAFFILIATION_ALTERNATES_SEPARATOR
@@ -741,8 +744,24 @@ class ClubAffiliationsView(CrudApi):
     def updaterow(self, thisid, formdata):
         self.update_alternates(formdata)
         return super().updaterow(thisid, formdata)
+    
+    def setbuttons(self):
+        buttons = ['create', 'edit', 'remove', 'csv',
+                    {
+                        'text': 'Copy From Year',
+                        'name': 'clubaffiliations-copy-button',
+                        'editor': {'eval': 'clubaffiliations_copy_saeditor.saeditor'},
+                        'url': rest_url_for('admin._copyclubaffiliations'),
+                        'action': {
+                            'eval': f"clubaffiliations_copy_button(\"{rest_url_for('admin._copyclubaffiliations')}\")"
+                        }
+                    }
+                  ]
 
-clubaffiliations = ClubAffiliationsView(
+        return buttons
+
+
+clubaffiliations_view = ClubAffiliationsView(
     app=bp,
     template='clubaffiliations.jinja2',
     pagename='Club Affiliations',
@@ -779,14 +798,47 @@ clubaffiliations = ClubAffiliationsView(
     byyear=True,
     addltemplateargs={'inhibityear': False},
     idSrc='rowid',
-    buttons=['create', 'edit', 'remove', 'csv',
-             ],
+    buttons=lambda: clubaffiliations_view.setbuttons()
     )
-clubaffiliations.register()
+clubaffiliations_view.register()
 
 class AjaxCopyClubAffiliations(MethodView):
     decorators = [login_required]
     
+    def get(self):
+        try:
+            # verify user can write the data, otherwise abort (adapted from loutilities.tables._editormethod)
+            club_id = flask.session['club_id']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can write the data, otherwise abort
+            if not writecheck.can():
+                db.session.rollback()
+                flask.abort(403)
+            
+            clubs = [c for c in Club.query.all() if ViewClubDataPermission(c.id)]
+            options = {}
+            for club in clubs:
+                # ClubAffiliation.query... returns like [(2021,), (2020,)]
+                years = [y[0] for y in ClubAffiliation.query.filter_by(club_id=club.id).with_entities(ClubAffiliation.year).distinct().all()]
+                if years:
+                    years.sort()
+                    options[club.name] = {'option': {'label':club.name, 'value':club.id}, 'years': years}
+
+
+            # return select options
+            return jsonify(options=options, values={})
+
+        except Exception as e:
+            exc = ''.join(format_exception_only(type(e), e))
+            output_result = {'status': 'fail', 'error': 'exception occurred:<br>{}'.format(exc)}
+            # roll back database updates and close transaction
+            db.session.rollback()
+            current_app.logger.error(format_exc())
+            return jsonify(output_result)
+
     def post(self):
         try:
             club_id = flask.session['club_id']
@@ -800,15 +852,15 @@ class AjaxCopyClubAffiliations(MethodView):
                 flask.abort(403)
             
             # get requested year to copy and current year
-            if not request.args.get('copyyear'):
-                db.session.rollback()
-                return failure_response(cause='Unexpected Error: copyyear argument missing')
-            copyyear = int(request.args.get('copyyear'))
+            requestdata = get_request_data(request.form)
+            fromclubid = requestdata['keyless']['club']
+            fromyear = requestdata['keyless']['year']
+            force = requestdata['keyless']['force']
             thisyear = flask.session['year']
             
             # if some items exists for this year, verify user wants to overwrite
             thisyearitems = ClubAffiliation.query.filter_by(club_id=club_id, year=thisyear).all()
-            if thisyearitems and not request.args.get('force')=='true':
+            if thisyearitems and not force=='true':
                 db.session.rollback()
                 return failure_response(cause='Overwrite club affiliations for this year?', confirm=True)
 
@@ -818,9 +870,9 @@ class AjaxCopyClubAffiliations(MethodView):
                 obsoleteitems[item.shortname] = item
             
             # copy each entry from "copyyear"
-            for item in ClubAffiliation.query.filter_by(club_id=club_id, year=copyyear).all():
-                newitem = ClubAffiliation(club_id=club_id, year=thisyear)
-                insert_or_update(db.session, ClubAffiliation, newitem, year=thisyear, club_id=club_id, skipcolumns=['id'])
+            for item in ClubAffiliation.query.filter_by(club_id=fromclubid, year=fromyear).all():
+                newitem = ClubAffiliation(club_id=club_id, year=thisyear, shortname=item.shortname, title=item.title, alternates=item.alternates)
+                insert_or_update(db.session, ClubAffiliation, newitem, year=thisyear, club_id=club_id, shortname=item.shortname, skipcolumns=['id'])
                 
                 # any items we updated is not obsolete
                 if newitem.shortname in obsoleteitems:
@@ -838,5 +890,5 @@ class AjaxCopyClubAffiliations(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-bp.add_url_rule('/_copyclubaffiliations',view_func=AjaxCopyClubAffiliations.as_view('_copyclubaffiliations'),methods=['POST'])
+bp.add_url_rule('/_copyclubaffiliations/rest',view_func=AjaxCopyClubAffiliations.as_view('_copyclubaffiliations'),methods=['GET', 'POST'])
 
