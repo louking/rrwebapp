@@ -1407,15 +1407,21 @@ $(function() {
     var navstandingsdepth = 0;
     var dependentfields = ['club', 'year'];
     function navstandingsopen(editor, buttons) {
-        function navstandingsupdate() {
-            // disable all buttons (should only be one 'Show Standings' button)
-            navstandingsdepth += 1;
+        function disable_buttons() {
             var localbuttons = _.cloneDeep(buttons);
             for (var i=0; i<localbuttons.length; i++) {
                 localbuttons[i].className = 'disabled';
                 localbuttons[i].action = function() {}; // no-op
             }
             editor.buttons(localbuttons);
+        }
+        function enable_buttons() {
+            editor.buttons(buttons);
+        }
+        function navstandingsupdate() {
+            // disable all buttons (should only be one 'Show Standings' button)
+            navstandingsdepth += 1;
+            disable_buttons();
 
             $.post('/standings/_getseries?' + $.param({club:editor.field('club').val(), year:editor.field('year').val()}),
                 success=function(data, textStatus, jqXHR) {
@@ -1423,20 +1429,30 @@ $(function() {
                     if (data.success) {
                         editor.field('series').update(data.choices);
                         if (navstandingsdepth == 0) {
-                            // reset to normal
-                            editor.buttons(buttons);
+                            // buttons enabled in editor.dependent('series, ...)
+                            // enable_buttons();
                         }
                     } else {
                         console.log('need error handling here');
                     }
                 })
-        }
+        };
 
         // when any dependent field update, change series options
         editor.dependent(dependentfields, function(val, data, callback) {
             navstandingsupdate();
             return {};
-        })
+        });
+
+        // disable all buttons if series not selected (should only be one 'Show Standings' button)
+        editor.dependent('series', function(val, data, callback) {
+            if (val) {
+                enable_buttons();
+            } else {
+                disable_buttons();
+            }
+            return {};
+        });
 
         // initial update to series pulldown
         navstandingsupdate();
@@ -1501,5 +1517,5 @@ $(function() {
     $("._rrwebapp-deletebutton").on('click', function(event){getconfirmation(event,'Delete','Please confirm item deletion')});
 
 
-})
+});
 
