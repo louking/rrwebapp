@@ -194,6 +194,9 @@ tcl
 gen/
 webassets-external/
 
+# Sphinx documentation
+docs/_build/
+
 # PyCharm
 .idea/
 

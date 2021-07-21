@@ -1,3 +1,7 @@
 {
-    "python.pythonPath": "venv\\Scripts\\python.exe"
+    "python.pythonPath": "venv\\Scripts\\python.exe",
+    "restructuredtext.confPath": "${workspaceFolder}\\docs",
+    "restructuredtext.linter.extraArgs": [
+        "--ignore-messages (Title underline too short.*|Duplicate implicit target.*')"
+    ]
 }
