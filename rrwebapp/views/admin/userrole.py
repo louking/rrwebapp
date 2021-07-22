@@ -304,7 +304,7 @@ def _setpermission(club,user,rolename,setrole):
     # not found -- must be first attempt to use role for club -- create it
     if not thisrole:
         role = Role(rolename)
-        db.session.add()
+        db.session.add(role)
         club.roles.append(role)
         db.session.flush()
         # try again
