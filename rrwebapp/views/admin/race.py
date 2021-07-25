@@ -43,7 +43,7 @@ from ...model import SURFACES, CLUBAFFILIATION_ALTERNATES_SEPARATOR
 
 # admin guide
 from ...version import __docversion__
-adminguide = f'https://rrwebapp.readthedocs.io/en/{__docversion__}/scoring-admin-guide.html'
+adminguide = f'https://docs.scoretility.com/en/{__docversion__}/scoring-admin-guide.html'
 
 ###########################################################################################
 # manageraces endpoint

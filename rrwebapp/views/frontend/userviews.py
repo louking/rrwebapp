@@ -22,7 +22,7 @@ from ...resultsutils import clubaffiliationelement
 
 # admin guide
 from ...version import __docversion__
-adminguide = f'https://rrwebapp.readthedocs.io/en/{__docversion__}/scoring-user-reference.html'
+adminguide = f'https://docs.scoretility.com/en/{__docversion__}/scoring-user-reference.html'
 
 #################################
 # seriesresults endpoint

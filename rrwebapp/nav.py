@@ -117,10 +117,10 @@ def nav_menu():
                 contexthelp[url_for(endpoint, **kwargs)] = self.basehelp + slugify(prelink + ' ' + text + ' view')
 
 
-    super_admin_view = add_view('https://rrwebapp.readthedocs.io/en/{docversion}/super-admin-reference.html#')
-    scoring_view = add_view('https://rrwebapp.readthedocs.io/en/{docversion}/scoring-admin-reference.html#')
-    analysis_admin_view = add_view('https://rrwebapp.readthedocs.io/en/{docversion}/analysis-admin-reference.html#')
-    user_view = add_view('https://rrwebapp.readthedocs.io/en/{docversion}/scoring-user-reference.html#')
+    super_admin_view = add_view('https://docs.scoretility.com/en/{docversion}/super-admin-reference.html#')
+    scoring_view = add_view('https://docs.scoretility.com/en/{docversion}/scoring-admin-reference.html#')
+    analysis_admin_view = add_view('https://docs.scoretility.com/en/{docversion}/analysis-admin-reference.html#')
+    user_view = add_view('https://docs.scoretility.com/en/{docversion}/scoring-user-reference.html#')
 
     thisuser = current_user
 
