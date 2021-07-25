@@ -60,7 +60,46 @@ FSRC Racing Team Management
 * Sometimes there are many racing team members who have run a race. In this case it might be easier to import the results file to 
   include all their results. See :ref:`Add Results From File`.
 
+Basic flow
+================
 
+This section shows the basic flow which is required each year, and for importing and tabulating the results for a race.
+
+..
+   see https://www.graphviz.org/
+   see http://graphs.grevian.org/
+
+New Year
+----------------
+
+.. graphviz::
+
+   digraph records {
+        graph [fontname = "helvetica"];
+        node [fontname = "helvetica"];
+        edge [fontname = "helvetica"];
+        "Series view" -> "Divisions view"[label="divisions"];
+        "Series view" -> "Series view"[label="create series"];
+        "Divisions view" -> "Races view";
+        "Divisions view" -> "Divisions view"[label="create divisions"];
+        "Series view" -> "Races view"[label="no divisions"];
+        "Races view" -> "Races view"[label="create races"];
+    }
+
+Results Management
+-----------------------
+
+.. graphviz::
+
+    digraph records {
+         graph [fontname = "helvetica"];
+         node [fontname = "helvetica"];
+         edge [fontname = "helvetica"];
+         "Races view" -> "Edit Participants view"[label="import results"];
+         "Edit Participants view" -> "Edit Participants view"[label="resolve missing and similar results"];
+         "Edit Participants view" -> "Series Race Results view"[label="tabulate"]
+     }
+ 
 Detailed Operations
 ===========================================
 
@@ -172,12 +211,12 @@ If the divisions for this club have never been set up, follow these instructions
 * Make sure year and club are set correctly in the scoretility header
 * Make sure series have been set up as in Add Series
 * Click Divisions in navigation menu
-* Click **Add +** near the top of the table
+* Click **New** near the top of the table
 * Repeat for each age range
   
   * Choose a series 
   * Set age range for this division
-  * Click **Add**
+  * Click **Create**
 
   
 .. _Add Race:
@@ -188,7 +227,7 @@ Follow these instructions to add a race.
 
 * Make sure year and club are set correctly in the scoretility header
 * Click Races in navigation menu
-* Click **Add +** near the top of the table
+* Click **New** near the top of the table
 * Enter the race name, date, surface and distance. For most accurate age grading, use the following distances for non-integral mile races. 
   (Chief Technology Dude admits to being anal about this)
 
@@ -198,7 +237,7 @@ Follow these instructions to add a race.
   * Marathon - 26.2188 miles
   
 * Click on the “series” the race will be in
-* Click **Add**
+* Click **Create**
 
 
 .. _Edit Results:

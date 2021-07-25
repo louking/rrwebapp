@@ -4,6 +4,11 @@
       {% if not session.logged_in %}
         <a href="{{ url_for('security.login') }}">log in</a>
       {% else %}
+        {% if adminguide %}
+          <a href={{ adminguide }} target="_blank" class="ui-button">Admin Guide</a>
+        {% else %}
+          {# <a href={{ config.DEFAULT_ADMIN_GUIDE }} target="_blank" class="ui-button">Admin Guide</a> #}
+        {% endif %}
         {{ session.user_name }}
         {% if not inhibityear and session.year %}
           |
@@ -21,10 +26,10 @@
             {% endfor %}
           </select>
         {% endif %}
-        | <a href="{{ url_for('security.logout') }}">log out</a>
-        | <a href="{{ url_for('admin.usersettings')}}?next={{request.url}}">
-            <span class="ui-icon ui-icon-gear" style="display: inline-block"></span>
-          </a>
+      | <a href="{{ url_for('security.logout') }}">log out</a>
+      | <a href="{{ url_for('admin.usersettings')}}?next={{request.url}}">
+          <span class="ui-icon ui-icon-gear" style="display: inline-block"></span>
+        </a>
       {% endif %}
     </div>
 {% endblock %}

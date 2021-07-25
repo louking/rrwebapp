@@ -20,6 +20,9 @@ from ...renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
 from ...apicommon import failure_response, success_response
 from ...resultsutils import clubaffiliationelement
 
+# admin guide
+from ...version import __docversion__
+adminguide = f'https://rrwebapp.readthedocs.io/en/{__docversion__}/scoring-user-reference.html'
 
 #################################
 # seriesresults endpoint
@@ -99,6 +102,7 @@ class SeriesResults(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('seriesresults.html',form=form,race=race,resultsdata=displayresults,
+                                         adminguide=adminguide,
                                          series=seriesarg,division=division,gender=gender,printerfriendly=printerfriendly,
                                          inhibityear=True,inhibitclub=True)
         
@@ -223,6 +227,7 @@ class ViewStandings(MethodView):
             # commit database updates and close transaction
             db.session.commit()
             return flask.render_template('viewstandings.html',form=form,headingdata=headingdata,
+                                         adminguide=adminguide,
                                          racerows=racerows,standings=standings,description=description,
                                          displayclub=thisseries.has_series_option(SERIES_OPTION_DISPLAY_CLUB),
                                          division=division,gender=gender,printerfriendly=printerfriendly,

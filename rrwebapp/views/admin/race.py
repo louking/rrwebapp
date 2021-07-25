@@ -41,6 +41,9 @@ from ...forms import RaceForm, SeriesForm, RaceSettingsForm, DivisionForm
 # acceptable surfaces -- must match model.SurfaceType
 from ...model import SURFACES, CLUBAFFILIATION_ALTERNATES_SEPARATOR
 
+# admin guide
+from ...version import __docversion__
+adminguide = f'https://rrwebapp.readthedocs.io/en/{__docversion__}/scoring-admin-guide.html'
 
 ###########################################################################################
 # manageraces endpoint
@@ -117,10 +120,11 @@ races_formmapping['results'] = races_results_to_form
 races_dbmapping['club_id'] = getclubid
 races_dbmapping['year'] = getyear
 
-races = CrudApi(
+races_view = CrudApi(
     app=bp,
     pagename='Races',
     template='manageraces.html',
+    templateargs={'adminguide': adminguide},
     endpoint='.manageraces',
     rule='/manageraces',
     dbmapping=races_dbmapping,
@@ -179,7 +183,7 @@ races = CrudApi(
     dtoptions=dt_options,
     yadcfoptions=yadcf_options,
     )
-races.register()
+races_view.register()
 
 #######################################################################
 class AjaxImportRaces(MethodView):
@@ -374,11 +378,12 @@ series_formmapping = dict(list(zip(series_formfields, series_dbattrs)))
 series_dbmapping['club_id'] = getclubid
 series_dbmapping['year'] = getyear
 
-series = CrudApi(
+series_view = CrudApi(
     app=bp,
     pagename='series',
     endpoint='.manageseries',
     rule='/manageseries',
+    templateargs={'adminguide': adminguide},
     dbmapping=series_dbmapping,
     formmapping=series_formmapping,
     permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
@@ -470,7 +475,7 @@ series = CrudApi(
              ],
     dtoptions=dt_options,
     )
-series.register()
+series_view.register()
 
 
 #######################################################################
@@ -570,11 +575,12 @@ divisions_formmapping = dict(list(zip(divisions_formfields, divisions_dbattrs)))
 divisions_dbmapping['club_id'] = getclubid
 divisions_dbmapping['year'] = getyear
 
-divisions = CrudApi(
+divisions_view = CrudApi(
     app=bp,
     pagename='divisions',
     endpoint='.managedivisions',
     rule='/managedivisions',
+    templateargs={'adminguide': adminguide},
     dbmapping=divisions_dbmapping,
     formmapping=divisions_formmapping,
     permission=lambda: UpdateClubDataPermission(flask.session['club_id']).can,
@@ -612,7 +618,7 @@ divisions = CrudApi(
     buttons=['create', 'edit', 'remove', 'csv',
              ],
     )
-divisions.register()
+divisions_view.register()
 
 
 #######################################################################
@@ -767,6 +773,7 @@ class ClubAffiliationsView(CrudApi):
 clubaffiliations_view = ClubAffiliationsView(
     app=bp,
     template='clubaffiliations.jinja2',
+    templateargs={'adminguide': adminguide},
     pagename='Club Affiliations',
     endpoint='.clubaffiliations',
     rule='/clubaffiliations',

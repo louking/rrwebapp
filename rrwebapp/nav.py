@@ -117,10 +117,10 @@ def nav_menu():
                 contexthelp[url_for(endpoint, **kwargs)] = self.basehelp + slugify(prelink + ' ' + text + ' view')
 
 
-    super_admin_view = add_view('https://scores.readthedocs.io/en/{docversion}/super-admin-reference.html#')
-    scoring_view = add_view('https://scores.readthedocs.io/en/{docversion}/races-admin-reference.html#')
-    analysis_admin_view = add_view('https://scores.readthedocs.io/en/{docversion}/analysis-admin-reference.html#')
-    user_view = add_view('https://scores.readthedocs.io/en/{docversion}/user-guide.html#')
+    super_admin_view = add_view('https://rrwebapp.readthedocs.io/en/{docversion}/super-admin-reference.html#')
+    scoring_view = add_view('https://rrwebapp.readthedocs.io/en/{docversion}/scoring-admin-reference.html#')
+    analysis_admin_view = add_view('https://rrwebapp.readthedocs.io/en/{docversion}/analysis-admin-reference.html#')
+    user_view = add_view('https://rrwebapp.readthedocs.io/en/{docversion}/scoring-user-reference.html#')
 
     thisuser = current_user
 
@@ -153,7 +153,7 @@ def nav_menu():
             scoring_view(racesadmin, 'Download Results', 'admin.downloadresults')
 
             # this is duplicated under Results Analysis for owner
-            scoring_view(racesadmin, 'Results Summary', 'admin.resultsanalysissummary')
+            scoring_view(racesadmin, 'Results Analysis Summary', 'admin.resultsanalysissummary')
 
         if club and writecheck.can():
             scoring_view(racesadmin, 'Exclusions', 'admin.editexclusions')
@@ -168,7 +168,7 @@ def nav_menu():
             analysisadmin = Subgroup('Results Analysis')
             navbar.items.append(analysisadmin)
             analysis_admin_view(analysisadmin, 'Status/Control', 'admin.resultsanalysisstatus')
-            analysis_admin_view(analysisadmin, 'Summary', 'admin.resultsanalysissummary')
+            analysis_admin_view(analysisadmin, 'Results Analysis Summary', 'admin.resultsanalysissummary')
             analysis_admin_view(analysisadmin, 'Services', 'admin.raceresultservices')
             analysis_admin_view(analysisadmin, 'Courses', 'admin.courses')
             analysis_admin_view(analysisadmin, 'Locations', 'admin.locations')
@@ -279,6 +279,8 @@ def nav_menu():
     
     # everyone sees
     user_view(navbar, 'About', 'frontend.sysinfo')
+    if request.path in contexthelp:
+        navbar.items.append(Link('Help', contexthelp[request.path]))
     
     return navbar
 

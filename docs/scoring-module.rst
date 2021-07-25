@@ -18,4 +18,5 @@ Reference
    :maxdepth: 3
 
    scoring-admin-reference
+   scoring-user-reference
    
