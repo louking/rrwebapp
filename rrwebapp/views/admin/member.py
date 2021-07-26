@@ -35,6 +35,7 @@ from ...tasks import importmemberstask
 from ...clubmember import rsu_api2filemapping
 from ...crudapi import CrudApi
 from ...datatables_utils import getDataTableParams
+from ...version import __docversion__
 
 # module globals
 tYmd = asctime('%Y-%m-%d')
@@ -120,6 +121,7 @@ mm = CrudApi(
     pagename = 'Manage Members',
     template='managemembers.html',
     endpoint = '.managemembers',
+    templateargs={'docversion': __docversion__},
     rule='/managemembers',
     dbmapping = mm_dbmapping, 
     formmapping = mm_formmapping, 

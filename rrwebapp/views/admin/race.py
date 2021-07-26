@@ -89,7 +89,7 @@ def races_results_to_form(race):
             </td>
         '''.format(raceid=race.id,
                    importresults=url_for("._importresults",raceid=race.id),
-                   doc_importresults=url_for("doc_importresults"),
+                   doc_importresults=f'https://docs.scoretility.com/en/{__docversion__}/scoring-file-formats.html#results-file-format',
                    editparticipants=url_for(".editparticipants",raceid=race.id),
                    seriesresults=url_for("frontend.seriesresults",raceid=race.id)
                    )
@@ -104,7 +104,7 @@ def races_results_to_form(race):
             </td>
         '''.format(raceid=race.id,
                    importresults=url_for("._importresults",raceid=race.id),
-                   doc_importresults=url_for("doc_importresults"),
+                   doc_importresults=f'https://docs.scoretility.com/en/{__docversion__}/scoring-file-formats.html#results-file-format',
                    editparticipants=url_for(".editparticipants",raceid=race.id),
                    )
 
@@ -124,7 +124,7 @@ races_view = CrudApi(
     app=bp,
     pagename='Races',
     template='manageraces.html',
-    templateargs={'adminguide': adminguide},
+    templateargs={'adminguide': adminguide, 'docversion': __docversion__},
     endpoint='.manageraces',
     rule='/manageraces',
     dbmapping=races_dbmapping,

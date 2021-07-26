@@ -11,7 +11,7 @@
                 <button id='managemembersImportApi' _rrwebapp-formaction='{{url_for("._importmembers")}}'>Download from Service</button>\
             </div>\
             <div class='importfile'>\
-              <p>Import the member list as a CSV file. Please read the <a href='{{url_for("doc_importmembers")}}' target='_blank'>Import Guide</a> for information on the column headers and data format.</p>\
+              <p>Import the member list as a CSV file. Please read the <a href='https://docs.scoretility.com/en/{{docversion}}/scoring-file-formats.html#members-file-format' target='_blank'>Import Guide</a> for information on the column headers and data format.</p>\
               <form id='import-members' method='post' enctype='multipart/form-data'>\
                 <input id='choosefileImport' type=file name='file'>\
                 <button id='managemembersImport'  _rrwebapp-formaction='{{url_for("._importmembers")}}'>Import</button>\
