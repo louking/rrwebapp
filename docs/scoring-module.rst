@@ -19,4 +19,5 @@ Reference
 
    scoring-admin-reference
    scoring-user-reference
+   scoring-file-formats
    

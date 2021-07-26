@@ -45,6 +45,25 @@ Beginning of Year Setup
       of the grand prix and equalizer series is members-only. I.e., we don’t want nonmembers to be included in the grand prix and equalizer standings, 
       but we do want them to be included in the decathlon standing.
 
+..
+   see https://www.graphviz.org/
+   see http://graphs.grevian.org/
+
+.. graphviz::
+
+    digraph records {
+        graph [fontname = "helvetica"];
+        node [fontname = "helvetica"];
+        edge [fontname = "helvetica"];
+        "Series view" -> "Divisions view"[label="divisions"];
+        "Series view" -> "Series view"[label="create series"];
+        "Divisions view" -> "Races view";
+        "Divisions view" -> "Divisions view"[label="create divisions"];
+        "Series view" -> "Races view"[label="no divisions"];
+        "Races view" -> "Races view"[label="create races"];
+    }
+
+
 FSRC Racing Team Management
 -------------------------------------------
 * At the scoretility Home page, in the upper right corner, set the date to the current year and the club name to the FSRC Racing Team
@@ -60,34 +79,26 @@ FSRC Racing Team Management
 * Sometimes there are many racing team members who have run a race. In this case it might be easier to import the results file to 
   include all their results. See :ref:`Add Results From File`.
 
-Basic flow
-================
+Maryland/DC Grand Prix Management
+------------------------------------------
+* At the scoretility Home page, in the upper right corner, set the date to the current year and the club name to the Maryland/DC Grand Prix
+* Add results from the :ref:`Races view`
+* Follow instructions in :ref:`Edit Participants view`:
 
-This section shows the basic flow which is required each year, and for importing and tabulating the results for a race.
+  * resolve *missed* and *similar* results
+  * confirm all results (these should all be green)
+  * tabulate
+
+* when tabulating, resolve any unknown clubs using :ref:`Club Affiliations view`
+
+Results Management Flow
+=================================
+
+This section shows the basic flow for importing and tabulating the results for a race.
 
 ..
    see https://www.graphviz.org/
    see http://graphs.grevian.org/
-
-New Year
-----------------
-
-.. graphviz::
-
-   digraph records {
-        graph [fontname = "helvetica"];
-        node [fontname = "helvetica"];
-        edge [fontname = "helvetica"];
-        "Series view" -> "Divisions view"[label="divisions"];
-        "Series view" -> "Series view"[label="create series"];
-        "Divisions view" -> "Races view";
-        "Divisions view" -> "Divisions view"[label="create divisions"];
-        "Series view" -> "Races view"[label="no divisions"];
-        "Races view" -> "Races view"[label="create races"];
-    }
-
-Results Management
------------------------
 
 .. graphviz::
 
@@ -97,6 +108,8 @@ Results Management
          edge [fontname = "helvetica"];
          "Races view" -> "Edit Participants view"[label="import results"];
          "Edit Participants view" -> "Edit Participants view"[label="resolve missing and similar results"];
+         "Edit Participants view" -> "Club Affiliations view"[label="unknown clubs"];
+         "Club Affiliations view" -> "Edit Participants view"[label="unknown clubs added"];
          "Edit Participants view" -> "Series Race Results view"[label="tabulate"]
      }
  
@@ -154,36 +167,7 @@ If the series for this club have never been set up, follow these instructions to
     because of some processing later, it is very important that the name is distinct from other series, i.e., the words in one series name 
     cannot be found in another series name
   
-* The following series attributes may be set, depending on how you want the series standings to work
-  
-  * Max Races - this is the max number of races which will count for the final standings result
-  * Multiplier - this value is multiplied by the result score. Result score is determined by the remaining fields
-  * Max Gender Points - set this if overall result score is determined by place. Points start with this value for the first place, 
-    this value minus 1 for second place, etc.
-  
-    * e.g., if Max Gender Points is set to 50, first place result score is 50, second place is 49, etc
-  
-  * Max Division Points - for this to work, this series must have Divisions set up. Set this if division result score is determined by place. 
-    Points start with this value for the first place, this value minus 1 for second place, etc.
-
-    * e.g., if Max Division Points is set to 10, first place result score is 10, second place is 19, etc
-    * generally Max Division Points would be set to a lower number than Max Gender Points
-  
-  * Max by Number of Runners - check this if the max should be determined by the number of runners who ran a race within a gender. Either set this, 
-    or set Max Gender Points/Max Division Points, but not both
-  * Order By - this can be set depending on how you’d like the results ordering to be shown
-  * Order - this can be set depending on how you’d like the results ordering to be shown
-  * Members Only - check this box if the results import should only consider true members of a club
-  * Average Ties - check this if ties should be averaged in order to determine result points
-  * Calculate Overall - check this if overall placement is to be calculated. Generally this only applies if Max Gender Points is set
-  * Calculate Divisions - check this only if division placement is to be calculated. Generally this only applies if Max Division Points is set. 
-    Note Divisions must be set for this series for this to work properly.
-  * Calculate Age Grade - check this if age grade is to be calculated and used for result scoring. Generally this only applies if Order By is 
-    set to agtime or agpercent
-
-  * If races were set up before series, Races in this Series can be used to set which races are included in the series by checking them here. 
-    Otherwise, when you set up or add a race later, you can check the series that race is included in.
-
+* See :ref:`Series view` for detailed description of the :term:`series` attributes
 
 .. _Add Divisions:
 
@@ -252,11 +236,11 @@ added from a file when all the results for a race are added at once, or individu
 Add Results from File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Follow these instructions to add results from a race results file. Import files must follow the format defined 
-at https://scoretility.com/doc/importresults (note xls and xlsx files are allowed as well).
+at :ref:`Results File Format`.
 
 * Make sure year and club are set correctly in the scoretility header
 * Click Races in navigation menu
-* In the Results column, it will either say **import** or **✔**.
+* In the Results column, there will be a button with **import** or **✔**
   
   * Click **import** or **✔**
   * Click Choose File then navigate to the file to be imported
@@ -265,51 +249,15 @@ at https://scoretility.com/doc/importresults (note xls and xlsx files are allowe
   
 * If there are already results in the race, you will be asked Overwrite results? 
   
-  .. note::
-    any results previously entered into the race will be overwritten
-
   * This is normally ok because the results from the file are the “official” results
   * Click **Overwrite** 
   
-* You will be put into the Edit Participants view
+    .. note::
+        any results previously entered into the race will be overwritten
+
+* You will be put into the Edit Participants view. See :ref:`Edit Participants view` for details on how to manage the results
+  and tabulate for the standings.
   
-  * The import process finds members within the results, using a fuzzy logic to match names, e.g., member name John Doe for Result Name Jack Doe. 
-  * The Match column indicates whether a match was found, and how close the match was
-
-    * *definite* - name and age match exactly
-    * *similar* - age matched, but name didn’t match exactly
-    * *missed* - age was close, but not exact
-
-* Edit each entry that is *similar* or *missed*
-
-  .. note::
-    races for series which allow nonmembers to run the edit results window may have a lot of *missed* results. Updating each of these individually as 
-    described below may be time-consuming. For this reason there is a way to take all of these by bulk.
-
-    * In the header, Show All entries. In the footer verify all the entries are being shown before proceeding
-    * Click **Tools ⛭**, then under Select Names and Confirm click **Confirm**
-    * A progress bar will display. Before doing any other operations, be sure to wait until the progress bar disappears. 
-      This can take quite a while - maybe 30 minutes for automatic selection of 400+ entries.
-    * Once this is complete, continue as below for *similar* entries
-
-  * By clicking in the **Match:** text box, you can limit your view to *similar* and/or *missed*
-  * For results with Match of *similar* or  *missed* there will be a pull-down under Standings Name. Here you can decide if the Result Name really 
-    is for one of the member options
-  * Alternately, if you think you know the member you can click in the ⬜ on the left, then click **Edit** to modify the result. 
-    This only works for members of the club for which the date of birth is known or estimated
-
-    * In Result Name: start typing the name of the member and select, or just select from the pulldown
-    * Age: and Gender: should automatically be filled in
-  
-    .. note:: 
-        if you have filtered using Match, after editing, you may need to reload page and apply your Match filter again. This is a bug (issue #209) 
-        and will hopefully be fixed in a future release
-
-  * **Be sure the checkbox under Confirm is checked when you are satisfied the Standings Name is correct or [not included]**
-  
-* Near top of Edit Participants next to **Match:** field click **Tools ⛭** 
-* Under Tabulate Results, click **Tabulate** (this step updates the standings)
-
 .. _Add Individual Result:
 
 Add Individual Result
@@ -320,18 +268,16 @@ Follow these instructions to add an individual result. Note if you import result
 * Click Races in navigation menu
 * In the Results column, it will either say **import** or **✔**
   
-  * Click **import** or **✔**, then click **Edit Participants** 
+  * Click **import** or **✔**, then click **Edit Participants** to get to :ref:`Edit Participants view`
   
 * In the table header, near the left, click **New** 
 
-  * In Result Name: start typing the name of the member and select, or just select from the pulldown
-  * Age: and Gender: should automatically be filled in
+  * In **Result Name** start typing the name of the member and select, or just select from the pulldown
+  * **Age** and **Gender** should automatically be filled in
 
-* Type in the Time:. Formats which should work are HH:MM:SS, MM:SS and maybe SS (not sure about this last one)
-  
-* let Chief Technology Dude know if any of these don’t work
-
-* No need to fill in Hometown: or Club:
+* Type in the **Time**. See :ref:`Time Format` for the format.
+* No need to fill in **Hometown** 
+* No need to fill in **Club** unless club is required for the series
 * Click **Create** 
-* Near top of Edit Participants next to Match: field click **Tools ⛭** 
+* Near top of :ref:`Edit Participants view` next to **Match** filter click **Tools ⛭** 
 * Under Tabulate Results, click **Tabulate** (this step updates the standings)

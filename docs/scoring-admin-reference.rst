@@ -101,17 +101,20 @@ The Match column indicates whether a match was found, and how close the match wa
 
 You should edit each entry that is *similar* or *missed*
 
-.. note::
+.. note:: 
   for races in series which allow nonmembers to run, the edit participants view may show a lot of *missed* results. Updating each of these individually as 
   described below may be time-consuming. For this reason there is a way to take all of these by bulk.
 
-  * In the header, Show All entries. In the footer verify all the entries are being shown before proceeding
-  * Click **Tools ⛭**, then under Select Names and Confirm click **Confirm**
+  * In the header, *Show All entries*. In the footer **verify all the entries are being shown before proceeding**
+
+    * only entries which are "shown" will be updated in the next step, so this step is very important
+
+  * Click **Tools ⛭**, then under **Select Names and Confirm** click **Confirm**
   * A progress bar will display. Before doing any other operations, be sure to wait until the progress bar disappears. 
     This can take quite a while - please be patient.
   * Once this is complete, continue as below for *similar* entries
 
-By clicking in the **Match:** text box, you can limit your view to *similar* and/or *missed*
+By clicking in the **Match:** filter, you can limit your view to *similar* and/or *missed*
 
 * For results with Match of *similar* or  *missed* there will be a pull-down under Standings Name. Here you can decide if the Result Name really 
   is for one of the member options
@@ -122,10 +125,10 @@ By clicking in the **Match:** text box, you can limit your view to *similar* and
   * Age: and Gender: should automatically be filled in
 
   .. note:: 
-      if you have filtered using Match, after editing, you may need to reload page and apply your Match filter again. This is a bug (issue #209) 
-      and will hopefully be fixed in a future release
+      if you have filtered using Match, after editing, you may need to reload page and apply your Match filter again. This is a bug 
+      (`#209 <https://github.com/louking/rrwebapp/issues/209>`_) and will hopefully be fixed in a future release
 
-* **Be sure the checkbox under Confirm is checked when you are satisfied the Standings Name is correct or [not included]**
+* **Be sure to check the box under Confirm when you are satisfied the Standings Name is correct or "[not included]"**
 
 In order for results to be included in :term:`series` standings, they must be tabulated. Near top of Edit Participants next to **Match:** field 
 click **Tools ⛭**. Under Tabulate Results, click **Tabulate** (this step updates the standings)
