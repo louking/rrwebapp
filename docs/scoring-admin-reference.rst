@@ -111,7 +111,7 @@ You should edit each entry that is *similar* or *missed*
 
   * Click **Tools ⛭**, then under **Select Names and Confirm** click **Confirm**
   * A progress bar will display. Before doing any other operations, be sure to wait until the progress bar disappears. 
-    This can take quite a while - please be patient.
+    This can take a while - please be patient.
   * Once this is complete, continue as below for *similar* entries
 
 By clicking in the **Match:** filter, you can limit your view to *similar* and/or *missed*

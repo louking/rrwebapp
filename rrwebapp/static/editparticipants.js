@@ -455,7 +455,7 @@ function selectnamesandconfirm() {
         var splitid = selectid.split('-');
         var rowid = splitid[splitid.length-1];
 
-        // only operate on unchecked rows have new option
+        // only operate on missed, unconfirmed rows which have new option
         // choose new option
         if (!$( '#_rrwebapp-editparticipants-checkbox-confirmed-' + rowid ).attr('checked')) {
             // if new exists
