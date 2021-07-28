@@ -111,6 +111,14 @@ def nav_menu():
 
         def nomenu_help(self, text, endpoint, **kwargs):
             prelink = kwargs.pop('prelink', None)
+
+            # handle substituted values in url
+            if kwargs:
+                # https://flask.palletsprojects.com/en/1.1.x/api/#flask.Request.view_args
+                for value in request.view_args:
+                    if value in kwargs:
+                        kwargs[value] = request.view_args[value]
+
             if not prelink:
                 contexthelp[url_for(endpoint, **kwargs)] = self.basehelp + slugify(text + ' view')
             else:
@@ -138,6 +146,10 @@ def nav_menu():
   
     # menu starts here
     user_view(navbar, 'Home', 'frontend.index')
+
+    # create context help menu items for views which can't be navigated to from the main menu
+    scoring_view.nomenu_help('Edit Participants', 'admin.editparticipants', raceid=0)
+    user_view.nomenu_help('Standings', 'frontend.viewstandings')
 
     if current_user.is_authenticated:
         # race handling
