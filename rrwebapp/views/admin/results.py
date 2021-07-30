@@ -2039,7 +2039,7 @@ class DownloadResults(MethodView):
             # write file and send to browser, not sure how/whether temporary directory gets deleted
             td = TemporaryDirectory(prefix='rrwebapp_results_')
             csvfilepath = os.path.join(td.name, 'runsignupresults.csv')
-            with open(csvfilepath, 'w', newline='') as csvfile:
+            with open(csvfilepath, 'w', newline='', encoding='utf8') as csvfile:
                 # skipping custom and division columns for now, these are the RunSignUp standard headers
                 fileheaders = 'result_id,place,bib,first_name,last_name,gender,age,city,state,' \
                             'country_code,clock_time,chip_time,pace,age_percentage'.split(',')
