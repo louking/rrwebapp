@@ -24,6 +24,7 @@ from datetime import datetime
 # pypi
 import xlwt
 import flask
+from flask import current_app
 from dominate.tags import div, a
 from dominate.util import text
 from loutilities import renderrun as render
@@ -1302,12 +1303,18 @@ class StandingsRenderer():
                 else:
                     # get_earliestrace can return None if none found, but logic to get here guarantees at least one will be found
                     earlyresult = get_earliestrace(runner, year=racedate.year)
-                    divdate = tYmd.asc2dt(earlyresult.race.date)
-                    # estimate this non-member's birth date to be date of race in the year indicated by age
-                    racedatedt = tYmd.asc2dt(earlyresult.race.date)
-                    dobdt = datetime(racedatedt.year-earlyresult.age, racedatedt.month, racedatedt.day)
-                    # this assumes previously recorded age was correct, probably ok for most series
-                    thisage = timeu.age(divdate, dobdt)
+                    # but check anyway
+                    if earlyresult:
+                        divdate = tYmd.asc2dt(earlyresult.race.date)
+                        # estimate this non-member's birth date to be date of race in the year indicated by age
+                        racedatedt = tYmd.asc2dt(earlyresult.race.date)
+                        dobdt = datetime(racedatedt.year-earlyresult.age, racedatedt.month, racedatedt.day)
+                        # this assumes previously recorded age was correct, probably ok for most series
+                        thisage = timeu.age(divdate, dobdt)
+                    # strange, how is there RaceResult but no ManagedResult?
+                    else:
+                        current_app.logger.warning(f'no ManagedResult found for raceid {result.race.id} {runner.name}')
+                        thisage = result.agage
                 age[runnerid] = thisage
             thisage = age[runnerid]
             
