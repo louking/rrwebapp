@@ -1580,15 +1580,22 @@ class AjaxUpdateManagedResult(MethodView):
                         if thisexcludeid in ['None','new']: continue
                         thisexcludeid = int(thisexcludeid)
                         excl = Exclusion.query.filter_by(club_id=club_id,foundname=result.name,runnerid=thisexcludeid).first()
+                        
                         # user is confirming entry -- if not already in table, add exclusion
                         if result.confirmed and not excl:
-                            # now excluded from future results
+                            excl_runner = Runner.query.filter_by(id=thisexcludeid).one_or_none()
+                            
+                            # never exclude a runner with the exact same name
+                            if not excl_runner or excl_runner.name == result.name: continue
+                            
+                            # runner is now excluded from future results
                             newexclusion = Exclusion(
                                 club_id=club_id,
                                 foundname=result.name,
                                 runnerid=thisexcludeid
                             )
                             db.session.add(newexclusion)
+                            current_app.logger.info(f'adding exclusion for club {club_id} result {result.name}, excluded {excl_runner.name} ({thisexcludeid})')
                         # user is removing confirmation -- if exclusion exists, remove it
                         elif not result.confirmed and excl:
                             db.session.delete(excl)
