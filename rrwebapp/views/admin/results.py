@@ -1311,6 +1311,11 @@ class AjaxImportResults(MethodView):
                         nonmembemresults = ManagedResult.query.filter_by(club_id=club_id,runnerid=nonmember.id).all()
                         # current_app.logger.debug(f'nonmember={nonmember.name}/{nonmember.id} nonmemberresults={nonmemberresults} nonmembermrresults={nonmembemresults}')
                         if len(nonmemberresults) == 0 and len(nonmembemresults) == 0:
+                            # we don't want to leave any dangling exclusions which pointed at this nonmember, should delete the exclusions first
+                            nonmemberexclusions = Exclusion.query.filter_by(club_id=club_id, runnerid=nonmember.id).all()
+                            for exclusion in nonmemberexclusions:
+                                db.session.delete(exclusion)
+                            # now we can delete the nonmember
                             db.session.delete(nonmember)
                     # pick up any deletes for later processing
                     db.session.flush()
