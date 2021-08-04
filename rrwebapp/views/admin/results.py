@@ -53,7 +53,7 @@ from ...crudapi import CrudApi
 from ...model import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, ClubAffiliation, dbdate
 from ...model import rendertime, renderfloat, rendermember, renderlocation, renderseries
 from ...resultsutils import ServiceAttributes, LocationServer, get_distance
-from ...resultsutils import DIFF_CUTOFF, DISP_MATCH, DISP_CLOSE, DISP_MISSED
+from ...resultsutils import DIFF_CUTOFF, DISP_MATCH, DISP_CLOSE, DISP_CLOSEAGE, DISP_MISSED
 from ...resultsutils import ImportResults, tYmd, getrunnerchoices, get_earliestrace, ClubAffiliationLookup
 from ...model import RaceResultService, ApiCredentials
 from ...model import SERIES_OPTION_REQUIRES_CLUB, SERIES_OPTION_DISPLAY_CLUB
@@ -312,7 +312,7 @@ class AjaxEditParticipants(MethodView):
             for result in output_result['data']:
                 # use select field unless 'definite', or membersonly and '' (means definitely didn't find)
                 r = AttrDict(result)    # for convenience because getrunnerchoices assumes object not dict
-                if writecheck.can() and ((r.disposition == DISP_MISSED or r.disposition == DISP_CLOSE) 
+                if writecheck.can() and ((r.disposition in [DISP_CLOSEAGE, DISP_CLOSE]) 
                                          or (not membersonly and r.disposition != DISP_MATCH)):
                     tableselects[r.id] = getrunnerchoices(club_id, race, pool, r)
 
@@ -1542,9 +1542,11 @@ class AjaxUpdateManagedResult(MethodView):
                             dobdt = datetime(racedatedt.year-result.age, racedatedt.month, racedatedt.day)
                             # this assumes previously recorded age was correct, probably ok for most series
                             if not runner.dateofbirth or dobdt < dbdate.asc2dt(runner.dateofbirth):
+                                newdob = dbdate.dt2asc(dobdt)
+                                current_app.logger.info(f'updating dateofbirth for club {club_id} {runner.name} from {runner.dateofbirth} to {newdob}')
                                 # handle legacy entries which may need to indicate dob is estimate
                                 runner.estdateofbirth = True
-                                runner.dateofbirth = dbdate.dt2asc(dobdt)
+                                runner.dateofbirth = newdob
 
                     else:
                         result.runnerid = None

@@ -85,7 +85,7 @@ Maryland/DC Grand Prix Management
 * Add results from the :ref:`Races view`
 * Follow instructions in :ref:`Edit Participants view`:
 
-  * resolve *missed* and *similar* results
+  * resolve *missed*, *closeage*, and *similar* results
   * confirm all results (these should all be green)
   * tabulate
 

@@ -382,7 +382,7 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
                   render: function ( data, type, row, meta ) { 
                     if ( data && row.disposition==='definite') {
                         return memberages[data];
-                    } else if (writeallowed && (row.disposition === 'missed' || row.disposition === 'similar') || (!membersonly && row.disposition != 'definite')) {
+                    } else if (writeallowed && (row.disposition === 'closeage' || row.disposition === 'similar') || (!membersonly && row.disposition != 'definite')) {
                         var val = ''
                             + '<select class="_rrwebapp-editparticipants-select-runner"'
                             + ' id="_rrwebapp-editparticipants-select-id-' + row.id + '"'

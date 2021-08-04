@@ -97,9 +97,10 @@ The Match column indicates whether a match was found, and how close the match wa
 
   * *definite* - name and age match exactly
   * *similar* - age matched, but name didn’t match exactly
-  * *missed* - age was close, but not exact
+  * *closeage* - age was close, but not exact
+  * *missed* - nonmember series, runner not found in database
 
-You should edit each entry that is *similar* or *missed*
+You should visit each entry that is *similar*, *closeage*, or *missed*
 
 .. note:: 
   for races in series which allow nonmembers to run, the edit participants view may show a lot of *missed* results. Updating each of these individually as 
@@ -112,11 +113,11 @@ You should edit each entry that is *similar* or *missed*
   * Click **Tools ⛭**, then under **Select Names and Confirm** click **Confirm**
   * A progress bar will display. Before doing any other operations, be sure to wait until the progress bar disappears. 
     This can take a while - please be patient.
-  * Once this is complete, continue as below for *similar* entries
+  * Once this is complete, continue as below for *similar* and *closeage* entries
 
-By clicking in the **Match:** filter, you can limit your view to *similar* and/or *missed*
+By clicking in the **Match:** filter, you can limit your view to *similar*, *closeage*, and/or *missed*
 
-* For results with Match of *similar* or  *missed* there will be a pull-down under Standings Name. Here you can decide if the Result Name really 
+* For results with Match of *similar*, *closeage*, or  *missed* there will be a pull-down under Standings Name. Here you can decide if the Result Name really 
   is for one of the member options
 * Alternately, if you think you know the member you can click in the ⬜ on the left, then click **Edit** to modify the result. 
   This only works for members of the club for which the date of birth is known or estimated
@@ -125,7 +126,7 @@ By clicking in the **Match:** filter, you can limit your view to *similar* and/o
   * Age: and Gender: should automatically be filled in
 
   .. note:: 
-      if you have filtered using Match, after editing, you may need to reload page and apply your Match filter again. This is a bug 
+      if you have filtered using Match, after editing you may need to reload page and apply your Match filter again. This is a bug 
       (`#209 <https://github.com/louking/rrwebapp/issues/209>`_) and will hopefully be fixed in a future release
 
 * **Be sure to check the box under Confirm when you are satisfied the Standings Name is correct or "[not included]"**

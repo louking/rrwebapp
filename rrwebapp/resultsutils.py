@@ -51,17 +51,19 @@ CACHE_REFRESH = timedelta(30)   # 30 days, per https://cloud.google.com/maps-pla
 # control behavior of import
 DIFF_CUTOFF = 0.7   # ratio of matching characters for cutoff handled by 'clubmember'
 NONMEMBERCUTOFF = 0.9   # insist on high cutoff for nonmember matching
-AGE_DELTAMAX = 3    # +/- num years to be included in DISP_MISSED
+AGE_DELTAMAX = 3    # +/- num years to be included in DISP_CLOSEAGE
 JOIN_GRACEPERIOD = timedelta(7) # allow runner to join 1 week beyond race date
 
 # initialdisposition values
 # * match - exact name match found in runner table, with age consistent with dateofbirth
 # * close - close name match found, with age consistent with dateofbirth
-# * missed - close name match found, but age is inconsistent with dateofbirth
-# * excluded - this name is in the exclusion table, either prior to import **or as a result of user decision**
+# * closeage - close name match found, but age is inconsistent with dateofbirth
+# * missed - nonmembers allowed, and no member found
+# * excluded - this name is in the exclusion table, either prior to import **or as a result of admin decision**
 DISP_MATCH = 'definite'         # exact match of member (or non-member for non 'membersonly' race)
 DISP_CLOSE = 'similar'          # similar match to member, matching age
-DISP_MISSED = 'missed'          # similar to some member(s), age mismatch (within window)
+DISP_CLOSEAGE = 'closeage'      # similar to some member(s), age mismatch (within window)
+DISP_MISSED = 'missed'          # nonmembers allowed, and no member found
 DISP_EXCLUDED = 'excluded'      # DISP_CLOSE match, but found in exclusions table
 DISP_NOTUSED = ''               # not used for results
 
@@ -138,7 +140,7 @@ def getrunnerchoices(club_id, race, pool, result):
     
     runner = None
     runnername = ''
-    if thisdisposition in [DISP_MATCH,DISP_CLOSE]:
+    if thisdisposition in [DISP_MATCH, DISP_CLOSE]:
         # found a possible runner
         if candidate:
             runnername,ascdob = candidate
@@ -156,7 +158,7 @@ def getrunnerchoices(club_id, race, pool, result):
             pass    # TODO: this is a bug -- that to do?
 
     # didn't find runner, what were other possibilities?
-    elif thisdisposition == DISP_MISSED:
+    elif thisdisposition in [DISP_MISSED, DISP_CLOSEAGE]:
         # this is possible because maybe (new) member was chosen in prior use of editparticipants
         if candidate:
             runnername,ascdob = candidate
@@ -191,7 +193,7 @@ def getrunnerchoices(club_id, race, pool, result):
             pass
     
     # for non membersonly race, maybe need to add new name to member database, give that option
-    if not membersonly and thisdisposition != DISP_MATCH:
+    if not membersonly and thisdisposition not in [DISP_MATCH]:
         # it's possible that thisname == runnername if (new) member was added in prior use of editparticipants
         if thisname != runnername:
             thisrunnerchoice.append(('new','{} (new)'.format(thisname)))
@@ -219,7 +221,7 @@ def filtermissed(club_id,missed,racedate,resultage):
     
     racedatedt = dbdate.asc2dt(racedate)
     for thismissed in missed:
-        # don't consider 'missed matches' where age difference from result is too large
+        # don't consider 'closeage matches' where age difference from result is too large
         dobdt = dbdate.asc2dt(thismissed['dob'])
         if abs(age(racedatedt,dobdt) - resultage) > AGE_DELTAMAX:
             localmissed.remove(thismissed)
@@ -377,13 +379,13 @@ class ImportResults():
             # runner joined in time for race, or not member's only race
             # if exact match, indicate we have a match
             elif runnername.lower() == dbresult.name.lower():
-                # if current or former member
+                # if we matched the date of birth exactly
                 if ascdob:
                     dbresult.initialdisposition = DISP_MATCH
                     dbresult.confirmed = True
                     # current_app.logger.debug('    DISP_MATCH')
                     
-                # otherwise was nonmember, included from some non memberonly race
+                # maybe was nonmember, included from some non memberonly race
                 else:
                     # must check current result age against any previous result age
                     thisresultage = dbresult.age
@@ -431,7 +433,7 @@ class ImportResults():
             dbresult.runnerid = None
 
             # favor active members, then inactive members
-            # note: nonmembers are not looked at for missed because filtermissed() depends on DOB
+            # note: filtermissed() depends on DOB
             missed = self.pool.getmissedmatches()
             # current_app.logger.debug('  self.pool.getmissedmatches() = {}'.format(missed))
             
@@ -440,9 +442,13 @@ class ImportResults():
             missed = filtermissed(club_id,missed,race.date,dbresult.age)
             # current_app.logger.debug('  missed after filter = {}'.format(missed))
 
-            # if there remain are any missed results, indicate missed (due to age difference)
-            # or missed (due to new member proposed for not membersonly)
-            if len(missed) > 0 or not membersonly:
+            # if there remain are any missed results, indicate close age
+            if len(missed) > 0:
+                dbresult.initialdisposition = DISP_CLOSEAGE
+                dbresult.confirmed = False
+
+            # if not members only the admin can add them to the runner table
+            elif not membersonly:
                 dbresult.initialdisposition = DISP_MISSED
                 dbresult.confirmed = False
                 # current_app.logger.debug('    DISP_MISSED')
