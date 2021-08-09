@@ -235,6 +235,8 @@ bp.add_url_rule('/editparticipants/<int:raceid>',view_func=EditParticipants.as_v
 
 
 class AjaxEditParticipants(MethodView):
+    decorators = [login_required]
+
     def get(self,raceid):
         try:
 
@@ -1369,7 +1371,8 @@ bp.add_url_rule('/_importresults/<int:raceid>',view_func=AjaxImportResults.as_vi
 
 
 class ImportResultsStatus(MethodView):
-
+    decorators = [login_required]
+    
     def get(self, task_id):
         task = importresultstask.AsyncResult(task_id)
         current_app.logger.debug(f'task.state: {task.state}, task.info {task.info}')
