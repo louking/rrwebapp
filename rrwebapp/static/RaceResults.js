@@ -1176,7 +1176,7 @@
                                '_rrwebapp-class-col-race',
                                '_rrwebapp-class-col-total',
                                '_rrwebapp-class-col-nraces'
-                               ],type:'num-html'},
+                               ],type:'html-num'},
                     ];
         if (!printerfriendly){
             var tableparamupdates = {
