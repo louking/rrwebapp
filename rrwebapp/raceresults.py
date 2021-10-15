@@ -41,8 +41,8 @@ class dataError(Exception): pass
 class parameterError(Exception): pass
 
 # for _normalizetime
-PACE_FAST = 2.5 * 60.0  # 2:30/mile is pretty fast
-PACE_SLOW = 30 * 60     # 30:00/mile is pretty slow
+PACE_FAST = 2.5 * 60.0  # 2:30 min/mile is pretty fast
+PACE_SLOW = 40 * 60     # 40 min/mile is pretty slow
 
 #----------------------------------------------------------------------
 def normalizeracetime(racetime, distance, fastpace=PACE_FAST, slowpace=PACE_SLOW):
