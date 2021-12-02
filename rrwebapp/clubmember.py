@@ -94,9 +94,10 @@ class ClubMember():
     
     :params csvfile: csv file from which club members are to be retrieved, filename or file object
     :params cutoff: cutoff for getmember.  float in (0,1].  higher means strings have to match more closely to be considered "close".  Default 0.6
+    :params encoding: encoding for csv file, defaults to utf8 for backwards compatibility
     '''
     #----------------------------------------------------------------------
-    def __init__(self,csvfile,cutoff=0.6,exceldates=True):
+    def __init__(self, csvfile, cutoff=0.6, exceldates=True, encoding='utf8'):
     #----------------------------------------------------------------------
         from io import TextIOBase
         if isinstance(csvfile, TextIOBase):
@@ -105,7 +106,7 @@ class ClubMember():
         else:
             # need utf8 to handle certain characters which may have been entered by the user
             # match database encoding - utf8
-            _IN = open(csvfile, 'r', encoding='utf8', newline='')
+            _IN = open(csvfile, 'r', encoding=encoding, newline='')
             closeit = True
 
         # check header to see if RunSignUp file -- making some assumptions here
@@ -368,13 +369,14 @@ class CsvClubMember(ClubMember):
     
     :params csvfile: csv file from which club members are to be retrieved, filename or file object
     :params cutoff: cutoff for getmember.  float in (0,1].  higher means strings have to match more closely to be considered "close".  Default 0.6
+    :params encoding: encoding for csv file, defaults to utf8 for backwards compatibility
     '''
     
     #----------------------------------------------------------------------
-    def __init__(self,csvfile,cutoff=0.6):
+    def __init__(self, csvfile, cutoff=0.6, encoding='utf8'):
     #----------------------------------------------------------------------
         # do all the work
-        ClubMember.__init__(self,csvfile,cutoff=cutoff,exceldates=False)
+        ClubMember.__init__(self, csvfile, exceldates=False, cutoff=cutoff, encoding=encoding)
     
 ########################################################################
 class DbClubMember(ClubMember):
@@ -384,11 +386,12 @@ class DbClubMember(ClubMember):
     
     :params dbfilename: database file from which club members are to be retrieved -- default is to use configured database
     :params cutoff: cutoff for getmember.  float in (0,1].  higher means strings have to match more closely to be considered "close".  Default 0.6
+    :params encoding: encoding for csv file, defaults to utf8 for backwards compatibility
     :params \*\*kwfilter: keyword parameters for Runner database filter
     '''
     
     #----------------------------------------------------------------------
-    def __init__(self,dbfilename=None,cutoff=0.6,**kwfilter):
+    def __init__(self, dbfilename=None, cutoff=0.6, encoding='utf8', **kwfilter):
     #----------------------------------------------------------------------
         # create database session
         s = db.session
@@ -417,7 +420,7 @@ class DbClubMember(ClubMember):
         # function x is x(s,f), where s is session, f is field value
         # note it is ok to split name like this, because it will just get joined together when the csv is processed in clubmember
         # match database encoding - utf8
-        d = csvwt.Db2Csv(encoding='utf8')
+        d = csvwt.Db2Csv(encoding=encoding)
         hdrmap = {'id' : 'id',
                   'dateofbirth' : {'DOB':_dob2excel},
                   'gender' : 'Gender',

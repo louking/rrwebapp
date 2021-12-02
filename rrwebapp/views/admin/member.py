@@ -13,6 +13,7 @@ import traceback
 from collections import OrderedDict
 import csv
 from copy import copy
+from platform import system
 
 # pypi
 import flask
@@ -308,6 +309,13 @@ class AjaxImportMembers(MethodView):
             # if using api, collect data from api and save in temp directory
             useapi = request.args.get('useapi')=='true'
 
+            # set csv file encoding, normal case utf8
+            if system != 'Windows':
+                encoding = 'utf8'
+            # development on Windows
+            else:
+                encoding = 'cp1252'
+            
             # if we're using the api, do some quick checks that the request makes sense
             # save apitype, apiid, apikey, apisecret for later
             if useapi:
@@ -365,7 +373,7 @@ class AjaxImportMembers(MethodView):
                 memberfilename = 'members.csv'
                 ext = '.csv'
                 memberpathname = os.path.join(tempdir,memberfilename)
-                rsu_members2csv(apiid, apikey, apisecret, rsu_api2filemapping, filepath=memberpathname)
+                rsu_members2csv(apiid, apikey, apisecret, rsu_api2filemapping, filepath=memberpathname, encoding=encoding)
 
             else:
                 # save file for import

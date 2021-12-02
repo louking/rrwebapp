@@ -9,6 +9,7 @@ import os
 import traceback
 from flask.globals import current_app
 from time import time
+from platform import system
 
 # pypi
 from loutilities.timeu import timesecs, epoch2dt, asctime, age as ageasof
@@ -175,11 +176,18 @@ def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
         # get file extention
         root,ext = splitext(memberfilename)
 
+        # encoding depends on system type, normal case utf8
+        if system != 'Windows':
+            encoding = 'utf8'
+        # development on Windows
+        else:
+            encoding = 'cp1252'
+
         # bring in data from the file
         if ext in ['.xls','.xlsx']:
             members = clubmember.XlClubMember(memberpathname)
         elif ext in ['.csv']:
-            members = clubmember.CsvClubMember(memberpathname)
+            members = clubmember.CsvClubMember(memberpathname, encoding=encoding)
         
         # how did this happen?  check member.AjaxImportMembers.allowed_file() for bugs
         else:
