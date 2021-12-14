@@ -220,6 +220,7 @@ class ClubMember():
         membernames which were close
         
         if name wasn't found, {} is returned
+        self.lastratio keeps ratio of last getmember() call
         
         :param name: name to search for
         :rtype: {'matchingmembers':member record list, 'exactmatch':boolean, 'closematches':member name list}
@@ -228,11 +229,13 @@ class ClubMember():
         closematches = difflib.get_close_matches(name.lower(),list(self.members.keys()),cutoff=self.cutoff)
         
         rval = {}
+        self.lastratio = 0
         if len(closematches) > 0:
             topmatch = closematches.pop(0)
             rval['exactmatch'] = (name.lower() == topmatch.lower()) # ignore case
             rval['matchingmembers'] = self.members[topmatch][:] # make a copy
             rval['closematches'] = closematches[:]
+            self.lastratio = difflib.SequenceMatcher(a=name.lower(), b=topmatch.lower()).ratio()
             
         return rval
         
@@ -252,8 +255,12 @@ class ClubMember():
         '''
         
         # self.missedmatches keeps list of possible matches.  Can be retrieved via self.getmissedmatches()
+        # self.matches keeps initial matches response for name. Can be retrieved via self.getmatches()
+        # self.ratio keeps initial ratio for name. Can be retrieved via self.getratio()
         self.missedmatches = []
         matches = self.getmember(name)
+        self.matches = matches
+        self.ratio = self.lastratio
         
         if not matches: return None
         
@@ -327,16 +334,32 @@ class ClubMember():
         else:
             return None
         
-    #----------------------------------------------------------------------
     def getmissedmatches(self):
-    #----------------------------------------------------------------------
         '''
-        can be called after findmembers() to return list of members found in database, but did not match age
+        can be called after findmember() to return list of members found in database, but did not match age
         
         :rtype: [{'name':requestedname,'asofdate':asofdate,'age':age,'dbname':membername,'dob':memberdob}, ...]
         '''
         
         return self.missedmatches
+    
+    def getmatches(self):
+        '''
+        can be called after findmember() to return original matches found
+        
+        :rtype: {'matchingmembers':member record list, 'exactmatch':boolean, 'closematches':member name list}
+        '''
+        
+        return self.matches
+    
+    def getratio(self):
+        '''
+        can be called after findmember() to return ratio of match
+        
+        :rtype: [0,1]
+        '''
+        
+        return self.ratio
     
 ########################################################################
 class XlClubMember(ClubMember):

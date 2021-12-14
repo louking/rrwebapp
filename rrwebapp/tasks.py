@@ -10,6 +10,7 @@ import traceback
 from flask.globals import current_app
 from time import time
 from platform import system
+from difflib import SequenceMatcher
 
 # pypi
 from loutilities.timeu import timesecs, epoch2dt, asctime, age as ageasof
@@ -29,6 +30,7 @@ from .raceresults import RaceResults
 from . import clubmember
 
 class ParameterError(Exception): pass
+NAMEDIFFCUTOFF = .6
 
 # set up logger, time
 logger = get_task_logger(__name__)
@@ -220,6 +222,9 @@ def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
 
         # get current list of members
         allmembers = members.getmembers()
+        allmembernames = list(allmembers.keys())
+        # sort last, first
+        allmembernames.sort(key=lambda m: (m.split()[-1].lower(), m.split()[0].lower()))
 
         # count rows
         total = len(allmembers)
@@ -231,13 +236,27 @@ def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
 
         # process each name in new membership list
         numentries = 0
-        for name in allmembers:
+        for memberndx in range(len(allmembers)):
+            name = allmembernames[memberndx]
             # track progress for front end, make sure we update state immediately on start
             if numentries % statemod == 0:
                 self.update_state(state='PROGRESS', meta={'current': numentries, 'total': total})
             numentries += 1
 
+            # get list of similar names which are coming up in the allmembernames list
+            peeknames = []
+            for peekndx in range(memberndx + 1, len(allmembers)):
+                peekname = allmembernames[peekndx]
+                peekratio = SequenceMatcher(a=name, b=peekname).ratio()
+                if peekratio >= NAMEDIFFCUTOFF:
+                    peeknames.append(peekname)
+                else:
+                    break
+            
             current_app.logger.debug(f'tasks.importmemberstask: processing {name}')
+            if peeknames:
+                current_app.logger.debug(f'tasks.importmemberstask: peeknames={peeknames}')
+
             thesemembers = allmembers[name]
             # NOTE: may be multiple members with same name
             for thismember in thesemembers:
@@ -254,13 +273,28 @@ def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
                 # handle close matches, if DOB does match
                 age = ageasof(asof,tYmd.asc2dt(thisdob))
                 matchingmember = dbmembers.findmember(thisname,age,asofasc)
+                matchingratio = dbmembers.getratio()
                 dbmember = None
                 if matchingmember:
                     membername,memberdob = matchingmember
                     if memberdob == thisdob:
-                        dbmember = getunique(db.session,Runner,club_id=club_id,member=True,name=membername,dateofbirth=thisdob)
-                
-                # TODO: need to handle case where dob transitions from '' to actual date of birth
+                        # at this point we might have the member, but need to run through the peeknames to see if any
+                        # of these match better. If so, ignore this match as we'll find a better one later
+                        foundbetter = False
+                        for checkname in peeknames:
+                            checkmembers = allmembers[checkname]
+                            # first is best match
+                            for checkmember in checkmembers:
+                                checkmember = dbmembers.findmember(checkmember['name'], age, asofasc)
+                                if checkmember:
+                                    checkname, checkdob = checkmember
+                                    if dbmembers.getratio() > matchingratio and checkdob == thisdob:
+                                        current_app.logger.info(f'tasks.importmemberstask: found better match for names similar to {name}, peeking at {checkname} found closer match with db name {membername}')
+                                        foundbetter = True
+                                        break
+                            if foundbetter: break
+                        if not foundbetter:
+                            dbmember = getunique(db.session,Runner,club_id=club_id,member=True,name=membername,dateofbirth=thisdob)
                 
                 # no member found, maybe there is nonmember of same name already in database
                 if dbmember is None:
