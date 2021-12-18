@@ -219,7 +219,7 @@ class ViewStandings(MethodView):
                         else:
                             continue    # skip extra headers in dataset
                     else:
-                        standings.append([row[k] for k in roworder])
+                        standings.append({'_class': row['_class'], 'data': [row[k] for k in roworder]})
 
             # headings, headerclasses, tooltips are used together
             headingdata = list(zip(headings,headerclasses,tooltips))
