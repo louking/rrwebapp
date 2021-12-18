@@ -262,23 +262,26 @@ h2              { font-size: 1.2em; }
 }
 ._rrwebapp-class-standings-data-race-dropped
 {
-    text-align: center;
     color: red;
 }
-._rrwebapp-class-standings-data-overall-award,
-._rrwebapp-class-standings-data-overall-award a
+.row-overall-award,
+.row-overall-award ._rrwebapp-class-standings-data-name a
 {
-    text-align: center;
-    font-weight: bold;
-    color: blue;
+  color: blue;
+  font-weight: bold;
+  font-style: italic;
 }
-._rrwebapp-class-standings-data-division-award,
-._rrwebapp-class-standings-data-division-award a
+
+/* see https://sashamaps.net/docs/resources/20-colors/ */
+.row-division-award,
+.row-division-award ._rrwebapp-class-standings-data-name a
 {
-    text-align: center;
-    font-weight: bold;
-    color: green;
+  /* color: orange; */
+  color: #3cb44b;
+  font-weight: bold;
+  font-style: italic;
 }
+
 ._rrwebapp-class-standings-data-name,
 ._rrwebapp-class-standings-data-name a
 {

@@ -61,14 +61,14 @@
     <thead>
       <tr>
         {% for heading,cclass,tooltip in headingdata %}
-          <th {% if tooltip%}title="{{tooltip}}"{% endif %} class="{{ cclass}}">{{ heading|safe }}</th>
+          <th {% if tooltip %}title="{{ tooltip }}"{% endif %} class="{{ cclass }}">{{ heading|safe }}</th>
         {% endfor %}
       </tr>
     </thead>
     <tbody>
       {% for standing in standings %}
-        <tr>
-          {% for field in standing %}
+        <tr class={{ standing._class }}>
+          {% for field in standing.data %}
             <td>{{ field|safe }}</td>
           {% endfor %}
         </tr>

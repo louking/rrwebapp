@@ -566,27 +566,24 @@ SERIES_OPTIONS = [
      'attr': {'title': 'if checked, club affiliation is displayed with series results and standings'}
     },
 ]
+SERIES_TIE_OPTION_SEPARATOR = ', '
+SERIES_TIE_OPTION_HEAD_TO_HEAD_POINTS = 'head_to_head_points'
+SERIES_TIE_OPTION_COMPARE_AVG = 'average_points'
+SERIES_TIE_OPTION_DIV_COMPARE_OVERALL = 'div_compare_overall'
+SERIES_TIE_OPTIONS = [
+    {'value': SERIES_TIE_OPTION_HEAD_TO_HEAD_POINTS, 'label': 'Head to Head Point Differential',
+     'attr': {'title': 'order ties by point differential in head to head races', 'priority': 1}
+    },
+    {'value': SERIES_TIE_OPTION_COMPARE_AVG, 'label': 'Compare Average Points',
+     'attr': {'title': 'order ties by averaging points across races (limit Max Races)', 'priority': 2}
+    },
+    {'value': SERIES_TIE_OPTION_DIV_COMPARE_OVERALL, 'label': 'Division Tie Compare Average Overall Points',
+     'attr': {'title': 'order division ties by overall point total (limit Max Races)', 'priority': 3}
+    },
+]
 class Series(Base):
     '''
     * series (attributes)
-
-    :param club_id: club.id
-    :param name: series name
-    :param year: year of series
-    :param membersonly: True if series applies to club members only
-    :param calcoverall: True if overall results are to be calculated
-    :param calcdivisions: True if division results are to be calculated
-    :param orderby: text name of RaceResult field to order results by
-    :param hightolow: True if results should be ordered high to low based on orderby field
-    :param allowties: True if ties are allowed
-    :param averagetie: True if points for ties are to be averaged, else higher points awarded to all tied results
-    :param maxraces: if set, maximum number of races which are included in total (if not set, all races are included)
-    :param multiplier: multiply base point total by this value
-    :param maxgenpoints: if set, this is the max points for first place within a gender (before multiplier)
-    :param maxdivpoints: if set, this is the max points for first place within a division (before multiplier)
-    :param maxbynumrunners: if True, max points is set based on number of runners
-    :param options: list of other options, comma separated, defined by SERIES_OPTIONS
-    :param description: describes series
     '''
     __tablename__ = 'series'
     __table_args__ = (UniqueConstraint('name','year','club_id'),)
@@ -610,6 +607,10 @@ class Series(Base):
     maxbynumrunners = Column(Boolean)
     active = Column(Boolean, default=True)
     description = Column(String(20))
+    oaawards = Column(Integer)
+    divawards = Column(Integer)
+    minraces = Column(Integer)      # for awards
+    tieoptions = Column(Text)       # see SERIES_TIE_OPTIONS
     divisions = relationship("Divisions", backref='series', cascade="all, delete, delete-orphan")
     # races = relationship("Series", secondary="raceseries", backref='series')
     results = relationship("RaceResult", backref='series', cascade="all, delete, delete-orphan")

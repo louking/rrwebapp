@@ -680,25 +680,19 @@ class TxtStandingsHandler(BaseStandingsHandler):
         for gen in ['F','M']:
             self.TXT[gen].close()
     
-########################################################################
 class HtmlStandingsHandler(BaseStandingsHandler):
-########################################################################
     '''
     StandingsHandler for .html files
     
     :param racelist: list of race numbers in series
     '''
-    #----------------------------------------------------------------------
     def __init__(self,racelist):
-    #----------------------------------------------------------------------        
         BaseStandingsHandler.__init__(self)
         self.HTML = {}
         self.pline = {'F':{},'M':{}}
         self.racelist = racelist
     
-    #----------------------------------------------------------------------
     def prepare(self,gen,series,year):
-    #----------------------------------------------------------------------
         '''
         prepare output file for output, including as appropriate
         
@@ -723,6 +717,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         
         # generate the header
         self.setheader(gen,True)
+        self.setrowclass(gen, '')
         self.setplace(gen,'Place')
         self.setname(gen,'Name')
         self.setage(gen,'Div Age')
@@ -739,9 +734,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         
         return len(self.racelist)
     
-    #----------------------------------------------------------------------
     def clearline(self,gen):
-    #----------------------------------------------------------------------
         '''
         prepare rendering line for output by clearing all entries
 
@@ -753,9 +746,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
             if k in ['header','division']: continue  # header indication and division text are persistent
             self.pline[gen][k] = ''
         
-    #----------------------------------------------------------------------
     def setheader(self,gen,header):
-    #----------------------------------------------------------------------
         '''
         enable / disable header processing
         
@@ -767,9 +758,17 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         '''
         self.pline[gen]['header'] = header
         
-    #----------------------------------------------------------------------
+    def setrowclass(self, gen, _class):
+        '''
+        set class(es) for the row
+
+        :param gen: gender M or F
+        :param _class: value for the row class
+        '''
+        
+        self.pline[gen]['_class'] = _class
+    
     def setplace(self,gen,place,stylename='place'):
-    #----------------------------------------------------------------------
         '''
         put value in 'place' column for output (this should be rendered in 1st column)
 
@@ -780,9 +779,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         
         self.pline[gen]['place'] = addstyle(self.pline[gen]['header'],str(place),stylename)
     
-    #----------------------------------------------------------------------
     def setname(self,gen,name,stylename='name',runnerid=None):
-    #----------------------------------------------------------------------
         '''
         put value in 'name' column for output (this should be rendered in 2nd column)
 
@@ -798,9 +795,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
             nameurl = name
         self.pline[gen]['name'] = addstyle(self.pline[gen]['header'],nameurl,stylename)
     
-    #----------------------------------------------------------------------
     def setage(self,gen,age,stylename='age'):
-    #----------------------------------------------------------------------
         '''
         put value in 'age' column for output
 
@@ -811,9 +806,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
 
         self.pline[gen]['age'] = addstyle(self.pline[gen]['header'],str(age),stylename)
 
-    #----------------------------------------------------------------------
     def setclubs(self,gen,clubs,stylename='clubs'):
-    #----------------------------------------------------------------------
         '''
         put value in 'clubs' column for output
 
@@ -824,9 +817,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
 
         self.pline[gen]['clubs'] = addstyle(self.pline[gen]['header'],clubs,stylename)
     
-    #----------------------------------------------------------------------
     def setnraces(self,gen,nraces,stylename='nraces'):
-    #----------------------------------------------------------------------
         '''
         put value in 'nraces' column for output
 
@@ -837,9 +828,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
 
         self.pline[gen]['nraces'] = addstyle(self.pline[gen]['header'],str(nraces),stylename)
 
-    #----------------------------------------------------------------------
     def setdivision(self,gen,division,stylename='division'):
-    #----------------------------------------------------------------------
         '''
         put value in 'division' column for output (this should be rendered in 2nd column)
 
@@ -850,9 +839,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         
         self.pline[gen]['division'] = addstyle(self.pline[gen]['header'],str(division),stylename)
     
-    #----------------------------------------------------------------------
     def setrace(self,gen,racenum,result,stylename='race'):
-    #----------------------------------------------------------------------
         '''
         put value in 'race{n}' column for output, for race n
         should be '' for empty race
@@ -865,9 +852,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         
         self.pline[gen]['race{0}'.format(racenum)] = addstyle(self.pline[gen]['header'],str(result),stylename)
     
-    #----------------------------------------------------------------------
     def settotal(self,gen,total,stylename='total'):
-    #----------------------------------------------------------------------
         '''
         put value in 'race{n}' column for output, for race n
         should be '' for empty race
@@ -879,9 +864,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         
         self.pline[gen]['total'] = addstyle(self.pline[gen]['header'],str(total),stylename)
     
-    #----------------------------------------------------------------------
     def render(self,gen):
-    #----------------------------------------------------------------------
         '''
         output current line to gender file
 
@@ -894,9 +877,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         self.pline[gen] = copy.copy(self.pline[gen])
     
 
-    #----------------------------------------------------------------------
     def skipline(self,gen):
-    #----------------------------------------------------------------------
         '''
         output blank line to gender file
 
@@ -906,9 +887,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         # this is NOOP for HTML
         pass
     
-    #----------------------------------------------------------------------
     def close(self):
-    #----------------------------------------------------------------------
         '''
         output blank line to gender file
 
@@ -918,9 +897,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         #this is NOOP for HTML
         pass
     
-    #----------------------------------------------------------------------
     def iter(self,gen):
-    #----------------------------------------------------------------------
         '''
         return iterable for gender
 
@@ -1430,6 +1407,31 @@ class StandingsRenderer():
         :param fh: StandingsHandler object-like
         '''
 
+        # calculate points
+        def calcpoints(runnerpool, selector):
+            '''
+            calculate sorted list of runner results by total points (max to min)
+            
+            :param runnerpool: pool of runners to use for results
+            :param selector: selector from point to pull results, either 'bygender' or 'bydivision'
+            '''
+            bypoints = []
+            for runnerid,name,age in runnerpool:
+                # convert each race result to int if possible
+                runnerpool[runnerid,name,age][selector] = [int(r) if isinstance(r, float) and r==int(r) else r for r in runnerpool[runnerid,name,age]['bygender']]
+                racetotals = runnerpool[runnerid,name,age][selector][:]    # make a copy
+                # total numbers only, and convert to int if possible
+                racetotals = [r for r in racetotals if type(r) in [int,float]]
+                racetotals.sort(reverse=True)
+                numracesused = min(self.maxraces, len(racetotals)) if self.maxraces else len(racetotals)
+                racesused = racetotals[0:numracesused]
+                runnerpool[runnerid,name,age]['racesused'] = racesused[:]  # NOTE: this field will be reinitialized for overall / gender standings
+                totpoints = sum(racesused)
+                totpoints = int(totpoints) if totpoints == int(totpoints) else totpoints
+                bypoints.append((totpoints,runnerid,name,age))
+            bypoints.sort(reverse=True)
+            return bypoints
+
         # collect divisions, if necessary
         if self.bydiv:
             divisions = []
@@ -1461,8 +1463,92 @@ class StandingsRenderer():
                 racesprocessed += 1
                 
             # render standings
-            # first by division
+            
+            # overall
+            fh.setheader(gen,True)
+            fh.clearline(gen)
+            fh.setplace(gen,'Place','racehdr')
+            fh.setname(gen,'Overall','divhdr')
+            fh.setage(gen,'Div Age','divhdr')
+            fh.setclubs(gen,'Club','divhdr')
+            fh.setnraces(gen,'n','divhdr')
+            fh.setdivision(gen,'Overall')
+            fh.render(gen)
+            fh.setheader(gen,False)
+            
+            # calculate runner total points
+            bypoints = []
+            for runnerid,name,age in byrunner:
+                # convert each race result to int if possible
+                byrunner[runnerid,name,age]['bygender'] = [int(r) if isinstance(r, float) and r==int(r) else r for r in byrunner[runnerid,name,age]['bygender']]
+                racetotals = byrunner[runnerid,name,age]['bygender'][:]    # make a copy
+                # total numbers only, and convert to int if possible
+                racetotals = [r for r in racetotals if type(r) in [int,float]]
+                racetotals.sort(reverse=True)
+                numracesused = min(self.maxraces, len(racetotals)) if self.maxraces else len(racetotals)
+                racesused = racetotals[0:numracesused]
+                byrunner[runnerid,name,age]['racesused'] = racesused[:]  # NOTE: this field will be reinitialized for overall / gender standings
+                totpoints = sum(racesused)
+                totpoints = int(totpoints) if totpoints == int(totpoints) else totpoints
+                bypoints.append((totpoints,runnerid,name,age))
+            
+            # sort runners by total points and render
+            bypoints.sort(reverse=True)
+            
+            # render
+            oaawardwinners = {} 
+            thisplace = 1
+            lastplace = 0
+            lastpoints = -999
+            for thisbypoints in bypoints:
+                # break this apart, matching self.collectstandings() implementation
+                totpoints, runnerid, name, age = thisbypoints
+                
+                # start fresh
+                fh.clearline(gen)
+                        
+                # render place if it's different than last runner's place, else there was a tie
+                renderplace = thisplace
+                if totpoints == lastpoints:
+                    renderplace = lastplace
+                fh.setplace(gen,renderplace)
+                thisplace += 1
+                
+                # update for overall awards
+                if self.series.oaawards and renderplace <= self.series.oaawards:
+                    oaawardwinners[runnerid] = {'place': renderplace, 'bypoints': thisbypoints}
+                    fh.setrowclass(gen, 'row-overall-award')
+                    
+                # render name and total points, remember last total points
+                fh.setname(gen,name,runnerid=runnerid)
+                fh.setage(gen,age)
+                fh.settotal(gen,totpoints)
+                lastpoints = totpoints
+                lastplace = renderplace
+                
+                # set club affiliation, if needed
+                if 'clubaffiliation' in byrunner[runnerid,name,age]:
+                    fh.setclubs(gen, byrunner[runnerid,name,age]['clubaffiliation'])
+                        
+                # render race results
+                iracenums = iter(self.racenums)
+                nraces = 0
+                for pts in byrunner[runnerid,name,age]['bygender']:
+                    racenum = next(iracenums)
+                    if pts in byrunner[runnerid,name,age]['racesused']:
+                        fh.setrace(gen,racenum,pts)
+                        byrunner[runnerid,name,age]['racesused'].remove(pts)
+                    else:
+                        fh.setrace(gen,racenum,pts,stylename='race-dropped')
+                    # count number of races runner ran
+                    if isinstance(pts, int) or isinstance(pts, float):
+                        nraces += 1
+                fh.setnraces(gen,nraces)
+                fh.render(gen)
+
+            # by division if needed
             if self.bydiv:
+            # remember overall awards, so that division display can be adjusted
                 fh.setheader(gen,True)
                 fh.clearline(gen)
                 fh.setplace(gen,'Place','racehdr')
@@ -1513,19 +1599,30 @@ class StandingsRenderer():
                     for totpoints,runnerid,name,age in bypoints:
                         fh.clearline(gen)
                         
-                        # render place if it's different than last runner's place, else there was a tie
-                        renderplace = thisplace
-                        if totpoints == lastpoints:
-                            renderplace = lastplace
+                        # check for overall winner
+                        if runnerid in oaawardwinners:
+                            renderplace = f'oa-{oaawardwinners[runnerid]["place"]}'
+                            fh.setrowclass(gen, 'row-overall-award')
+                        
+                        # normal division placer
+                        else:
+                            # render place if it's different than last runner's place, else there was a tie
+                            renderplace = thisplace
+                            if totpoints == lastpoints:
+                                renderplace = lastplace
+                            thisplace += 1
+                            lastplace = renderplace
+                            if self.series.divawards and renderplace <= self.series.divawards:
+                                fh.setrowclass(gen, 'row-division-award')
+
+                        # render the place
                         fh.setplace(gen,renderplace)
-                        thisplace += 1
                         
                         # render name and total points, remember last total points
                         fh.setname(gen,name,runnerid=runnerid)
                         fh.setage(gen,age)
                         fh.settotal(gen,totpoints)
                         lastpoints = totpoints
-                        lastplace = renderplace
 
                         # set club affiliation, if needed
                         if 'clubaffiliation' in byrunner[runnerid,name,age]:
@@ -1550,76 +1647,6 @@ class StandingsRenderer():
                     # skip line between divisions
                     fh.skipline(gen)
                         
-            # then overall
-            fh.setheader(gen,True)
-            fh.clearline(gen)
-            fh.setplace(gen,'Place','racehdr')
-            fh.setname(gen,'Overall','divhdr')
-            fh.setage(gen,'Div Age','divhdr')
-            fh.setclubs(gen,'Club','divhdr')
-            fh.setnraces(gen,'n','divhdr')
-            fh.setdivision(gen,'Overall')
-            fh.render(gen)
-            fh.setheader(gen,False)
-            
-            # calculate runner total points
-            bypoints = []
-            for runnerid,name,age in byrunner:
-                # convert each race result to int if possible
-                byrunner[runnerid,name,age]['bygender'] = [int(r) if isinstance(r, float) and r==int(r) else r for r in byrunner[runnerid,name,age]['bygender']]
-                racetotals = byrunner[runnerid,name,age]['bygender'][:]    # make a copy
-                # total numbers only, and convert to int if possible
-                racetotals = [r for r in racetotals if type(r) in [int,float]]
-                racetotals.sort(reverse=True)
-                numracesused = min(self.maxraces, len(racetotals)) if self.maxraces else len(racetotals)
-                racesused = racetotals[0:numracesused]
-                byrunner[runnerid,name,age]['racesused'] = racesused[:]  # NOTE: this field will be reinitialized for overall / gender standings
-                totpoints = sum(racesused)
-                totpoints = int(totpoints) if totpoints == int(totpoints) else totpoints
-                bypoints.append((totpoints,runnerid,name,age))
-            
-            # sort runners by total points and render
-            bypoints.sort(reverse=True)
-            thisplace = 1
-            lastplace = 0
-            lastpoints = -999
-            for totpoints,runnerid,name,age in bypoints:
-                fh.clearline(gen)
-                        
-                # render place if it's different than last runner's place, else there was a tie
-                renderplace = thisplace
-                if totpoints == lastpoints:
-                    renderplace = lastplace
-                fh.setplace(gen,renderplace)
-                thisplace += 1
-                
-                # render name and total points, remember last total points
-                fh.setname(gen,name,runnerid=runnerid)
-                fh.setage(gen,age)
-                fh.settotal(gen,totpoints)
-                lastpoints = totpoints
-                lastplace = renderplace
-                
-                # set club affiliation, if needed
-                if 'clubaffiliation' in byrunner[runnerid,name,age]:
-                    fh.setclubs(gen, byrunner[runnerid,name,age]['clubaffiliation'])
-                        
-                # render race results
-                iracenums = iter(self.racenums)
-                nraces = 0
-                for pts in byrunner[runnerid,name,age]['bygender']:
-                    racenum = next(iracenums)
-                    if pts in byrunner[runnerid,name,age]['racesused']:
-                        fh.setrace(gen,racenum,pts)
-                        byrunner[runnerid,name,age]['racesused'].remove(pts)
-                    else:
-                        fh.setrace(gen,racenum,pts,stylename='race-dropped')
-                    # count number of races runner ran
-                    if isinstance(pts, int) or isinstance(pts, float):
-                        nraces += 1
-                fh.setnraces(gen,nraces)
-                fh.render(gen)
-
             fh.skipline(gen)
                         
         # done with rendering

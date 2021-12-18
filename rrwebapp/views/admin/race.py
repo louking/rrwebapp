@@ -30,7 +30,7 @@ from ...model import ClubAffiliation, insert_or_update
 from ...model import db   # this is ok because this module only runs under flask
 from ...model import Race, Series, Divisions, Club
 from ...model import getclubid, getyear
-from ...model import SERIES_OPTIONS, SERIES_OPTION_SEPARATOR
+from ...model import SERIES_OPTIONS, SERIES_OPTION_SEPARATOR, SERIES_TIE_OPTIONS, SERIES_TIE_OPTION_SEPARATOR
 from ...apicommon import failure_response, success_response, check_header
 from ...crudapi import CrudApi
 from ...resultsutils import race_fixeddist
@@ -367,9 +367,11 @@ dt_options = {
     'order': [[0, 'asc']],
 }
 
-series_dbattrs = 'id,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,'\
+series_dbattrs = 'id,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,minraces,'\
+    'oaawards,divawards,tieoptions,'\
     'hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races,options'.split(',')
-series_formfields = 'rowid,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,'\
+series_formfields = 'rowid,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,minraces,'\
+    'oaawards,divawards,tieoptions,'\
     'hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races,options'.split(',')
 series_dbmapping = dict(list(zip(series_dbattrs, series_formfields)))
 series_formmapping = dict(list(zip(series_formfields, series_dbattrs)))
@@ -437,6 +439,22 @@ series_view = CrudApi(
          'className': 'field_req',
          'class': 'column-center',
          '_treatment': {'boolean': {'formfield': 'calcdivisions', 'dbfield': 'calcdivisions', 'truedisplay': 'yes', 'falsedisplay': 'no'}}},
+        {'data': 'minraces', 'name': 'minraces', 'label': 'Awards Min Races',
+         'class': 'column-center',
+         },
+        {'data': 'oaawards', 'name': 'oaawards', 'label': '# OA Awards',
+         'class': 'column-center',
+         },
+        {'data': 'divawards', 'name': 'divawards', 'label': '# Div Awards',
+         'class': 'column-center',
+         },
+        {'data': 'tieoptions', 'name': 'tieoptions', 'label': 'Award Tie Options',
+         'type': 'checkbox',
+         'ed': {
+             'options': SERIES_TIE_OPTIONS,
+             'separator': SERIES_TIE_OPTION_SEPARATOR,
+         }
+         },
         {'data': 'calcagegrade', 'name': 'calcagegrade', 'label': 'Age Grade',
          'className': 'field_req',
          'class': 'column-center',
