@@ -705,29 +705,6 @@ class RaceResultService(Base):
 
 class RaceResult(Base):
     '''
-    :param club_id: club.id
-    :param runnerid: runner.id
-    :param raceid: race.id
-    :param seriesid: series.id
-    :param time: time in seconds
-    :param gender: M or F
-    :param agage: age on race day
-    :param divisionlow: inclusive age at low end of division (may be 0)
-    :param divisionhigh: inclusive age at high end of division (may be 99)
-    :param overallplace: runner's place in race overall
-    :param genderplace: runner's place in race within gender
-    :param runnername: only used if runner is not in 'runner' table - if used, set runnerid to 0
-    :param divisionplace: runner's place in race within division (see division table) - default None
-    :param overallpoints: runner's point score from place overall, adjusted for rendering by series rules
-    :param genderpoints: runner's point score from place within gender, adjusted for rendering by series rules
-    :param divisionpoints: runner's point score from place within division, adjusted for rendering by series rules
-    :param agtime: age grade time in seconds - default None
-    :param agpercent: age grade percentage - default None
-    :param source: references source of result data - name not id
-    :param sourceid: references runner within source
-    :param fuzzyage: set to 'y' if age math is "fuzzy", for sources which only have 5 year age groups listed
-    :param instandings: boolean - default False
-    :param hidden: boolean - true if hidden from raceresults analysis
     '''
     __tablename__ = 'raceresult'
     __table_args__ = (UniqueConstraint('runnerid', 'runnername', 'raceid', 'seriesid', 'club_id'),)
