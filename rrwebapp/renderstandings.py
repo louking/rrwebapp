@@ -1419,13 +1419,13 @@ class StandingsRenderer():
             calculate sorted list of runner results by total points (max to min)
             
             :param byrunner: full data structure by runner
-            :param runnerpool: pool of runners to use for results
+            :param runnerpool: pool of runners to use for this set of results
             :param selector: selector from point to pull results, either 'bygender' or 'bydivision'
             '''
             bypoints = []
             for runnerid,name,age in runnerpool:
                 # convert each race result to int if possible
-                byrunner[runnerid,name,age][selector] = [int(r) if isinstance(r, float) and r==int(r) else r for r in byrunner[runnerid,name,age]['bygender']]
+                byrunner[runnerid,name,age][selector] = [int(r) if isinstance(r, float) and r==int(r) else r for r in byrunner[runnerid,name,age][selector]]
                 racetotals = byrunner[runnerid,name,age][selector][:]    # make a copy
                 # total numbers only, and convert to int if possible
                 racetotals = [r for r in racetotals if type(r) in [int,float]]
@@ -1485,40 +1485,27 @@ class StandingsRenderer():
             fh.render(gen)
             fh.setheader(gen,False)
             
-            # calculate runner total points
+            # calculate runner total points overall
             bypoints = calcpoints(byrunner, byrunner, 'bygender')
             
-            # render
+            # loop through results, handling ties as defined with self.series and render
             oaawardwinners = {} 
-            thisplace = 1
-            lastplace = 0
-            lastpoints = -999
-            for thisbypoints in bypoints:
-                # break this apart, matching self.collectstandings() implementation
+            theseresults = resultsiterator(self.series, bypoints, runnerresults, division=True)
+            for thisbypoints in theseresults:
+                # break thisbypoints apart, matching self.collectstandings() implementation
                 totpoints, runnerid, name, age = thisbypoints
                 
                 # start fresh
                 fh.clearline(gen)
                         
-                # runner needs to have run enough races to get a result
-                if not self.series.minraces or len(runnerresults[runnerid]) >= self.series.minraces:
-                    # render place if it's different than last runner's place, else there was a tie
-                    renderplace = thisplace
-                    if totpoints == lastpoints:
-                        renderplace = lastplace
-                    fh.setplace(gen,renderplace)
-                    thisplace += 1
-                    lastpoints = totpoints
-                    lastplace = renderplace
+                # get the runner's calculated place
+                renderplace = theseresults.calcrenderplace()
+                fh.setplace(gen, renderplace)
                 
-                    # update for overall awards
-                    if self.series.oaawards and renderplace <= self.series.oaawards:
-                        oaawardwinners[runnerid] = {'place': renderplace, 'bypoints': thisbypoints}
-                        fh.setrowclass(gen, 'row-overall-award')
-                    
-                # runner hasn't run enough races to get a place
-                else:
-                    renderplace = ''
+                # update for overall awards
+                if self.series.oaawards and renderplace and renderplace <= self.series.oaawards:
+                    oaawardwinners[runnerid] = {'place': renderplace, 'bypoints': thisbypoints}
+                    fh.setrowclass(gen, 'row-overall-award')
                     
                 # render name and total points, remember last total points
                 fh.setname(gen,name,runnerid=runnerid)
@@ -1573,14 +1560,15 @@ class StandingsRenderer():
                     fh.render(gen)
                     fh.setheader(gen,False)
                     
-                    # calculate runner total points
+                    # calculate runner total points for this division
                     bypoints = calcpoints(byrunner, divrunner[div], 'bydivision')
                     
-                    # render
-                    thisplace = 1
-                    lastplace = 0
-                    lastpoints = -999
-                    for totpoints,runnerid,name,age in bypoints:
+                    # loop through results, handling ties as defined with self.series, and render
+                    theseresults = resultsiterator(self.series, bypoints, runnerresults, division=True)
+                    for thisbypoints in theseresults:
+                        # break thisbypoints apart, matching self.collectstandings() implementation
+                        totpoints, runnerid, name, age = thisbypoints
+
                         fh.clearline(gen)
                         
                         # check for overall winner
@@ -1590,21 +1578,11 @@ class StandingsRenderer():
                         
                         # normal division placer
                         else:
-                            # runner needs to have run enough races to get a result
-                            if not self.series.minraces or len(runnerresults[runnerid]) >= self.series.minraces:
-                                # render place if it's different than last runner's place, else there was a tie
-                                renderplace = thisplace
-                                if totpoints == lastpoints:
-                                    renderplace = lastplace
-                                thisplace += 1
-                                lastplace = renderplace
-                                if self.series.divawards and renderplace <= self.series.divawards:
-                                    fh.setrowclass(gen, 'row-division-award')
-                                lastpoints = totpoints
-                            
-                            # runner hasn't run enough races to get a place
-                            else:
-                                renderplace = ''
+                            # get the runner's calculated place
+                            renderplace = theseresults.calcrenderplace()
+
+                            if self.series.divawards and renderplace and renderplace <= self.series.divawards:
+                                fh.setrowclass(gen, 'row-division-award')
 
                         # render the place
                         fh.setplace(gen,renderplace)
@@ -1641,3 +1619,59 @@ class StandingsRenderer():
                         
         # done with rendering
         fh.close()
+
+class resultsiterator():
+    '''
+    iterate through results, handling ties if necessary
+    
+    :param series: Series record
+    :param bypoints: sorted list [(totpoints, runnerid, name, age), ...]
+    :param runnerresults: {runnerid: {RaceResult1, RaceResult2, ...}}
+    :param division: (optional) use SERIES_TIE_OPTION_DIV_COMPARE_OVERALL handling if configured
+    '''
+    def __init__(self, series, bypoints, runnerresults, division=False) -> None:
+        self.series = series
+        self.bypoints = bypoints
+        self.runnerresults = runnerresults
+        self.pointstie = []
+        self.tietitle = ''
+        self.thisplace = 1
+        self.lastplace = 0
+        self.lastpoints = -999
+        
+    def __iter__(self):
+        self.pointsndx = 0
+        return self
+    
+    # get next result, processing ties if necessory
+    def __next__(self):
+        if self.pointsndx >= len(self.bypoints):
+            raise StopIteration
+        
+        thisbypoints = self.bypoints[self.pointsndx]
+        self.pointsndx += 1
+        
+        self.totpoints, self.runnerid, name, age = thisbypoints
+        self.tietitle = ''
+
+        return self.totpoints, self.runnerid, name, age
+    
+    def gettietitle(self):
+        return self.tietitle
+        
+    def calcrenderplace(self):
+        # runner needs to have run enough races to get a result
+        if not self.series.minraces or len(self.runnerresults[self.runnerid]) >= self.series.minraces:
+            # render place if it's different than last runner's place, else there was a tie
+            renderplace = self.thisplace
+            if self.totpoints == self.lastpoints:
+                renderplace = self.lastplace
+            self.thisplace += 1
+            self.lastplace = renderplace
+            self.lastpoints = self.totpoints
+        
+        # runner hasn't run enough races to get a place
+        else:
+            renderplace = ''
+
+        return renderplace
