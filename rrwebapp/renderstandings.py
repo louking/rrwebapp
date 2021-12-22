@@ -20,6 +20,7 @@ import math
 import copy
 import urllib.request, urllib.parse, urllib.error
 from datetime import datetime
+from functools import cmp_to_key
 
 # pypi
 import xlwt
@@ -30,9 +31,13 @@ from dominate.util import text
 from loutilities import renderrun as render
 from loutilities import timeu
 
+from rrwebapp.resultssummarize import mean
+
 # home grown
 from .model import Divisions, Race, RaceResult, Runner
 from .model import SERIES_OPTION_PROPORTIONAL_SCORING, SERIES_OPTION_REQUIRES_CLUB, SERIES_OPTION_DISPLAY_CLUB
+from .model import SERIES_TIE_OPTIONS, SERIES_TIE_OPTION_SEPARATOR, SERIES_TIE_OPTION_COMPARE_AVG, \
+                   SERIES_TIE_OPTION_DIV_COMPARE_OVERALL, SERIES_TIE_OPTION_HEAD_TO_HEAD_POINTS
 from .resultsutils import get_earliestrace, clubaffiliationelement
 
 tYmd = timeu.asctime('%Y-%m-%d')
@@ -40,8 +45,16 @@ tYmd = timeu.asctime('%Y-%m-%d')
 class parameterError(Exception): pass
 class dbConsistencyError(Exception): pass
 
+class Points(object):
+    '''
+    object to hold points information (see calcpoints())
+    '''
+    def __init__(self, **kwargs):
+        for f in kwargs:
+            setattr(self, f, kwargs[f])
+
 #----------------------------------------------------------------------
-def addstyle(header,contents,style):
+def addstyle(header, contents, style, title=None):
 #----------------------------------------------------------------------
     '''
     add style class to table element
@@ -49,14 +62,19 @@ def addstyle(header,contents,style):
     :param header: true if this is to be a header element
     :param contents: text or dominate tag for final element, can be list of dominate tags
     :param style: name for style class
+    :param title: (optional) title for element
     :rtype: html string
     '''
     if not isinstance(contents, list):
         el = div(contents, _class=f'_rrwebapp-class-standings-data-{style}')
+        if title:
+            el['title'] = title
     
     # handle list of dominate tags
     else:
         el = div(_class=f'_rrwebapp-class-standings-data-{style}')
+        if title:
+            el['title'] = title
         for item in contents:
             el.add(item)
             separator = text(', ')
@@ -157,7 +175,7 @@ class BaseStandingsHandler():
         pass
     
     #----------------------------------------------------------------------
-    def setplace(self,gen,place,stylename='place'):
+    def setplace(self, gen, place, stylename='place', title=None):
     #----------------------------------------------------------------------
         '''
         put value in 'place' column for output (this should be rendered in 1st column)
@@ -165,6 +183,7 @@ class BaseStandingsHandler():
         :param gen: gender M or F
         :param place: value for place column
         :param stylename: name of style for field display
+        :param title: (optional) title for popup display        
         '''
 
         pass
@@ -178,6 +197,7 @@ class BaseStandingsHandler():
         :param gen: gender M or F
         :param division: value for division column
         :param styledivision: name of style for field display
+        :param title: (optional) title for popup display
         '''
         
         pass
@@ -359,7 +379,7 @@ class ListStandingsHandler():
             fh.clearline(gen)
     
     #----------------------------------------------------------------------
-    def setplace(self,gen,place,stylename='place'):
+    def setplace(self,gen,place,stylename='place',title=None):
     #----------------------------------------------------------------------
         '''
         put value in 'place' column for output (this should be rendered in 1st column)
@@ -367,10 +387,11 @@ class ListStandingsHandler():
         :param gen: gender M or F
         :param place: value for place column
         :param stylename: name of style for field display
+        :param title: (optional) title for popup display
         '''
 
         for fh in self.fhlist:
-            fh.setplace(gen,place,stylename)
+            fh.setplace(gen, place, stylename, title=title)
     
     #----------------------------------------------------------------------
     def setname(self,gen,name,stylename='name',runnerid=None):
@@ -565,7 +586,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
             self.pline[gen][k] = ''
     
     #----------------------------------------------------------------------
-    def setplace(self,gen,place,stylename='place'):
+    def setplace(self,gen,place,stylename='place',title=None):
     #----------------------------------------------------------------------
         '''
         put value in 'place' column for output (this should be rendered in 1st column)
@@ -573,6 +594,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         :param gen: gender M or F
         :param place: value for place column
         :param stylename: name of style for field display
+        :param title: (optional) title for popup display
         '''
         
         self.pline[gen]['place'] = str(place)
@@ -768,16 +790,17 @@ class HtmlStandingsHandler(BaseStandingsHandler):
         
         self.pline[gen]['_class'] = _class
     
-    def setplace(self,gen,place,stylename='place'):
+    def setplace(self, gen, place, stylename='place', title=None):
         '''
         put value in 'place' column for output (this should be rendered in 1st column)
 
         :param gen: gender M or F
         :param place: value for place column
         :param stylename: name of style for field display
+        :param title: (optional) title for popup display
         '''
         
-        self.pline[gen]['place'] = addstyle(self.pline[gen]['header'],str(place),stylename)
+        self.pline[gen]['place'] = addstyle(self.pline[gen]['header'], str(place), stylename, title=title)
     
     def setname(self,gen,name,stylename='name',runnerid=None):
         '''
@@ -1047,7 +1070,7 @@ class XlStandingsHandler(BaseStandingsHandler):
         pass    # noop for excel - avoid 'cell overwrite' exception
     
     #----------------------------------------------------------------------
-    def setplace(self,gen,place,stylename='place'):
+    def setplace(self,gen,place,stylename='place',title=None):
     #----------------------------------------------------------------------
         '''
         put value in 'place' column for output (this should be rendered in 1st column)
@@ -1055,6 +1078,7 @@ class XlStandingsHandler(BaseStandingsHandler):
         :param gen: gender M or F
         :param place: value for place column
         :param stylename: key into self.style
+        :param title: (optional) title for popup display
         '''
         
         self.ws[gen].write(self.rownum[gen],self.colnum['place'],place,self.style[stylename])
@@ -1435,8 +1459,10 @@ class StandingsRenderer():
                 byrunner[runnerid,name,age]['racesused'] = racesused[:]
                 totpoints = sum(racesused)
                 totpoints = int(totpoints) if totpoints == int(totpoints) else totpoints
-                bypoints.append((totpoints,runnerid,name,age))
-            bypoints.sort(reverse=True)
+                # tied=False may be updated in resultsiterator.tiesort()
+                bypoints.append(Points(totpoints=totpoints, runnerid=runnerid, name=name, age=age, tied=False))
+                
+            bypoints.sort(key=lambda i: i.totpoints, reverse=True)
             return bypoints
 
         # collect divisions if necessary
@@ -1490,17 +1516,18 @@ class StandingsRenderer():
             
             # loop through results, handling ties as defined with self.series and render
             oaawardwinners = {} 
-            theseresults = resultsiterator(self.series, bypoints, runnerresults, division=True)
+            theseresults = resultsiterator(self.series, bypoints, byrunner, runnerresults, self.races, division=False)
             for thisbypoints in theseresults:
                 # break thisbypoints apart, matching self.collectstandings() implementation
-                totpoints, runnerid, name, age = thisbypoints
+                totpoints, runnerid, name, age = thisbypoints.totpoints, thisbypoints.runnerid, thisbypoints.name, thisbypoints.age
                 
                 # start fresh
                 fh.clearline(gen)
                         
                 # get the runner's calculated place
-                renderplace = theseresults.calcrenderplace()
-                fh.setplace(gen, renderplace)
+                renderplace = theseresults.calcrenderplace(thisbypoints)
+                explanation = thisbypoints.explanation if hasattr(thisbypoints, 'explanation') else None
+                fh.setplace(gen, renderplace, title=explanation)
                 
                 # update for overall awards
                 if self.series.oaawards and renderplace and renderplace <= self.series.oaawards:
@@ -1564,10 +1591,10 @@ class StandingsRenderer():
                     bypoints = calcpoints(byrunner, divrunner[div], 'bydivision')
                     
                     # loop through results, handling ties as defined with self.series, and render
-                    theseresults = resultsiterator(self.series, bypoints, runnerresults, division=True)
+                    theseresults = resultsiterator(self.series, bypoints, byrunner, runnerresults, self.races, division=True)
                     for thisbypoints in theseresults:
                         # break thisbypoints apart, matching self.collectstandings() implementation
-                        totpoints, runnerid, name, age = thisbypoints
+                        totpoints, runnerid, name, age = thisbypoints.totpoints, thisbypoints.runnerid, thisbypoints.name, thisbypoints.age
 
                         fh.clearline(gen)
                         
@@ -1579,13 +1606,14 @@ class StandingsRenderer():
                         # normal division placer
                         else:
                             # get the runner's calculated place
-                            renderplace = theseresults.calcrenderplace()
+                            renderplace = theseresults.calcrenderplace(thisbypoints)
 
                             if self.series.divawards and renderplace and renderplace <= self.series.divawards:
                                 fh.setrowclass(gen, 'row-division-award')
 
                         # render the place
-                        fh.setplace(gen,renderplace)
+                        explanation = thisbypoints.explanation if hasattr(thisbypoints, 'explanation') else None
+                        fh.setplace(gen, renderplace, title=explanation)
                         
                         # render name and total points, remember last total points
                         fh.setname(gen,name,runnerid=runnerid)
@@ -1626,18 +1654,29 @@ class resultsiterator():
     
     :param series: Series record
     :param bypoints: sorted list [(totpoints, runnerid, name, age), ...]
+    :param byrunner: dict updated from standings collection {runnerid,name,age:{'bygender':[points1,points2,...],'bydivision':[points1,points2,...]}}
     :param runnerresults: {runnerid: {RaceResult1, RaceResult2, ...}}
+    :param races: ordered list of Race records, same order as byrunner[]['bygender'] and byrunner[]['bydivision']
     :param division: (optional) use SERIES_TIE_OPTION_DIV_COMPARE_OVERALL handling if configured
     '''
-    def __init__(self, series, bypoints, runnerresults, division=False) -> None:
+    def __init__(self, series, bypoints, byrunner, runnerresults, races, division=False) -> None:
         self.series = series
         self.bypoints = bypoints
+        self.byrunner = byrunner
         self.runnerresults = runnerresults
+        self.races = races
+        self.racendx = {r.id:races.index(r) for r in self.races}
+        
         self.pointstie = []
-        self.tietitle = ''
         self.thisplace = 1
         self.lastplace = 0
         self.lastpoints = -999
+        self.division = division
+        
+        self.seriestiealgs = self.series.tieoptions.split(SERIES_TIE_OPTION_SEPARATOR)
+        tiepriorities = {o['value']:o['priority'] for o in SERIES_TIE_OPTIONS}
+        self.seriestiealgs.sort(key=lambda i: tiepriorities[i])
+        self.tieexplain = {o['value']:o['explanation'] for o in SERIES_TIE_OPTIONS}
         
     def __iter__(self):
         self.pointsndx = 0
@@ -1648,23 +1687,56 @@ class resultsiterator():
         if self.pointsndx >= len(self.bypoints):
             raise StopIteration
         
-        thisbypoints = self.bypoints[self.pointsndx]
+        # return the upcoming record if no ties detected
+        if not self.pointstie:
+            # this will be overwritten if a tie is found
+            thisbypoints = self.bypoints[self.pointsndx]
+
+            # check for ties
+            tiendx = self.pointsndx
+            tiefound = False
+            while tiendx+1 < len(self.bypoints) and self.bypoints[tiendx].totpoints == self.bypoints[tiendx+1].totpoints:
+                self.pointstie.append(self.bypoints[tiendx])
+                tiendx += 1
+                tiefound = True
+            
+            # add the last tie to the list
+            if tiefound and tiendx < len(self.bypoints):
+                self.pointstie.append(self.bypoints[tiendx])
+            
+            if tiefound:
+                # sort the ties depending on tie configuration
+                self.pointstie.sort(key=cmp_to_key(self.tiesort), reverse=True)
+                
+                # set tiebreak explanations after entries are sorted (this is side-effect of tiesort())
+                for i in range(1, len(self.pointstie)):
+                    self.tiesort(self.pointstie[i-1], self.pointstie[i])
+                    # divoroa = 'div' if self.division else 'oa'
+                    # current_app.logger.debug(f'tie resolution: {self.pointstie[i].name} {self.pointstie[i].age} {divoroa} {self.pointstie[i].explanation}')
+            
+        # if in the middle of processing a tie, give the next tied record
+        if self.pointstie:
+            thisbypoints = self.pointstie.pop(0)
+        
+        # bump pointsndx regardless
         self.pointsndx += 1
         
-        self.totpoints, self.runnerid, name, age = thisbypoints
-        self.tietitle = ''
+        self.totpoints, self.runnerid = thisbypoints.totpoints, thisbypoints.runnerid
 
-        return self.totpoints, self.runnerid, name, age
+        return thisbypoints
     
-    def gettietitle(self):
-        return self.tietitle
+    def calcrenderplace(self, thisbypoints):
+        '''
+        calculate place to be rendered, must be called for each place to be rendered, as
+        there's a side-effect of updating self.thisplace
         
-    def calcrenderplace(self):
+        :param thisbypoints: bypoints result
+        '''
         # runner needs to have run enough races to get a result
         if not self.series.minraces or len(self.runnerresults[self.runnerid]) >= self.series.minraces:
             # render place if it's different than last runner's place, else there was a tie
             renderplace = self.thisplace
-            if self.totpoints == self.lastpoints:
+            if thisbypoints.tied:
                 renderplace = self.lastplace
             self.thisplace += 1
             self.lastplace = renderplace
@@ -1675,3 +1747,95 @@ class resultsiterator():
             renderplace = ''
 
         return renderplace
+    
+    def cmp(self, x, y):
+        """
+        Replacement for built-in function cmp that was removed in Python 3
+
+        Compare the two objects x and y and return an integer according to
+        the outcome. The return value is negative if x < y, zero if x == y
+        and strictly positive if x > y.
+        
+        (from https://portingguide.readthedocs.io/en/latest/comparisons.html#the-cmp-function)
+        """
+        # current_app.logger.debug(f'cmp: x={x} y={y} (x > y) - (x < y)={(x > y) - (x < y)}')
+        return (x > y) - (x < y)
+    
+    def tiesort(self, x, y):
+        '''
+        sort key function, based on series tie configuration
+        '''
+        # which byrunner[] field do we retrieve points from?
+        if not self.division:
+            rrpoints = 'bygender'
+        else:
+            rrpoints = 'bydivision'
+        
+        # NOTE: self.seriestiealgs has been sorted by priority
+        # WARNING: do not change algorithm in place as this will change standings for previous years' races
+        #          rather create new algorithm here and under SERIES_TIE_OPTIONS
+        for algorithm in self.seriestiealgs:
+            if algorithm == SERIES_TIE_OPTION_HEAD_TO_HEAD_POINTS:
+                # determine common races for head to head comparison
+                commonraces = {rr.race for rr in self.runnerresults[x.runnerid]} & {rr.race for rr in self.runnerresults[y.runnerid]}
+                # sum genderpoints or divisionpoints as appropriate
+                xrunner = (x.runnerid, x.name, x.age)
+                xpoints = sum([self.byrunner[xrunner][rrpoints][self.racendx[r.race.id]] for r in self.runnerresults[x.runnerid] if r.race in commonraces])
+                yrunner = (y.runnerid, y.name, y.age)
+                ypoints = sum([self.byrunner[yrunner][rrpoints][self.racendx[r.race.id]] for r in self.runnerresults[y.runnerid] if r.race in commonraces])
+                
+                # only return comparision if not equal because if equal a later algorithm will be used
+                # updating explanation works because a) top tie always has no explanation, and logic runs once again through sorted list
+                if xpoints != ypoints:
+                    cmp = self.cmp(xpoints, ypoints)
+                    if cmp > 0:
+                        y.explanation = self.tieexplain[algorithm]
+                    else:
+                        x.explanation = self.tieexplain[algorithm]
+                    return cmp
+            
+            elif algorithm == SERIES_TIE_OPTION_COMPARE_AVG:
+                xresults = [self.byrunner[xrunner][rrpoints][self.racendx[r.race.id]] for r in self.runnerresults[x.runnerid]]
+                xresults.sort(reverse=True)
+                xnraces = min(self.series.maxraces, len(xresults)) if self.series.maxraces else len(xresults)
+                xpoints = mean(xresults[:xnraces])
+                yresults = [self.byrunner[yrunner][rrpoints][self.racendx[r.race.id]] for r in self.runnerresults[y.runnerid]]
+                yresults.sort(reverse=True)
+                ynraces = min(self.series.maxraces, len(yresults)) if self.series.maxraces else len(yresults)
+                ypoints = mean(yresults[:ynraces])
+
+                # only return comparision if not equal because if equal a later algorithm will be used
+                # updating explanation works because a) top tie always has no explanation, and logic runs once again through sorted list
+                if xpoints != ypoints:
+                    cmp = self.cmp(xpoints, ypoints)
+                    if cmp > 0:
+                        y.explanation = self.tieexplain[algorithm]
+                    else:
+                        x.explanation = self.tieexplain[algorithm]
+                    return cmp
+            
+            elif algorithm == SERIES_TIE_OPTION_DIV_COMPARE_OVERALL:
+                if self.division:
+                    xresults = [self.byrunner[xrunner]['bygender'][self.racendx[r.race.id]] for r in self.runnerresults[x.runnerid]]
+                    xresults.sort(reverse=True)
+                    xnraces = min(self.series.maxraces, len(xresults)) if self.series.maxraces else len(xresults)
+                    xpoints = mean(xresults[:xnraces])
+                    yresults = [self.byrunner[yrunner]['bygender'][self.racendx[r.race.id]] for r in self.runnerresults[y.runnerid]]
+                    yresults.sort(reverse=True)
+                    ynraces = min(self.series.maxraces, len(yresults)) if self.series.maxraces else len(yresults)
+                    ypoints = mean(yresults[:ynraces])
+
+                    # only return comparision if not equal because if equal a later algorithm will be used
+                    # updating explanation works because a) top tie always has no explanation, and logic runs once again through sorted list
+                    if xpoints != ypoints:
+                        cmp = self.cmp(xpoints, ypoints)
+                        if cmp > 0:
+                            y.explanation = self.tieexplain[algorithm]
+                        else:
+                            x.explanation = self.tieexplain[algorithm]
+                        return cmp
+                
+        # these passed all algoriths, so are defined to be equal
+        y.explanation = 'tied with last'
+        y.tied = True
+        return 0

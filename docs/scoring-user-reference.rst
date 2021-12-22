@@ -32,6 +32,15 @@ series you're interested in. Then click **Show Standings**.
   
       * once expanded, click on a race to see the :ref:`Series Race Results view`
   
+    * current overall and division award leaders are emphasized with colors and italics
+    * place numbering
+  
+      * a place number is assigned when participants have run the minimum number of races
+      * ties may be resolved by certain comparisons
+    
+        * hover over the place number to see how a tie was resolved
+        * if the tie could not be resolved, the same place number will be in two rows
+
     * hover over the race number column header to see the name of a race
     * click on the participant's name to see all the results for a participant
     * hover over the club abbreviation to see the official club name

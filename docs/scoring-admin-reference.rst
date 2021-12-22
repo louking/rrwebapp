@@ -270,22 +270,22 @@ standings for the :ref:`Standings view`.
     :Multiplier:
         this value is multiplied by the result score. Result score is determined by the remaining fields
 
-    :Max Gender Points:
+    :Max Gen Points:
         set this if overall result score is determined by place. Points start with this value for the first place, 
         this value minus 1 for second place, etc. 
         
-          * e.g., if **Max Gender Points** is set to 50, first place result score is 50, second place is 49, etc
+          * e.g., if **Max Gen Points** is set to 50, first place result score is 50, second place is 49, etc
 
-    :Max Division Points:
+    :Max Div Points:
         for this to work, this series must have Divisions set up. Set this if division result score is determined by place. 
         Points start with this value for the first place, this value minus 1 for second place, etc.
 
-          * e.g., if **Max Division Points** is set to 10, first place result score is 10, second place is 19, etc
-          * generally **Max Division Points** would be set to a lower number than **Max Gender Points**
+          * e.g., if **Max Div Points** is set to 10, first place result score is 10, second place is 19, etc
+          * generally **Max Div Points** would be set to a lower number than **Max Gen Points**
 
-    :Max by Number of Runners:
+    :Max by Num of Rnrs:
         set this to *yes* if the max should be determined by the number of runners who ran a race within a gender. Either set this, 
-        or set **Max Gender Points** / **Max Division Points**, but not both
+        or set **Max Gen Points** / **Max Div Points**, but not both
 
     :Order By:
         this can be set depending on how you’d like the results ordering to be shown
@@ -301,30 +301,58 @@ standings for the :ref:`Standings view`.
     :Members Only:
         set this to *yes* if the results import should only consider true members of a club
 
-    :Average Ties:
+    :Avg Ties:
         set this to *yes* if ties should be averaged in order to determine result points
 
-    :Calculate Overall:
-        set this to *yes* if overall placement is to be calculated. Generally this only applies if **Max Gender Points** is set
+    :Overall:
+        set this to *yes* if overall placement is to be calculated. Generally this only applies if **Max Gen Points** is set
 
-    :Calculate Divisions:
-        set this to *yes* only if division placement is to be calculated. Generally this only applies if **Max Division Points** is set. 
+    :Divisions:
+        set this to *yes* only if division placement is to be calculated. Generally this only applies if **Max Div Points** is set. 
         Note Divisions must be set using :ref:`Divisions view` for this series for this to work properly.
 
-    :Calculate Age Grade:
+    :Age Grade:
         set this to *yes* if age grade is to be calculated and used for result scoring. Generally this only applies if **Order By** is 
         set to *agtime* or *agpercent*
 
-    :Proportional Scoring:
-        check this if proportional scoring is to be used. Proportional scoring means top score gets 1 * **Multiplier**, and other
-        scores get (top_time / this_time) * **Multiplier**
+    :Place Min Races:
+        minimum number of races to have run to be awarded a place
+    
+    :# OA Awards:
+        number of overall awards to be emphasized
 
-    :Requires Club Affiliation:
-        if this is checked, there must be a value in the club column which doesn't evaluate to *None* when compared against
-        the :ref:`Club Affiliations view` data, otherwise the result doesn't get tabulated
+    :# Div Awards:
+        number of division awards to be emphasized
 
-    :Display Club Affiliation:
-        if this is checked, the club affiliation is displayed in the :ref:`Standings view` and :ref:`Series Race Results view`
+    :Tiebreaker Options:
+    
+        * *Head to Head Point Differential*
+  
+          set to break tie by looking at points achieved at races run head to head
+        
+        * *Compare Average Points*
+
+          set to break tie by looking at average points achieved for the top **Max Races** races
+        
+        * *Division Tie Compare Average Overall Points*
+  
+          set to break division tie by looking at average overall points achieved for the top **Max Races** races
+
+    :Other Series Options:
+
+        * *Proportional Scoring*
+  
+          check this if proportional scoring is to be used. Proportional scoring means top score gets 1 * **Multiplier**, and other
+          scores get (top_time / this_time) * **Multiplier**
+
+        * *Requires Club Affiliation*
+
+          if this is checked, there must be a value in the club column which doesn't evaluate to *None* when compared against
+          the :ref:`Club Affiliations view` data, otherwise the result doesn't get tabulated
+
+        * *Display Club Affiliation*
+  
+          if this is checked, the club affiliation is displayed in the :ref:`Standings view` and :ref:`Series Race Results view`
 
     :Races:
         :term:`races <race>` can be added to the :term:`series` here or in the :ref:`Races view`

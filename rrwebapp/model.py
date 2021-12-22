@@ -572,13 +572,19 @@ SERIES_TIE_OPTION_COMPARE_AVG = 'average_points'
 SERIES_TIE_OPTION_DIV_COMPARE_OVERALL = 'div_compare_overall'
 SERIES_TIE_OPTIONS = [
     {'value': SERIES_TIE_OPTION_HEAD_TO_HEAD_POINTS, 'label': 'Head to Head Point Differential',
-     'attr': {'title': 'order ties by point differential in head to head races', 'priority': 1}
+     'priority': 1,
+     'explanation': 'behind last due to point differential in head to head races',
+     'attr': {'title': 'order ties by point differential in head to head races'}, 
     },
     {'value': SERIES_TIE_OPTION_COMPARE_AVG, 'label': 'Compare Average Points',
-     'attr': {'title': 'order ties by averaging points across races (limit Max Races)', 'priority': 2}
+     'priority': 2,
+     'explanation': 'behind last due to point average across races',
+     'attr': {'title': 'order ties by averaging points across races (limit Max Races)'}, 
     },
     {'value': SERIES_TIE_OPTION_DIV_COMPARE_OVERALL, 'label': 'Division Tie Compare Average Overall Points',
-     'attr': {'title': 'order division ties by overall point total (limit Max Races)', 'priority': 3}
+     'priority': 3,
+     'explanation': 'behind last due to point average across races in overall competition',
+     'attr': {'title': 'order division ties by overall point total (limit Max Races)'}, 
     },
 ]
 class Series(Base):
