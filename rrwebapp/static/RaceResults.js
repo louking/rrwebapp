@@ -1140,7 +1140,8 @@
         // Legend
         if (!printerfriendly){
             legend = '<table>\
-                        <tr><td><div class="_rrwebapp-class-standings-data-race-dropped">red</div></td><td>points are dropped</td></tr>\
+                        <tr><td><div class="_rrwebapp-class-standings-data-race-dropped" style="text-align: left;">red</div></td><td>the best scores are kept up until a max number of races;\
+                        <br>these scores have been dropped and are not included in the total</td></tr>\
                         <tr><td><div class="row-overall-award">blue</div></td><td>runner won overall award, not eligible for division award</td></tr>\
                         <tr><td><div class="row-division-award">green</div></td><td>runner won division award</td></tr>\
                      </table>';
