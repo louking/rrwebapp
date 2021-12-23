@@ -146,22 +146,25 @@ Races must be part of a series to be tabulated. Generally it’s better to add t
 
 .. _Copy Series from Previous Year:
 
-Copy Series from Previous Year (needs update)
+Copy Series from Previous Year
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If the series for this club have been set up in a prior year, follow these instructions to copy all the series from the previous year. Do this first before adding a new series for the year. 
+If the series for this club have been set up in a prior year, follow these instructions to copy all the series from the previous year. 
+Do this first before adding a new series for the year. 
 
 * Make sure year and club are set correctly in the scoretility header
-* Click Series in navigation menu
-* Click **Tools ⛭**, then under Copy Series > Copy from Year, Select year to copy from, then click **Copy**
+* Click Scoring > Series in navigation menu
+* Click **Copy From Year**, Select club and year to copy from, then click **Copy Series**
 
 Add Series from Scratch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If the series for this club have never been set up, follow these instructions to add each series.
 
 * Make sure year and club are set correctly in the scoretility header
-* Click Series in navigation menu
-* Click Add + near the top of the table
-* Give the series a name. 
+* Click Scoring > Series in navigation menu
+* Click **New** near the top of the table
+* Give the series a name and apply parameters
+
+  * Click **Create**
   
   .. note::
     because of some processing later, it is very important that the name is distinct from other series, i.e., the words in one series name 
@@ -178,15 +181,15 @@ Series optionally use divisions as part of the tabulation process.
 
 .. _Copy Divisions from Previous Year:
 
-Copy Divisions from Previous Year (needs update)
+Copy Divisions from Previous Year
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If the divisions for this club have been set up in a prior year, follow these instructions to copy all the divisions from a previous year. 
 Do this first before adding new divisions for the series. 
 
 * Make sure year and club are set correctly in the scoretility header
-* Make sure series have been set up as in Add Series
-* Click Divisions in navigation menu
-* Click **Tools ⛭**, then under Copy Divisions > Copy from Year, Select year to copy from, then click **Copy**
+* Make sure series have been set up as in :ref:`Add Series`
+* Click Scoring > Divisions in navigation menu
+* Click **Copy From Year**, Select club and year to copy from, then click **Copy Divisions**
 
 Add Divisions from Scratch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -194,7 +197,7 @@ If the divisions for this club have never been set up, follow these instructions
 
 * Make sure year and club are set correctly in the scoretility header
 * Make sure series have been set up as in Add Series
-* Click Divisions in navigation menu
+* Click Scoring > Divisions in navigation menu
 * Click **New** near the top of the table
 * Repeat for each age range
   
@@ -205,8 +208,47 @@ If the divisions for this club have never been set up, follow these instructions
   
 .. _Add Race:
 
-Add Race
+Add Races
 -------------------------------------------
+
+Copy Races from Previous Year
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Follow these instructions to copy races from a previous year.
+
+* Download the previous year's races; Create file with this year's races
+  
+  * Set the scoretility header to the club and year you want to copy from
+  * Click Scoring > Races in the navigation menu
+  * Click the **CSV** button and save the previous year's races on your workstation
+  * Open the saved csv file in Excel
+  
+  .. important::
+    Format the Date column as yyyy-mm-dd 
+  
+  * Rename the Date column to Old Date
+  * Insert a new column with heading Date
+  * In the first empty cell under the new Date heading, add the formula =C2+52*7
+  
+    * C2 is the first cell under the Old Date heading
+    * +52*7 adds 52 weeks to the old date (this is just an estimate and may be changed later)
+  
+  * Copy the formula to all the following cells in the column
+  * Change Race Name heading to Race
+  * Insert a new column with heading Year
+  * Enter the new year in the first cell under Year, and copy to all the rows
+  * 
+  * Save the file as .csv (you might want to give it a new name)
+
+* Import this year's races
+
+  * Set the scoretility header to the new year you want to copy to
+  * You should already be in Races, but if not navigate to Scoring > Races
+  * Click **Tools**
+  * Choose the file you saved in the previous step
+  * Click **Import**
+
+Add Races from Scratch
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Follow these instructions to add a race.
 
 * Make sure year and club are set correctly in the scoretility header

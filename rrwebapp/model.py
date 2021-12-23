@@ -591,6 +591,7 @@ class Series(Base):
     '''
     * series (attributes)
     '''
+    # WARNING: adding fields here requires update to race.AjaxCopySeries
     __tablename__ = 'series'
     __table_args__ = (UniqueConstraint('name','year','club_id'),)
     id = Column(Integer, Sequence('series_id_seq'), primary_key=True)
@@ -816,13 +817,8 @@ class RaceSeries(Base):
 class Divisions(Base):
     '''
     Divisions for indicated year, series
-    
-    :param club_id: club.id
-    :param year: year of series
-    :param seriesid: series.id
-    :param divisionlow: low age in division
-    :param divisionhigh: high age in division
     '''
+    # WARNING: adding fields here requires update to race.AjaxCopyDivisions
     __tablename__ = 'divisions'
     id = Column(Integer, Sequence('divisions_id_seq'), primary_key=True)
     club_id = Column(Integer, ForeignKey('club.id'))

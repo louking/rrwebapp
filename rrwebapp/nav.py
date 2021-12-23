@@ -320,10 +320,16 @@ def getuseryears(user):
     get years user can set
     NOTE: currently this works for all users
     
+    return range starts at 2013 because that's the earliest data included
+    return range ends at this year, or if in December, next year
+    
     :param user: User record
     :rtype: [(year,year),...], for select, sorted by year
     '''
-    return [(y,y) for y in range(2013, datetime.now().year+1)]
+    finalyear = datetime.now().year
+    if datetime.now().month >= 12:
+        finalyear += 1
+    return [(y,y) for y in range(2013, finalyear+1)]
             
 
 def setnavigation():

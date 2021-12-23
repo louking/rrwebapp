@@ -363,10 +363,6 @@ bp.add_url_rule('/_importraces',view_func=AjaxImportRaces.as_view('_importraces'
 # manageseries endpoint
 ###########################################################################################
 
-dt_options = {
-    'order': [[0, 'asc']],
-}
-
 series_dbattrs = 'id,club_id,year,name,membersonly,calcoverall,calcdivisions,calcagegrade,orderby,minraces,'\
     'oaawards,divawards,tieoptions,'\
     'hightolow,allowties,averagetie,maxraces,multiplier,maxgenpoints,maxdivpoints,maxbynumrunners,races,options'.split(',')
@@ -380,11 +376,29 @@ series_formmapping = dict(list(zip(series_formfields, series_dbattrs)))
 series_dbmapping['club_id'] = getclubid
 series_dbmapping['year'] = getyear
 
-series_view = CrudApi(
+class SeriesView(CrudApi):
+   
+    def setbuttons(self):
+        buttons = ['create', 'edit', 'remove', 'csv',
+                    {
+                        'text': 'Copy From Year',
+                        'name': 'series-copy-button',
+                        'editor': {'eval': 'series_copy_saeditor.saeditor'},
+                        'url': url_for('admin._copyseries'),
+                        'action': {
+                            'eval': f"series_copy_button(\"{url_for('admin._copyseries')}\")"
+                        }
+                    }
+                  ]
+
+        return buttons
+
+series_view = SeriesView(
     app=bp,
     pagename='series',
     endpoint='.manageseries',
     rule='/manageseries',
+    template='series.jinja2',
     templateargs={'adminguide': adminguide},
     dbmapping=series_dbmapping,
     formmapping=series_formmapping,
@@ -485,25 +499,51 @@ series_view = CrudApi(
     byyear=True,
     addltemplateargs={'inhibityear': False},
     idSrc='rowid',
-    buttons=['create', 'edit', 'remove',
-             {
-                 'extend': 'csv',
-                 'exportOptions': {'orthogonal': 'export'},
-             },
-             ],
-    dtoptions=dt_options,
+    buttons=lambda: series_view.setbuttons(),
+    dtoptions={
+        'order': [['name:name', 'asc']],
+    },
     )
 series_view.register()
 
 
-#######################################################################
 class AjaxCopySeries(MethodView):
-#######################################################################
-    decorators = [login_required]
     
-    #----------------------------------------------------------------------
+    def get(self):
+        try:
+            # verify user can write the data, otherwise abort (adapted from loutilities.tables._editormethod)
+            club_id = flask.session['club_id']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can write the data, otherwise abort
+            if not writecheck.can():
+                db.session.rollback()
+                flask.abort(403)
+            
+            clubs = [c for c in Club.query.all() if ViewClubDataPermission(c.id)]
+            options = {}
+            for club in clubs:
+                # Series.query... returns like [(2021,), (2020,)]
+                years = [y[0] for y in Series.query.filter_by(club_id=club.id).with_entities(Series.year).distinct().all()]
+                if years:
+                    years.sort()
+                    options[club.name] = {'option': {'label':club.name, 'value':club.id}, 'years': years}
+
+
+            # return select options
+            return jsonify(options=options, values={})
+
+        except Exception as e:
+            exc = ''.join(format_exception_only(type(e), e))
+            output_result = {'status': 'fail', 'error': 'exception occurred:<br>{}'.format(exc)}
+            # roll back database updates and close transaction
+            db.session.rollback()
+            current_app.logger.error(format_exc())
+            return jsonify(output_result)
+
     def post(self):
-    #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
             
@@ -516,15 +556,15 @@ class AjaxCopySeries(MethodView):
                 flask.abort(403)
             
             # get requested year to copy and current year
-            if not request.args.get('copyyear'):
-                db.session.rollback()
-                return failure_response(cause='Unexpected Error: copyyear argument missing')
-            copyyear = int(request.args.get('copyyear'))
+            requestdata = get_request_data(request.form)
+            fromclubid = requestdata['keyless']['club']
+            fromyear = requestdata['keyless']['year']
+            force = requestdata['keyless']['force']
             thisyear = flask.session['year']
             
             # if some series exists for this year, verify user wants to overwrite
             thisyearseries = Series.query.filter_by(club_id=club_id,active=True,year=thisyear).all()
-            if thisyearseries and not request.args.get('force')=='true':
+            if thisyearseries and not force=='true':
                 db.session.rollback()
                 return failure_response(cause='Overwrite series for this year?',confirm=True)
 
@@ -533,30 +573,33 @@ class AjaxCopySeries(MethodView):
             for series in thisyearseries:
                 obsoleteseries[series.name] = series
             
-            # copy each entry from "copyyear"
-            for series in Series.query.filter_by(club_id=club_id,active=True,year=copyyear).all():
-                # seriesparms = series.__dict__
-                # # remove params which we'll set manually
-                # seriesparms.pop('id')
-                # seriesparms.pop('club_id')
-                # seriesparms.pop('year')
-                # seriesparms.pop('active')
-                # # remove any non-class attributes
-                # keys = seriesparms.keys()
-                # for key in keys:
-                #     if key[0] == "_": seriesparms.pop(key)
-                # # some params need to be renamed
-                # seriesparms['overall'] = seriesparms.pop('calcoverall')
-                # seriesparms['divisions'] = seriesparms.pop('calcdivisions')
-                # seriesparms['agegrade'] = seriesparms.pop('calcagegrade')
-                # current_app.logger.debug('seriesparms={}'.format(seriesparms))
-                # newseries = Series(series.club_id, thisyear, **seriesparms)
-                newseries = Series(series.club_id, thisyear, 
-                                   series.name, series.membersonly, 
-                                   series.calcoverall, series.calcdivisions, series.calcagegrade, 
-                                   series.orderby, series.hightolow, series.allowties, series.averagetie, 
-                                   series.maxraces, series.multiplier, series.maxgenpoints, series.maxdivpoints, 
-                                   series.maxbynumrunners, series.description)
+            # copy each entry from requested club/year
+            for series in Series.query.filter_by(club_id=fromclubid,active=True,year=fromyear).all():
+                newseries = Series(
+                    club_id = series.club_id, 
+                    year = thisyear, 
+                    name = series.name, 
+                    membersonly = series.membersonly, 
+                    calcoverall = series.calcoverall, 
+                    calcdivisions = series.calcdivisions, 
+                    calcagegrade = series.calcagegrade,
+                    orderby = series.orderby, 
+                    hightolow = series.hightolow, 
+                    allowties = series.allowties, 
+                    averagetie = series.averagetie, 
+                    options = series.options, 
+                    maxraces = series.maxraces, 
+                    multiplier = series.multiplier, 
+                    maxgenpoints = series.maxgenpoints, 
+                    maxdivpoints = series.maxdivpoints, 
+                    maxbynumrunners = series.maxbynumrunners, 
+                    active = series.active, 
+                    description = series.description,
+                    oaawards = series.oaawards,
+                    divawards = series.divawards,
+                    minraces = series.minraces,
+                    tieoptions = series.tieoptions,
+                )
                 insert_or_update(db.session,Series,newseries,name=newseries.name,year=thisyear,club_id=club_id,skipcolumns=['id'])
                 
                 # any series we updated is not obsolete
@@ -576,9 +619,7 @@ class AjaxCopySeries(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-#----------------------------------------------------------------------
-bp.add_url_rule('/_copyseries',view_func=AjaxCopySeries.as_view('_copyseries'),methods=['POST'])
-#----------------------------------------------------------------------
+bp.add_url_rule('/_copyseries',view_func=AjaxCopySeries.as_view('_copyseries'),methods=['GET', 'POST'])
 
 ###########################################################################################
 # managedivisions endpoint
@@ -593,11 +634,29 @@ divisions_formmapping = dict(list(zip(divisions_formfields, divisions_dbattrs)))
 divisions_dbmapping['club_id'] = getclubid
 divisions_dbmapping['year'] = getyear
 
-divisions_view = CrudApi(
+class DivisionsView(CrudApi):
+   
+    def setbuttons(self):
+        buttons = ['create', 'edit', 'remove', 'csv',
+                    {
+                        'text': 'Copy From Year',
+                        'name': 'division-copy-button',
+                        'editor': {'eval': 'divisions_copy_saeditor.saeditor'},
+                        'url': url_for('admin._copydivisions'),
+                        'action': {
+                            'eval': f"divisions_copy_button(\"{url_for('admin._copydivisions')}\")"
+                        }
+                    }
+                  ]
+
+        return buttons
+
+divisions_view = DivisionsView(
     app=bp,
     pagename='divisions',
     endpoint='.managedivisions',
     rule='/managedivisions',
+    template='divisions.jinja2',
     templateargs={'adminguide': adminguide},
     dbmapping=divisions_dbmapping,
     formmapping=divisions_formmapping,
@@ -633,20 +692,51 @@ divisions_view = CrudApi(
     byyear=True,
     addltemplateargs={'inhibityear': False},
     idSrc='rowid',
-    buttons=['create', 'edit', 'remove', 'csv',
-             ],
+    buttons=lambda: divisions_view.setbuttons(),
+    dtoptions={
+        'order': [['series.name:name', 'asc'], ['divisionlow:name',  'asc']],
+    },
     )
 divisions_view.register()
 
 
-#######################################################################
 class AjaxCopyDivisions(MethodView):
-#######################################################################
-    decorators = [login_required]
     
-    #----------------------------------------------------------------------
+    def get(self):
+        try:
+            # verify user can write the data, otherwise abort (adapted from loutilities.tables._editormethod)
+            club_id = flask.session['club_id']
+            
+            readcheck = ViewClubDataPermission(club_id)
+            writecheck = UpdateClubDataPermission(club_id)
+            
+            # verify user can write the data, otherwise abort
+            if not writecheck.can():
+                db.session.rollback()
+                flask.abort(403)
+            
+            clubs = [c for c in Club.query.all() if ViewClubDataPermission(c.id)]
+            options = {}
+            for club in clubs:
+                # Divisions.query... returns like [(2021,), (2020,)]
+                years = [y[0] for y in Divisions.query.filter_by(club_id=club.id).with_entities(Divisions.year).distinct().all()]
+                if years:
+                    years.sort()
+                    options[club.name] = {'option': {'label':club.name, 'value':club.id}, 'years': years}
+
+
+            # return select options
+            return jsonify(options=options, values={})
+
+        except Exception as e:
+            exc = ''.join(format_exception_only(type(e), e))
+            output_result = {'status': 'fail', 'error': 'exception occurred:<br>{}'.format(exc)}
+            # roll back database updates and close transaction
+            db.session.rollback()
+            current_app.logger.error(format_exc())
+            return jsonify(output_result)
+
     def post(self):
-    #----------------------------------------------------------------------
         try:
             club_id = flask.session['club_id']
             
@@ -659,15 +749,15 @@ class AjaxCopyDivisions(MethodView):
                 flask.abort(403)
             
             # get requested year to copy and current year
-            if not request.args.get('copyyear'):
-                db.session.rollback()
-                return failure_response(cause='Unexpected Error: copyyear argument missing')
-            copyyear = int(request.args.get('copyyear'))
+            requestdata = get_request_data(request.form)
+            fromclubid = requestdata['keyless']['club']
+            fromyear = requestdata['keyless']['year']
+            force = requestdata['keyless']['force']
             thisyear = flask.session['year']
             
             # if some divisions exists for this year, verify user wants to overwrite
             thisyeardivisions = Divisions.query.filter_by(club_id=club_id,active=True,year=thisyear).all()
-            if thisyeardivisions and not request.args.get('force')=='true':
+            if thisyeardivisions and not force=='true':
                 db.session.rollback()
                 return failure_response(cause='Overwrite divisions for this year?',confirm=True)
 
@@ -676,19 +766,34 @@ class AjaxCopyDivisions(MethodView):
             for division in thisyeardivisions:
                 obsoletedivisions[(division.seriesid,division.divisionlow,division.divisionhigh)] = division
             
-            # copy each entry from "copyyear"
-            for division in Divisions.query.filter_by(club_id=club_id,active=True,year=copyyear).all():
+            # check if series exist
+            seriesfound = False
+            
+            # copy each entry from requested club/year
+            for division in Divisions.query.filter_by(club_id=fromclubid,active=True,year=fromyear).all():
                 series = Series.query.filter_by(club_id=club_id,active=True,year=thisyear,name=division.series.name).first()
                 if series:
-                    newdivision = Divisions(club_id,thisyear,series.id,division.divisionlow,division.divisionhigh)
+                    seriesfound = True
+                    newdivision = Divisions(
+                        club_id=club_id,
+                        year=thisyear,
+                        seriesid=series.id,
+                        divisionlow=division.divisionlow,
+                        divisionhigh=division.divisionhigh,
+                        active=division.active,
+                    )
                     insert_or_update(db.session,Divisions,newdivision,year=thisyear,club_id=club_id,
-                                            seriesid=newdivision.seriesid,divisionlow=newdivision.divisionlow,divisionhigh=newdivision.divisionhigh,
-                                            skipcolumns=['id'])
+                        seriesid=newdivision.seriesid, divisionlow=newdivision.divisionlow, divisionhigh=newdivision.divisionhigh,
+                        skipcolumns=['id'])
                 
-                # any divisions we updated is not obsolete
-                if (newdivision.seriesid,newdivision.divisionlow,newdivision.divisionhigh) in obsoletedivisions:
-                    obsoletedivisions.pop((newdivision.seriesid,newdivision.divisionlow,newdivision.divisionhigh))
+                    # any divisions we updated is not obsolete
+                    if (newdivision.seriesid,newdivision.divisionlow,newdivision.divisionhigh) in obsoletedivisions:
+                        obsoletedivisions.pop((newdivision.seriesid,newdivision.divisionlow,newdivision.divisionhigh))
                     
+            if not seriesfound:
+                db.session.rollback()
+                return failure_response(cause='No divisions copied -- did you copy or create series first?')
+
             # remove obsolete divisions
             for (seriesid,divisionlow,divisionhigh) in obsoletedivisions:
                 db.session.delete(obsoletedivisions[(seriesid,divisionlow,divisionhigh)])
@@ -701,9 +806,7 @@ class AjaxCopyDivisions(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
-#----------------------------------------------------------------------
-bp.add_url_rule('/_copydivisions',view_func=AjaxCopyDivisions.as_view('_copydivisions'),methods=['POST'])
-#----------------------------------------------------------------------
+bp.add_url_rule('/_copydivisions',view_func=AjaxCopyDivisions.as_view('_copydivisions'),methods=['GET', 'POST'])
 
 
 ###########################################################################################
@@ -831,7 +934,6 @@ clubaffiliations_view = ClubAffiliationsView(
 clubaffiliations_view.register()
 
 class AjaxCopyClubAffiliations(MethodView):
-    decorators = [login_required]
     
     def get(self):
         try:
@@ -897,7 +999,7 @@ class AjaxCopyClubAffiliations(MethodView):
             for item in thisyearitems:
                 obsoleteitems[item.shortname] = item
             
-            # copy each entry from "copyyear"
+            # copy each entry from requested club/year
             for item in ClubAffiliation.query.filter_by(club_id=fromclubid, year=fromyear).all():
                 newitem = ClubAffiliation(club_id=club_id, year=thisyear, shortname=item.shortname, title=item.title, alternates=item.alternates)
                 insert_or_update(db.session, ClubAffiliation, newitem, year=thisyear, club_id=club_id, shortname=item.shortname, skipcolumns=['id'])

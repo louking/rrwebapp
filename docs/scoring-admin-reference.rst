@@ -54,6 +54,8 @@ For each :term:`series` which has **Divisions** set to *yes*, there should be di
 
 .. note:: The :term:`series` need to be set up before this view is used.
 
+The **Copy from Year** button may be used to copy divisions from a previous year or another club.
+
 .. image:: images/divisions-view.*
     :align: center
     
@@ -356,6 +358,8 @@ standings for the :ref:`Standings view`.
 
     :Races:
         :term:`races <race>` can be added to the :term:`series` here or in the :ref:`Races view`
+
+The **Copy from Year** button may be used to copy series from a previous year or another club.
 
 .. image:: images/series-view.*
     :align: center

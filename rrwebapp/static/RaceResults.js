@@ -873,24 +873,8 @@
         add_results_widget();
     };  // manageraces
 
-    // managedivisions
-    function managedivisions() {
-
-        var $copydivisions = $('#managedivisions-copy-button');
-        $copydivisions.click( function( event ) {
-            event.preventDefault();
-            var form = $(this).parent()
-            ajax_update_db_form('_copydivisions',form,false);
-        });
-
-        _rrwebapp_table = $('#_rrwebapp-table-manage-divisions')
-            .dataTable(getDataTableParams({ordering:false}))
-        setTimeout(function () {resetDataTableHW()},30);
-
-    };  // managedivisions
-
-    // clubaffiliations
-    function clubaffiliations() {
+    // clubaffiliations_init
+    function clubaffiliations_init() {
 
         // force update of alternates
         editor.on('initEdit', function(e, node, data, items, type) {
@@ -900,7 +884,21 @@
 
         clubaffiliations_copy_saeditor.init();
 
-    };  // clubaffiliations
+    };  // clubaffiliations_init
+
+    // divisions_init
+    function divisions_init() {
+
+        divisions_copy_saeditor.init();
+
+    };  // divisions_init
+
+    // series_init
+    function series_init() {
+
+        series_copy_saeditor.init();
+
+    };  // series_init
 
     function seriesresults(writeallowed,series,division,gender,printerfriendly) {
 
