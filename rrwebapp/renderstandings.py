@@ -1673,7 +1673,7 @@ class resultsiterator():
         self.lastpoints = -999
         self.division = division
         
-        self.seriestiealgs = self.series.tieoptions.split(SERIES_TIE_OPTION_SEPARATOR)
+        self.seriestiealgs = self.series.tieoptions.split(SERIES_TIE_OPTION_SEPARATOR) if self.series.tieoptions else []
         tiepriorities = {o['value']:o['priority'] for o in SERIES_TIE_OPTIONS}
         self.seriestiealgs.sort(key=lambda i: tiepriorities[i])
         self.tieexplain = {o['value']:o['explanation'] for o in SERIES_TIE_OPTIONS}
