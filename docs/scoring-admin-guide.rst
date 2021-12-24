@@ -218,41 +218,49 @@ Follow these instructions to copy races from a previous year.
 * Download the previous year's races; Create file with this year's races
   
   * Set the scoretility header to the club and year you want to copy from
-  * Click Scoring > Races in the navigation menu
+  * Click Scoring > Races in the navigation menu to access the :ref:`Races view`
   * Click the **CSV** button and save the previous year's races on your workstation
   * Open the saved csv file in Excel
   
   .. important::
-    Format the Date column as yyyy-mm-dd 
+    Format the *Date* column as yyyy-mm-dd 
   
-  * Rename the Date column to Old Date
-  * Insert a new column with heading Date
-  * In the first empty cell under the new Date heading, add the formula =C2+52*7
+  * Rename the *Date* column to *Old Date*
+  * Insert a new column with heading *date* (note lower case)
+  * In the first empty cell under the new *date* heading, add the formula =C2+52*7
   
-    * C2 is the first cell under the Old Date heading
-    * +52*7 adds 52 weeks to the old date (this is just an estimate and may be changed later)
+    * C2 is the first cell under the *Old Date* heading
+    * +52*7 adds 52 weeks to the old date (this is just an estimate and should be changed later if needed)
   
-  * Copy the formula to all the following cells in the column
-  * Change Race Name heading to Race
-  * Insert a new column with heading Year
-  * Enter the new year in the first cell under Year, and copy to all the rows
-  * 
+  * Copy the formula to all the cells in the *date* column
+  
+    * If the dates are known, these can be changed now, or these can be changed after the import below
+  
+  * Change Race Name heading to *race*
+  * Insert a new column before *race* with heading *year*
+  * Enter the new year in the first cell under Year, and copy to all the cells in the *year* column
+  * Rename the heading Miles to *distance*
+  * Make sure the following headings are lower case (*year*, *race*, *date*, *distance*, *surface*)
   * Save the file as .csv (you might want to give it a new name)
 
 * Import this year's races
 
   * Set the scoretility header to the new year you want to copy to
-  * You should already be in Races, but if not navigate to Scoring > Races
+  * Click Scoring > Races in the navigation menu to access the :ref:`Races view` if you're not already there
   * Click **Tools**
   * Choose the file you saved in the previous step
   * Click **Import**
+  * Update race dates as appropriate
+  * Add each race to the appropriate series
+
+    * This may be easiest to do using the :ref:`Series view`
 
 Add Races from Scratch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Follow these instructions to add a race.
 
 * Make sure year and club are set correctly in the scoretility header
-* Click Races in navigation menu
+* Click Scoring > Races in the navigation menu to access the :ref:`Races view`
 * Click **New** near the top of the table
 * Enter the race name, date, surface and distance. For most accurate age grading, use the following distances for non-integral mile races. 
   (Chief Technology Dude admits to being anal about this)
@@ -262,7 +270,7 @@ Follow these instructions to add a race.
   * Half marathon - 13.1094 miles
   * Marathon - 26.2188 miles
   
-* Click on the “series” the race will be in
+* Select each *series* the race will be in
 * Click **Create**
 
 
