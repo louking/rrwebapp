@@ -404,7 +404,7 @@ class AjaxEditParticipantsCRUD(MethodView):
                 # create of update
                 if action!='remove':
                     # check gender
-                    if thisdata['gender'].upper() not in ['M','F']:
+                    if thisdata['gender'].upper() not in ['M', 'F', 'X']:
                         fielderrors.append({'name' : 'gender', 'status' : 'Gender must be chosen'})
 
                     # check for hh:mm:ss time field error
@@ -804,7 +804,7 @@ class AjaxRunnerResults(MethodView):
             # format depends on type of select
             names = [row.name for row in db.session.query(Runner.name).filter(*runnerfilter).distinct().all()]
             series = [row.name for row in db.session.query(Series.name).filter(*seriesfilter).distinct().all()]
-            genders = ['M','F']
+            genders = ['M', 'F', 'X']
 
             # add yadcf filter
             getcol = lambda name: [col.mData for col in columns].index(name)
@@ -1464,7 +1464,7 @@ class AjaxUpdateManagedResult(MethodView):
             newname  = flask.request.args.get('newname',None)
             newgen   = flask.request.args.get('newgen',None)
             removeid = flask.request.args.get('removeid',None)
-            if newgen and (newgen not in ['M','F'] or not newname):
+            if newgen and (newgen not in ['M', 'F', 'X'] or not newname):
                 db.session.rollback()
                 cause = 'Unexpected Error: invalid gender'
                 current_app.logger.error(cause)
@@ -1867,7 +1867,7 @@ class AjaxTabulateResults(MethodView):
                     #             else:
                     #                 dbresults[tiendx].overallplace = thisplace
             
-                    for gender in ['F','M']:
+                    for gender in ['F', 'M', 'X']:
                         dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(series.orderby).all()
                         # this is easier, code-wise, than using sqlalchemy desc() function
                         if series.hightolow:
@@ -1902,7 +1902,7 @@ class AjaxTabulateResults(MethodView):
                                         dbresults[tiendx].genderplace = thisplace
             
                     if series.divisions:
-                        for gender in ['F','M']:
+                        for gender in ['F', 'M', 'X']:
                             
                             # linear search for correct division
                             for thisdiv in divisions:
@@ -1946,7 +1946,7 @@ class AjaxTabulateResults(MethodView):
             
                 # process age grade results, ordered by agtime
                 elif series.orderby == 'agtime':
-                    for gender in ['F','M']:
+                    for gender in ['F', 'M', 'X']:
                         dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(series.orderby).all()
                         # this is easier, code-wise, than using sqlalchemy desc() function
                         if series.hightolow:
@@ -1981,7 +1981,7 @@ class AjaxTabulateResults(MethodView):
 
                 # process age grade results, ordered by agpercent
                 elif series.orderby == 'agpercent':
-                    for gender in ['F','M']:
+                    for gender in ['F', 'M', 'X']:
                         dbresults = RaceResult.query.filter_by(club_id=club_id,raceid=race.id,seriesid=series.id,gender=gender).order_by(series.orderby).all()
                         # this is easier, code-wise, than using sqlalchemy desc() function
                         if series.hightolow:

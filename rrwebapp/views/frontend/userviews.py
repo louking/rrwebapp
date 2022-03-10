@@ -206,7 +206,7 @@ class ViewStandings(MethodView):
             # collect standings
             standings = []
             firstheader = True
-            for gen in ['F','M']:
+            for gen in ['F', 'M', 'X']:
                 rows = fh.iter(gen)
                 for row in rows:
                     row['gender'] = addstyle(row['header'],gen,'gender')
