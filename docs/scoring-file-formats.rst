@@ -38,11 +38,12 @@ Use this file format when importing members using :ref:`Members view`.
 +-------------------------+-----------------------+---------------------+-------------------------------------------------------------------------+
 | Heading                 | Alternate Headings    | Format              | Description                                                             |
 +=========================+=======================+=====================+=========================================================================+
-| **FamilyName**          | Last, Last Name       | Text                | The member's last (or family) name.                                     |
+| **FamilyName**          | Last                  | Text                | The member's last (or family) name.                                     |
 +-------------------------+-----------------------+---------------------+-------------------------------------------------------------------------+
-| **GivenName**           | First, First Name     | Text                | The member's first (or given) name.                                     |
+| **GivenName**           | First                 | Text                | The member's first (or given) name.                                     |
 +-------------------------+-----------------------+---------------------+-------------------------------------------------------------------------+
-| **Gender**              |                       | F or M              | The member's gender.                                                    |
+| **Gender**              |                       | F, M, or X          | Gender of the participant, as M for male, F for female, or X for        |
+|                         |                       |                     | non-binary. Case may be upper or lower.                                 |
 +-------------------------+-----------------------+---------------------+-------------------------------------------------------------------------+
 | **DOB**                 | Date of Birth         | yyyy-mm-dd          | The member's date of birth:                                             |
 |                         |                       |                     |                                                                         |
@@ -129,7 +130,8 @@ The following file types are allowed.
 | **name**       | runner                    | Text                          | Full name of the participant, as Firstname Lastname                                   |  
 | [#name]_       |                           |                               |                                                                                       |  
 +----------------+---------------------------+-------------------------------+---------------------------------------------------------------------------------------+  
-| **gender**     | g, sex, s, male/female    | M or F                        | Gender of the participant, as M for male or F for female. Case may be upper or lower  |  
+| **gender**     | g, sex, s, male/female    | F, M, or X                    | Gender of the participant, as M for male, F for female, or X for non-binary.          |  
+|                |                           |                               | Case may be upper or lower                                                            |  
 +----------------+---------------------------+-------------------------------+---------------------------------------------------------------------------------------+  
 | **age**        | ag                        | Number                        | Age in integral years of the participant, on the day of the race                      |  
 +----------------+---------------------------+-------------------------------+---------------------------------------------------------------------------------------+  

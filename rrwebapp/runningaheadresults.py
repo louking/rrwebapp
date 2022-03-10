@@ -123,7 +123,7 @@ class RunningAHEADCollect(CollectServiceResults):
         :param name: name of participant for which results are to be returned
         :param fname: first name of participant
         :param lname: last name of participant
-        :param gender: 'M' or 'F'
+        :param gender: 'M', 'F', or 'X'
         :param dt_dob: participant's date of birth, as datetime 
         :param begindate: epoch time for start of results, 00:00:00 on date to begin
         :param end: epoch time for end of results, 23:59:59 on date to finish

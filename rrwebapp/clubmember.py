@@ -206,7 +206,7 @@ class ClubMember():
         '''
         returns dict keyed by names of members, each containing list of member entries with same name
         
-        :rtype: {name.lower():[{'name':name,'dob':dateofbirth,'gender':'M'|'F','hometown':City,ST},...],...}
+        :rtype: {name.lower():[{'name':name,'dob':dateofbirth,'gender':'M'|'F'|'X','hometown':City,ST},...],...}
         '''
         
         return self.members

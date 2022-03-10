@@ -68,7 +68,7 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
                 { label: 'Place:', name: 'place' },
                 { label: 'Age:',  name: 'age' },
                 { label: 'Gender:',  name: 'gender',
-                  type: 'select', options: {'': 'None', 'M':'M', 'F':'F'},
+                  type: 'select', options: {'': 'None', 'M':'M', 'F':'F', 'X':'X'},
                 },
                 { label: 'Time:',  name: 'time'  },
                 { label: 'Hometown:',  name: 'hometown'  },

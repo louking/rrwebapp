@@ -514,7 +514,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
     #----------------------------------------------------------------------
         BaseStandingsHandler.__init__(self)
         self.TXT = {}
-        self.pline = {'F':{},'M':{}}
+        self.pline = {'F':{}, 'M':{}, 'X':{}}
     
     #----------------------------------------------------------------------
     def prepare(self,gen,series,year):
@@ -529,14 +529,14 @@ class TxtStandingsHandler(BaseStandingsHandler):
         
         numraces has number of races
         
-        :param gen: gender M or F
+        :param gen: gender M, F, or X
         :param series: Series
         :param year: year of races
         :rtype: numraces
         '''
         
         # open output file
-        MF = {'F':'Women','M':'Men'}
+        MF = {'F':'Women', 'M':'Men', 'X':'Non-binary'}
         rengen = MF[gen]
         self.TXT[gen] = open('{0}-{1}-{2}.txt'.format(year,series.name,rengen),'w')
         
@@ -579,7 +579,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         '''
         prepare rendering line for output by clearing all entries
 
-        :param gen: gender M or F
+        :param gen: gender M, F, or X
         '''
         
         for k in self.pline[gen]:
@@ -591,7 +591,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         '''
         put value in 'place' column for output (this should be rendered in 1st column)
 
-        :param gen: gender M or F
+        :param gen: gender M, F, or X
         :param place: value for place column
         :param stylename: name of style for field display
         :param title: (optional) title for popup display
@@ -605,7 +605,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         '''
         put value in 'name' column for output (this should be rendered in 2nd column)
 
-        :param gen: gender M or F
+        :param gen: gender M, F, or X
         :param name: value for name column
         :param stylename: name of style for field display
         :param runnerid: runner's id from runner table
@@ -619,7 +619,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         '''
         put value in 'age' column for output
 
-        :param gen: gender M or F
+        :param gen: gender M, F, or X
         :param age: value for age column
         :param stylename: name of style for field display
         '''
@@ -632,7 +632,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         '''
         put value in 'clubs' column for output
 
-        :param gen: gender M or F
+        :param gen: gender M, F, or X
         :param clubs: value for clubs column
         :param stylename: name of style for field display
         '''
@@ -646,7 +646,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         put value in 'race{n}' column for output, for race n
         should be '' for empty race
 
-        :param gen: gender M or F
+        :param gen: gender M, F, or X
         :param racenum: number of race
         :param result: value for race column
         :param stylename: name of style for field display
@@ -661,7 +661,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         put value in 'race{n}' column for output, for race n
         should be '' for empty race
 
-        :param gen: gender M or F
+        :param gen: gender M, F, or X
         :param value: value for total column
         :param stylename: name of style for field display
         '''
@@ -674,7 +674,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         '''
         output current line to gender file
 
-        :param gen: gender M or F
+        :param gen: gender M, F, or X
         '''
 
         self.TXT[gen].write(self.linefmt.format(**self.pline[gen]))
@@ -685,7 +685,7 @@ class TxtStandingsHandler(BaseStandingsHandler):
         '''
         output blank line to gender file
 
-        :param gen: gender M or F
+        :param gen: gender M, F, or X
         '''
 
         self.TXT[gen].write('\n')
@@ -694,12 +694,10 @@ class TxtStandingsHandler(BaseStandingsHandler):
     def close(self):
     #----------------------------------------------------------------------
         '''
-        output blank line to gender file
-
-        :param gen: gender M or F
+        close gender files
         '''
         
-        for gen in ['F','M']:
+        for gen in ['F', 'M', 'X']:
             self.TXT[gen].close()
     
 class HtmlStandingsHandler(BaseStandingsHandler):
@@ -711,7 +709,7 @@ class HtmlStandingsHandler(BaseStandingsHandler):
     def __init__(self,racelist):
         BaseStandingsHandler.__init__(self)
         self.HTML = {}
-        self.pline = {'F':{},'M':{}}
+        self.pline = {'F':{}, 'M':{}, 'X':{}}
         self.racelist = racelist
     
     def prepare(self,gen,series,year):
@@ -944,7 +942,7 @@ class XlStandingsHandler(BaseStandingsHandler):
         self.wb = xlwt.Workbook()
         self.ws = {}
         
-        self.rownum = {'F':0,'M':0}
+        self.rownum = {'F':0, 'M':0, 'X':0}
     
         # height is points*20
         self.style = {
@@ -982,7 +980,7 @@ class XlStandingsHandler(BaseStandingsHandler):
         '''
         
         # open output file
-        MF = {'F':'Women','M':'Men'}
+        MF = {'F':'Women', 'M':'Men', 'X':'Non-binary'}
         rengen = MF[gen]
         self.fname = '{0}-{1}.xls'.format(year,series.name)
         self.ws[gen] = self.wb.add_sheet(rengen)
@@ -1191,7 +1189,7 @@ class XlStandingsHandler(BaseStandingsHandler):
         # kludge to force a new workbook for the next series
         del self.wb
         self.wb = xlwt.Workbook()
-        self.rownum = {'F':0,'M':0}
+        self.rownum = {'F':0, 'M':0, 'X':0}
     
 ########################################################################
 class StandingsRenderer():
@@ -1261,6 +1259,7 @@ class StandingsRenderer():
             propbest = {
                 'M': {'time': LONGTIME, 'div': {}},
                 'F': {'time': LONGTIME, 'div': {}},
+                'X': {'time': LONGTIME, 'div': {}},
             }
             for result in allresults:
                 gen = result.gender
@@ -1474,7 +1473,7 @@ class StandingsRenderer():
                 raise dbConsistencyError('series {0} indicates divisions to be calculated, but no divisions found'.format(self.series.name))
 
         # process each gender
-        for gen in ['F','M']:
+        for gen in ['F', 'M', 'X']:
             # open file, prepare header, etc
             fh.prepare(gen, self.series, self.year)
                     

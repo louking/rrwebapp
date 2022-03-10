@@ -35,7 +35,7 @@ class AgeGradeApi(MethodView):
         try:
             # agegrade(age,gender,distance,timestr)
             age = request.args.get('age',None)              # integer #years
-            gender = request.args.get('gender',None)        # M or F
+            gender = request.args.get('gender',None)        # M, F, or X
             distance = request.args.get('distance',None)    # in miles
             timestr = request.args.get('time',None)         # in seconds or time string
 
@@ -46,7 +46,7 @@ class AgeGradeApi(MethodView):
             errorfield = 'distance'
             distance = float(distance)
             errorfield = 'gender'
-            if gender not in ['M','F']: raise ValueError('gender must be one of M, F')
+            if gender not in ['M', 'F', 'X']: raise ValueError('gender must be one of M, F, X')
 
             errorfield = 'time'
             timelist = timestr.split(':')
