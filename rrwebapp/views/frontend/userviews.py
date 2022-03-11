@@ -75,15 +75,15 @@ class SeriesResults(MethodView):
                 thistime = render.rendertime(result.time,timeprecision)
                 thisagtime = render.rendertime(result.agtime,agtimeprecision)
                 thispace = render.rendertime(result.time / race.distance, 0, useceiling=False)
-                if result.divisionlow:
-                    if result.divisionlow == 0:
-                        thisdiv = 'up to {}'.format(result.divisionhigh)
-                    elif result.divisionhigh == 99:
-                        thisdiv = '{} and up'.format(result.divisionlow)
-                    else:
-                        thisdiv = '{} - {}'.format(result.divisionlow,result.divisionhigh)
+                thisdiv = ''
+                if not result.divisionlow and not result.divisionhigh:
+                    thisdiv=''
+                elif not result.divisionlow or result.divisionlow <= 1:
+                    thisdiv = '{} and under'.format(result.divisionhigh)
+                elif result.divisionhigh == 99 or not result.divisionhigh:
+                    thisdiv = '{} and up'.format(result.divisionlow)
                 else:
-                    thisdiv = ''
+                    thisdiv = '{} - {}'.format(result.divisionlow,result.divisionhigh)
 
                 clubaffiliation = clubaffiliationelement(result)
                 if not clubaffiliation:

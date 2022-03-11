@@ -1576,7 +1576,7 @@ class StandingsRenderer():
                     fh.clearline(gen)
                     divlow,divhigh = div
                     if not divlow or divlow <= 1:
-                        divtext = 'up to {0}'.format(divhigh)
+                        divtext = '{0} and under'.format(divhigh)
                     elif not divhigh or divhigh >= 99: 
                         divtext = '{0} and up'.format(divlow)
                     else:
