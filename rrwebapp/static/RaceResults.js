@@ -1140,8 +1140,8 @@
             legend = '<table>\
                         <tr><td><div class="_rrwebapp-class-standings-data-race-dropped" style="text-align: left;">red</div></td><td>the best scores are kept up until a max number of races;\
                         <br>these scores have been dropped and are not included in the total</td></tr>\
-                        <tr><td><div class="row-overall-award">blue</div></td><td>runner won overall award, not eligible for division award</td></tr>\
-                        <tr><td><div class="row-division-award">green</div></td><td>runner won division award</td></tr>\
+                        <tr><td><div class="row-overall-award">blue</div></td><td>runner is a leader for overall award, not eligible for division award</td></tr>\
+                        <tr><td><div class="row-division-award">green</div></td><td>runner is a leader for division award</td></tr>\
                      </table>';
             popupbutton.init('#_rrwebapp-button-standings-legend', true, 'Legend', {}, true);
             $('#_rrwebapp-button-standings-legend').on(

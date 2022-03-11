@@ -1545,7 +1545,7 @@ class AjaxUpdateManagedResult(MethodView):
                         # may have to update dob if nonmember, and this race is earlier in the year than previous races
                         runner = Runner.query.filter_by(id=result.runnerid).one()
                         if not runner.member:
-                            # estimate this non-member's birth date to be date of race in the year indicated by age
+                            # estimate this non-member's birth date to be date of race in the year indicated by age, if it's earlier than the current birth date
                             racedatedt = dbdate.asc2dt(result.race.date)
                             dobdt = datetime(racedatedt.year-result.age, racedatedt.month, racedatedt.day)
                             # this assumes previously recorded age was correct, probably ok for most series
