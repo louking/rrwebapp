@@ -331,3 +331,15 @@ Follow these instructions to add an individual result. Note if you import result
 * Click **Create** 
 * Near top of :ref:`Edit Participants view` next to **Match** filter click **Tools ⛭** 
 * Under Tabulate Results, click **Tabulate** (this step updates the standings)
+
+Gender Management
+---------------------
+The :ref:`Members view` maintains each member's gender. When race results are tabulated using
+:ref:`Edit Participants view`, the result's gender will follow that which is configured in 
+:ref:`Members view`.
+
+Should a member change their gender, previously tabulated race results are unaffected,
+but future races will be tabulated with the new gender. If this happens in the middle of the year,
+any affected races during that year should be retabulated using :ref:`Races view` to navigate to
+:ref:`Edit Participants view` (click **✔**, then **Edit Participants**), and then **Tools ⛭** > 
+**Tabulate** to regenerate the race results with the latest gender stored in :ref:`Members view`.
