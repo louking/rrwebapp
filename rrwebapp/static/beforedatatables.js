@@ -344,3 +344,57 @@ var series_copy_button = function(url) {
     return series_copy_saeditor.edit_button_hook(url);
 }
 
+// TODO: should this be moved to loutilities datatables.js?
+/**
+ * reset datatable data based on effective date
+ *
+ * @param effective_date_id - element for datepicker to hold effective date, e.g., '#effective-date'
+ * @param todays_date_id - button to reset datepicker to today, e.g., '#todays-date-button'
+ */
+ function set_effective_date(effective_date_id, todays_date_id) {
+    var effectivedate = $(effective_date_id);
+    var todaysdate = $(todays_date_id);
+
+    // set initial filter to today
+    var today = new Date();
+    today = today.toISOString().substring(0,10);
+
+    // effective date is datepicker; todays date is button
+    effectivedate.datepicker({dateFormat: 'yy-mm-dd'});
+    effectivedate.val(today);
+    todaysdate.button();
+
+    // handle change of effective date by setting column filters appropriately
+    effectivedate.change(function(e) {
+        var ondate = effectivedate.val();
+        var urlparams = allUrlParams();
+        urlparams.ondate = ondate;
+        resturl = window.location.pathname + '/rest?' + setParams(urlparams);
+        _dt_table.one('draw.dt', function(e, settings) {
+             $( '#spinner' ).hide();
+        });
+        $( '#spinner' ).show();
+        // WARNING: nonstandard/nonpublic use of settings information
+        var serverSide = _dt_table.settings()[0]['oFeatures']['bServerSide'];
+        if (serverSide) {
+            // add updated urlparams (with ondate) before sending the ajax request
+            _dt_table.one('preXhr.dt', function(e, settings, data) {
+                Object.assign(data, urlparams);
+            });
+            _dt_table.ajax.reload();
+        } else {
+            refresh_table_data(_dt_table, resturl);
+        }
+       
+    });
+
+    // reset the effective date
+    todaysdate.click(function(e) {
+        // reset today because window may have been up for a while
+        today = new Date();
+        today = today.toISOString().substr(0,10);
+        effectivedate.val(today);
+        effectivedate.change();
+    })
+}
+

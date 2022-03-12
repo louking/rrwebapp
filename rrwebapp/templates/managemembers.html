@@ -4,6 +4,8 @@
     function afterdatatables() {
       {% if writeallowed %}
 
+        set_effective_date('#effective-date', '#todays-date-button');
+
         var toolscontent = "\
             <h3>Import Members</h3>\
             <div class='importapi' style='display:none;'>\

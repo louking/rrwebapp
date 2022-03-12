@@ -14,15 +14,18 @@ from collections import OrderedDict
 import csv
 from copy import copy
 from platform import system
+from datetime import datetime
 
 # pypi
 import flask
+from dominate.tags import div, span, i, button, _input
 from flask import request, current_app, url_for, jsonify
 from flask_login import login_required, current_user
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
 from loutilities.csvwt import wlist
 from loutilities.timeu import asctime
+from loutilities.filters import filtercontainerdiv, filterdiv
 from running.runsignup import members2csv as rsu_members2csv
 
 # home grown
@@ -40,6 +43,8 @@ from ...version import __docversion__
 
 # module globals
 tYmd = asctime('%Y-%m-%d')
+isodate = asctime('%Y-%m-%d')
+
 MINHDR = ['FamilyName','GivenName','Gender','DOB','RenewalDate','ExpirationDate','City','State']
 
 class InvalidUser(Exception): pass
@@ -117,12 +122,37 @@ mm_formmapping = OrderedDict(list(zip(mm_formfields, mm_dbattrs)))
 mm_dbmapping['member'] = lambda form: 1 if form['member'] == 'is-member' or form['member'] == 'true' else 0
 mm_formmapping['member'] = lambda dbrow: 'is-member' if dbrow.member else 'non-member'
 
-mm = CrudApi(
+class MembersView(CrudApi):
+    def beforequery(self):
+        '''
+        add update query parameters based on ondate
+        '''
+        self.queryfilters = []
+        super().beforequery()
+        ondate = request.args.get('ondate', isodate.dt2asc(datetime.now()))
+        ondatedt = isodate.asc2dt(ondate)
+        self.queryfilters += [Runner.renewdate <= ondatedt, Runner.expdate >= ondatedt]
+
+def members_filters():
+    pretablehtml = div()
+    with pretablehtml:
+        # hide / show hidden rows
+        with filtercontainerdiv(style='margin-bottom: 4px;'):
+            datefilter = filterdiv('members-external-filter-asof', 'As Of')
+            with datefilter:
+                with span(id='spinner', style='display:none;'):
+                    i(cls='fas fa-spinner fa-spin')
+                _input(type='text', id='effective-date', name='effective-date' )
+                button('Today', id='todays-date-button')
+    return pretablehtml.render()
+
+mm = MembersView(
     app=bp,
     pagename = 'Manage Members',
     template='managemembers.html',
     endpoint = '.managemembers',
     templateargs={'docversion': __docversion__},
+    pretablehtml = members_filters,
     rule='/managemembers',
     dbmapping = mm_dbmapping, 
     formmapping = mm_formmapping, 

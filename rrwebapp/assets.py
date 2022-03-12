@@ -51,6 +51,9 @@ d3_cdn = 'https://d3js.org'
 d3_ver = '6.7.0'
 d3_sc_ver = '2.0.0'    # d3-scale-chromatic
 
+# fontawsome
+fa_ver = '5.13.0'           # https://fontawesome.com/
+
 asset_bundles = {
     'admin_js' : Bundle(
         f'js/jquery-{jq_ver}/jquery.js',
@@ -127,6 +130,8 @@ asset_bundles = {
         f'js/selectize-{sz_ver}/css/selectize.css',
         'js/FieldType-Selectize/editor.selectize.css',
         f'js/yadcf-{yadcf_ver}/jquery.dataTables.yadcf.css',
+        f'js/fontawesome-{fa_ver}/css/fontawesome.css', 
+        f'js/fontawesome-{fa_ver}/css/solid.css', 
         'jqueryui.theme.adjust.css',    # loutilities
         'datatables.css',               # loutilities
         'editor.css',                   # loutilities
