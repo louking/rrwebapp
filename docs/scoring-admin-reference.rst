@@ -176,6 +176,11 @@ database.
 If a service is set up (e.g., RunSignUp club service), the :term:`members <member>` list can be downloaded directly from the service.
 Otherwise, a file needs to be imported into the system. The **Import** button is used to import the :term:`members <member>`.
 
+The view has the following filters:
+
+    :As Of:
+        chooses the active date for which members are shown
+
 .. image:: images/members-view.*
     :align: center
 
