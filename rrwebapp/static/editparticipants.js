@@ -194,11 +194,19 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
             }
         })
 
+        // show spinner when ajax is sent (hidden in .on('draw.dt'))
+        .on('preXhr.dt', function(e, settings, json) {
+            $('#spinner').show();
+        })
+
         // when the page has been drawn, need to do a lot of housekeeping
         .on( 'draw.dt', function () {
             // make button for checkbox
             $('._rrwebapp-editparticipants-checkbox-confirmed').button({showLabel:false});
             $('._rrwebapp-editparticipants-checkbox-confirmed').each(function(){setchecked(this);});
+
+            // hide spinner if shown
+            $('#spinner').hide();
             
             // initial revert values -- see ajax_update_db_noform_resp for use of 'revert' data field
             $('._rrwebapp-editparticipants-select-runner, ._rrwebapp-editparticipants-checkbox-confirmed').each(function() {
