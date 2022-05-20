@@ -175,14 +175,6 @@ def getrunnerchoices(club_id, race, pool, result):
         elif thisrunnerid:
             runner = Runner.query.filter_by(club_id=club_id,id=thisrunnerid).first()
 
-        # remove runners who were not within the age window, or who were excluded
-        missed = pool.getmissedmatches()                        
-        missed = filtermissed(club_id,missed,race.date,result.age)
-        for thismissed in missed:
-            missedrunner = Runner.query.filter_by(club_id=club_id,name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
-            dobdt = dbdate.asc2dt(thismissed['dob'])
-            nameage = '{} ({})'.format(missedrunner.name, age(racedatedt,dobdt))
-            thisrunnerchoice.append((missedrunner.id,nameage))
         
     # for no match and excluded entries, change choice
     elif thisdisposition in [DISP_NOTUSED,DISP_EXCLUDED]:
@@ -194,6 +186,15 @@ def getrunnerchoices(club_id, race, pool, result):
     
     # for non membersonly race, maybe need to add new name to member database, give that option
     if not membersonly and thisdisposition not in [DISP_MATCH]:
+        # remove runners who were not within the age window, or who were excluded
+        missed = pool.getmissedmatches()                        
+        missed = filtermissed(club_id,missed,race.date,result.age)
+        for thismissed in missed:
+            missedrunner = Runner.query.filter_by(club_id=club_id,name=thismissed['dbname'],dateofbirth=thismissed['dob']).first()
+            dobdt = dbdate.asc2dt(thismissed['dob'])
+            nameage = '{} ({})'.format(missedrunner.name, age(racedatedt,dobdt))
+            thisrunnerchoice.append((missedrunner.id,nameage))
+
         # it's possible that thisname == runnername if (new) member was added in prior use of editparticipants
         if thisname != runnername:
             thisrunnerchoice.append(('new','{} (new)'.format(thisname)))

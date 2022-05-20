@@ -1307,6 +1307,8 @@ class StandingsRenderer():
                         thisage = timeu.age(divdate, tYmd.asc2dt(runner.dateofbirth))
                 # no dob found, so just use age from earliest race in the race's year
                 else:
+                    # TODO: this doesn't quite seem right -- we want to emulate Jan 1, but don't know the real dob 
+                    # -- should we be looking at earliest race in *any* year?
                     # get_earliestrace can return None if none found, but logic to get here guarantees at least one will be found
                     earlyresult = get_earliestrace(runner, year=racedate.year)
                     # but check anyway

@@ -167,6 +167,10 @@ class ClubMember():
             thismember['renewdate'] = thisrow['RenewalDate'] if 'RenewalDate' in thisrow else None
             thismember['expdate'] = thisrow['ExpirationDate'] if 'ExpirationDate' in thisrow else None
             
+            # set member, estdateofbirth
+            thismember['member'] = thisrow['member'] if 'member' in thisrow else None
+            thismember['estdateofbirth'] = thisrow['estdateofbirth'] if 'estdateofbirth' in thisrow else None
+            
             # make self.memberskeys lower case
             # lower case comparisons are always done, to avoid UPPER NAME issue, and any other case related issues
             lowername = name.lower()
@@ -266,7 +270,8 @@ class ClubMember():
         
         foundmember = False
         memberage = None
-        checkmembers = iter([matches['matchingmembers'][0]['name']] + matches['closematches'])
+        checkmembers_list = [matches['matchingmembers'][0]['name']] + matches['closematches']
+        checkmembers = iter(checkmembers_list)
         while not foundmember:
             try:
                 checkmember = next(checkmembers)
@@ -279,9 +284,13 @@ class ClubMember():
                 try:
                     memberdob = tYmd.asc2dt(member['dob'])
                     memberage = age(asofdate_dt, memberdob)
-                    if memberage == theage:
+                    
+                    # this is a candidate if the age matches and we haven't found another possibility earlier, with a better match
+                    if memberage == theage and len(self.missedmatches) == 0:
                         foundmember = True
                         membername = member['name']
+
+                    # otherwise, add this member to the list of possiblities
                     else:
                         self.missedmatches.append({'name': name, 'asofdate': asofdate, 'age': theage,
                                                    'dbname': member['name'], 'dob': member['dob'],
@@ -446,6 +455,8 @@ class DbClubMember(ClubMember):
         d = csvwt.Db2Csv(encoding=encoding)
         hdrmap = {'id' : 'id',
                   'dateofbirth' : {'DOB':_dob2excel},
+                  'estdateofbirth' : 'estdateofbirth',
+                  'member' : 'member',
                   'gender' : 'Gender',
                   'name' : {'First':lambda s,f: ' '.join(f.split(' ')[0:-1]),'Last':lambda s,f: f.split(' ')[-1]},
                   'hometown' : {'City':_city, 'State':_state}
