@@ -1742,6 +1742,8 @@ class AjaxTabulateResults(MethodView):
                         
                         # if we have estimated dob, date for division's age calculation is earliest race run this year by this runner
                         else:
+                            # TODO: this doesn't quite seem right -- we want to emulate Jan 1, but don't know the real dob 
+                            # -- should we be looking at earliest race in *any* year?
                             # get_earliestrace can return None if none found, but logic to get here guarantees at least one will be found
                             earlyresult = get_earliestrace(runner, year=racedate.year)
                             divdate = dbdate.asc2dt(earlyresult.race.date)
