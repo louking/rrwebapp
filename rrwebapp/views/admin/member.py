@@ -27,6 +27,7 @@ from loutilities.csvwt import wlist
 from loutilities.timeu import asctime
 from loutilities.filters import filtercontainerdiv, filterdiv
 from running.runsignup import members2csv as rsu_members2csv
+from sqlalchemy import or_
 
 # home grown
 from . import bp
@@ -131,7 +132,8 @@ class MembersView(CrudApi):
         super().beforequery()
         ondate = request.args.get('ondate', isodate.dt2asc(datetime.now()))
         ondatedt = isodate.asc2dt(ondate)
-        self.queryfilters += [Runner.renewdate <= ondatedt, Runner.expdate >= ondatedt]
+        self.queryfilters += [or_(Runner.renewdate <= ondatedt, Runner.renewdate == None), 
+                              or_(Runner.expdate >= ondatedt, Runner.expdate == None)]
 
 def members_filters():
     pretablehtml = div()
