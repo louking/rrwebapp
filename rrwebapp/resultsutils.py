@@ -960,7 +960,8 @@ class ClubAffiliationLookup():
         self.clubaff = {}
         for thisclubaff in allclubaffs:
             if thisclubaff.alternates:
-                knownclubs = thisclubaff.alternates.split(CLUBAFFILIATION_ALTERNATES_SEPARATOR)
+                #  alternates are converted to lower case for backwards compatibility
+                knownclubs = [c.lower() for c in thisclubaff.alternates.split(CLUBAFFILIATION_ALTERNATES_SEPARATOR)]
                 for knownclub in knownclubs:
                     self.clubaff[knownclub] = thisclubaff
     
@@ -968,8 +969,8 @@ class ClubAffiliationLookup():
         """
         returns ClubAffiliation 
         """
-        if clubname in self.clubaff:
-            return self.clubaff[clubname]
+        if clubname.lower() in self.clubaff:
+            return self.clubaff[clubname.lower()]
         else:
             return None
     
@@ -977,7 +978,7 @@ class ClubAffiliationLookup():
         """
         returns True if club is a known club
         """
-        return clubname in self.clubaff
+        return clubname.lower() in self.clubaff
 
 def clubaffiliationelement(result):
     """

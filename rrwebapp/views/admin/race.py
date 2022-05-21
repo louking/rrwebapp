@@ -822,7 +822,12 @@ def get_clubaffiliations_alternates(dbrow):
     if not dbrow.alternates:
         return []
     else:
-        return dbrow.alternates.split(CLUBAFFILIATION_ALTERNATES_SEPARATOR)
+        # return lower case alternates, removing duplicates
+        alternates = []
+        for alternate in [a.lower() for a in dbrow.alternates.split(CLUBAFFILIATION_ALTERNATES_SEPARATOR)]:
+            if alternate not in alternates:
+                alternates.append(alternate)
+        return alternates
 
 clubaffiliations_formmapping['alternates'] = get_clubaffiliations_alternates
 
@@ -860,11 +865,11 @@ class ClubAffiliationsView(CrudApi):
         make sure title, shortname are in alternates
         """
         alternateitems = formdata['alternates'].split(CLUBAFFILIATION_ALTERNATES_SEPARATOR) if formdata['alternates'] else []
-        if formdata['title'] not in alternateitems:
-            alternateitems.insert(0, formdata['title'])
+        if formdata['title'].lower() not in alternateitems:
+            alternateitems.insert(0, formdata['title'].lower())
         # be careful not to include shortname == None
-        if formdata['shortname'] and formdata['shortname'] not in alternateitems:
-            alternateitems.insert(0, formdata['shortname'])
+        if formdata['shortname'] and formdata['shortname'].lower() not in alternateitems:
+            alternateitems.insert(0, formdata['shortname'].lower())
         formdata['alternates'] = CLUBAFFILIATION_ALTERNATES_SEPARATOR.join(alternateitems) if alternateitems else None
 
     def createrow(self, formdata):
