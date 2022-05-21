@@ -74,6 +74,7 @@ Mako==1.1.4
 MarkupSafe==1.1.1
 mod-wsgi==4.8.0
 mysqlclient==2.0.3
+nameparser==1.1.1
 ndg-httpsclient==0.5.1
 oauthlib==3.1.0
 openpyxl==3.0.7

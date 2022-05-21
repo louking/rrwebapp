@@ -30,6 +30,7 @@ from loutilities.agegrade import AgeGrade
 from loutilities.transform import Transform
 from loutilities.namesplitter import split_full_name
 from dominate.tags import span
+from nameparser import HumanName
 
 # homegrown
 from . import app
@@ -261,6 +262,18 @@ def get_earliestrace(runner, year=None):
             theresult = result
     return theresult
 
+def normname(name):
+    """normalize name capitalization
+
+    Args:
+        name (string): name to normalize
+
+    Returns:
+        string: name with normalized capitalization
+    """
+    thisnametmp = HumanName(name)
+    thisnametmp.capitalize(force=True)
+    return str(thisnametmp)
 
 class Record():
     pass
@@ -308,14 +321,14 @@ class ImportResults():
         # use OrderedDict because some dbattrs depend on others to have been done first (e.g., confirmed must be after initialdisposition)
         # first overwrite a few of these to make sure name, lname, fname, hometown, city, state filled in
         dbmapping = OrderedDict(list(zip(self.dbattrs,self.dbattrs)))
-        dbmapping['name']     = lambda inrow: inrow['name'] if inrow.get('name') \
-                                else ' '.join([inrow['fname'], inrow['lname']]) if inrow.get('fname') or inrow.get('lname') \
+        dbmapping['name']     = lambda inrow: normname(inrow['name']) if inrow.get('name') \
+                                else normname(' '.join([inrow['fname'], inrow['lname']])) if inrow.get('fname') or inrow.get('lname') \
                                 else None
-        dbmapping['fname']    = lambda inrow: inrow['fname'] if inrow.get('fname') \
-                                else split_full_name(inrow['name'])['fname'] if inrow.get('name') \
+        dbmapping['fname']    = lambda inrow: normname(inrow['fname']) if inrow.get('fname') \
+                                else normname(split_full_name(inrow['name'])['fname']) if inrow.get('name') \
                                 else None
-        dbmapping['lname']    = lambda inrow: inrow['lname'] if inrow.get('lname') \
-                                else split_full_name(inrow['name'])['lname'] if inrow.get('name') \
+        dbmapping['lname']    = lambda inrow: normname(inrow['lname']) if inrow.get('lname') \
+                                else normname(split_full_name(inrow['name'])['lname']) if inrow.get('name') \
                                 else None
         dbmapping['hometown'] = lambda inrow: inrow['hometown'] if inrow.get('hometown') \
                                 else ', '.join([inrow['city'], inrow['state']]) if inrow.get('city') and inrow.get('state') \
