@@ -186,7 +186,7 @@ def getrunnerchoices(club_id, race, pool, result):
             pass
     
     # for non membersonly race, maybe need to add new name to member database, give that option
-    if not membersonly and thisdisposition not in [DISP_MATCH]:
+    if thisdisposition not in [DISP_MATCH]:
         # remove runners who were not within the age window, or who were excluded
         missed = pool.getmissedmatches()                        
         missed = filtermissed(club_id,missed,race.date,result.age)
@@ -197,7 +197,7 @@ def getrunnerchoices(club_id, race, pool, result):
             thisrunnerchoice.append((missedrunner.id,nameage))
 
         # it's possible that thisname == runnername if (new) member was added in prior use of editparticipants
-        if thisname != runnername:
+        if not membersonly and thisname != runnername:
             thisrunnerchoice.append(('new','{} (new)'.format(thisname)))
 
     return thisrunnerchoice
