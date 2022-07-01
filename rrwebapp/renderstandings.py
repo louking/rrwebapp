@@ -1441,7 +1441,7 @@ class StandingsRenderer():
         # calculate points
         def calcpoints(byrunner, runnerpool, selector):
             '''
-            calculate sorted list of runner results by total points (max to min)
+            calculate list of runner results, sorted by (total points, numraces) (max to min)
             
             :param byrunner: full data structure by runner
             :param runnerpool: pool of runners to use for this set of results
@@ -1461,9 +1461,9 @@ class StandingsRenderer():
                 totpoints = sum(racesused)
                 totpoints = int(totpoints) if totpoints == int(totpoints) else totpoints
                 # tied=False may be updated in resultsiterator.tiesort()
-                bypoints.append(Points(totpoints=totpoints, runnerid=runnerid, name=name, age=age, tied=False))
+                bypoints.append(Points(totpoints=totpoints, runnerid=runnerid, name=name, age=age, numraces=len(racetotals), tied=False))
                 
-            bypoints.sort(key=lambda i: i.totpoints, reverse=True)
+            bypoints.sort(key=lambda i: (i.totpoints, i.numraces), reverse=True)
             return bypoints
 
         # collect divisions if necessary
@@ -1693,10 +1693,15 @@ class resultsiterator():
             # this will be overwritten if a tie is found
             thisbypoints = self.bypoints[self.pointsndx]
 
+            # # test ties
+            # if thisbypoints.name == "Xxx Xxxxxx":
+            #     thisbypoints.totpoints = 560
+            
             # check for ties
             tiendx = self.pointsndx
             tiefound = False
-            while tiendx+1 < len(self.bypoints) and self.bypoints[tiendx].totpoints == self.bypoints[tiendx+1].totpoints:
+            hasminraces = thisbypoints.numraces >= self.series.minraces if self.series.minraces else True
+            while hasminraces and tiendx+1 < len(self.bypoints) and self.bypoints[tiendx].totpoints == self.bypoints[tiendx+1].totpoints:
                 self.pointstie.append(self.bypoints[tiendx])
                 tiendx += 1
                 tiefound = True
