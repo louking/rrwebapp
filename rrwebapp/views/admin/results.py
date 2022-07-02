@@ -20,6 +20,7 @@ from datetime import datetime
 # pypi
 import flask
 from flask import request, jsonify, url_for, current_app, render_template, abort
+from flask import flash, redirect, session
 from flask.helpers import send_file
 from flask_login import login_required
 from flask.views import MethodView
@@ -2045,6 +2046,12 @@ class DownloadResults(MethodView):
             results = []
             race = None
 
+            # check for at least one result set requested
+            session.pop('_flashes', None)
+            if not resultssets:
+                flash('at least one Result Set must be selected')
+                return redirect(url_for('.downloadresults'))
+                
             # use credentials for home club's children's full names
             with RunSignUp() as rsu:
                 for resultsset in resultssets:
