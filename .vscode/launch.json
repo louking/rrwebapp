@@ -25,7 +25,7 @@
         {
             "name": "Launch Chrome",
             "request": "launch",
-            "type": "pwa-chrome",
+            "type": "chrome",
             "url": "http://dev.localhost:5000",
             // "webRoot": "${workspaceFolder}"
             "webRoot": "${workspaceFolder}/rrwebapp"
