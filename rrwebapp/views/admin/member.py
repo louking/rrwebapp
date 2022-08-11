@@ -20,7 +20,8 @@ from datetime import datetime
 import flask
 from dominate.tags import div, span, i, button, _input
 from flask import request, current_app, url_for, jsonify
-from flask_login import login_required, current_user
+from flask_login import login_required
+from flask_security import current_user
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
 from loutilities.csvwt import wlist

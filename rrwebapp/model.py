@@ -213,6 +213,7 @@ class User(Base, UserMixin):
     pw_hash = Column(String(128))
     password = Column(String(255))
     active = Column(Boolean)
+    fs_uniquifier = Column(String(255), unique=True, nullable=False)
 
     # for Confirmable (see https://pythonhosted.org/Flask-Security/models.html)
     confirmed_at = Column(DateTime())
@@ -261,9 +262,6 @@ class User(Base, UserMixin):
     
     def is_anonymous(self):
         return False
-    
-    def get_id(self):
-        return self.id
     
     def __eq__(self,other):
         if isinstance(other, User):

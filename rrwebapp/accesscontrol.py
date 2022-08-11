@@ -19,8 +19,6 @@ from collections import namedtuple
 from functools import partial
 
 # pypi
-import flask
-from flask_login import current_user
 from flask_principal import Principal, Permission, RoleNeed, UserNeed
 
 # home grown

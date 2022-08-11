@@ -9,7 +9,8 @@ import time
 
 # pypi
 from flask import session, request, redirect, url_for, render_template
-from flask_login import login_required, current_user, user_logged_in
+from flask_security import current_user
+from flask_login import login_required, user_logged_in
 from flask_principal import identity_loaded, UserNeed, RoleNeed
 import flask_wtf as flaskwtf
 import wtforms
