@@ -2,7 +2,7 @@
 
 # pypi
 import flask
-from flask import current_app
+from flask import current_app, abort
 from flask.views import MethodView
 
 # home grown
@@ -19,6 +19,10 @@ class ViewDebug(MethodView):
     
     def get(self):
         try:
+            # only owner can do this
+            if not owner_permission.can():
+                return abort(403)
+            
             thisversion = version.__version__
             appconfigpath = getattr(current_app,'configpath','<not set>')
             appconfigtime = getattr(current_app,'configtime','<not set>')
