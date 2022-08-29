@@ -13,8 +13,8 @@ forms - forms for rrwebapp
 ===============================
 '''
 from flask_wtf import FlaskForm as Form
-from wtforms import HiddenField, SelectField, StringField, IntegerField, DateField
-from wtforms import FloatField, BooleanField, TextField, TextAreaField, validators
+from wtforms import HiddenField, SelectField, StringField, IntegerField
+from wtforms import FloatField, BooleanField, TextAreaField, validators
 from wtforms import SelectMultipleField, widgets
 
 ########################################################################
@@ -172,12 +172,5 @@ class ExportResultsForm(Form):
 ########################################################################
     start = StringField('Start Date',[validators.Optional()])
     end = StringField('End Date',[validators.Optional()])
-    
-########################################################################
-class FeedbackForm(Form):
-########################################################################
-    fromemail = StringField('From (email)',[validators.Email()])
-    subject = StringField('Subject',[validators.Required()])
-    message = TextAreaField('Message',[validators.Required()])
     
 
