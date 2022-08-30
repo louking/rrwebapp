@@ -11,6 +11,7 @@ from flask import current_app
 import flask_login as flasklogin
 from flask_login import login_required
 from flask.views import MethodView
+from flask_security import SQLAlchemyUserDatastore
 
 # home grown
 from . import bp
@@ -66,17 +67,21 @@ def newuser():
         # nothing to do for GET yet
         if flask.request.method == "GET":
             pass
-        
+    
         # validate form input
         elif flask.request.method == "POST":
             if form.validate_on_submit():
+                # set up user_datastore
+                user_datastore = SQLAlchemyUserDatastore(db, User, Role)
+
                 # action and commit requested
                 if flask.request.form['whichbutton'] == buttontext:
-                    thisuser = User(form.email.data, form.name.data, form.password.data)
-                    _setpermission(None,thisuser,'owner',form.owner.data)
+                    thisuser = user_datastore.create_user(
+                        email=form.email.data, 
+                        password=form.password.data)
+                    thisuser.name = form.name.data
+                    _setpermission(None, thisuser, 'owner', form.owner.data)
                     
-                    db.session.add(thisuser)
-
                     flask.get_flashed_messages()    # clears flash queue
 
                     # roll back database updates and close transaction

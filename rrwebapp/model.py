@@ -231,17 +231,17 @@ class User(Base, UserMixin):
         # many to many pattern - see http://docs.sqlalchemy.org/en/rel_0_8/orm/relationships.html
     useraccesstokens = relationship('UserAccessToken',backref='user',cascade="all, delete")
 
-    def __init__(self, email, name, password, confirmed_at=None, last_login_at=None, current_login_at=None, last_login_ip=None, current_login_ip=None, login_count=0):
-        self.email = email
-        self.name = name
-        self.set_password(password)
-        self.active = True
-        self.confirmed_at = confirmed_at
-        self.last_login_at = last_login_at
-        self.current_login_at = current_login_at
-        self.last_login_ip = last_login_ip
-        self.current_login_ip = current_login_ip
-        self.login_count = login_count
+    # def __init__(self, email, name, password, confirmed_at=None, last_login_at=None, current_login_at=None, last_login_ip=None, current_login_ip=None, login_count=0, active=True):
+    #     self.email = email
+    #     self.name = name
+    #     self.set_password(password)
+    #     self.active = active
+    #     self.confirmed_at = confirmed_at
+    #     self.last_login_at = last_login_at
+    #     self.current_login_at = current_login_at
+    #     self.last_login_ip = last_login_ip
+    #     self.current_login_ip = current_login_ip
+    #     self.login_count = login_count
 
     def __repr__(self):
         return '<User %s %s>' % (self.email, self.name)
