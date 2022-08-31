@@ -7,7 +7,7 @@ import os.path
 
 # pypi
 from flask import Flask, send_from_directory, current_app, g, render_template, url_for, session, request
-from flask_security import SQLAlchemyUserDatastore, current_user
+from flask_security import SQLAlchemyUserDatastore, current_user, MailUtil
 from flask_mail import Mail
 from jinja2 import ChoiceLoader, PackageLoader
 from werkzeug.local import LocalProxy
@@ -32,6 +32,24 @@ security = None
 # hold application here
 app = None
 
+# define MyMailUtil class for flask-security
+class MyMailUtil(MailUtil):
+    def send_mail(self, template, subject, recipient, sender, body, html, user, **context):
+        # this may be called from view which doesn't reference interest
+        # if so pick up user's first interest to get from_email address
+        g.interest = None
+        # if not g.interest:
+        #     g.interest = context['user'].interests[0].interest if context['user'].interests else None
+        # if g.interest:
+        #     from_email = localinterest().from_email
+        # use default if user didn't have any interests
+        # else:
+        #     from_email = current_app.config['SECURITY_EMAIL_SENDER']
+        #     # copied from flask_security.utils.send_mail
+        #     if isinstance(from_email, LocalProxy):
+        #         from_email = from_email._get_current_object()
+        sendmail(subject, sender, recipient, html=html, text=body)
+        
 # create application
 def create_app(config_obj, configfiles=None, init_for_operation=True):
     '''
@@ -119,35 +137,12 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
     # Set up Flask-Mail [configuration in <application>.cfg] and security mailer
     mail = Mail(app)
 
-    def security_send_mail(subject, recipient, template, **context):
-        # this may be called from view which doesn't reference interest
-        # if so pick up user's first interest to get from_email address
-        g.interest = None
-        # if not g.interest:
-        #     g.interest = context['user'].interests[0].interest if context['user'].interests else None
-        # if g.interest:
-        #     from_email = localinterest().from_email
-        # use default if user didn't have any interests
-        # else:
-        #     from_email = current_app.config['SECURITY_EMAIL_SENDER']
-        #     # copied from flask_security.utils.send_mail
-        #     if isinstance(from_email, LocalProxy):
-        #         from_email = from_email._get_current_object()
-        from_email = current_app.config['SECURITY_EMAIL_SENDER']
-        # copied from flask_security.utils.send_mail
-        if isinstance(from_email, LocalProxy):
-            from_email = from_email._get_current_object()
-        ctx = ('security/email', template)
-        html = render_template('%s/%s.html' % ctx, **context)
-        text = render_template('%s/%s.txt' % ctx, **context)
-        sendmail(subject, from_email, recipient, html=html, text=text)
-
     # Set up Flask-Security
     global user_datastore, security
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     # uncomment when working on #426
-    # security = UserSecurity(app, user_datastore, send_mail=security_send_mail)
-    security = Security(app, user_datastore, send_mail=security_send_mail)
+    # security = UserSecurity(app, user_datastore, mail_util_cls=MyMailUtil)
+    security = Security(app, user_datastore, mail_util_cls=MyMailUtil)
 
     # activate views
     # from .views import userrole as userroleviews
