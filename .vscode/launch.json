@@ -14,7 +14,7 @@
                 "FLASK_APP": "run.py",
                 // normally development, production for test of applogging
                 // but see https://flask.palletsprojects.com/en/2.2.x/changes/?highlight=flask_env#version-2-2-0
-                // "FLASK_ENV": "development"
+                "FLASK_DEBUG": "true"
             },
             "args": [
                 "run",
@@ -60,8 +60,9 @@
                 "-n",
                 "celery@localhost",
                 // may not be needed, see https://stackoverflow.com/a/54488640/799921 and https://github.com/Microsoft/ptvsd/issues/1046
-                // "-P",
-                // "solo",
+                // seems needed since upgrade to python 3.9 (and associated package upgrades), otherwise worker isn't triggered
+                "-P",
+                "solo",
             ]
         },
         {
@@ -86,8 +87,9 @@
                 "-n",
                 "celerylongtask@localhost",
                 // may not be needed, see https://stackoverflow.com/a/54488640/799921 and https://github.com/Microsoft/ptvsd/issues/1046
-                // "-P",
-                // "solo",
+                // seems needed since upgrade to python 3.9 (and associated package upgrades), otherwise worker isn't triggered
+                "-P",
+                "solo",
             ]
         },
     ]
