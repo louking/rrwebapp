@@ -11,13 +11,13 @@ from flask import current_app
 import flask_login as flasklogin
 from flask_login import login_required
 from flask.views import MethodView
-from flask_security import SQLAlchemyUserDatastore
 
 # home grown
 from . import bp
 from ...model import User
 from ...accesscontrol import owner_permission
 from ...model import db
+from ... import user_datastore
 
 # module specific needs
 from ...model import User, Role, Club
@@ -71,9 +71,6 @@ def newuser():
         # validate form input
         elif flask.request.method == "POST":
             if form.validate_on_submit():
-                # set up user_datastore
-                user_datastore = SQLAlchemyUserDatastore(db, User, Role)
-
                 # action and commit requested
                 if flask.request.form['whichbutton'] == buttontext:
                     thisuser = user_datastore.create_user(
