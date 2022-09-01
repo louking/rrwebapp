@@ -2084,7 +2084,7 @@ class DownloadResults(MethodView):
                 for row in r:
                     w.writerow(row)
 
-            return send_file(updfilepath, as_attachment=True, attachment_filename=f"results-{race['name']}.csv")
+            return send_file(updfilepath, as_attachment=True, download_name=f"results-{race['name']}.csv")
 
         else:
             return jsonify(error='unknown service')
