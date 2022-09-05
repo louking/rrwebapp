@@ -59,8 +59,10 @@
                 "info",
                 "-n",
                 "celery@localhost",
-                // may not be needed, see https://stackoverflow.com/a/54488640/799921 and https://github.com/Microsoft/ptvsd/issues/1046
                 // seems needed since upgrade to python 3.9 (and associated package upgrades), otherwise worker isn't triggered
+                // needed only on windows
+                // * https://github.com/celery/celery/issues/5738
+                // * https://stackoverflow.com/questions/37255548/how-to-run-celery-on-windows
                 "-P",
                 "solo",
             ]
@@ -86,8 +88,10 @@
                 "longtask",
                 "-n",
                 "celerylongtask@localhost",
-                // may not be needed, see https://stackoverflow.com/a/54488640/799921 and https://github.com/Microsoft/ptvsd/issues/1046
                 // seems needed since upgrade to python 3.9 (and associated package upgrades), otherwise worker isn't triggered
+                // needed only on windows
+                // * https://github.com/celery/celery/issues/5738
+                // * https://stackoverflow.com/questions/37255548/how-to-run-celery-on-windows
                 "-P",
                 "solo",
             ]
