@@ -465,14 +465,13 @@ class AnalyzeAgeGrade():
         ### <DEBUG
     
     #-------------------------------------------------------------------------------
-    def get_trendline(self, thesestats=None):
+    def get_trendline(self, thesestats=None, debuginfo=''):
     #-------------------------------------------------------------------------------
         '''
         determine trend line
         
-        :param label: label for trendline
         :param thesestats: list of :class:`AgeGradeStat`, or None if all stats to be used
-        :param color: color per matplotlib for trendline, or None to automate
+        :param debuginfo: debuginfo to add to log if ZeroDivision error
         :rtype: :class:`TrendLine` containing parameters of trendline
         '''
         
@@ -485,9 +484,9 @@ class AnalyzeAgeGrade():
         try:
             lr = linear_regression(Y, X)
         except ZeroDivisionError:
-            current_app.logger.debug(('ZeroDivisionError\n   len(thesestats)={}\n   X={}\n   Y={}\n' +
-                              '   thesestats[0].date={}').format(len(thesestats), X, Y, thesestats[0].date))
-            raise
+            current_app.logger.debug((f'ZeroDivisionError\n   len(thesestats)={len(thesestats)}\n   X={X}\n   Y={Y}\n' +
+                              f'   thesestats[0].date={thesestats[0].date}\n   debuginfo={debuginfo}'))
+            return None
 
         yline = [lr.slope*thisx+lr.intercept for thisx in X]
 

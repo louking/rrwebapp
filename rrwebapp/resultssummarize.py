@@ -297,14 +297,14 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
         allstats = aag[thisname].get_stats()
         if len(allstats) > 0:
             avg['overall'] = mean([s.ag for s in allstats])
-        trend = aag[thisname].get_trendline()
+        trend = aag[thisname].get_trendline(debuginfo=thisname)
 
         oneyrstats = [s.ag for s in allstats if s.date.year == lastyear]
         if len(oneyrstats) > 0:
             summout['1yr agegrade\noverall'] = mean(oneyrstats)
         if len(allstats) > 0:
             summout['avg agegrade\noverall'] = avg['overall']
-        if len(allstats) >= mintrend and allstats[0].date != allstats[-1].date:
+        if trend and len(allstats) >= mintrend and allstats[0].date != allstats[-1].date:
             summout['trend\noverall'] = trend.improvement
             summout['stderr\noverall'] = trend.stderr
             summout['r-squared\noverall'] = trend.r2**2
@@ -323,11 +323,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
             if len(oneyrcategory) > 0:
                 summout['1yr agegrade\n{}'.format(distcategory)] = mean(oneyrcategory)
             if len(tstats) >= mintrend and tstats[0].date != tstats[-1].date:
-                try:
-                    trend = aag[thisname].get_trendline(thesestats=tstats)
-                except ZeroDivisionError:
-                    current_app.logger.debug('ZeroDivisionError - processing {}'.format(rendername))
-                    trend = None
+                trend = aag[thisname].get_trendline(thesestats=tstats, debuginfo=thisname)
                 # ignore trends which can't be calculated
                 if trend:
                     summout['trend\n{}'.format(distcategory)] = trend.improvement

@@ -181,6 +181,7 @@ def nav_menu():
             navbar.items.append(analysisadmin)
             analysis_admin_view(analysisadmin, 'Status/Control', 'admin.resultsanalysisstatus')
             analysis_admin_view(analysisadmin, 'Results Analysis Summary', 'admin.resultsanalysissummary')
+            analysis_admin_view(analysisadmin, 'Results Analysis Results', 'admin.resultschart')
             analysis_admin_view(analysisadmin, 'Services', 'admin.raceresultservices')
             analysis_admin_view(analysisadmin, 'Courses', 'admin.courses')
             analysis_admin_view(analysisadmin, 'Locations', 'admin.locations')
