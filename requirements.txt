@@ -22,7 +22,7 @@ click-plugins==1.1.1
 click-repl==0.2.0
 colorama==0.4.5
 colorclass==2.2.2
-cryptography==37.0.4
+cryptography==38.0.3
 cssmin==0.2.0
 decorator==5.1.1
 dnspython==2.2.1
