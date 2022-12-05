@@ -14,20 +14,18 @@ from flask_assets import Bundle, Environment
 
 # jquery
 jq_ver = '3.6.0'
-jq_ui_ver = '1.12.1'
+jq_ui_ver = '1.13.2'
 
 
 # dataTables
-dt_datatables_ver = '1.10.24'
-dt_editor_ver = '2.0.4'
-dt_buttons_ver = '1.7.0'
-dt_colvis_ver = '1.7.0'
-dt_datetime_ver = '1.0.3'
-dt_fixedcolumns_ver = '3.3.2'
-dt_responsive_ver = '2.2.7'
-dt_select_ver = '1.3.3'
+dt_datatables_ver = '1.13.1'
+dt_editor_ver = '2.0.10'
+dt_buttons_ver = '2.3.3'
+dt_fixedcolumns_ver = '4.2.1'
+dt_responsive_ver = '2.4.0'
+dt_select_ver = '1.5.0'
 dt_editor_plugin_fieldtype_ver = '?'
-dt_datetime_ver = '1.0.3'
+dt_datetime_ver = '1.2.0'
 
 # select2
 # NOTE: patch to jquery ui required, see https://github.com/select2/select2/issues/1246#issuecomment-17428249
@@ -58,7 +56,7 @@ asset_bundles = {
     'admin_js' : Bundle(
         f'js/jquery-{jq_ver}/jquery.js',
 
-        f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.js',
+        f'js/jQueryUI-{jq_ui_ver}/jquery-ui.js',
 
         f'js/smartmenus-{sm_ver}/jquery.smartmenus.js',
         f'js/lodash-{lodash_ver}/lodash.js',
@@ -69,8 +67,10 @@ asset_bundles = {
         f'js/Buttons-{dt_buttons_ver}/js/dataTables.buttons.js',
         f'js/Buttons-{dt_buttons_ver}/js/buttons.jqueryui.js',
         f'js/Buttons-{dt_buttons_ver}/js/buttons.html5.js',
-        f'js/Buttons-{dt_colvis_ver}/js/buttons.colVis.js',
+        f'js/Buttons-{dt_buttons_ver}/js/buttons.colVis.js',
         f'js/DateTime-{dt_datetime_ver}/js/dataTables.dateTime.js',
+        f'js/Responsive-{dt_responsive_ver}/js/dataTables.responsive.js',
+        f'js/Responsive-{dt_responsive_ver}/js/responsive.jqueryui.js',
 
         f'js/FixedColumns-{dt_fixedcolumns_ver}/js/dataTables.fixedColumns.js',
         f'js/Editor-{dt_editor_ver}/js/dataTables.editor.js',
@@ -115,9 +115,9 @@ asset_bundles = {
     ),
 
     'admin_css': Bundle (
-        f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.css',
-        f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.structure.css',
-        f'js/jquery-ui-{jq_ui_ver}.custom/jquery-ui.theme.css',
+        f'js/jQueryUI-{jq_ui_ver}/themes/base/jquery-ui.css',
+        # f'js/jquery-ui-{jq_ui_ver}/themes/base/jquery-ui.structure.css',
+        f'js/jQueryUI-{jq_ui_ver}/themes/base/theme.css',
         f'js/smartmenus-{sm_ver}/css/sm-core-css.css',
         f'js/smartmenus-{sm_ver}/css/sm-blue/sm-blue.css',
         f'js/DataTables-{dt_datatables_ver}/css/dataTables.jqueryui.css',
@@ -125,6 +125,7 @@ asset_bundles = {
         f'js/DateTime-{dt_datetime_ver}/css/dataTables.dateTime.css',
         f'js/FixedColumns-{dt_fixedcolumns_ver}/css/fixedColumns.jqueryui.css',
         f'js/Editor-{dt_editor_ver}/css/editor.jqueryui.css',
+        f'js/Responsive-{dt_responsive_ver}/css/responsive.jqueryui.css',
         f'js/Select-{dt_select_ver}/css/select.jqueryui.css',
         f'js/select2-{s2_ver}/css/select2.css',
         f'js/selectize-{sz_ver}/css/selectize.css',
