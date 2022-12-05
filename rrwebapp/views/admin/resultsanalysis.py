@@ -22,6 +22,7 @@ import flask
 from flask import request, jsonify, url_for, current_app
 from flask_login import login_required
 from flask.views import MethodView
+from loutilities.filters import filtercontainerdiv, filterdiv, yadcfoption
 
 # homegrown
 from . import bp
@@ -402,11 +403,23 @@ def ras_buttons():
             })
     return buttons
 
+ras_filters = filtercontainerdiv()
+with ras_filters:
+    filterdiv('ras-external-filter-age', 'Age')
+    filterdiv('ras-external-filter-gender', 'Gender')
+
+ras_yadcf_options = [
+    yadcfoption('age:name', 'ras-external-filter-age', 'range_number', placeholder='Select age'),
+    yadcfoption('gender:name', 'ras-external-filter-gender', 'select', placeholder='Select gender', width='75px'),
+]
+
 ras = AdminDatatablesCsv(
     app = bp,
     pagename = 'Results Analysis Summary', 
     endpoint = 'admin.resultsanalysissummary', 
     rule = '/resultsanalysissummary',
+    pretablehtml = ras_filters.render(),
+    yadcfoptions = ras_yadcf_options,
     dtoptions =  {
         'stateSave' : True,
         'fixedColumns' : { 'leftColumns': 1 },

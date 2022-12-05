@@ -218,6 +218,8 @@ class DatatablesCsv(MethodView):
     :param readpermission: function to check write permission for page access
     :param columns: list of dicts for input to dataTables, or function to get this list
     :param buttons: list of buttons for DataTable
+    :param pretablehtml: string any html which needs to go before the table
+    :param yadcfoptions: dict of yadcf options to apply at end of options calculation
     '''
 
     #----------------------------------------------------------------------
@@ -233,6 +235,8 @@ class DatatablesCsv(MethodView):
             endpoint = None, 
             rule = None,
             dtoptions = {},
+            pretablehtml = '',
+            yadcfoptions = {},
             csvfile = None,
             readpermission = lambda: False, 
             columns = None, 
@@ -310,8 +314,12 @@ class DatatablesCsv(MethodView):
                                          pagejsfiles = addscripts(['buttons.colvis.js']),
                                          tabledata = tabledata, 
                                          tablebuttons = buttons,
+                                         pretablehtml = self.pretablehtml if not callable(self.pretablehtml) else self.pretablehtml(),
                                          tablefiles = None,
-                                         options = {'dtopts': dt_options},
+                                         options = {
+                                            'dtopts': dt_options,
+                                            'yadcfopts' : self.getyadcfoptions(),
+                                         },
                                          inhibityear = True,    # NOTE: prevents common DatatablesCsv
                                         )
         
@@ -319,6 +327,9 @@ class DatatablesCsv(MethodView):
             # roll back database updates and close transaction
             db.session.rollback()
             raise
+
+    def getyadcfoptions(self):
+        return self.yadcfoptions
 
 
 #######################################################################
