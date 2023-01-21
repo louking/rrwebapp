@@ -344,6 +344,125 @@ var series_copy_button = function(url) {
     return series_copy_saeditor.edit_button_hook(url);
 }
 
+// render upload filename upon upload complete
+// return anonymous function as this gets eval'd at initialization
+function renderfileid() {
+    return function(fileid) {
+        var renderfile = fileid ? editor.file('data', fileid).filename : '';
+        return renderfile;
+    }
+}
+
+/**
+ * @instance {SaEditor} agegrade_import_saeditor
+ * 
+ * also see afterdatatables if (location.pathname.includes('/ag_tables')) {
+ */
+var agegrade_import_saeditor = new SaEditor({
+    title: 'Import Age Grade Factors',
+    fields: [
+                {name: 'table', data: 'table', label: 'Table', 'type': 'readonly'},
+                {name: 'gender', data: 'gender', label: 'Gender', 'type': 'select2', 'options': ['F', 'M', 'X'], className: 'field_req'},
+                {name: 'type', data: 'type', label: 'Type', 'type': 'select2', 'options': ['road', 'track'], className: 'field_req'},
+                {name: 'file', data: 'file', label: 'File', 'type': 'upload', className: 'field_req', ajax: '/admin/agfactoruploads', display: renderfileid()},
+            ],
+    buttons: [
+                {
+                    'text': 'Import',
+                    'action': function() {
+                        this.submit(
+                            // success
+                            function(json){
+                                rows = json.data || [];
+                                for (i=0; i<rows.length; i++) {
+                                    var rowId = '#' + rows[i].rowid;
+                                    _dt_table.row( rowId ).data( rows[i] );
+                                }
+                                _dt_table.draw();
+                        }, 
+                            // error
+                            null, 
+                            // formatData
+                            function(data){
+                                var that = this;
+                                data.action = 'import';
+                            }
+                        );
+                    }
+                },
+                {
+                    'text': 'Clear',
+                    'action': function() {
+                        confirmed = confirm('Are you sure you want to clear this data?');
+                        if (confirmed) {
+                            this.submit(
+                                // success
+                                function(json){
+                                    rows = json.data || [];
+                                    for (i=0; i<rows.length; i++) {
+                                        var rowId = '#' + rows[i].rowid;
+                                        _dt_table.row( rowId ).data( rows[i] );
+                                    }
+                                    _dt_table.draw();
+                                }, 
+                                // error
+                                null, 
+                                // formatData
+                                function(data){
+                                    var that = this;
+                                    data.action = 'clear';
+                                }
+                            );    
+                        }
+                    }
+                },
+                {
+                    text: 'Cancel',
+                    action: function() {
+                        this.close();
+                    }
+                }
+            ],
+    get_urlparams: function(e, dt, node, config) {
+        // exactly one row will be selected
+        var id = _dt_table.rows({selected:true}).ids()[0]
+        return {
+            factortable_id: id
+        }
+    },
+    after_init: function() {
+        var sae = this;
+        var submit_data;
+        sae.saeditor.on('preSubmit', function(e, data, action) {
+            submit_data = sae.saeditor.get();
+        });
+        sae.saeditor.on('submitSuccess', function(e, json, data, action) {
+            var that = this;
+            if (json.cause) {
+                // if overwrite requested, force the overwrite
+                $("<div>Error Occurred: "+json.cause+"</div>").dialog({
+                    dialogClass: 'no-titlebar',
+                    height: "auto",
+                    buttons: [
+                        {   text:  'OK',
+                            click: function(){
+                                $( this ).dialog('destroy');
+                            }
+                        }
+                    ],
+                });
+            }
+        });
+    },
+    form_values: function(json) {
+        return json
+    },
+});
+// need to create this function because of some funkiness of how eval works from the python interface
+var agegrade_import_button = function(url) {
+    return agegrade_import_saeditor.edit_button_hook(url);
+}
+
 // TODO: should this be moved to loutilities datatables.js?
 /**
  * reset datatable data based on effective date

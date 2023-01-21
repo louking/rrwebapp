@@ -22,7 +22,6 @@ from flask import current_app
 from .resultsutils import LocationServer, race_fixeddist
 from loutilities import timeu
 from loutilities import csvu
-from loutilities import agegrade
 from .resultsutils import CollectServiceResults, ServiceResultFile
 from running import athlinks
 from .model import db   # this is ok because this module only runs under flask
@@ -32,8 +31,8 @@ from .model import ApiCredentials, Club, Course, Race, MAX_RACENAME_LEN, MAX_LOC
 # see http://api.athlinks.com/Enums/RaceCategories
 CAT_RUNNING = 2
 CAT_TRAILS = 15
-race_category = {CAT_RUNNING:'road',CAT_TRAILS:'trail'}
-ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
+# CAT_RUNNING may really be road or track -- let agegrade decide
+race_category = {CAT_RUNNING:None,CAT_TRAILS:'trail'}
 class invalidParameter(Exception): pass
 
 # resultfilehdr needs to associate 1:1 with resultattrs
@@ -78,10 +77,10 @@ class AthlinksCollect(CollectServiceResults):
         initialize service
         recommended that the overriding method save service instance in `self.service`
 
-        must be overridden when ResultsCollect is instantiated
-
         :param club_id: club.id for club this service is operating on
         '''
+        super().openservice(club_id)
+
         # create location server
         self.locsvr = LocationServer()
 
@@ -371,7 +370,7 @@ class AthlinksCollect(CollectServiceResults):
             resultgen = result['Gender'][0]
             dt_racedate = timeu.epoch2dt(e_racedate)
             racedateage = timeu.age(dt_racedate,self.dt_dob)
-            agpercent,agresult,agfactor = ag.agegrade(racedateage,resultgen,course.distmiles,timeu.timesecs(resulttime))
+            agpercent,agresult,agfactor = self.agegrade(racedateage,resultgen,course.distmiles,timeu.timesecs(resulttime))
             outrec['ag'] = agpercent
             if agpercent < 15 or agpercent >= 100: return None # skip obvious outliers
         except:

@@ -13,17 +13,18 @@
 from sys import exc_info
 
 # pypi
-from flask import jsonify, request
+from flask import jsonify, request, current_app
 from flask.views import MethodView
 
 # homegrown
 from . import app
 from .request_helpers import crossdomain
-from .model import db   # this is ok because this module only runs under flask
+from .model import db, Club   # this is ok because this module only runs under flask
+from .helpers import getagfactors
 
 from loutilities.agegrade import AgeGrade
-ag = AgeGrade(agegradewb='config/wavacalc15.xls')
 
+class parameterError(Exception): pass
 
 #######################################################################
 class AgeGradeApi(MethodView):
@@ -38,9 +39,22 @@ class AgeGradeApi(MethodView):
             gender = request.args.get('gender',None)        # M, F, or X
             distance = request.args.get('distance',None)    # in miles
             timestr = request.args.get('time',None)         # in seconds or time string
+            debug = request.args.get('debug', None)         # true for logger debug output
 
             output_result = {}
 
+            # for backwards compatibility, use defaults if surface and club are not specified
+            surface = request.args.get('surface', None)
+            clubname = request.args.get('club', 'fsrcrt')   # FSRC Racing Team is only club to use this api
+            club = Club.query.filter_by(shname=clubname).one()
+            
+            # create agfactors datastructure based on club's agegradetable
+            if club.agegradetable:
+                DEBUG = current_app.logger.debug if debug else None
+                ag = AgeGrade(agegradedata=getagfactors(club.agegradetable), DEBUG=DEBUG)
+            else:
+                raise parameterError('club {clubname} has no age grade table configured')
+            
             errorfield = 'age'
             age = int(age)
             errorfield = 'distance'
@@ -55,7 +69,7 @@ class AgeGradeApi(MethodView):
                 time = time*60 + float(tval)
 
             errorfield = 'agegrade'
-            agpercent,agtime,agfactor = ag.agegrade(age,gender,distance,time)
+            agpercent, agtime, agfactor = ag.agegrade(age, gender, distance, time, surface=surface)
 
             output_result['status'] = 'success'
             output_result['agpercent'] = agpercent

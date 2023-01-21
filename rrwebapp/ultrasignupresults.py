@@ -37,7 +37,6 @@ from running import ultrasignup
 from .model import db   # this is ok because this module only runs under flask
 from .model import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
 
-ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
 class invalidParameter(Exception): pass
 
 # resultfilehdr needs to associate 1:1 with resultattrs
@@ -85,6 +84,8 @@ class UltraSignupCollect(CollectServiceResults):
 
         :param club_id: club.id for club this service is operating on
         '''
+        super().openservice(club_id)
+        
         # remember club
         self.club_id = club_id
 
@@ -240,7 +241,7 @@ class UltraSignupCollect(CollectServiceResults):
             resultgen = result.gender[0]
             dt_racedate = ftime.asc2dt(result.racedate)
             racedateage = timeu.age(dt_racedate, self.dt_dob)
-            agpercent,agresult,agfactor = ag.agegrade(racedateage, resultgen, distmiles, timeu.timesecs(resulttime))
+            agpercent,agresult,agfactor = self.agegrade(racedateage, resultgen, distmiles, timeu.timesecs(resulttime), surface=race.surface)
             outrec['ag'] = agpercent
             if agpercent < 15 or agpercent >= 100: return None # skip obvious outliers
         except:

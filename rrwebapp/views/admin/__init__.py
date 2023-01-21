@@ -15,4 +15,6 @@ from . import resultsanalysis
 from . import race
 from . import club
 from . import standings
+from . import agegrade
+from . import uploads
 from . import debug

@@ -32,6 +32,9 @@ Glossary
         security roles control what views the :term:`user` has access to, what data can be changed in the database,
         etc.
 
+    super admin
+        :term:`users <user>` with this :term:`security role` have read/write access to all application views
+
     series
         a group of :term:`races <race>` which are scored together
     

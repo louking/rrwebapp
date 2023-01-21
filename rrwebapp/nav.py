@@ -175,6 +175,7 @@ def nav_menu():
             navbar.items.append(superadmin)
             super_admin_view(superadmin, 'Clubs', 'admin.manageclubs')
             super_admin_view(superadmin, 'Users', 'admin.manageusers')
+            super_admin_view(superadmin, 'Age Grade Tables', 'admin.ag_tables')
             super_admin_view(superadmin, 'Service Credentials', 'admin.servicecredentials')
 
             analysisadmin = Subgroup('Results Analysis')

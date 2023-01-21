@@ -32,6 +32,13 @@ security = None
 # hold application here
 app = None
 
+# configure uploads
+
+from flask_uploads import UploadSet, configure_uploads
+agfactors = UploadSet('agfactors', ('xlsx', 'xls'))
+def init_uploads(app):
+    configure_uploads(app, (agfactors,))
+    
 # define MyMailUtil class for flask-security
 class MyMailUtil(MailUtil):
     def send_mail(self, template, subject, recipient, sender, body, html, user, **context):
@@ -83,9 +90,9 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
     from .model import db
     db.init_app(app)
 
-    # # initialize uploads
-    # if init_for_operation:
-    #     init_uploads(app)
+    # initialize uploads, access control
+    if init_for_operation:
+        init_uploads(app)
 
     # # uncomment when working on #428
     # # handle <interest> in URL - https://flask.palletsprojects.com/en/1.1.x/patterns/urlprocessors/

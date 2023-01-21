@@ -26,18 +26,15 @@ from flask import current_app
 
 # home grown libraries
 from loutilities.timeu import asctime, dt2epoch
-from loutilities import agegrade
+from loutilities.agegrade import AgeGrade
 from running.runningahead import RunningAhead, dist2meters, FIELD
+from .helpers import getagfactors
 
 class unexpectedEOF(Exception): pass
 class invalidParameter(Exception): pass
 
 METERSPERMILE = 1609.344
 
-# pull in age grade object
-# TODO: this should be from current_app config object, so needs to be moved somewhere current_app is defined
-ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
-    
 tdisp = asctime('%Y-%m-%d')
 
 #-------------------------------------------------------------------------------
@@ -94,11 +91,12 @@ class AgeGradeStat():
     :param source: source of data
     :param fuzzyage: 'Y' if age check was done based on age group rather than exact age, None otherwise
     :param priority: priority for deduplication, lowest value is kept (lower number = higher priority)
+    :param surface: surface for race
     '''
-    attrs = 'race,date,loc,dist,time,ag,source,fuzzyage,priority'.split(',')
+    attrs = 'race,date,loc,dist,time,ag,source,fuzzyage,priority,surface'.split(',')
     
     #-------------------------------------------------------------------------------
-    def __init__(self,date=None,dist=None,time=None,ag=None,race=None,loc=None,source=None,fuzzyage=None,priority=1):
+    def __init__(self,date=None,dist=None,time=None,ag=None,race=None,loc=None,source=None,fuzzyage=None,priority=1,surface=None):
     #-------------------------------------------------------------------------------
         self.date = date
         self.dist = dist
@@ -109,6 +107,7 @@ class AgeGradeStat():
         self.source = source
         self.fuzzyage = fuzzyage
         self.priority = priority
+        self.surface = surface
         
     #-------------------------------------------------------------------------------
     def __repr__(self):
@@ -159,7 +158,7 @@ class AnalyzeAgeGrade():
     '''
     
     #-------------------------------------------------------------------------------
-    def __init__(self):
+    def __init__(self, agegradetable):
     #-------------------------------------------------------------------------------
         self.exectime = time.time()
         self.gender = None
@@ -168,6 +167,9 @@ class AnalyzeAgeGrade():
         self.ylim = None    # TODO: make 'top','bottom' dict
                
         self.clear()
+        
+        # pull in age grade object
+        self.ag = AgeGrade(agegradedata=agegradetable)
         
     #-------------------------------------------------------------------------------
     def clear(self):
@@ -351,7 +353,8 @@ class AnalyzeAgeGrade():
                     break
                 rtime *= 60 # doesn't happen if last field was processed before
             
-    
+            suface = inrow['Surface'] if inrow['Surface'] else None
+            
             # age grade calculation was moved to crunch() to crunch age grade and pace
             # this just saves what was in the file in case I ever want to compare
             s_ag = inrow['AG']
@@ -365,7 +368,7 @@ class AnalyzeAgeGrade():
                 ag = None
                 
             self.dists.add(round(dist))      # keep track of distances to nearest meter
-            self.stats.append(AgeGradeStat(date,dist,rtime))
+            self.stats.append(AgeGradeStat(date, dist, rtime))
             #print(s_date,date,dist,ag)
             
         _IN.close()
@@ -448,7 +451,7 @@ class AnalyzeAgeGrade():
             racedate = self.stats[i].date
             agegradeage = racedate.year - self.dob.year - int((racedate.month, racedate.day) < (self.dob.month, self.dob.day))
             distmiles = self.stats[i].dist/METERSPERMILE
-            agpercentage,agtime,agfactor = ag.agegrade(agegradeage,self.gender,distmiles,self.stats[i].time)
+            agpercentage,agtime,agfactor = self.agegrade(agegradeage, self.gender, distmiles, self.stats[i].time, surface=self.stats[i].surface)
             self.stats[i].ag = agpercentage
             
             ### DEBUG>
@@ -464,6 +467,18 @@ class AnalyzeAgeGrade():
             _DEB.close()
         ### <DEBUG
     
+    def agegrade(self, age, gen, distmiles, timesecs, surface=None):
+        """get age grade based on saved AgeGrade instance
+
+        Args:
+            age (int): age on race date
+            gen (str): 'F', 'M', 'X'
+            distmiles (float): distance in miles
+            timesecs (float): time in seconds
+            surface (str, optional): 'road', 'track', 'trail'. Defaults to None.
+        """
+        return self.ag.agegrade(age, gen, distmiles, timesecs, surface=surface)
+
     #-------------------------------------------------------------------------------
     def get_trendline(self, thesestats=None, debuginfo=''):
     #-------------------------------------------------------------------------------

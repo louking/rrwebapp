@@ -29,7 +29,9 @@
             "type": "chrome",
             "url": "http://dev.localhost:5000",
             // "webRoot": "${workspaceFolder}"
-            "webRoot": "${workspaceFolder}/rrwebapp"
+            "webRoot": "${workspaceFolder}/rrwebapp",
+            // see https://code.visualstudio.com/docs/editor/variables-reference#_variables-scoped-per-workspace-folder
+            "pathMapping": {"/loutilities/static": "${workspaceFolder:loutilities}/loutilities/tables-assets/static"},
         },
         {
             "name": "Python: Current File",
@@ -37,6 +39,13 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
+            "justMyCode": false,
+        },
+        {
+            "name": "Python: test_agegrade_factors",
+            "type": "python",
+            "request": "launch",
+            "module": "rrwebapp.scripts.test_agegrade_factors",
             "justMyCode": false,
         },
         {

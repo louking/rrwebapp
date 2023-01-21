@@ -40,8 +40,6 @@ from loutilities import renderrun as render
 from running import runningahead
 from running.runningahead import FIELD
 
-
-ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
 class invalidParameter(Exception): pass
 
 # resultfilehdr needs to associate 1:1 with resultattrs
@@ -92,6 +90,8 @@ class RunningAHEADCollect(CollectServiceResults):
 
         :param club_id: club.id for club this service is operating on
         '''
+        super().openservice(club_id)
+        
         # remember club
         self.club_id = club_id
 
@@ -255,7 +255,7 @@ class RunningAHEADCollect(CollectServiceResults):
             race.date = result['date']
             race.active = True
             race.external = True
-            race.surface = 'trail'  # a guess here, but we really don't know
+            race.surface = None  # let agegrade defaults handle this
             db.session.add(race)
             db.session.flush()  # force id to be created
 
@@ -267,7 +267,7 @@ class RunningAHEADCollect(CollectServiceResults):
         # leave out age grade if exception occurs, skip results which have outliers
         try:
             resultgen = result['Gender'][0].upper()
-            agpercent,agresult,agfactor = ag.agegrade(racedateage, resultgen, distmiles, timeu.timesecs(resulttime))
+            agpercent,agresult,agfactor = self.agegrade(racedateage, resultgen, distmiles, timeu.timesecs(resulttime), surface=race.surface)
             outrec['ag'] = agpercent
             if agpercent < 15 or agpercent >= 100: return None # skip obvious outliers
         except:

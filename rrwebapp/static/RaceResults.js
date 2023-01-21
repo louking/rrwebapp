@@ -266,6 +266,7 @@
     };
 
     // toolbutton feature
+    // NOTE: deprecated in favor of using SaEditor from loutilities
     var toolbutton = {
         // toolcontent needs to be formatted as expected by JQuery accordian widget
         init: function ( buttonid, toolcontent ) {

@@ -17,6 +17,7 @@ the athletes included in that series.
    :caption: Contents:
 
    scoring-module
+   super-admin-module
    definitions
    typographical-conventions
 

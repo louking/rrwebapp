@@ -104,7 +104,9 @@ asset_bundles = {
         'datatables.js',                            # from loutilities
 
         # these need to be after datatables.js is loaded
+        'afterdatatables.js',
         'datatables.dataRender.ellipsis.js',        # from loutilities
+        'editor.buttons.editrefresh.js',            # from loutilities
         'background-post-data-manager.js',          # from loutilities
         'managemembers.js',
         'downloadresults.js',

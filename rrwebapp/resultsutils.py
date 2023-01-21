@@ -36,17 +36,21 @@ from nameparser import HumanName
 from . import app
 from .model import db, MAX_LOCATION_LEN, dbdate
 from .model import insert_or_update, RaceResult, Runner, Race, ApiCredentials, RaceResultService, Location, Exclusion
-from .model import ManagedResult, ClubAffiliation, CLUBAFFILIATION_ALTERNATES_SEPARATOR
+from .model import ManagedResult, Club, ClubAffiliation, CLUBAFFILIATION_ALTERNATES_SEPARATOR
 from .apicommon import MapDict
 from .clubmember import DbClubMember
 from .datatables_utils import DataTablesEditor
+
+from loutilities.agegrade import AgeGrade
+from .helpers import getagfactors
+
+class parameterError(Exception): pass
 
 ftime = asctime('%Y-%m-%d')
 tYmd = asctime('%Y-%m-%d')
 tmdy = asctime('%m/%d/%y')
 
 RACEEPSILON = .01  # in miles, to allow for floating point precision error in database
-ag = AgeGrade(agegradewb='config/wavacalc15.xls')
 CACHE_REFRESH = timedelta(30)   # 30 days, per https://cloud.google.com/maps-platform/terms/maps-service-terms/?&sign=0 (sec 3.4)
 
 # control behavior of import
@@ -54,6 +58,9 @@ DIFF_CUTOFF = 0.7   # ratio of matching characters for cutoff handled by 'clubme
 NONMEMBERCUTOFF = 0.9   # insist on high cutoff for nonmember matching
 AGE_DELTAMAX = 3    # +/- num years to be included in DISP_CLOSEAGE
 JOIN_GRACEPERIOD = timedelta(7) # allow runner to join 1 week beyond race date
+
+# set to True for detailed logging of all agegrade calls
+logagegrade = False
 
 # initialdisposition values
 # * match - exact name match found in runner table, with age consistent with dateofbirth
@@ -558,6 +565,14 @@ class StoreServiceResults():
         status[self.servicename]['total'] = self.serviceaccessor.count()
         status[self.servicename]['processed'] = 0
 
+        # create agfactors datastructure based on club's agegradetable
+        club = Club.query.filter_by(id=club_id).one()
+        if club.agegradetable:
+            logger = current_app.logger.debug if logagegrade else None
+            self.ag = AgeGrade(agegradedata=getagfactors(club.agegradetable), DEBUG=logger)
+        else:
+            raise parameterError('club {self.club_id} has no age grade table configured')
+
         # loop through all results and store in database
         while True:
             filerecord = next(self.serviceaccessor)
@@ -594,7 +609,7 @@ class StoreServiceResults():
             ## update or create result in database
             try:
                 agage = age(ftime.asc2dt(race.date), ftime.asc2dt(runner.dateofbirth))
-                result.agpercent, result.agtime, result.agfactor = ag.agegrade(agage, runner.gender, result.distmiles, result.timesecs)
+                result.agpercent, result.agtime, result.agfactor = self.agegrade(agage, runner.gender, result.distmiles, result.timesecs, surface=race.surface)
 
                 dbresult = RaceResult(club_id, runner.id, race.id, None, result.timesecs, runner.gender, agage, instandings=False)
                 for attr in ['agfactor', 'agtime', 'agpercent', 'source', 'sourceid', 'sourceresultid', 'fuzzyage']:
@@ -618,6 +633,19 @@ class StoreServiceResults():
 
         # finished reading results, close input file
         self.serviceaccessor.close()
+
+    def agegrade(self, age, gen, distmiles, timesecs, surface=None):
+        """get age grade based on saved AgeGrade instance
+
+        Args:
+            age (int): age on race date
+            gen (str): 'F', 'M', 'X'
+            distmiles (float): distance in miles
+            timesecs (float): time in seconds
+            surface (str, optional): 'road', 'track', 'trail'. Defaults to None.
+        """
+        return self.ag.agegrade(age, gen, distmiles, timesecs, surface=surface, errorlogger=current_app.logger.error)
+
 
 
 class CollectServiceResults(object):
@@ -643,12 +671,29 @@ class CollectServiceResults(object):
         initialize service
         recommended that the overriding method save service instance in `self.service`
 
-        must be overridden when ResultsCollect is instantiated
-
         :param club_id: club.id for club this service is operating on
         '''
-        pass
+        # create agfactors datastructure based on club's agegradetable
+        club = Club.query.filter_by(id=club_id).one()
+        if club.agegradetable:
+            logger = current_app.logger.debug if logagegrade else None
+            self.ag = AgeGrade(agegradedata=getagfactors(club.agegradetable), DEBUG=logger)
+        else:
+            raise parameterError('club {self.club_id} has no age grade table configured')
 
+
+    def agegrade(self, age, gen, distmiles, timesecs, surface=None):
+        """get age grade based on saved AgeGrade instance
+
+        Args:
+            age (int): age on race date
+            gen (str): 'F', 'M', 'X'
+            distmiles (float): distance in miles
+            timesecs (float): time in seconds
+            surface (str, optional): 'road', 'track', 'trail'. Defaults to None.
+        """
+        return self.ag.agegrade(age, gen, distmiles, timesecs, surface=surface, errorlogger=current_app.logger.error)
+        
     def getresults(self, name, fname, lname, gender, dt_dob, begindate, enddate):
         '''
         retrieves a list of results for a single name

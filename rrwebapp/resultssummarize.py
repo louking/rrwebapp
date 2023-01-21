@@ -38,6 +38,7 @@ from loutilities.renderrun import rendertime
 from . import analyzeagegrade
 from .resultsutils import ServiceAttributes, LocationServer, get_distance
 from .model import Club, RaceResultService, ApiCredentials, RaceResult, Race, Location, Runner
+from .helpers import getagfactors
 from .settings import productname
 
 ftime = timeu.asctime('%Y-%m-%d')
@@ -77,12 +78,13 @@ def mean(items):
     return float(sum(items))/len(items) if len(items) > 0 else float('nan')
 
 #----------------------------------------------------------------------
-def initaagrunner(aag, thisrunner, fname, lname, gender, dob, runnerid):
+def initaagrunner(aag, club, thisrunner, fname, lname, gender, dob, runnerid):
 #----------------------------------------------------------------------
     '''
     initializaze :class:`AnalyzeAgeGrade` object, if not already initialized
     
     :param aag: :class:`AnalyzeAgeGrade` objects, by runner name
+    :param club: :class:`Club` instance
     :param thisrunner: key for aag structure: (runnername, asciidob)
     :param fname: first name for runner
     :param lname: last name for runner
@@ -91,7 +93,7 @@ def initaagrunner(aag, thisrunner, fname, lname, gender, dob, runnerid):
     :param runnerid: runner.id
     '''
     if thisrunner not in aag:
-        aag[thisrunner] = analyzeagegrade.AnalyzeAgeGrade()
+        aag[thisrunner] = analyzeagegrade.AnalyzeAgeGrade(getagfactors(club.agegradetable))
         aag[thisrunner].set_runner(thisrunner[0], fname, lname, gender, dob, runnerid)
     
         
@@ -177,7 +179,7 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
             if distance == None or distance > maxdistance[result.source]: continue
 
         thisname = (result.runner.name.lower(), result.runner.dateofbirth)
-        initaagrunner(aag, thisname, result.runner.fname, result.runner.lname, result.runner.gender, ftime.asc2dt(result.runner.dateofbirth), result.runner.id)
+        initaagrunner(aag, club, thisname, result.runner.fname, result.runner.lname, result.runner.gender, ftime.asc2dt(result.runner.dateofbirth), result.runner.id)
         
         # determine location name. any error gets null string
         locationname = ''

@@ -309,6 +309,9 @@ class Club(Base):
     memberserviceapi = Column(String(20))  # name from apicredentials table, None if no api configured
     memberserviceid = Column(String(64))  # identifies club to the member service
     location = Column(String(MAX_LOCATION_LEN))
+    agegradetable_id = Column(Integer, ForeignKey('agegrade_table.id'))
+    agegradetable = relationship('AgeGradeTable', back_populates='clubs')
+
     roles = relationship('Role',backref='club',cascade="all, delete")
     runners = relationship('Runner',backref='club',cascade="all, delete")
     races = relationship('Race',backref='club',cascade="all, delete")
@@ -844,6 +847,37 @@ class Exclusion(Base):
     runnerid = Column(Integer, ForeignKey('runner.id'))
 
 
+class AgeGradeTable(Base):
+    __tablename__ = 'agegrade_table'
+    id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    last_update = Column(DateTime)
+    categories = relationship('AgeGradeCategory', back_populates='factortable', cascade='all, delete')
+    clubs = relationship('Club', back_populates='agegradetable', cascade='all, delete')
+
+
+class AgeGradeCategory(Base):
+    __tablename__ = 'agegrade_category'
+    __table_args__ = (UniqueConstraint('factortable_id', 'gender', 'surface', 'dist_mm'),)
+    id = Column(Integer, primary_key=True)
+    factortable_id = Column(Integer, ForeignKey('agegrade_table.id'))
+    factortable = relationship('AgeGradeTable', back_populates='categories')
+    gender = Column(Enum('M', 'F', 'X'))
+    surface = Column(Enum('road', 'track'))
+    dist_mm = Column(Integer)
+    oc_secs = Column(Float) # open class (standard) in seconds
+    factors = relationship('AgeGradeFactor', back_populates='category', cascade='all, delete')
+    
+
+class AgeGradeFactor(Base):
+    __tablename__ = 'agegrade_factor'
+    id = Column(Integer, primary_key=True)
+    category_id = Column(Integer, ForeignKey('agegrade_category.id'))
+    category = relationship('AgeGradeCategory', back_populates='factors')
+    age = Column(Integer)
+    factor = Column(Float)
+
+    
 # created by celery
 class CeleryGroupmeta(Base):
     __tablename__ = 'celery_groupmeta'

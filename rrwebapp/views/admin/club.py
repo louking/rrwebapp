@@ -14,14 +14,14 @@ from ...accesscontrol import owner_permission, UpdateClubDataPermission
 from ...crudapi import CrudApi, DbQueryApi
 
 # module specific needs
-from ...model import Club
+from ...model import Club, AgeGradeTable
 
 ###########################################################################################
 # manageclubs endpoint
 ###########################################################################################
 
-club_dbattrs = 'id,shname,name,location,memberserviceapi,memberserviceid'.split(',')
-club_formfields = 'rowid,shname,name,location,service,serviceid'.split(',')
+club_dbattrs = 'id,shname,name,location,memberserviceapi,memberserviceid,agegradetable'.split(',')
+club_formfields = 'rowid,shname,name,location,service,serviceid,agegradetable'.split(',')
 club_dbmapping = dict(list(zip(club_dbattrs, club_formfields)))
 club_formmapping = dict(list(zip(club_formfields, club_dbattrs)))
 club = CrudApi(
@@ -39,6 +39,17 @@ club = CrudApi(
       { 'data': 'location', 'name': 'location', 'label': 'Location' },
       { 'data': 'service', 'name': 'service', 'label': 'Service' },
       { 'data': 'serviceid', 'name': 'serviceid', 'label': 'Service ID' },
+      { 'data': 'agegradetable', 'name': 'agegradetable', 'label': 'Age Grade Table', 'type': 'select2',
+         '_treatment': {'relationship':
+             {
+                 'dbfield': 'agegradetable',
+                 'fieldmodel': AgeGradeTable,
+                 'labelfield': 'name',
+                 'formfield': 'agegradetable',
+                 'uselist': False,
+             }
+         },
+      },
    ], 
    servercolumns = None,  # not server side
    byclub = False, 

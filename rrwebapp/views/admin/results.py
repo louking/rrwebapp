@@ -29,7 +29,8 @@ from sqlalchemy import func, cast
 from attrdict import AttrDict
 from dominate.tags import button, div, p, ul, li
 import loutilities.renderrun as render
-from loutilities import timeu, agegrade
+from loutilities import timeu
+from loutilities.agegrade import AgeGrade
 from loutilities.filters import filtercontainerdiv, filterdiv, yadcfoption
 from loutilities.tables import DataTables, ColumnDT
 from loutilities.timeu import asctime
@@ -61,9 +62,7 @@ from ...model import SERIES_OPTION_REQUIRES_CLUB, SERIES_OPTION_DISPLAY_CLUB
 from ...datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 from ...forms import SeriesResultForm
 from ...tasks import importresultstask
-
-# support age grade
-ag = agegrade.AgeGrade(agegradewb='config/wavacalc15.xls')
+from ...helpers import getagfactors
 
 class BooleanError(Exception): pass
 class ParameterError(Exception): pass
@@ -645,94 +644,6 @@ class RunnerResults(MethodView):
             db.session.rollback()
             raise
 bp.add_url_rule('/results',view_func=RunnerResults.as_view('results'),methods=['GET'])
-
-def renderage(result):
-    '''
-    render age string for result
-    any exceptions returns empty string - probably bad dateofbirth
-
-    :param result: result from RaceResult joined with Runner, Race
-    :rtype: string for rendering
-    '''
-
-    try:
-        thisage = timeu.age(tYmd.asc2dt(result.race.date),tYmd.asc2dt(result.runner.dateofbirth))
-    except:
-        thisage = ''
-
-    return thisage
-
-def renderagtime(result):
-    '''
-    render age grade time for result
-    any exceptions returns empty string - probably bad dateofbirth
-
-    :param result: result from RaceResult joined with Runner, Race
-    :rtype: string for rendering
-    '''
-
-    try:
-        thisage = timeu.age(tYmd.asc2dt(result.race.date),tYmd.asc2dt(result.runner.dateofbirth))
-        agpercent, agtime, agfactor = ag.agegrade(thisage, result.runner.gender, result.race.distance, result.time)
-        agtime = render.rendertime(agtime,0)
-    except:
-        agtime = ''
-
-    return agtime
-
-def renderagpercent(result):
-    '''
-    render age grade percentage for result
-    any exceptions returns empty string - probably bad dateofbirth
-
-    :param result: result from RaceResult joined with Runner, Race
-    :rtype: string for rendering
-    '''
-
-    try:
-        thisage = timeu.age(tYmd.asc2dt(result.race.date),tYmd.asc2dt(result.runner.dateofbirth))
-        agpercent, agtime, agfactor = ag.agegrade(thisage, result.runner.gender, result.race.distance, result.time)
-        agpercent = '{:.2f}%'.format(agpercent)
-    except:
-        agpercent = ''
-
-    return agpercent
-
-def renderintstr(cell):
-    '''
-    render int string for cell
-    any exceptions returns 0
-
-    :param cell: cell with int probably
-    :rtype: int (hopefully)
-    '''
-
-    try:
-        this = int(cell)
-    except:
-        this = 0
-
-    return this
-
-def rendermembertype(result):
-    '''
-    render membertype
-
-    :param result: result from ManagedResult
-    :rtype: string for rendering
-    '''
-
-    # if runner is indicated, find out whether runner is a member
-    if result.runnerid:
-        runner = Runner.query.filter_by(id=result.runnerid).first()
-        if runner.member:
-            this = 'member'
-        else:
-            this = 'nonmember'
-    else:
-        this = ''
-
-    return this
 
 
 class AjaxRunnerResults(MethodView):
@@ -1676,6 +1587,10 @@ class AjaxTabulateResults(MethodView):
 
             # get precision for time rendering
             timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
+            
+            # get club based age grade factors table
+            club = Club.query.filter_by(id=club_id).one()
+            ag = AgeGrade(agegradedata=getagfactors(club.agegradetable))
 
             # for each series for this race - 'series' describes how to tabulate the results
             theseseries = race.series
@@ -1785,7 +1700,7 @@ class AjaxTabulateResults(MethodView):
                     if agegradeage:
                         timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
                         adjtime = render.adjusttime(resulttime,timeprecision)    # ceiling for adjtime
-                        raceresult.agpercent,raceresult.agtime,raceresult.agfactor = ag.agegrade(agegradeage,gender,race.distance,adjtime)
+                        raceresult.agpercent,raceresult.agtime,raceresult.agfactor = ag.agegrade(agegradeage,gender,race.distance,adjtime,surface=race.surface)
             
                     if series.divisions:
                         # member's age to determine division is the member's age on Jan 1
