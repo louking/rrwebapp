@@ -405,10 +405,12 @@ def ras_buttons():
 
 ras_filters = filtercontainerdiv()
 with ras_filters:
+    filterdiv('ras-external-filter-numraces', 'Num Races')
     filterdiv('ras-external-filter-age', 'Age')
     filterdiv('ras-external-filter-gender', 'Gender')
 
 ras_yadcf_options = [
+    yadcfoption('numraces-overall:name', 'ras-external-filter-numraces', 'range_number', placeholder='Select num races'),
     yadcfoption('age:name', 'ras-external-filter-age', 'range_number', placeholder='Select age'),
     yadcfoption('gender:name', 'ras-external-filter-gender', 'select', placeholder='Select gender', width='75px'),
 ]
