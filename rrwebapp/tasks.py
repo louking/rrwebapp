@@ -257,6 +257,12 @@ def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
             if peeknames:
                 current_app.logger.debug(f'tasks.importmemberstask: peeknames={peeknames}')
 
+            gender2db = {
+                'male': 'M',
+                'female': 'F',
+                'non-binary': 'X',
+                None: ' ',
+            }
             thesemembers = allmembers[name]
             # NOTE: may be multiple members with same name
             for thismember in thesemembers:
@@ -264,7 +270,7 @@ def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
                 thisfname = thismember['fname']
                 thislname = thismember['lname']
                 thisdob = thismember['dob']
-                thisgender = thismember['gender'][0].upper()    # male -> M, female -> F
+                thisgender = gender2db[thismember['gender'].lower() if thismember['gender'] else None]
                 thishometown = thismember['hometown']
                 thisrenewdate = thismember['renewdate']
                 thisexpdate = thismember['expdate']

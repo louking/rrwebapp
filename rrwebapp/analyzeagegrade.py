@@ -379,7 +379,7 @@ class AnalyzeAgeGrade():
         '''
         get the user's data from RunningAHEAD
         
-        :rtype: dists,stats,dob,gender where dists =  set of distances included in stats, stats = {'date':[datetime of race,...], 'dist':[distance(meters),...], 'time':[racetime(seconds),...]}, dob = date of birth (datetime), gender = 'M'|'F'
+        :rtype: dists,stats,dob,gender where dists =  set of distances included in stats, stats = {'date':[datetime of race,...], 'dist':[distance(meters),...], 'time':[racetime(seconds),...]}, dob = date of birth (datetime), gender = 'M'|'F'|'X'
         '''
         # set up RunningAhead object and get users we're allowed to look at
         ra = RunningAhead()    

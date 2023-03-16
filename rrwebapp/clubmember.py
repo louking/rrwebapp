@@ -43,7 +43,11 @@ rsu_api2filemapping = OrderedDict([
                         ('FamilyName'     , lambda mem: mem['user']['last_name']),
                         ('GivenName'      , lambda mem: mem['user']['first_name']),
                         ('MiddleName'     , lambda mem: mem['user']['middle_name']),
-                        ('Gender'         , lambda mem: 'Female' if mem['user']['gender'] == 'F' else 'Male'),
+                        ('Gender'         , lambda mem: 'Non-binary' if 'gender' not in mem['user'] \
+                                                else 'Female' if mem['user']['gender'] == 'F' \
+                                                else 'Male' if mem['user']['gender'] == 'M' \
+                                                else 'Non-binary' if mem['user']['gender'] == 'X' \
+                                                else None),
                         ('DOB'            , lambda mem: mem['user']['dob']),
                         ('Email'          , lambda mem: mem['user']['email'] if 'email' in mem['user'] else ''),
                         ('City'           , lambda mem: mem['user']['address']['city']),
@@ -61,7 +65,11 @@ rsu_filexform = Transform({
                         'FamilyName'     : 'Last Name',
                         'GivenName'      : 'First Name',
                         'MiddleName'     : 'Middle Name',
-                        'Gender'         : lambda mem: 'Female' if mem['Gender'] == 'F' else 'Male',
+                        'Gender'         : lambda mem: 'Non-binary' if 'Gender' not in mem \
+                                                else 'Female' if mem['Gender'] == 'F' \
+                                                else 'Male' if mem['Gender'] == 'F' \
+                                                else 'Non-binary' if mem['Gender'] == 'X' \
+                                                else None,
                         'DOB'            : lambda mem: rsudate(mem['Date of Birth']),
                         'Email'          : 'E-mail',
                         'City'           : 'City',
