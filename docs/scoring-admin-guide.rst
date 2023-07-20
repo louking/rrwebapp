@@ -40,10 +40,6 @@ Beginning of Year Setup
   
     * You’ll probably have to ask around for specific dates of races. If you don’t know the date for a race, add “(date TBD)” to the race name
     * Make sure you have the exact specific number of miles listed for each race. This is for age grade calculations and needs to be very precise.
-    * For FSRC, there needs to be two races listed for the decathlon 800m – one that is part of the grand prix and equalizer series, and a separate 
-      one that is just part of the decathlon series. The one that is part of the decathlon series is open to all runners while the one that is part 
-      of the grand prix and equalizer series is members-only. I.e., we don’t want nonmembers to be included in the grand prix and equalizer standings, 
-      but we do want them to be included in the decathlon standing.
 
 ..
    see https://www.graphviz.org/
