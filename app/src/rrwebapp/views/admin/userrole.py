@@ -206,7 +206,7 @@ class UserSettings(MethodView):
         
             pagename = 'User Settings'
             buttontext = 'Update'
-            successtext = '{} updated'.format(thisuser.name)
+            # successtext = '{} updated'.format(thisuser.name)
             displayonly = False
         
             # create the form

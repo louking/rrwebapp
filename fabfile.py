@@ -1,8 +1,3 @@
-###########################################################################################
-# fabfile  -- deployment using Fabric
-#
-#   Copyright 2019 Lou King
-###########################################################################################
 '''
 fabfile  -- deployment using Fabric
 =================================================================
@@ -12,52 +7,44 @@ expecting fabric.json with following content
         "connect_kwargs": {
             "key_filename": sshkeyfilename (export OpenSSH key from puttygen)
         },
-        "user": "{appname}mgr" (meaning account to log in for this app)
+        "user": "appuser"
     }
 
 execute as follows
 
-    fab -H <target-host> deploy
+    fab -H <target-host> deploy [prod, sandbox
 
 or 
 
-    fab -H <target1>,<target2> deploy
+    fab -H <target1>,<target2> deploy [prod, sandbox]
 
 if you need to check out a particular branch
 
     fab -H <target-host> deploy --branchname=<branch>
+
 '''
 
 from fabric import task
 from invoke import Exit
 
-APP_NAME = 'rrwebapp'
-WSGI_SCRIPT = 'rrwebapp.wsgi'
-JS_SOURCE = '/home/scoretility/devhome/js'
+APP_NAME = 'scores'
+PROJECT_NAME = 'rrwebapp'
+
+qualifiers = ['prod', 'sandbox']
 
 @task
-def deploy(c, branchname='master'):
-    print((f'c.user={c.user} c.host={c.host} branchname={branchname}'))
+def deploy(c, qualifier, branchname='master'):
+    if qualifier not in qualifiers:
+        raise Exit(f'deploy qualifier parameter must be one of {qualifiers}')
+        
+    print(f'c.user={c.user} c.host={c.host} branchname={branchname}')
 
-    # TODO: rrwebapp should be venv, separate from application, fix for python 3
-    venv_dir = f'/var/www/{c.host}/venv'
-    project_dir = f'/var/www/{c.host}/{APP_NAME}'
+    project_dir = f'~/{APP_NAME}-{qualifier}'
 
-    c.run(f'cd {project_dir} && git pull')
+    for the_file in ['docker-compose.yml']:
+        if not c.run(f"cd {project_dir} && curl --fail -O 'https://raw.githubusercontent.com/louking/{PROJECT_NAME}/{branchname}/{the_file}'", warn=True):
+            raise Exit(f'louking/{PROJECT_NAME}/{branchname}/{the_file} does not exist')
 
-    if not c.run(f'cd {project_dir} && git show-ref --verify --quiet refs/heads/{branchname}', warn=True):
-        raise Exit(f'branchname {branchname} does not exist')
-
-    c.run(f'cd {project_dir} && git checkout {branchname}')
-    # NOTE: this may be application specific
-    c.run(f'cd {project_dir} && cp -R {JS_SOURCE} {APP_NAME}/static')
-    # must source bin/activate before each command which must be done under venv
-    # because each is a separate process
-    c.run(f'cd {project_dir} && source {venv_dir}/bin/activate && pip install -r requirements.txt')
-
-    versions_dir = f'{project_dir}/migrations/versions'
-    if not c.run(f'test -d {versions_dir}', warn=True):
-        c.run(f'mkdir -p {versions_dir}')
-
-    c.run(f'cd {project_dir} && source {venv_dir}/bin/activate && flask db upgrade')
-    c.run(f'cd {project_dir} && touch {WSGI_SCRIPT}')
+    # stop and build/start docker services
+    c.run(f'cd {project_dir} && docker compose pull')
+    c.run(f'cd {project_dir} && docker compose up -d')

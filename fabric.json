@@ -1,6 +1,6 @@
 {
     "connect_kwargs": {
-        "key_filename": "C:\\Users\\lking\\Documents\\Lou\\putty\\loutility-server-digitalocean-scoretility.sshkey"
+        "key_filename": "C:\\Users\\lking\\Documents\\Lou\\putty\\fsrc-server-do-appuser.sshkey"
     },
-    "user": "scoretility"
+    "user": "appuser"
 }
