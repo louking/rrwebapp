@@ -72,12 +72,14 @@ class RealDb(Config):
         config = {}
         for configfile in configfiles:
             config.update(getitems(configfile, 'database'))
-
         dbuser = config['dbuser']
-        password = config['dbpassword']
+        with open(f'/run/secrets/appdb-password') as pw:
+            password = pw.readline().strip()
         dbserver = config['dbserver']
         dbname = config['dbname']
-        db_uri = 'mysql://{uname}:{pw}@{server}/{dbname}'.format(uname=dbuser,pw=password,server=dbserver,dbname=dbname)
+        # app.logger.debug('using mysql://{uname}:*******@{server}/{dbname}'.format(uname=dbuser,server=dbserver,dbname=dbname))
+        db_uri = 'mysql://{uname}:{pw}@{server}/{dbname}'.format(uname=dbuser, pw=password, server=dbserver,
+                                                                 dbname=dbname)
         self.SQLALCHEMY_DATABASE_URI = db_uri
 
         # # uncomment when working on #426
