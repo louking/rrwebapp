@@ -6,7 +6,6 @@ result - result views for result results web application
 # standard
 import os.path
 import os
-import sys
 from time import time
 import traceback
 from urllib.parse import urlencode
@@ -16,6 +15,7 @@ from traceback import format_exc, format_exception_only
 from csv import DictWriter, reader, writer
 from tempfile import TemporaryDirectory
 from datetime import datetime
+from re import escape
 
 # pypi
 import flask
@@ -2035,12 +2035,12 @@ class AjaxDownloadResults(MethodView):
                 resultspage.raise_for_status()
 
                 # if this is runsignup page
-                if search('cdnjs\.runsignup\.com', resultspage.text):
+                if search(escape('cdnjs.runsignup.com'), resultspage.text):
                     respdata = {'service': 'runsignup', 'options': {}}
                     # convenience handle
                     options = respdata['options']
 
-                    rsuraceurl = search('\/Race\/Results\/([0-9]*)\/', resultspage.text)
+                    rsuraceurl = search(r'/Race/Results/([0-9]*)/', resultspage.text)
                     if not rsuraceurl:
                         return jsonify(error='could not find downloadable results in page')
 
