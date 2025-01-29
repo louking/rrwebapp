@@ -427,7 +427,7 @@ class DbClubMember(ClubMember):
     :params dbfilename: database file from which club members are to be retrieved -- default is to use configured database
     :params cutoff: cutoff for getmember.  float in (0,1].  higher means strings have to match more closely to be considered "close".  Default 0.6
     :params encoding: encoding for csv file, defaults to utf8 for backwards compatibility
-    :params \*\*kwfilter: keyword parameters for Runner database filter
+    :params **kwfilter: keyword parameters for Runner database filter
     '''
     
     #----------------------------------------------------------------------
