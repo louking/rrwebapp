@@ -8,7 +8,6 @@ argon2-cffi-bindings==21.2.0
 asn1crypto==1.5.1
 astroid==2.11.7
 asttokens==2.0.7
-attrdict==2.0.1
 attrs==24.2.0
 Babel==2.10.3
 backcall==0.2.0

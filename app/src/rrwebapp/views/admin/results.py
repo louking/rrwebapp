@@ -26,7 +26,6 @@ from flask_login import login_required
 from flask.views import MethodView
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, cast
-from attrdict import AttrDict
 from dominate.tags import button, div, p, ul, li
 import loutilities.renderrun as render
 from loutilities import timeu
@@ -68,6 +67,16 @@ class BooleanError(Exception): pass
 class ParameterError(Exception): pass
 
 dbdate = asctime('%Y-%m-%d')
+
+class DictObj:
+    """from https://joelmccune.com/python-dictionary-as-object/
+    """
+    def __init__(self, in_dict: dict):
+        for key, val in in_dict.items():
+            if isinstance(val, (list, tuple)):
+                setattr(self, key, [DictObj(x) if isinstance(x, dict) else x for x in val])
+            else:
+                setattr(self, key, DictObj(val) if isinstance(val, dict) else val)
 
 def getmembertype(runnerid):
     '''
@@ -313,7 +322,7 @@ class AjaxEditParticipants(MethodView):
             tableselects = {}
             for result in output_result['data']:
                 # use select field unless 'definite', or membersonly and '' (means definitely didn't find)
-                r = AttrDict(result)    # for convenience because getrunnerchoices assumes object not dict
+                r = DictObj(result)    # for convenience because getrunnerchoices assumes object not dict
                 if writecheck.can() and ((r.disposition in [DISP_CLOSEAGE, DISP_CLOSE]) 
                                          or (not membersonly and r.disposition != DISP_MATCH)):
                     tableselects[r.id] = getrunnerchoices(club_id, race, pool, r)
