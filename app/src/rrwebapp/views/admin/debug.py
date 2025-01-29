@@ -35,9 +35,17 @@ class ViewDebug(MethodView):
             appconfig = []
             for key in configkeys:
                 value = current_app.config[key]
-                if not owner_permission.can():
-                    if key in ['SQLALCHEMY_DATABASE_URI','SECRET_KEY']:
-                        value = '<obscured>'
+                if key in ['SQLALCHEMY_DATABASE_URI', 'SQLALCHEMY_BINDS',
+                            'SECRET_KEY',
+                            'SECURITY_PASSWORD_SALT',
+                            'GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_OAUTH_CLIENT_SECRET',
+                            'GMAPS_API_KEY', 'GMAPS_ELEV_API_KEY',
+                            'APP_OWNER_PW',
+                            'RSU_KEY', 'RSU_SECRET',
+                            'MC_KEY',
+                            'MAIL_PASSWORD',
+                            ]:
+                    value = '[obscured]'
                 appconfig.append({'label':key, 'value':value})
             sysvars.append(['current_app.config',appconfig])
             
