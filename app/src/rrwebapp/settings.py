@@ -6,7 +6,8 @@ see http://flask.pocoo.org/docs/1.0/config/?highlight=production#configuration-b
 
 # standard
 import logging
-from os.path import join
+import os.path
+from os import environ
 
 # pypi
 from flask import current_app
@@ -103,7 +104,11 @@ def productname():
     return PRODUCTNAME_TEXT
 
 def get_configfiles():
-    configpath = join('config', 'rrwebapp.cfg')
+    appname = environ['APP_NAME']
+
+    abspath = os.path.abspath('/config')
+    configpath = os.path.join(abspath, f'{appname}.cfg')
+
     # userconfigpath = os.path.join('config', 'users.cfg')
     # userconfigpath first so configpath can override
     configfiles = [configpath]

@@ -5,22 +5,14 @@ app_server.py for webserver execution
     must match with app.py except for under "flask command processing"
 '''
 # standard
-import os.path
-from os import environ
 
 # pypi
 
 # homegrown
-from members import create_app
-from members.settings import Production
+from rrwebapp import create_app
+from rrwebapp.settings import Production, get_configfiles
 
-appname = environ['APP_NAME']
-
-abspath = os.path.abspath('/config')
-configpath = os.path.join(abspath, f'{appname}.cfg')
-userconfigpath = os.path.join(abspath, 'users.cfg')
-# userconfigpath first so configpath can override
-configfiles = [userconfigpath, configpath]
+configfiles = get_configfiles()
 
 # init_for_operation=True because we want operational behavior
 # sqlalchemy.exc.OperationalError if one of the updating tables needs migration

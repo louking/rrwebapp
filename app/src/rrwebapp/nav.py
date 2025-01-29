@@ -13,6 +13,8 @@ from html.parser import HTMLParser
 
 # pypi
 from flask import url_for, abort, session, current_app
+import collections
+collections.MutableMapping = collections.abc.MutableMapping # https://stackoverflow.com/a/78863584/799921
 from flask_security import current_user
 from flask.views import MethodView
 from flask import request

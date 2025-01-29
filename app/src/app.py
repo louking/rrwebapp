@@ -1,20 +1,19 @@
 '''
 app.py is only used to support flask commands
 
-develop execution from run.py; production execution from rrwebapp.wsgi
+app_server.py for webserver execution
+    must match with app.py except for under "flask command processing"
 '''
 # standard
 import os.path
 
 # pypi
 from flask_migrate import Migrate
-from sqlalchemy.orm import scoped_session, sessionmaker
 
 # homegrown
 from rrwebapp import create_app
 from rrwebapp.settings import Production, get_configfiles
 from rrwebapp.model import db
-from rrwebapp.applogging import setlogging
 
 configfiles = get_configfiles()
 
@@ -22,15 +21,7 @@ configfiles = get_configfiles()
 # sqlalchemy.exc.OperationalError if one of the updating tables needs migration
 app = create_app(Production(configfiles), configfiles, init_for_operation=False)
 
-# set up scoped session
-with app.app_context():
-# this causes SQLALCHEMY_BINDS not to work ('user' bind missing)
-#     db.session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=db.engine))
-#     db.query = db.session.query_property()
-
-    # turn on logging
-    setlogging()
-
+# set up flask command processing (not needed within app_server.py)
 migrate = Migrate(app, db, compare_type=True)
 
 

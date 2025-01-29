@@ -3,6 +3,7 @@ rrwebapp - package
 ====================
 '''
 # standard
+from os import environ
 import os.path
 
 # pypi
@@ -31,6 +32,7 @@ security = None
 
 # hold application here
 app = None
+appname = environ['APP_NAME']
 
 # configure uploads
 
@@ -63,15 +65,21 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
     apply configuration object, then configuration files
     '''
     global app
-    app = Flask('rrwebapp')
+    # can't have hyphen in package name, so need to specify with underscore
+    app = Flask(appname.replace('-', '_'))
     app.config.from_object(config_obj)
     if configfiles:
-        # backwards compatibility
-        if type(configfiles) == str:
-            configfiles = [configfiles]
         for configfile in configfiles:
             appconfig = getitems(configfile, 'app')
             app.config.update(appconfig)
+
+    # load any environment variables which start with FLASK_
+    app.config.from_prefixed_env(prefix='FLASK')
+
+    with app.app_context():
+        # turn on logging
+        from .applogging import setlogging
+        setlogging()
 
     # tell jinja to remove linebreaks
     app.jinja_env.trim_blocks = True
@@ -169,16 +177,12 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
         # import navigation after views created
         from . import nav
 
-        # turn on logging
-        from .applogging import setlogging
-        setlogging()
-
         # set up scoped session
         from sqlalchemy.orm import scoped_session, sessionmaker
         # see https://github.com/pallets/flask-sqlalchemy/blob/706982bb8a096220d29e5cef156950237753d89f/flask_sqlalchemy/__init__.py#L990
         db.session = scoped_session(sessionmaker(autocommit=False,
                                                  autoflush=False,
-                                                 binds=db.get_binds(app)))
+                                                 binds=db.get_binds()))
         db.query = db.session.query_property()
 
         # handle favicon request for old browsers
@@ -236,6 +240,7 @@ def create_app(config_obj, configfiles=None, init_for_operation=True):
 
     # app back to caller
     return app
+
 
 
 
