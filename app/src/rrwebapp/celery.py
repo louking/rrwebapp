@@ -33,6 +33,14 @@ with open(f'/run/secrets/appdb-password') as pw:
     dbpassword = pw.readline().strip()
 celeryconfig['result_backend'] = f'db+mysql://{dbuser}:{dbpassword}@{dbserver}/{dbname}'
 
+username = celeryconfig['username']
+brokerserver = celeryconfig['brokerserver']
+brokerhost = celeryconfig['brokerhost']
+with open(f'/run/secrets/rabbitmq-app-password') as pw:
+    password = pw.readline().strip()
+celeryconfig['broker_url'] =  f'amqp://{username}:{password}@{brokerhost}/{brokerserver}'
+# print(f'broker_url = {celeryconfig['broker_url']}')
+
 celeryapp.conf.update(celeryconfig)
 
 

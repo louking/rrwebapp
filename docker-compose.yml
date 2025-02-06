@@ -59,15 +59,25 @@ services:
       PMA_ABSOLUTE_URI: http://phpmyadmin/phpmyadmin
 
   rabbitmq:
-    image: rabbitmq:${RABBITMQ_VER}-alpine
+    image: louking/${APP_NAME}-rabbitmq:${APP_VER}
+    build: 
+      context: rabbitmq
+      args:
+        RABBITMQ_VER: ${RABBITMQ_VER}
     restart: always
     depends_on:
       - db
     networks:
       - backend-network
-      - frontend-network
+    secrets:
+      - rabbitmq-app-password
     volumes:
       - ${VAR_LOG_HOST}:/var/log
+      - rabbitmq-data:/var/lib/rabbitmq
+    environment: 
+      TZ: ${TZ}
+      # use container name for hostname
+      RABBITMQ_NODENAME: rabbit@rabbitmq
 
   app:
     image: louking/${APP_NAME}-app:${APP_VER}
@@ -82,6 +92,7 @@ services:
     secrets:
       - root-password
       - appdb-password
+      - rabbitmq-app-password
     networks:
       - backend-network
       - frontend-network
@@ -162,6 +173,7 @@ services:
     secrets:
       - root-password
       - appdb-password
+      - rabbitmq-app-password
     volumes:
       - ./config/msmtprc:/etc/msmtprc:ro
       - ${VAR_LOG_HOST}:/var/log
@@ -181,7 +193,7 @@ services:
     extra_hosts:
       # see https://stackoverflow.com/a/67158212/799921
       - "host.docker.internal:host-gateway"
-    command: ["celery", "-A", "rrwebapp.celery", "worker", "-l", "info", "-c", "1", "-f", "${APP_LOGGING_PATH}/celery.%%i.log", "-n", "scoretility.com"]
+    command: ["celery", "-A", "rrwebapp.celery", "worker", "-l", "info", "-c", "1", "-f", "${APP_LOGGING_PATH}/celery.%i.log", "-n", "scoretility.com"]
 
   celerylongtask:
     image: louking/${APP_NAME}-app:${APP_VER}
@@ -195,6 +207,7 @@ services:
     secrets:
       - root-password
       - appdb-password
+      - rabbitmq-app-password
     volumes:
       - ./config/msmtprc:/etc/msmtprc:ro
       - ${VAR_LOG_HOST}:/var/log
@@ -214,16 +227,19 @@ services:
     extra_hosts:
       # see https://stackoverflow.com/a/67158212/799921
       - "host.docker.internal:host-gateway"
-    command: ["celery", "-A", "rrwebapp.celery", "worker", "-l", "info", "-c", "1", "-Q", "longtask", "-f", "${APP_LOGGING_PATH}/celerylongtask.%%i.log", "-n", "celerylongtask@scoretility.com"]
+    command: ["celery", "-A", "rrwebapp.celery", "worker", "-l", "info", "-c", "1", "-Q", "longtask", "-f", "${APP_LOGGING_PATH}/celerylongtask.%i.log", "-n", "celerylongtask@scoretility.com"]
 
 volumes:
   db-data:
+  rabbitmq-data:
 
 secrets:
   root-password:
     file: config/db/root-password.txt
   appdb-password:
     file: config/db/appdb-password.txt
+  rabbitmq-app-password:
+    file: config/db/rabbitmq-app-password.txt
 
 networks:
   backend-network:

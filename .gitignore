@@ -257,6 +257,10 @@ docs/_build/
 *_config.py
 config/
 
+### rabbitmq configuration
+!rabbitmq/*.json
+!rabbitmq/*.conf
+
 ### VisualStudioCode ###
 .vscode/*
 !.vscode/settings.json
