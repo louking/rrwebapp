@@ -191,7 +191,7 @@ class AthlinksCollect(CollectServiceResults):
                                     fixeddist=race_fixeddist(course.distmiles)).first()
         ### TODO: should the above be .all() then check for first race within epsilon distance?
         if not race:
-            racecached = False
+            self.racecached = False
             race = Race()
             race.club_id = self.club_id
             race.year = raceyear
@@ -226,156 +226,158 @@ class AthlinksCollect(CollectServiceResults):
         :param result: single service result, from list retrieved through `getresults`
         :rtype: dict with keys matching `resultfilehdr`, or None if result is not to be saved
         '''
+        # nest in SAVEPOINT, so that if an exception occurs, the database is not left in a bad state
+        # see https://docs.sqlalchemy.org/en/14/orm/session_transaction.html#session-begin-nested
+        with db.session.begin_nested():
+            # create output record and copy common fields
+            outrec = {}
 
-        # create output record and copy common fields
-        outrec = {}
-
-        # copy participant information
-        outrec['name'] = self.name
-        outrec['GivenName'] = self.fname
-        outrec['FamilyName'] = self.lname
-        outrec['DOB'] = self.dob
-        outrec['Gender'] = self.gender
+            # copy participant information
+            outrec['name'] = self.name
+            outrec['GivenName'] = self.fname
+            outrec['FamilyName'] = self.lname
+            outrec['DOB'] = self.dob
+            outrec['Gender'] = self.gender
 
 
-        # some debug items - assume everything is cached
-        coursecached = True
-        racecached = True
+            # some debug items - assume everything is cached
+            coursecached = True
+            self.racecached = True
 
-        # get course used for this result
-        courseid = '{}/{}'.format(result['Race']['RaceID'], result['CourseID'])
-        course = Course.query.filter_by(club_id=self.club_id, source='athlinks', sourceid=courseid).first()
+            # get course used for this result
+            courseid = '{}/{}'.format(result['Race']['RaceID'], result['CourseID'])
+            course = Course.query.filter_by(club_id=self.club_id, source='athlinks', sourceid=courseid).first()
 
-        # cache course if not done already
-        race = None
-        if not course:
-            coursecached = False
+            # cache course if not done already
+            race = None
+            if not course:
+                coursecached = False
 
-            coursedata = self.service.getcourse(result['Race']['RaceID'], result['CourseID'])
+                coursedata = self.service.getcourse(result['Race']['RaceID'], result['CourseID'])
 
-            distmiles = athlinks.dist2miles(coursedata['Courses'][0]['DistUnit'],coursedata['Courses'][0]['DistTypeID'])
-            distkm = athlinks.dist2km(coursedata['Courses'][0]['DistUnit'],coursedata['Courses'][0]['DistTypeID'])
-            if distkm < 0.050: return None # skip timed events, which seem to be recorded with 0 distance
+                distmiles = athlinks.dist2miles(coursedata['Courses'][0]['DistUnit'],coursedata['Courses'][0]['DistTypeID'])
+                distkm = athlinks.dist2km(coursedata['Courses'][0]['DistUnit'],coursedata['Courses'][0]['DistTypeID'])
+                if distkm < 0.050: return None # skip timed events, which seem to be recorded with 0 distance
 
-            # skip result if not Running or Trail Running race
-            thiscategory = coursedata['Courses'][0]['RaceCatID']
-            if thiscategory not in race_category: return None
-        
-            course = Course()
-            course.club_id = self.club_id
-            course.source = 'athlinks'
-            course.sourceid = courseid
-
-            # strip racename and coursename here to make sure detail file matches what is stored in database
-            racename = csvu.unicode2ascii(coursedata['RaceName']).strip()
-            coursename = csvu.unicode2ascii(coursedata['Courses'][0]['CourseName']).strip()
-            course.name = '{} / {}'.format(racename,coursename)
-
-            # maybe truncate to FIRST part of race name
-            if len(course.name) > MAX_RACENAME_LEN:
-                course.name = course.name[:MAX_RACENAME_LEN]
+                # skip result if not Running or Trail Running race
+                thiscategory = coursedata['Courses'][0]['RaceCatID']
+                if thiscategory not in race_category: return None
             
-            course.date = ftime.epoch2asc(athlinks.gettime(coursedata['RaceDate']))
-            course.location = csvu.unicode2ascii(coursedata['Home'])
-            # maybe truncate to LAST part of location name, to keep most relevant information (state, country)
-            if len(course.location) > MAX_LOCATION_LEN:
-                course.location = course.location[-MAX_LOCATION_LEN:]
+                course = Course()
+                course.club_id = self.club_id
+                course.source = 'athlinks'
+                course.sourceid = courseid
 
-            # TODO: adjust marathon and half marathon distances?
-            course.distkm =distkm
-            course.distmiles = distmiles
+                # strip racename and coursename here to make sure detail file matches what is stored in database
+                racename = csvu.unicode2ascii(coursedata['RaceName']).strip()
+                coursename = csvu.unicode2ascii(coursedata['Courses'][0]['CourseName']).strip()
+                course.name = '{} / {}'.format(racename,coursename)
 
-            course.surface = race_category[thiscategory]
+                # maybe truncate to FIRST part of race name
+                if len(course.name) > MAX_RACENAME_LEN:
+                    course.name = course.name[:MAX_RACENAME_LEN]
+                
+                course.date = ftime.epoch2asc(athlinks.gettime(coursedata['RaceDate']))
+                course.location = csvu.unicode2ascii(coursedata['Home'])
+                # maybe truncate to LAST part of location name, to keep most relevant information (state, country)
+                if len(course.location) > MAX_LOCATION_LEN:
+                    course.location = course.location[-MAX_LOCATION_LEN:]
 
-            # retrieve or add race
-            # flush should allow subsequent query per http://stackoverflow.com/questions/4201455/sqlalchemy-whats-the-difference-between-flush-and-commit
-            # Race has uniqueconstraint for club_id/name/year/fixeddist. It's been seen that there are additional races in athlinks, 
-            # but just assume the first is the correct one.
-            race = self.get_race(course)
+                # TODO: adjust marathon and half marathon distances?
+                course.distkm =distkm
+                course.distmiles = distmiles
 
-            course.raceid = race.id
-            db.session.add(course)
-            db.session.flush()      # force id to be created
+                course.surface = race_category[thiscategory]
 
-        # maybe course was cached but location of race wasn't
-        # update location of result race, if needed, and if supplied
-        # this is here to clean up old database data
-        if not race:
-            # may need to create the race again if there was an error after creating course but before creating race
-            race = self.get_race(course)
-        if not race.locationid and course.location:
-            # current_app.logger.debug('updating race with location {}'.format(course.location))
-            loc = self.locsvr.getlocation(course.location)
-            race.locationid = loc.id
-            insert_or_update(db.session, Race, race, skipcolumns=['id'], 
-                             club_id=self.club_id, name=course.name, year=ftime.asc2dt(course.date).year, fixeddist=race_fixeddist(course.distmiles))
-        # else:
-        #     current_app.logger.debug('race.locationid={} course.location="{}"'.format(race.locationid, course.location))
+                # retrieve or add race
+                # flush should allow subsequent query per http://stackoverflow.com/questions/4201455/sqlalchemy-whats-the-difference-between-flush-and-commit
+                # Race has uniqueconstraint for club_id/name/year/fixeddist. It's been seen that there are additional races in athlinks, 
+                # but just assume the first is the correct one.
+                race = self.get_race(course)
 
-        # debug races
-        if self.racefile:
-            racestatusl = []
-            if not coursecached: racestatusl.append('addcourse')
-            if not racecached: racestatusl.append('addrace')
-            if not racestatusl: racestatusl.append('cached')
-            racestatus = '-'.join(racestatusl)
-            racerow = {'status': racestatus, 'runner': self.name}
+                course.raceid = race.id
+                db.session.add(course)
+                db.session.flush()      # force id to be created
 
-            for racefield in self.racefields:
-                if racefield in ['status', 'runner']: continue
-                racerow[racefield] = getattr(course,racefield)
-            self.RACE.writerow(racerow)
+            # maybe course was cached but location of race wasn't
+            # update location of result race, if needed, and if supplied
+            # this is here to clean up old database data
+            if not race:
+                # may need to create the race again if there was an error after creating course but before creating race
+                race = self.get_race(course)
+            if not race.locationid and course.location:
+                # current_app.logger.debug('updating race with location {}'.format(course.location))
+                loc = self.locsvr.getlocation(course.location)
+                race.locationid = loc.id
+                insert_or_update(db.session, Race, race, skipcolumns=['id'], 
+                                club_id=self.club_id, name=course.name, year=ftime.asc2dt(course.date).year, fixeddist=race_fixeddist(course.distmiles))
+            # else:
+            #     current_app.logger.debug('race.locationid={} course.location="{}"'.format(race.locationid, course.location))
+
+            # debug races
+            if self.racefile:
+                racestatusl = []
+                if not coursecached: racestatusl.append('addcourse')
+                if not self.racecached: racestatusl.append('addrace')
+                if not racestatusl: racestatusl.append('cached')
+                racestatus = '-'.join(racestatusl)
+                racerow = {'status': racestatus, 'runner': self.name}
+
+                for racefield in self.racefields:
+                    if racefield in ['status', 'runner']: continue
+                    racerow[racefield] = getattr(course,racefield)
+                self.RACE.writerow(racerow)
 
 
-        # fill in output record fields from result, course
-        # combine name, get age
-        outrec['age'] = result['Age']
-        outrec['fuzzyage'] = result['fuzzyage']
+            # fill in output record fields from result, course
+            # combine name, get age
+            outrec['age'] = result['Age']
+            outrec['fuzzyage'] = result['fuzzyage']
 
-        # leave athlid blank if result not from an athlink member
-        athlmember = result['IsMember']
-        if athlmember:
-            outrec['athlid'] = result['RacerID']
+            # leave athlid blank if result not from an athlink member
+            athlmember = result['IsMember']
+            if athlmember:
+                outrec['athlid'] = result['RacerID']
 
-        # remember the entryid, high water mark of which can be used to limit the work here
-        outrec['entryid'] = result['EntryID']
+            # remember the entryid, high water mark of which can be used to limit the work here
+            outrec['entryid'] = result['EntryID']
 
-        # race name, location; convert from unicode if necessary
-        # TODO: make function to do unicode translation -- apply to runner name as well (or should csv just store unicode?)
-        outrec['race'] = course.name
-        outrec['date'] = course.date
-        outrec['loc'] = course.location
-        
-        outrec['miles'] = course.distmiles
-        outrec['km'] = course.distkm
-        outrec['category'] = course.surface
-        resulttime = result['TicksString']
+            # race name, location; convert from unicode if necessary
+            # TODO: make function to do unicode translation -- apply to runner name as well (or should csv just store unicode?)
+            outrec['race'] = course.name
+            outrec['date'] = course.date
+            outrec['loc'] = course.location
+            
+            outrec['miles'] = course.distmiles
+            outrec['km'] = course.distkm
+            outrec['category'] = course.surface
+            resulttime = result['TicksString']
 
-        # strange case of TicksString = ':00'
-        if resulttime[0] == ':':
-            resulttime = '0'+resulttime
-        while resulttime.count(':') < 2:
-            resulttime = '0:'+resulttime
-        outrec['time'] = resulttime
-        
-        # strange case of 0 time, causes ZeroDivisionError and is clearly not valid
-        if timeu.timesecs(resulttime) == 0: return None
+            # strange case of TicksString = ':00'
+            if resulttime[0] == ':':
+                resulttime = '0'+resulttime
+            while resulttime.count(':') < 2:
+                resulttime = '0:'+resulttime
+            outrec['time'] = resulttime
+            
+            # strange case of 0 time, causes ZeroDivisionError and is clearly not valid
+            if timeu.timesecs(resulttime) == 0: return None
 
-        # leave out age grade if exception occurs, skip results which have outliers
-        try:
-            # skip result if runner's age doesn't match the age within the result
-            # sometimes athlinks stores the age group of the runner, not exact age,
-            # so also check if this runner's age is within the age group, and indicate if so
-            e_racedate = athlinks.gettime(result['Race']['RaceDate'])
-            resultgen = result['Gender'][0]
-            dt_racedate = timeu.epoch2dt(e_racedate)
-            racedateage = timeu.age(dt_racedate,self.dt_dob)
-            agpercent,agresult,agfactor = self.agegrade(racedateage,resultgen,course.distmiles,timeu.timesecs(resulttime))
-            outrec['ag'] = agpercent
-            if agpercent < 15 or agpercent >= 100: return None # skip obvious outliers
-        except:
-            current_app.logger.warning(traceback.format_exc())
-            pass
+            # leave out age grade if exception occurs, skip results which have outliers
+            try:
+                # skip result if runner's age doesn't match the age within the result
+                # sometimes athlinks stores the age group of the runner, not exact age,
+                # so also check if this runner's age is within the age group, and indicate if so
+                e_racedate = athlinks.gettime(result['Race']['RaceDate'])
+                resultgen = result['Gender'][0]
+                dt_racedate = timeu.epoch2dt(e_racedate)
+                racedateage = timeu.age(dt_racedate,self.dt_dob)
+                agpercent,agresult,agfactor = self.agegrade(racedateage,resultgen,course.distmiles,timeu.timesecs(resulttime))
+                outrec['ag'] = agpercent
+                if agpercent < 15 or agpercent >= 100: return None # skip obvious outliers
+            except:
+                current_app.logger.warning(traceback.format_exc())
+                pass
 
         # and we're done
         return outrec
