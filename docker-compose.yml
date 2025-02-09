@@ -103,6 +103,7 @@ services:
       - ${UPLOAD_TEMP_DIR_HOST}:${FLASK_UPLOAD_TEMP_DIR}
       - ${MEMBERSHIP_DIR_HOST}:${FLASK_MEMBERSHIP_DIR}
       - ${APP_LOGGING_HOST}:${APP_LOGGING_PATH}
+      - tmp-data:/tmp
     environment: &app-env
       TZ: ${TZ}
       APP_VER: ${APP_VER}
@@ -185,6 +186,7 @@ services:
       - ${UPLOAD_TEMP_DIR_HOST}:${FLASK_UPLOAD_TEMP_DIR}
       - ${MEMBERSHIP_DIR_HOST}:${FLASK_MEMBERSHIP_DIR}
       - ${APP_LOGGING_HOST}:${APP_LOGGING_PATH}
+      - tmp-data:/tmp
     environment: 
       <<: *app-env
       PROD: ${PROD}
@@ -219,6 +221,7 @@ services:
       - ${UPLOAD_TEMP_DIR_HOST}:${FLASK_UPLOAD_TEMP_DIR}
       - ${MEMBERSHIP_DIR_HOST}:${FLASK_MEMBERSHIP_DIR}
       - ${APP_LOGGING_HOST}:${APP_LOGGING_PATH}
+      - tmp-data:/tmp
     environment: 
       <<: *app-env
       PROD: ${PROD}
@@ -232,6 +235,7 @@ services:
 volumes:
   db-data:
   rabbitmq-data:
+  tmp-data: # convenient way to share /tmp between app and celery services
 
 secrets:
   root-password:
