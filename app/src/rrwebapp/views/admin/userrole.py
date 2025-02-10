@@ -8,6 +8,7 @@ import traceback
 # pypi
 import flask
 from flask import current_app
+from markupsafe import escape
 import flask_login as flasklogin
 from flask_login import login_required
 from flask.views import MethodView
@@ -99,7 +100,7 @@ def newuser():
         db.session.rollback()
         raise
 
-    return flask.render_template('ownermanageuser.html', form=form, thispagename='New User', action=flask.escape(buttontext), newuser=True)
+    return flask.render_template('ownermanageuser.html', form=form, thispagename='New User', action=escape(buttontext), newuser=True)
 
 #----------------------------------------------------------------------
 @bp.route('/user/<userid>/<action>', methods=['GET','POST'])
