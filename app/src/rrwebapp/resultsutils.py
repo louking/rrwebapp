@@ -597,12 +597,8 @@ class StoreServiceResults():
             ### but just assume the first is the correct one.
             raceyear = ftime.asc2dt(result.date).year
             race = Race.query.filter_by(club_id=club_id, name=result.racename, year=raceyear, fixeddist=race_fixeddist(result.distmiles)).first()
-            # races = Race.query.filter_by(club_id=club_id, name=result.racename, date=result.date, fixeddist=race_fixeddist(result.distmiles)).all()
-            # race = None
-            # for thisrace in races:
-            #     if abs(thisrace.distance - result.distmiles) < RACEEPSILON:
-            #         race = thisrace
-            #         break
+            # current_app.logger.debug(f'storeresults() Race.query filter: club_id={club_id}, name="{result.racename}", year={raceyear}, fixeddist={race_fixeddist(result.distmiles)}')
+            
             if not race:
                 raise ParameterError("could not find race in database: {} line {} {} {} {}".format(filename, status[self.servicename]['processed']+2, result.racename, result.date, result.distmiles))
 

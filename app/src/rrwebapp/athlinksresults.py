@@ -207,6 +207,7 @@ class AthlinksCollect(CollectServiceResults):
             db.session.add(race)
             db.session.flush()  # force id to be created
 
+        # current_app.logger.debug(f'get_race() cached={self.racecached} club_id={self.club_id} name="{race.name}" year={raceyear} fixeddist={race_fixeddist(race.distance)}')
         return race
 
     #----------------------------------------------------------------------
