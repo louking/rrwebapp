@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Python: Flask",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "flask",
             "justMyCode": false,
@@ -27,9 +27,9 @@
             "name": "Launch Chrome",
             "request": "launch",
             "type": "chrome",
-            "url": "http://dev.localhost:5000",
+            "url": "http://dev.localhost:8004",
             // "webRoot": "${workspaceFolder}"
-            "webRoot": "${workspaceFolder}/rrwebapp",
+            "webRoot": "${workspaceFolder}/rrwebapp/app/src/rrwebapp",
             // see https://code.visualstudio.com/docs/editor/variables-reference#_variables-scoped-per-workspace-folder
             "pathMapping": {"/loutilities/static": "${workspaceFolder:loutilities}/loutilities/tables-assets/static"},
         },
@@ -53,7 +53,7 @@
         },
         {
             "name": "Python: Current File",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
@@ -61,14 +61,14 @@
         },
         {
             "name": "Python: test_agegrade_factors",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "rrwebapp.scripts.test_agegrade_factors",
             "justMyCode": false,
         },
         {
             "name": "Python: Celery",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "celery",
             "console": "integratedTerminal",
@@ -96,7 +96,7 @@
         },
         {
             "name": "Python: Celery longtask (results analysis)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "celery",
             "console": "integratedTerminal",
