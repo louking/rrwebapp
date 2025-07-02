@@ -23,7 +23,7 @@
         },
         {
             "type": "docker-compose",
-            "label": "docker-compose: debug",
+            "label": "docker-compose (app): debug",
             "dependsOn": [
                 "build app"
             ],
@@ -35,6 +35,23 @@
                 "files": [
                   "${workspaceFolder}/docker-compose.yml",
                   "${workspaceFolder}/docker-compose.debug.yml"
+                ]
+          },
+        },
+        {
+            "type": "docker-compose",
+            "label": "docker-compose: up dev",
+            "dependsOn": [
+                "build app"
+            ],
+            "dockerCompose": {
+                "up": {
+                  "detached": true,
+                  "build": false,
+                },
+                "files": [
+                  "${workspaceFolder}/docker-compose.yml",
+                  "${workspaceFolder}/docker-compose.dev.yml",
                 ]
           },
         },
@@ -53,6 +70,40 @@
                   "${workspaceFolder}/docker-compose.yml",
                   "${workspaceFolder}/docker-compose.debug.yml",
                   "${workspaceFolder}/docker-compose.loutilities.yml",
+                ]
+          },
+        },
+        {
+            "type": "docker-compose",
+            "label": "docker-compose (celery): debug",
+            "dependsOn": [
+                "build app"
+            ],
+            "dockerCompose": {
+                "up": {
+                  "detached": true,
+                  "build": false,
+                },
+                "files": [
+                  "${workspaceFolder}/docker-compose.yml",
+                  "${workspaceFolder}/docker-compose.debug-celery.yml"
+                ]
+          },
+        },
+        {
+            "type": "docker-compose",
+            "label": "docker-compose (celery long): debug",
+            "dependsOn": [
+                "build app"
+            ],
+            "dockerCompose": {
+                "up": {
+                  "detached": true,
+                  "build": false,
+                },
+                "files": [
+                  "${workspaceFolder}/docker-compose.yml",
+                  "${workspaceFolder}/docker-compose.debug-celerylong.yml"
                 ]
           },
         },
