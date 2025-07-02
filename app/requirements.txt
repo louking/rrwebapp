@@ -95,7 +95,7 @@ mysqlclient==2.2.4
 nameparser==1.1.1
 ndg-httpsclient==0.5.1
 numpy==2.2.2
-oauthlib==3.2.0
+oauthlib==3.3.1
 openpyxl==3.0.10
 packaging==21.3
 pandas==2.2.3
@@ -131,7 +131,7 @@ rstcheck==6.2.4
 rstcheck-core==1.2.1
 runtilities==2.2.0
 scandir==1.10.0
-setuptools==75.8.0
+setuptools==80.9.0
 shellingham==1.5.0
 simplegeneric==0.8.1
 six==1.16.0
