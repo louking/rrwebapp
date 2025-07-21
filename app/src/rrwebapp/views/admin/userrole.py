@@ -203,7 +203,7 @@ class UserSettings(MethodView):
         try:
             # get the user from the database
             userid = flask.session['_user_id']
-            thisuser = User.query.filter_by(id=userid).first()
+            thisuser = User.query.filter_by(fs_uniquifier=userid).first()
         
             pagename = 'User Settings'
             buttontext = 'Update'
@@ -239,7 +239,7 @@ class UserSettings(MethodView):
         try:
             # get the user from the database
             userid = flask.session['_user_id']
-            thisuser = User.query.filter_by(id=userid).first()
+            thisuser = User.query.filter_by(fs_uniquifier=userid).first()
         
             pagename = 'User Settings'
             buttontext = 'Update'

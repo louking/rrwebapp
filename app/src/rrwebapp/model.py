@@ -209,9 +209,9 @@ class User(Base, UserMixin):
     __tablename__ = 'user'
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
     email = Column(String(255), unique=True)
-    name = Column(String(120))
-    pw_hash = Column(String(128))
-    password = Column(String(255))
+    name = Column(Text)
+    pw_hash = Column(Text)
+    password = Column(Text)
     active = Column(Boolean)
     fs_uniquifier = Column(String(255), unique=True, nullable=False)
 
@@ -221,8 +221,8 @@ class User(Base, UserMixin):
     # for Trackable (see https://pythonhosted.org/Flask-Security/models.html)
     last_login_at = Column(DateTime())
     current_login_at = Column(DateTime())
-    last_login_ip = Column(String(39))  # allow for IPv6
-    current_login_ip = Column(String(39))  # allow for IPv6
+    last_login_ip = Column(Text)  # allow for IPv6
+    current_login_ip = Column(Text)  # allow for IPv6
     login_count = Column(Integer)
 
     #roles = relationship('userrole', backref='users', cascade="all, delete")
