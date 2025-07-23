@@ -278,7 +278,7 @@ def normname(name):
     Returns:
         string: name with normalized capitalization
     """
-    thisnametmp = HumanName(name)
+    thisnametmp = HumanName(name, string_format='{first} ({nickname}) {middle} {last} {suffix}')
     thisnametmp.capitalize(force=True)
     return str(thisnametmp)
 
