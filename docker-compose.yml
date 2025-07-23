@@ -166,9 +166,6 @@ services:
       PROD: ${PROD}
       SANDBOX: ${SANDBOX}
       DEV: ${DEV}
-    extra_hosts:
-      # see https://stackoverflow.com/a/67158212/799921
-      - "host.docker.internal:host-gateway"
     # start crond with log level 8 in foreground, output to stderr
     command: ["crond", "-f", "-d", "8"]
     # use this to debug
@@ -204,9 +201,6 @@ services:
       PROD: ${PROD}
       SANDBOX: ${SANDBOX}
       DEV: ${DEV}
-    extra_hosts:
-      # see https://stackoverflow.com/a/67158212/799921
-      - "host.docker.internal:host-gateway"
     command: ["celery", "-A", "rrwebapp.celery", "worker", "-l", "info", "-c", "1", "-f", "${APP_LOGGING_PATH}/celery.%i.log", "-n", "scoretility.com"]
 
   celerylongtask:
@@ -239,9 +233,6 @@ services:
       PROD: ${PROD}
       SANDBOX: ${SANDBOX}
       DEV: ${DEV}
-    extra_hosts:
-      # see https://stackoverflow.com/a/67158212/799921
-      - "host.docker.internal:host-gateway"
     command: ["celery", "-A", "rrwebapp.celery", "worker", "-l", "info", "-c", "1", "-Q", "longtask", "-f", "${APP_LOGGING_PATH}/celerylongtask.%i.log", "-n", "celerylongtask@scoretility.com"]
 
 volumes:
