@@ -911,6 +911,9 @@ def renderfloat(expr, numdigits):
 class RenderMember(TypeDecorator):
     impl = types.String
 
+    # https://docs.sqlalchemy.org/en/14/core/type_api.html#sqlalchemy.types.ExternalType.cache_ok
+    cache_ok = True
+
     # assumes runner id value
     def process_result_value(self, value, engine):
         membertext = ''
@@ -926,6 +929,9 @@ def rendermember(expr):
 
 class RenderTime(TypeDecorator):
     impl = types.String
+
+    # https://docs.sqlalchemy.org/en/14/core/type_api.html#sqlalchemy.types.ExternalType.cache_ok
+    cache_ok = True
 
     # assumes float value seconds to be converted to time
     def process_result_value(self, value, engine):
