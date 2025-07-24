@@ -261,6 +261,9 @@ def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
                 'male': 'M',
                 'female': 'F',
                 'non-binary': 'X',
+                'm': 'M',
+                'f': 'F',
+                'x': 'X',
                 None: ' ',
             }
             thesemembers = allmembers[name]
@@ -270,7 +273,10 @@ def importmemberstask(self, club_id, tempdir, memberpathname, memberfilename):
                 thisfname = thismember['fname']
                 thislname = thismember['lname']
                 thisdob = thismember['dob']
-                thisgender = gender2db[thismember['gender'].lower() if thismember['gender'] else None]
+                genderlookup = thismember['gender'].lower() if thismember['gender'] else None
+                if genderlookup not in gender2db:
+                    raise ParameterError(f'unexpected gender "{thismember['gender']}" for {thisname} {thisfname} {thislname} (first occurrence)')
+                thisgender = gender2db[genderlookup]
                 thishometown = thismember['hometown']
                 thisrenewdate = thismember['renewdate']
                 thisexpdate = thismember['expdate']

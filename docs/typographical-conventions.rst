@@ -51,6 +51,8 @@ before traversal, that is described within square brackets ([action]), e.g.,
 
 **Navigation:** Scoring > Races
 
+.. _Section Management:
+
 Section Management
 ======================
 

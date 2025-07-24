@@ -42,8 +42,9 @@ Use this file format when importing members using :ref:`Members view`.
 +-------------------------+-----------------------+---------------------+-------------------------------------------------------------------------+
 | **GivenName**           | First                 | Text                | The member's first (or given) name.                                     |
 +-------------------------+-----------------------+---------------------+-------------------------------------------------------------------------+
-| **Gender**              |                       | F, M, or X          | Gender of the participant, as M for male, F for female, or X for        |
-|                         |                       |                     | non-binary. Case may be upper or lower.                                 |
+| **Gender**              |                       | F, M, X,            | Gender of the participant, as M for male, F for female, or X for        |
+|                         |                       | female, male, or    | non-binary. Case may be upper, lower, or mixed.                         |
+|                         |                       | non-binary          |                                                                         |
 +-------------------------+-----------------------+---------------------+-------------------------------------------------------------------------+
 | **DOB**                 | Date of Birth         | yyyy-mm-dd          | The member's date of birth:                                             |
 |                         |                       |                     |                                                                         |
