@@ -78,7 +78,7 @@ invoke==2.2.0
 ipaddress==1.0.23
 itsdangerous==2.1.2
 jedi==0.18.1
-Jinja2==3.1.5
+Jinja2==3.1.6
 jsmin==3.0.1
 kombu==5.4.2
 lazy-object-proxy==1.10.0
