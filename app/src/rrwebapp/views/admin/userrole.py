@@ -235,6 +235,8 @@ class UserSettings(MethodView):
     #----------------------------------------------------------------------
         '''
         update user settings
+        
+        NOTE: this doesn't seem to work, and is inaccessible from the UI
         '''
         try:
             # get the user from the database

@@ -27,8 +27,6 @@
           </select>
         {% endif %}
       | <a href="{{ url_for('security.logout') }}">log out</a>
-      | <a href="{{ url_for('admin.usersettings')}}?next={{request.url}}">
-          <span class="ui-icon ui-icon-gear" style="display: inline-block"></span>
         </a>
       {% endif %}
     </div>
