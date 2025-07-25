@@ -96,6 +96,7 @@ asset_bundles = {
 
         # these need to be before datatables.js is loaded
         'js/jquery.ui.dialog-clickoutside.js', # from https://github.com/coheractio/jQuery-UI-Dialog-ClickOutside
+        'mutex-promise.js',                          # from loutilities
         'editor-saeditor.js',                       # from loutilities
         'utils.js',                                 # from loutilities
         'layout.js',
