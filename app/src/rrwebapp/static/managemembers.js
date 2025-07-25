@@ -43,9 +43,6 @@
             get_postdata: function() {
                 return new FormData($('#import-members')[0]);
             },
-            aftersuccesshook: function() {
-                location.reload();
-            }
         });
 
         var $importmembers = $('#managemembersImport');
@@ -59,9 +56,6 @@
         var import_service_background = new BackgroundPostDataManager({
             urlpath: $('#managemembersImportApi').attr('_rrwebapp-formaction'),
             urlparams: {'useapi': true},
-            aftersuccesshook: function() {
-                location.reload();
-            }
         });
 
         // handle Download from Service button within Import dialog
