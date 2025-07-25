@@ -147,7 +147,7 @@ sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.5
 sqlacodegen==2.3.0
-SQLAlchemy==2.0.41
+SQLAlchemy==1.4.40
 sqlalchemy-datatables==2.0.1
 stack-data==0.3.0
 terminaltables==3.1.10
