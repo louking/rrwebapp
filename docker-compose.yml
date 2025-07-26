@@ -129,10 +129,11 @@ services:
               "--threads", "4",
               # https://docs.gunicorn.org/en/stable/faq.html#how-do-i-avoid-gunicorn-excessively-blocking-in-os-fchmod
               "--worker-tmp-dir", "/dev/shm",
-              # # https://stackoverflow.com/q/62526497, but https://github.com/benoitc/gunicorn/issues/2796#issuecomment-1514256100
-              # "--preload",
+              # https://stackoverflow.com/q/62526497, but https://github.com/benoitc/gunicorn/issues/2796#issuecomment-1514256100
+              "--preload",
               # https://github.com/benoitc/gunicorn/issues/1194#issuecomment-238898648
-              "--worker-class", "gevent",
+              # --preload is incompatible with gevent worker class due to https://github.com/gevent/gevent/issues/1016
+              # "--worker-class", "gevent",
 
               "--access-logfile", "${ACCESS_LOG}", "--access-logformat", '%({x-forwarded-for}i)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"', 
               "--timeout", "120", 
