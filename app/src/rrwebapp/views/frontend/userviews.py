@@ -14,7 +14,7 @@ import loutilities.renderrun as render
 # home grown
 from . import bp
 from ...model import SERIES_OPTION_DISPLAY_CLUB, db
-from ...model import Runner, RaceResult, Race, Series, Club
+from ...model import Runner, RaceResult, Race, Series, RaceSeries, Club
 from ...forms import SeriesResultForm, StandingsForm
 from ...renderstandings import HtmlStandingsHandler, StandingsRenderer, addstyle
 from ...apicommon import failure_response, success_response
@@ -154,7 +154,8 @@ class ViewStandings(MethodView):
             form = StandingsForm()
     
             # get races for this series, in date order
-            races = Race.query.join("series").filter_by(id=seriesid,active=True).order_by(Race.date).all()
+            thequery = Race.query.join(RaceSeries).join(Series).filter(Series.id==seriesid,Series.active==True).order_by(Race.date)
+            races = thequery.all()
             racenums = list(range(1,len(races)+1))
             resulturls = [flask.url_for('.seriesresults',raceid=r.id) for r in races]
             

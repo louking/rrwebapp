@@ -78,7 +78,8 @@ class TestStandings(MethodView):
             form = StandingsForm()
     
             # get races for this series, in date order
-            races = Race.query.join("series").filter_by(id=seriesid,active=True).order_by(Race.date).all()
+            thequery = Race.query.join(RaceSeries).join(Series).filter(Series.id==seriesid,Series.active==True).order_by(Race.date)
+            races = thequery.all()
             racenums = list(range(1,len(races)+1))
             resulturls = [flask.url_for('frontend.seriesresults',raceid=r.id) for r in races]
             

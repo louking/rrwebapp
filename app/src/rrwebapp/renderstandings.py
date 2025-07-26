@@ -34,7 +34,7 @@ from loutilities import timeu
 from rrwebapp.resultssummarize import mean
 
 # home grown
-from .model import Divisions, Race, RaceResult, Runner
+from .model import Divisions, Race, Series, RaceSeries, RaceResult, Runner
 from .model import SERIES_OPTION_PROPORTIONAL_SCORING, SERIES_OPTION_REQUIRES_CLUB, SERIES_OPTION_DISPLAY_CLUB
 from .model import SERIES_TIE_OPTIONS, SERIES_TIE_OPTION_SEPARATOR, SERIES_TIE_OPTION_COMPARE_AVG, \
                    SERIES_TIE_OPTION_DIV_COMPARE_OVERALL, SERIES_TIE_OPTION_HEAD_TO_HEAD_POINTS
@@ -545,7 +545,9 @@ class TxtStandingsHandler(BaseStandingsHandler):
         self.TXT[gen].write('\n')                
         numraces = 0
         self.racelist = []
-        for race in Race.query.join("series").filter_by(club_id=self.club_id,seriesid=series.id,active=True).order_by(Race.date).all():
+        thequery = Race.query.join(RaceSeries).join(Series).filter(Race.club_id==self.club_id,Series.id==series.id,Series.active==True).order_by(Race.date)
+        races = thequery.all()
+        for race in races:
             self.racelist.append(race.racenum)
             self.TXT[gen].write('\tRace {0}: {1}: {2}\n'.format(race.racenum,race.name,render.renderdate(race.date)))
             numraces += 1
@@ -1003,7 +1005,7 @@ class XlStandingsHandler(BaseStandingsHandler):
         self.rownum[gen] += 1
 
         self.racelist = []
-        self.races = Race.query.join("series").filter_by(club_id=self.club_id,seriesid=series.id,active=True).order_by(Race.date).all()
+        self.races = Race.query.join(Series).filter_by(club_id=self.club_id,seriesid=series.id,active=True).order_by(Race.date).all()
         numraces = len(self.races)
         nracerows = int(math.ceil(numraces/2.0))
         thiscol = 1
