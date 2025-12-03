@@ -170,6 +170,10 @@ def summarize(thistask, club_id, sources, status, summaryfile, detailfile, resul
     ## use OrderedDict to force aag to be in same order as DETL file, for debugging
     aag = collections.OrderedDict()
     for result in results:
+        # add empty maxdistance filter if source is unknown
+        if result.source not in maxdistance:
+            maxdistance[result.source] = None
+            
         # skip results which are too far away, if a maxdistance is defined for this source
         if maxdistance[result.source]:
             locationid = result.race.locationid
