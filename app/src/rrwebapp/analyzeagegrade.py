@@ -29,6 +29,7 @@ from loutilities.timeu import asctime, dt2epoch
 from loutilities.agegrade import AgeGrade
 from running.runningahead import RunningAhead, dist2meters, FIELD
 from .helpers import getagfactors
+from .settings import RESULTS_ANALYSIS_DEBUG, RESULTS_ANALYSIS_DEBUG_RA
 
 class unexpectedEOF(Exception): pass
 class invalidParameter(Exception): pass
@@ -382,7 +383,7 @@ class AnalyzeAgeGrade():
         :rtype: dists,stats,dob,gender where dists =  set of distances included in stats, stats = {'date':[datetime of race,...], 'dist':[distance(meters),...], 'time':[racetime(seconds),...]}, dob = date of birth (datetime), gender = 'M'|'F'|'X'
         '''
         # set up RunningAhead object and get users we're allowed to look at
-        ra = RunningAhead()    
+        ra = RunningAhead(debug=(RESULTS_ANALYSIS_DEBUG or RESULTS_ANALYSIS_DEBUG_RA))
         users = ra.listusers()
         day = asctime('%Y-%m-%d') # date format in RunningAhead workout object
         

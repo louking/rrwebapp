@@ -36,6 +36,7 @@ from .resultsutils import CollectServiceResults, ServiceResultFile, race_fixeddi
 from running import ultrasignup
 from .model import db   # this is ok because this module only runs under flask
 from .model import ApiCredentials, Club, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN
+from .settings import RESULTS_ANALYSIS_DEBUG, RESULTS_ANALYSIS_DEBUG_ULTRASIGNUP
 
 class invalidParameter(Exception): pass
 
@@ -91,7 +92,7 @@ class UltraSignupCollect(CollectServiceResults):
 
         # open service
         key = ApiCredentials.query.filter_by(name=self.servicename).first().key
-        self.service = ultrasignup.UltraSignup(debug=True)
+        self.service = ultrasignup.UltraSignup(debug=(RESULTS_ANALYSIS_DEBUG or RESULTS_ANALYSIS_DEBUG_ULTRASIGNUP))
 
 
     #----------------------------------------------------------------------

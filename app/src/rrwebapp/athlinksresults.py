@@ -26,7 +26,7 @@ from .resultsutils import CollectServiceResults, ServiceResultFile
 from running import athlinks
 from .model import db   # this is ok because this module only runs under flask
 from .model import ApiCredentials, Club, Course, Race, MAX_RACENAME_LEN, MAX_LOCATION_LEN, insert_or_update
-
+from .settings import RESULTS_ANALYSIS_DEBUG, RESULTS_ANALYSIS_DEBUG_ATHLINKS
 
 # see http://api.athlinks.com/Enums/RaceCategories
 CAT_RUNNING = 2
@@ -104,7 +104,8 @@ class AthlinksCollect(CollectServiceResults):
 
         # open service
         key = ApiCredentials.query.filter_by(name=self.servicename).first().key
-        self.service = athlinks.Athlinks(debug=True, key=key)
+        
+        self.service = athlinks.Athlinks(debug=(RESULTS_ANALYSIS_DEBUG or RESULTS_ANALYSIS_DEBUG_ATHLINKS), key=key)
 
 
     #----------------------------------------------------------------------

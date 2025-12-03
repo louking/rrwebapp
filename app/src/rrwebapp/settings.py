@@ -17,6 +17,12 @@ from loutilities.configparser import getitems
 
 PRODUCTNAME_TEXT = 'scoretility'
 
+# check if results analysis debugging is enabled
+RESULTS_ANALYSIS_DEBUG = environ.get('RESULTS_ANALYSIS_DEBUG', 'false').lower() == 'true'
+RESULTS_ANALYSIS_DEBUG_RA = environ.get('RESULTS_ANALYSIS_DEBUG_RA', 'false').lower() == 'true'
+RESULTS_ANALYSIS_DEBUG_ATHLINKS = environ.get('RESULTS_ANALYSIS_DEBUG_ATHLINKS', 'false').lower() == 'true'
+RESULTS_ANALYSIS_DEBUG_ULTRASIGNUP = environ.get('RESULTS_ANALYSIS_DEBUG_ULTRASIGNUP', 'false').lower() == 'true'
+
 class Config(object):
     DEBUG = False
     TESTING = False
