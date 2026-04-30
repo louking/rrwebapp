@@ -282,7 +282,7 @@
             toolbutton.$tooldialog = $('<div>').append(toolbutton.$toolpopup);
 
             toolbutton.$toolbutton
-                .button({ icons: { secondary: "ui-icon-gear" } })
+                .button({ icon: "ui-icon-gear" })
                 .on('click',
                     function() {
                         if (toolbutton.toolstatus == 0) {
@@ -330,15 +330,15 @@
     // popupbutton feature
     var popupbutton = {
 
-        init: function ( buttonsel, text, label, icons, clickoutside ) {
+        init: function ( buttonsel, text, label, icon, clickoutside ) {
             if (arguments.length < 5) {
                 popupbutton.clickoutside = false;
             }
             $( buttonsel )
                 .button({
-                            icons: icons,
+                            icon: icon,
                             label: label,
-                            text: text,
+                            showLabel: text,
                         });
             popupbutton.clickoutside = clickoutside;
         },
@@ -387,7 +387,7 @@
             addbutton.$widgets.append(addbutton.$addbutton);
 
             addbutton.$addbutton
-                .button({ icons: { secondary: "ui-icon-plus" } })
+                .button({ icon: "ui-icon-plus" })
                 .on('click',
                     function() {
                         document.location.href = url;
@@ -805,11 +805,11 @@
                 buttonid = formid+'-import';
 
                 if (imported) {
-                    icons = {secondary:'ui-icon-check'};
+                    icons = 'ui-icon-check';
                     text = false;
                     label = null;
                 } else {
-                    icons = {};
+                    icons = null;
                     label = 'import';
                     text = true;
                 };
@@ -982,8 +982,8 @@
 
         // printerfriendly
         $('#_rrwebapp-button-printerfriendly').button({
-            text: false,
-            icons: {primary: "ui-icon-print"},
+            showLabel: false,
+            icon: "ui-icon-print",
         }).on('click',
               function() {
                 var fullurl = $( this ).attr('_rrwebapp_action');
@@ -1112,8 +1112,8 @@
 
         // printerfriendly
         $('#_rrwebapp-button-printerfriendly').button({
-            text: false,
-            icons: {primary: "ui-icon-print"},
+            showLabel: false,
+            icon: "ui-icon-print",
         }).on('click',
               function() {
                 var fullurl = $( this ).attr('_rrwebapp_action');
@@ -1144,7 +1144,7 @@
                         <tr><td><div class="row-overall-award">blue</div></td><td>runner is a leader for overall award, not eligible for division award</td></tr>\
                         <tr><td><div class="row-division-award">green</div></td><td>runner is a leader for division award</td></tr>\
                      </table>';
-            popupbutton.init('#_rrwebapp-button-standings-legend', true, 'Legend', {}, true);
+            popupbutton.init('#_rrwebapp-button-standings-legend', true, 'Legend', null, true);
             $('#_rrwebapp-button-standings-legend').on(
                 'click', function() { popupbutton.click('#_rrwebapp-button-standings-legend',legend) }
             );
@@ -1229,8 +1229,8 @@
 
         // printerfriendly
         $('#_rrwebapp-button-printerfriendly').button({
-            text: false,
-            icons: {primary: "ui-icon-print"},
+            showLabel: false,
+            icon: "ui-icon-print",
         }).on('click',
               function() {
                 var fullurl = $( this ).attr('_rrwebapp_action');
