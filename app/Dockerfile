@@ -1,4 +1,4 @@
-ARG PYTHON_VER
+ARG PYTHON_VER=3.12.11
 
 # For more information, please refer to https://aka.ms/vscode-docker-python
 FROM python:${PYTHON_VER}-alpine
@@ -26,8 +26,8 @@ COPY client.my.cnf /home/appuser/.my.cnf
 RUN apk add --no-cache mariadb-connector-c-dev \
     && apk add --no-cache --virtual .build-deps \
         build-base \
-        mariadb-dev \
-    && pip install -r requirements.txt \
+        mariadb-dev
+RUN pip install -r requirements.txt \
     && rm -rf .cache/pip \
     && apk del .build-deps
 
