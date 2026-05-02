@@ -105,6 +105,7 @@ services:
       - ${UPLOAD_TEMP_DIR_HOST}:${FLASK_UPLOAD_TEMP_DIR}
       - ${MEMBERSHIP_DIR_HOST}:${FLASK_MEMBERSHIP_DIR}
       - ${APP_LOGGING_HOST}:${APP_LOGGING_PATH}
+      - ${JS_COMMON_HOST}:/app/${APP_NAME}/static/js:ro
       - tmp-data:/tmp
     environment: &app-env
       TZ: ${TZ}
