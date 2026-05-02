@@ -484,6 +484,11 @@ div.DTE_Body div.DTE_Body_Content div.DTE_Field > label {
   color: black;
 }
 
+/* editor modal */
+.ui-widget {
+    font-size: 0.8em;
+}
+
 /* handle navigation popup buttons */
 .ui-widget.disabled {
     color: lightgrey;

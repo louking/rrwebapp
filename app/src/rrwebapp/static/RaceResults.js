@@ -118,7 +118,7 @@
     // note this expects all dataTable tables be called _rrwebapp_table, and this be global variable
     // see https://datatables.net/forums/discussion/10437/fixedheader-column-headers-not-changing-on-window-resize/p1
     function resetDataTableHW() {
-        _rrwebapp_table.fnAdjustColumnSizing();
+        _rrwebapp_table.api().columns.adjust();
         $('div.dataTables_scrollBody').height(gettableheight());
     };
     $(window).on('resize', function () {
@@ -127,9 +127,9 @@
         }
       } );
 
-    // retrieve filter used for table at indicated column (per https://groups.google.com/forum/#!topic/daniels_code/j6xFhWin38U)
+    // retrieve filter used for table at indicated column
     function getFilterValue(table_arg, column_number){
-        return table_arg.fnSettings().aoPreSearchCols[column_number].sSearch;
+        return table_arg.api().column(column_number).search();
     }
 
     // retrieve column index when header has certain text
