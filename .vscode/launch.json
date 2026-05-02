@@ -27,7 +27,7 @@
             "name": "Launch Chrome",
             "request": "launch",
             "type": "chrome",
-            "url": "http://dev.localhost:8004",
+            "url": "http://scores.localhost",
             // "webRoot": "${workspaceFolder}"
             "webRoot": "${workspaceFolder}/rrwebapp/app/src/rrwebapp",
             // see https://code.visualstudio.com/docs/editor/variables-reference#_variables-scoped-per-workspace-folder
