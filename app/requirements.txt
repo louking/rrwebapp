@@ -108,7 +108,7 @@ pillow==12.2.0
 pip-upgrader==1.4.15
 prompt-toolkit==3.0.30
 pure-eval==0.2.2
-pyasn1==0.4.8
+pyasn1==0.6.3
 pycparser==2.21
 pydantic==2.9.2
 pydantic_core==2.23.4
