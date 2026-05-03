@@ -47,7 +47,7 @@ class SeriesResults(MethodView):
                 cause =  "Race '{}' is not included in any series".format(race.name)
                 current_app.logger.error(cause)
                 flask.flash(cause)
-                return flask.redirect(url_for('manageraces'))
+                return flask.redirect(url_for('frontend.index'))
             
             # determine precision for rendered output
             timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)

@@ -60,7 +60,7 @@ class TestStandings(MethodView):
                 cause = "Error: club '{}' does not exist".format(club)
                 flask.flash(cause)
                 current_app.logger.error(cause)
-                return flask.redirect(flask.url_for('home'))  
+                return flask.redirect(flask.url_for('frontend.index'))  
             
             club_id = thisclub.id
             clubname = thisclub.name
@@ -70,7 +70,7 @@ class TestStandings(MethodView):
                 cause = "Error: series '{}' does not exist for '{}' club".format(series,clubname)
                 flask.flash(cause)
                 current_app.logger.error(cause)
-                return flask.redirect(flask.url_for('home'))  
+                return flask.redirect(flask.url_for('frontend.index'))  
             
             seriesid = thisseries.id
             thisyear = year
