@@ -48,7 +48,7 @@ et-xmlfile==1.1.0
 executing==0.9.1
 ez_setup==0.9
 fabric==3.2.2
-Flask==3.0.3
+Flask==3.1.3
 Flask-Assets==2.1.0
 Flask-BabelEx==0.9.4
 Flask-Login==0.6.3
