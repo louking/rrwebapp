@@ -85,7 +85,7 @@ asset_bundles = {
         'RaceResults.js',
 
         output='gen/admin.js',
-        filters='jsmin',
+        filters='rjsmin',
     ),
 
     'admin_css': Bundle (
@@ -110,6 +110,7 @@ asset_bundles = {
         'filters.css',                  # loutilities
         'branding.css',                 # loutilities
         'style.css',
+
         output='gen/admin.css',
         # cssrewrite helps find image files when ASSETS_DEBUG = False
         filters=['cssrewrite', 'cssmin'],
