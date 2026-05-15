@@ -26,8 +26,8 @@ COPY client.my.cnf /home/appuser/.my.cnf
 RUN apk add --no-cache mariadb-connector-c-dev \
     && apk add --no-cache --virtual .build-deps \
         build-base \
-        mariadb-dev
-RUN pip install -r requirements.txt \
+        mariadb-dev \
+    && pip install -r requirements.txt \
     && rm -rf .cache/pip \
     && apk del .build-deps
 
