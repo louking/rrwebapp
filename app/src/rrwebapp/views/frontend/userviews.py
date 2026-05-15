@@ -7,7 +7,7 @@ import traceback
 
 # pypi
 import flask
-from flask import request, url_for, current_app
+from flask import request, url_for, current_app, abort
 from flask.views import MethodView
 import loutilities.renderrun as render
 
@@ -42,6 +42,11 @@ class SeriesResults(MethodView):
     
             # get race record
             race = Race.query.filter_by(id=raceid).first()
+            
+            # if race not found, this is 404 error
+            if not race:
+                abort(404)
+                
             if len(race.series) == 0:
                 db.session.rollback()
                 cause =  "Race '{}' is not included in any series".format(race.name)
