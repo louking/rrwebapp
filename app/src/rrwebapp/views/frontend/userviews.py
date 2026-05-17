@@ -45,14 +45,13 @@ class SeriesResults(MethodView):
             
             # if race not found, this is 404 error
             if not race:
+                db.session.rollback()
                 abort(404)
-                
+            
+            # if race not in series, also 404
             if len(race.series) == 0:
                 db.session.rollback()
-                cause =  "Race '{}' is not included in any series".format(race.name)
-                current_app.logger.error(cause)
-                flask.flash(cause)
-                return flask.redirect(url_for('frontend.index'))
+                abort(404)
             
             # determine precision for rendered output
             timeprecision,agtimeprecision = render.getprecision(race.distance,surface=race.surface)
