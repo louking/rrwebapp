@@ -64,8 +64,12 @@
                     ];
 
         var tableparams = {
-            //sDom: '<"H"Clpr>t',
-            dom: 'lfrtip',
+            layout: {
+                'topStart': ['pageLength', 'buttons'],
+                'topEnd': ['search', 'paging'],
+                'bottomStart': ['info'],
+                'bottomEnd': null,
+                },
             jQueryUI: true,
             paging: false,
             // sScrollY: gettableheight(),

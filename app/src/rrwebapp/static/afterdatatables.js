@@ -15,4 +15,13 @@ if (location.pathname.includes('/ag_tables')) {
             }
         });
     }
+
+} else if (location.pathname.includes('/resultschart')) {
+    function afterdatatables() {
+        // give table special classes
+        $( "#datatable_wrapper" ).addClass("dt-chart-table dt-chart-tabledisplay dt-hide");
+
+        // TODO: hack to hide copyright which I'm having trouble positioning correctly
+        $( ".Footer" ).hide();
+    }
 }

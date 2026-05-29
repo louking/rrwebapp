@@ -568,7 +568,12 @@ class RunnerResults(MethodView):
 
             # DataTables options string, data: and buttons: are passed separately
             dt_options = {
-                'dom': '<"H"lBpfr>t<"F"i>',
+                'layout':{
+                    'topStart': ['pageLength', 'buttons'],
+                    'topEnd': ['search', 'paging'],
+                    'bottomStart': ['info'],
+                    'bottomEnd': None,
+                    },
                 'columns': [
                     { 'data': 'name',           'name': 'name',             'label': 'Name' },
                     { 'data': 'series',         'name': 'series',           'label': 'Series' }, 
@@ -775,7 +780,12 @@ class RunnerResultsChart(MethodView):
 
             # DataTables options string, data: and buttons: are passed separately
             dt_options = {
-                'dom': '<"dt-chart-table dt-chart-tabledisplay dt-hide"<"H"lBpr>t<"F"i>>',
+                'layout':{
+                    'topStart': ['pageLength', 'buttons'],
+                    'topEnd': ['search', 'paging'],
+                    'bottomStart': ['info'],
+                    'bottomEnd': None,
+                    },
                 'columns': [
                     { 'data': 'date',           'name': 'date',             'label': 'Date',        'className': 'dt-body-center dt-chart-nowrap'},
                     { 'data': 'runnerid',       'name': 'runnerid',         'label': 'Runner ID',   'visible': False },

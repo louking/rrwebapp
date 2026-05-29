@@ -87,7 +87,12 @@ class ResultsAnalysisStatus(MethodView):
 
             # DataTables options string, data: and buttons: are passed separately
             dt_options = {
-                'dom': '<"H"lBpfr>t<"F"i>',
+                'layout': {
+                    'topStart': ['pageLength', 'buttons'],
+                    'topEnd': ['search', 'paging'],
+                    'bottomStart': ['info'],
+                    'bottomEnd': None,
+                    },
                 'columns': [
                     { 'data': 'source', 'name': 'source', 'label': 'Source' },
                     { 'data': 'status', 'name': 'status', 'label': 'Status' }, 

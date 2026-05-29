@@ -66,17 +66,17 @@
     padding: .4em 1em;
 }
 
-.dt-chart-table {
+div.dt-chart-table {
     position: absolute;
 }
 
-.dataTables_wrapper {
+#dataTables_wrapper {
     position: absolute;
     top: 0;
 }
 
 .dt-hide {
-    visibility: hidden;
+    display: none;
 }
 
 .dt-chart-age-grade-link {

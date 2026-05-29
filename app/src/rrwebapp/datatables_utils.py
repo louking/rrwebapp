@@ -87,12 +87,26 @@ def get_request_data(form):
 def getDataTableParams(updates, printerfriendly = False):
 #----------------------------------------------------------------------
 
-    sDomValue = '<"H"lBpfr>t<"F"i>'
-    sPrinterFriendlyDomValue = 'lpfrt'
+    # sDomValue = '<"H"lBpfr>t<"F"i>'
+    # sPrinterFriendlyDomValue = 'lpfrt'
+
+    layout_value = {
+        'topStart': ['pageLength', 'buttons'],
+        'topEnd': ['search', 'paging'],
+        'bottomStart': ['info'],
+        'bottomEnd': None,
+        }
+
+    pf_layout_value = {
+        'topStart': ['pageLength'],
+        'topEnd': ['search', 'paging'],
+        'bottomStart': ['info'],
+        'bottomEnd': None,
+        }
 
     if not printerfriendly:
         params = {
-                'dom': sDomValue,
+                'layout': layout_value,
                 'jQueryUI': True,
                 'paging': False,
                 # 'scrollY': gettableheight(),  # can't call js from here
@@ -105,7 +119,7 @@ def getDataTableParams(updates, printerfriendly = False):
 
     else:
         params = {
-                'dom': sPrinterFriendlyDomValue,
+                'layout': pf_layout_value,
                 'jQueryUI': True,
                 'paging': False,
                 'ordering': False,
@@ -267,7 +281,13 @@ class DatatablesCsv(MethodView):
             
             # DataTables options string, data: and buttons: are passed separately
             dt_options = {
-                'dom': '<"H"lBpfr>t<"F"i>',
+                'layout': {
+                    'topStart': ['pageLength', 'buttons'],
+                    'topEnd': ['search', 'paging'],
+                    'bottomStart': ['info'],
+                    'bottomEnd': None,
+                    },
+
                 'columns': [],
                 'ordering': True,
                 'serverSide': False,

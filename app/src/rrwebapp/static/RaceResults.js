@@ -55,17 +55,27 @@
         return height;
     }
 
-    var sDomValue = '<"H"lBpfr>t<"F"i>';
-    var sPrinterFriendlyDomValue = 'lpfrt';
-    // var sDomValue = '<"H"Clpfr>t<"F"i>';
-    // var sPrinterFriendlyDomValue = '<"H"Clpr>t<"F">';
+    var layout_value = {
+        'topStart': ['pageLength', 'buttons'],
+        'topEnd': ['search', 'paging'],
+        'bottomStart': ['info'],
+        'bottomEnd': null,
+        }
+
+    var pf_layout_value = {
+        'topStart': ['pageLength'],
+        'topEnd': ['search', 'paging'],
+        'bottomStart': ['info'],
+        'bottomEnd': null,
+        }
+    
     function getDataTableParams(updates,printerfriendly) {
         if (arguments.length == 1) {
             printerfriendly = false;
         }
         if (!printerfriendly){
             var params = {
-                    dom: sDomValue,
+                    layout: layout_value,
                     jQueryUI: true,
                     paging: false,
                     scrollY: gettableheight(),
@@ -89,7 +99,7 @@
         }
         else {
             var params = {
-                    dom: sPrinterFriendlyDomValue,
+                    layout: pf_layout_value,
                     jQueryUI: true,
                     paging: false,
                     ordering: false,
@@ -101,10 +111,14 @@
     }
 
     //var sSpecDomValue = '<"H"Clpr>t';
-    var sSpecDomValue = 'lfrtip';
     function getSpecTableParams(updates) {
         var params = {
-                dom: sSpecDomValue,
+                layout: {
+                    'topStart': ['pageLength', 'buttons'],
+                    'topEnd': ['search', 'paging'],
+                    'bottomStart': ['info'],
+                    'bottomEnd': None,
+                    },
                 jQueryUI: true,
                 paging: false,
                 ordering: false,
