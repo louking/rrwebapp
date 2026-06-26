@@ -463,6 +463,180 @@ var agegrade_import_button = function(url) {
     return agegrade_import_saeditor.edit_button_hook(url);
 }
 
+var agegrade_display_button = function(url) {
+    return function(e, dt, node, config) {
+        var id = _dt_table.rows({selected:true}).ids()[0];
+
+        function formatSecs(secs) {
+            if (!secs && secs !== 0) return '';
+            secs = Math.round(secs);
+            var h = Math.floor(secs / 3600);
+            var m = Math.floor((secs % 3600) / 60);
+            var s = secs % 60;
+            if (h > 0) {
+                return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+            } else {
+                return m + ':' + String(s).padStart(2, '0');
+            }
+        }
+
+        function formatDist(dist_mm) {
+            return parseFloat((dist_mm / 1000000).toFixed(4)) + ' km';
+        }
+
+        function buildTable(json) {
+            if (!json.distances || json.distances.length === 0) {
+                return '<p>No data available for this selection.</p>';
+            }
+            var th = 'style="padding:3px 8px;border:1px solid #ccc;background:#f0f0f0;white-space:nowrap;"';
+            var td = 'style="padding:3px 8px;border:1px solid #ccc;text-align:right;"';
+            var tdoc = 'style="padding:3px 8px;border:1px solid #ccc;text-align:right;background:#f8f8f0;"';
+            var html = '<table style="border-collapse:collapse;font-size:0.85em;"><thead>';
+            html += '<tr><th ' + th + '>Age</th>';
+            json.distances.forEach(function(d) {
+                html += '<th ' + th + '>' + formatDist(d) + '</th>';
+            });
+            html += '</tr><tr><th ' + th + '>OC</th>';
+            json.distances.forEach(function(d) {
+                html += '<td ' + tdoc + '>' + formatSecs(json.oc_secs[String(d)]) + '</td>';
+            });
+            html += '</tr></thead><tbody>';
+            json.ages.forEach(function(age) {
+                html += '<tr><th ' + th + '>' + age + '</th>';
+                json.distances.forEach(function(d) {
+                    var f = json.factors[String(age)] && json.factors[String(age)][String(d)];
+                    html += '<td ' + td + '>' + (f !== undefined && f !== null ? f.toFixed(4) : '') + '</td>';
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function loadFactors($container, $dialog) {
+            var gender = $dialog.find('#ag-display-gender').val();
+            var surface = $dialog.find('#ag-display-surface').val();
+            $container.html('<p>Loading&hellip;</p>');
+            $.ajax({
+                url: url,
+                type: 'get',
+                dataType: 'json',
+                data: {factortable_id: id, gender: gender, surface: surface},
+                success: function(json) {
+                    if (json.error) {
+                        $container.html('<p>Error: ' + _.escape(json.error) + '</p>');
+                    } else {
+                        $dialog.dialog('option', 'title',
+                            'Age Grade Factors: ' + json.name + ' (' + gender + ', ' + surface + ')');
+                        $container.html(buildTable(json));
+                    }
+                },
+                error: function() {
+                    $container.html('<p>Request failed.</p>');
+                }
+            });
+        }
+
+        var $container = $('<div>').css({overflow: 'auto', maxHeight: '420px'});
+        var $controls = $('<div>').css({'margin-bottom': '8px'}).html(
+            'Gender:&nbsp;<select id="ag-display-gender">' +
+            '<option value="M">M</option><option value="F">F</option><option value="X">X</option>' +
+            '</select>&nbsp;&nbsp;' +
+            'Surface:&nbsp;<select id="ag-display-surface">' +
+            '<option value="road">road</option><option value="track">track</option>' +
+            '</select>'
+        );
+        var $dialog = $('<div>').append($controls).append($container);
+
+        $dialog.dialog({
+            title: 'Age Grade Factors',
+            width: 900,
+            height: 560,
+            modal: true,
+            close: function() { $(this).dialog('destroy').remove(); },
+            buttons: [
+                {
+                    text: 'Reload',
+                    click: function() { loadFactors($container, $dialog); }
+                },
+                {
+                    text: 'Close',
+                    click: function() { $(this).dialog('close'); }
+                }
+            ]
+        });
+
+        loadFactors($container, $dialog);
+    };
+};
+
+var agegrade_copy_button = function(url) {
+    return function(e, dt, node, config) {
+        var id = _dt_table.rows({selected:true}).ids()[0];
+        var sourceName = (_dt_table.rows({selected:true}).data()[0] || {}).name || '';
+
+        var $input = $('<input type="text">').css({width: '100%', boxSizing: 'border-box'})
+                        .val(sourceName ? sourceName + ' (copy)' : '');
+        var $msg = $('<p>').css({'margin-bottom': '6px'}).text('New table name:');
+        var $dialog = $('<div>').append($msg).append($input);
+
+        $dialog.dialog({
+            title: 'Copy Age Grade Table: ' + sourceName,
+            width: 420,
+            height: 'auto',
+            modal: true,
+            close: function() { $(this).dialog('destroy').remove(); },
+            open: function() {
+                $input[0].select();
+            },
+            buttons: [
+                {
+                    text: 'Copy',
+                    click: function() {
+                        var newName = $input.val().trim();
+                        if (!newName) {
+                            $input.css('border-color', 'red').focus();
+                            return;
+                        }
+                        var $dlg = $dialog;
+                        $.ajax({
+                            url: url + '?factortable_id=' + id,
+                            type: 'post',
+                            contentType: 'application/json',
+                            dataType: 'json',
+                            data: JSON.stringify({new_name: newName}),
+                            success: function(json) {
+                                if (json.error) {
+                                    $msg.text('Error: ' + json.error).css('color', 'red');
+                                } else {
+                                    var rows = json.data || [];
+                                    rows.forEach(function(row) {
+                                        var rowId = '#' + row.rowid;
+                                        if (_dt_table.row(rowId).any()) {
+                                            _dt_table.row(rowId).data(row);
+                                        } else {
+                                            _dt_table.row.add(row);
+                                        }
+                                    });
+                                    _dt_table.draw();
+                                    $dlg.dialog('close');
+                                }
+                            },
+                            error: function() {
+                                $msg.text('Request failed.').css('color', 'red');
+                            }
+                        });
+                    }
+                },
+                {
+                    text: 'Cancel',
+                    click: function() { $(this).dialog('close'); }
+                }
+            ]
+        });
+    };
+};
+
 // TODO: should this be moved to loutilities datatables.js?
 /**
  * reset datatable data based on effective date

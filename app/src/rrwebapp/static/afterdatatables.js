@@ -4,14 +4,20 @@ if (location.pathname.includes('/ag_tables')) {
     function afterdatatables() {
         agegrade_import_saeditor.init();
 
-        // Import Factors button is only enabled when a row is selected
+        // Row-dependent buttons are only enabled when a row is selected
         _dt_table.button('import-factors:name').disable();
+        _dt_table.button('display-table:name').disable();
+        _dt_table.button('copy-table:name').disable();
         _dt_table.on('select deselect', function(e, dt, type, indexes) {
             var ids = _dt_table.rows({selected:true}).ids();
             if (ids.length == 0) {
                 _dt_table.button('import-factors:name').disable();
+                _dt_table.button('display-table:name').disable();
+                _dt_table.button('copy-table:name').disable();
             } else {
                 _dt_table.button('import-factors:name').enable();
+                _dt_table.button('display-table:name').enable();
+                _dt_table.button('copy-table:name').enable();
             }
         });
     }

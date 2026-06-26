@@ -142,3 +142,17 @@ Tasks are defined in [`tasks.py`](app/src/rrwebapp/tasks.py) and dispatched from
 ### Access Control
 
 Permissions are checked with Flask-Principal `Permission` objects. The club ID from `session['club_id']` scopes all data access — every query filters by club ID. Roles are `admin`, `viewer`, and `owner`.
+
+### Custom DataTables Buttons
+
+Custom buttons on `CrudApi` views follow a two-file JS pattern:
+
+- **[`static/beforedatatables.js`](app/src/rrwebapp/static/beforedatatables.js)** — define button handler functions/variables that must exist before DataTables initialises. A button's `action` key in Python is a string expression that loutilities' `datatables.js` `eval()`s at init time; the result must be a function `(e, dt, node, config)`. The convention is a top-level `var foo_button = function(url) { return function(e, dt, node, config) {...}; }` so the eval'd call `foo_button("<url>")` returns the handler.
+
+- **[`static/afterdatatables.js`](app/src/rrwebapp/static/afterdatatables.js)** — per-path `afterdatatables()` hook (guarded by `location.pathname.includes(...)`) for post-init work such as disabling buttons until a row is selected and initialising `SaEditor` instances.
+
+Custom read-only API endpoints on the `admin` blueprint use `flask.views.MethodView` with the `@apimethod` decorator from `loutilities.tables`. The view must implement `permission()` (returns bool) and `rollback()`, then `get()`/`post()` methods decorated with `@apimethod`.
+
+### Age Grade Models
+
+Three related models in [`model.py`](app/src/rrwebapp/model.py) (`AgeGradeTable` → `AgeGradeCategory` → `AgeGradeFactor`). Distance is stored as `dist_mm = int(dist_km * 1_000_000)` (i.e. millimetres). `AgeGradeCategory.oc_secs` holds the open-class (world record) performance in seconds for that distance.

@@ -31,23 +31,23 @@ agtable_formmapping['last_update'] = lambda r: displaytime.dt2asc(r.last_update)
 
 agtable_view = CrudApi(
     app = bp,
-    pagename = 'Age Grade Tables', 
-    endpoint = 'admin.ag_tables', 
+    pagename = 'Age Grade Tables',
+    endpoint = 'admin.ag_tables',
     rule = '/ag_tables',
-    dbmapping = agtable_dbmapping, 
-    formmapping = agtable_formmapping, 
-    writepermission = owner_permission.can, 
-    dbtable = AgeGradeTable, 
+    dbmapping = agtable_dbmapping,
+    formmapping = agtable_formmapping,
+    writepermission = owner_permission.can,
+    dbtable = AgeGradeTable,
     clientcolumns = [
        {'data': 'name', 'name': 'name', 'label': 'Table Name'},
        {'data': 'last_update', 'name': 'last_update', 'label': 'Last Update', 'type': 'readonly'},
     ],
     serverside = False,
     byclub = False,
-    idSrc = 'rowid', 
+    idSrc = 'rowid',
     buttons = lambda: [
-        'create', 
-        'editRefresh', 
+        'create',
+        'editRefresh',
         'remove',
         {
             'text': 'Import Factors',
@@ -56,7 +56,16 @@ agtable_view = CrudApi(
             'url': url_for('admin.importagfactors'),
             'action': f'agegrade_import_button("{url_for("admin.importagfactors")}")',
         },
-
+        {
+            'text': 'Display Table',
+            'name': 'display-table',
+            'action': f'agegrade_display_button("{url_for("admin.displayagfactors")}")',
+        },
+        {
+            'text': 'Copy Table',
+            'name': 'copy-table',
+            'action': f'agegrade_copy_button("{url_for("admin.copyagfactors")}")',
+        },
     ]
     )
 agtable_view.register()
@@ -178,4 +187,93 @@ class ImportAgeGradeFactorsApi(MethodView):
         return dt_editor_response(data=self._responsedata)
 
 bp.add_url_rule('/_importagfactors/rest', view_func=ImportAgeGradeFactorsApi.as_view('importagfactors'), methods=['GET', 'POST'])
+
+
+# display age grade factors api
+class AgFactorsDisplayApi(MethodView):
+
+    def permission(self):
+        return owner_permission.can()
+
+    def rollback(self):
+        pass
+
+    @apimethod
+    def get(self):
+        factortable_id = request.args.get('factortable_id')
+        gender = request.args.get('gender', 'M')
+        surface = request.args.get('surface', 'road')
+
+        factortable = AgeGradeTable.query.filter_by(id=factortable_id).one()
+        categories = (AgeGradeCategory.query
+                      .filter_by(factortable_id=factortable_id, gender=gender, surface=surface)
+                      .order_by(AgeGradeCategory.dist_mm)
+                      .all())
+
+        distances = [cat.dist_mm for cat in categories]
+        oc_secs = {str(cat.dist_mm): cat.oc_secs for cat in categories}
+        factors = {}
+        for cat in categories:
+            for fac in cat.factors:
+                if fac.age not in factors:
+                    factors[fac.age] = {}
+                factors[fac.age][cat.dist_mm] = fac.factor
+
+        ages = sorted(factors.keys())
+
+        return jsonify(
+            name=factortable.name,
+            gender=gender,
+            surface=surface,
+            distances=distances,
+            oc_secs=oc_secs,
+            ages=ages,
+            factors={str(age): {str(d): v for d, v in factors[age].items()} for age in ages},
+        )
+
+bp.add_url_rule('/_agfactors/display', view_func=AgFactorsDisplayApi.as_view('displayagfactors'), methods=['GET'])
+
+
+# copy age grade table api
+class CopyAgeGradeTableApi(MethodView):
+
+    def permission(self):
+        return owner_permission.can()
+
+    def rollback(self):
+        db.session.rollback()
+
+    @apimethod
+    def post(self):
+        factortable_id = request.args.get('factortable_id')
+        new_name = (request.get_json() or {}).get('new_name', '').strip()
+
+        if not new_name:
+            return jsonify(error='new table name is required')
+
+        source = AgeGradeTable.query.filter_by(id=factortable_id).one()
+
+        new_table = AgeGradeTable(name=new_name, last_update=datetime.now())
+        db.session.add(new_table)
+        db.session.flush()
+
+        for cat in source.categories:
+            new_cat = AgeGradeCategory(
+                factortable=new_table,
+                gender=cat.gender,
+                surface=cat.surface,
+                dist_mm=cat.dist_mm,
+                oc_secs=cat.oc_secs,
+            )
+            db.session.add(new_cat)
+            db.session.flush()
+            for fac in cat.factors:
+                db.session.add(AgeGradeFactor(category=new_cat, age=fac.age, factor=fac.factor))
+
+        db.session.commit()
+
+        thisrow = agtable_view.dte.get_response_data(new_table)
+        return dt_editor_response(data=[thisrow])
+
+bp.add_url_rule('/_agfactors/copy', view_func=CopyAgeGradeTableApi.as_view('copyagfactors'), methods=['POST'])
 
