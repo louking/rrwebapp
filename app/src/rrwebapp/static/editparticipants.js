@@ -24,12 +24,23 @@ function editparticipants(raceid, readallowed, writeallowed, membersonly) {
             });
 
         // set up tabulate button
+        // disabled on click to prevent a double-click from firing two overlapping tabulate
+        // requests, which can race past the "results already exist" check and duplicate results
         $('#_rrwebapp-button-tabulate').button()
             .click( function( event ) {
                 event.preventDefault();
+                $(this).button('disable');
                 url = $('#_rrwebapp-button-tabulate').attr('_rrwebapp-tabulate-url')
                 ajax_update_db_noform(url,{},'#_rrwebapp-button-tabulate',false)
             });
+
+        // re-enable the tabulate button once its request completes; success redirects away
+        // from this page, so this mainly re-enables after a failure or overwrite-confirmation
+        $(document).on('ajaxComplete', function(event, xhr, settings) {
+            if (settings.url && settings.url.indexOf('_tabulateresults') !== -1) {
+                $('#_rrwebapp-button-tabulate').button('enable');
+            }
+        });
 
         // set up Select Names and Confirm button
         $('#_rrwebapp-button-select-names-and-confirm').button()
