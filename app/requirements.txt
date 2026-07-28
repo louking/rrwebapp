@@ -68,7 +68,7 @@ gpxpy==1.5.0
 greenlet==3.1.1
 gunicorn==23.0.0
 haversine==2.6.0
-httplib2==0.20.4
+httplib2==0.32.0
 idna==3.10
 imagesize==1.4.1
 importlib-metadata==4.12.0
