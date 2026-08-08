@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Tech Stack
 - **Backend**: Python 3.12, Flask 3.0.3 with SQLAlchemy 2.x ORM
-- **Database**: MySQL 8.0.40 (SQLite in-memory for testing)
+- **Database**: MySQL 8.0.40 via the PyMySQL driver (SQLite in-memory for testing) — see the PyMySQL gotcha below
 - **Task Queue**: Celery 5.4 with RabbitMQ for async results processing
 - **Frontend**: Server-rendered Jinja2 with DataTables, Flask-Assets for JS/CSS bundling
 - **Auth**: Flask-Security-Too with Flask-Principal for role-based access control
@@ -99,6 +99,8 @@ docker compose exec app flask db upgrade
 
 App configuration is read from `/config/rrwebapp.cfg` (mounted into container from `./config/`). Secrets (database password, RabbitMQ password) are mounted as Docker secrets at `/run/secrets/`.
 
+`app`'s crontab (`/etc/crontabs/appuser`) is mounted the same way, from `./config/cronjobs` — it's a runtime bind mount in `docker-compose.yml`, not baked into the image via `Dockerfile` `COPY` anymore. Like `rrwebapp.cfg`, `config/cronjobs` is gitignored (`config/` is excluded repo-wide), so it's per-deployment local state, not version-controlled; changing the cron schedule no longer requires an image rebuild, just editing the file and restarting the `app` container.
+
 Environment variables prefixed with `FLASK_` are automatically loaded into `app.config` (without the prefix) via `app.config.from_prefixed_env(prefix='FLASK')`.
 
 Results analysis debugging is controlled via `.env`:
@@ -106,6 +108,22 @@ Results analysis debugging is controlled via `.env`:
 - `RESULTS_ANALYSIS_DEBUG_RA` — RunningAHEAD only
 - `RESULTS_ANALYSIS_DEBUG_ATHLINKS` — Athlinks only
 - `RESULTS_ANALYSIS_DEBUG_ULTRASIGNUP` — Ultrasignup only
+
+### MySQL Driver (PyMySQL)
+
+`mysqlclient` (`MySQLdb`) triggers `MySQLdb.OperationalError: (2026, 'TLS/SSL error: Certificate verification failure')` against MySQL 8.0+ from Alpine-based app containers, because Alpine's `mysqlclient` build links MariaDB Connector/C (not `libmysqlclient`), which defaults to SSL with cert verification, and MySQL 8's auto-generated self-signed certs fail that check. Server-side workarounds (`--skip-ssl`) are unreliable on 8.0.40+.
+
+The fix used here (matching `members`) is to drop `mysqlclient` entirely in favor of the pure-Python **PyMySQL** driver, which doesn't go through MariaDB Connector/C and doesn't attempt SSL by default:
+- `app/requirements.txt` — `PyMySQL==1.1.3`, no `mysqlclient`
+- [`settings.py`](app/src/rrwebapp/settings.py)'s `RealDb.__init__` — SQLAlchemy URI scheme is `mysql+pymysql://`, not plain `mysql://` (SQLAlchemy's default `mysql://` dialect resolves to `MySQLdb`/mysqlclient, so this must be explicit or the driver won't be used even once installed)
+- [`app/Dockerfile`](app/Dockerfile) — no C build scaffolding needed for PyMySQL (`mariadb-connector-c-dev`/`build-base`/`mariadb-dev` removed); `apk add --no-cache mysql-client` is kept regardless, since it's the `mariadb`/`mariadb-dump` CLI used by the cron backup jobs and startup script, unrelated to the Python driver
+- [`app/client.my.cnf`](app/client.my.cnf) (copied to `/home/appuser/.my.cnf`) — `skip-ssl = true`, to suppress SSL for those CLI tools independent of the Python driver change
+
+### passlib / libpass
+
+Flask-Security-Too's declared dependency is `passlib` (see `pip show Flask-Security-Too`), but the real, unmaintained `passlib` package breaks under `setuptools>=83` (which dropped `pkg_resources`, see the global CLAUDE.md's packaging note): `passlib/pwd.py` does an unconditional `import pkg_resources`, so anything importing `flask_security` fails at `ModuleNotFoundError: No module named 'pkg_resources'`, several frames deep (`flask_security.core` → `flask_security.totp` → `passlib.pwd`) — looks unrelated to packaging at a glance.
+
+Don't try to fix this by pinning `setuptools` back down or bumping `passlib` — real `passlib` is unmaintained and hasn't fixed it. The fix (matching `members`/`contracts`) is to swap it for **`libpass`**, an actively-maintained fork that installs its files *into* the `passlib/` import path, so `flask_security`'s `from passlib... import ...` code works unmodified while getting the fix. `app/requirements.txt` has `libpass==1.9.3` and no separate `passlib` entry — don't add `passlib` back, even transitively (e.g. `pip install passlib` in a venv silently overwrites `libpass`'s files at that same import path and reintroduces the bug). If this resurfaces, the fix is `pip uninstall passlib && pip install --force-reinstall --no-deps libpass==<version>`, not adding `passlib` anywhere.
 
 ### Static JS Assets
 

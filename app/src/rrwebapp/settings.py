@@ -92,8 +92,8 @@ class RealDb(Config):
             password = pw.readline().strip()
         dbserver = config['dbserver']
         dbname = config['dbname']
-        # app.logger.debug('using mysql://{uname}:*******@{server}/{dbname}'.format(uname=dbuser,server=dbserver,dbname=dbname))
-        db_uri = 'mysql://{uname}:{pw}@{server}/{dbname}'.format(uname=dbuser, pw=password, server=dbserver,
+        # app.logger.debug('using mysql+pymysql://{uname}:*******@{server}/{dbname}'.format(uname=dbuser,server=dbserver,dbname=dbname))
+        db_uri = 'mysql+pymysql://{uname}:{pw}@{server}/{dbname}'.format(uname=dbuser, pw=password, server=dbserver,
                                                                  dbname=dbname)
         self.SQLALCHEMY_DATABASE_URI = db_uri
 
@@ -103,7 +103,7 @@ class RealDb(Config):
         # userpassword = config['userdbpassword']
         # userdbserver = config['userdbserver']
         # userdbname = config['userdbname']
-        # userdb_uri = 'mysql://{uname}:{pw}@{server}/{dbname}'.format(uname=userdbuser, pw=userpassword, server=userdbserver,
+        # userdb_uri = 'mysql+pymysql://{uname}:{pw}@{server}/{dbname}'.format(uname=userdbuser, pw=userpassword, server=userdbserver,
         #                                                          dbname=userdbname)
         # self.SQLALCHEMY_BINDS = {
         #     'users': userdb_uri

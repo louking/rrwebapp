@@ -160,6 +160,7 @@ services:
       - appdb-password
     volumes:
       - ./config/msmtprc:/etc/msmtprc:ro
+      - ./config/cronjobs:/etc/crontabs/appuser
       - ${VAR_LOG_HOST}:/var/log
       - ${BACKUP_FOLDER_HOST}/${APP_DATABASE}:/backup
 
