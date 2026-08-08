@@ -66,6 +66,15 @@ class Testing(Config):
     GOOGLE_OAUTH_CLIENT_ID = 'fake-client-id'
     GOOGLE_OAUTH_CLIENT_SECRET = 'fake-client-secret'
 
+    # required by loutilities.user.applogging.setlogging(), normally set from config/<app>.cfg [app] section
+    APP_LOUTILITY = PRODUCTNAME_TEXT
+    EXCEPTION_EMAIL = ['test@example.com']
+
+    # required by create_app()'s SECURITY_EMAIL_SUBJECT_* .format() calls, normally set from config/<app>.cfg [app] section
+    SECURITY_EMAIL_SUBJECT_PASSWORD_RESET = '{productname}: please reset your password'
+    SECURITY_EMAIL_SUBJECT_PASSWORD_CHANGE_NOTICE = '{productname}: your password has been changed'
+    SECURITY_EMAIL_SUBJECT_PASSWORD_NOTICE = '{productname}: your password has been reset'
+
     # need to allow logins in flask-security. see https://github.com/mattupstate/flask-security/issues/259
     LOGIN_DISABLED = False
 

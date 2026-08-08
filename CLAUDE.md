@@ -71,6 +71,20 @@ docker compose -f docker-compose.yml -f docker-compose.debug.yml up app
 docker compose -f docker-compose.yml -f docker-compose.debug-celery.yml up celery
 ```
 
+### Testing
+
+`pytest` (config in [`pytest.ini`](pytest.ini), tests in [`test/`](test/)). Run from the repo root: `pytest`.
+
+**`test/conftest.py`'s `app`/`dbapp` fixtures deliberately do NOT call `rrwebapp.create_app()`** — they build a bare `Flask('rrwebapp')` with just `db.init_app(app)`, no blueprints/extensions registered. This is required, not a style choice: `create_app()` unconditionally registers the `admin` blueprint (`__init__.py` → `views/admin/__init__.py` → `from . import member` → `tasks.py` → `celery.py`), and [`celery.py`](app/src/rrwebapp/celery.py) reads `/config/<APP_NAME>.cfg` and two Docker-secrets files (`/run/secrets/appdb-password`, `/run/secrets/rabbitmq-app-password`) **unconditionally at module import time** — paths that only exist inside the container. There's currently no way to import anything under `rrwebapp.views.admin` (which is where most view-function code lives, including `results.py`) outside Docker without hitting this. `contracts`/`members` never hit it because neither uses Celery at all — this is rrwebapp-specific. Fixing it properly would mean deferring `celery.py`'s config read into a function instead of module level; not done here since it's a change to production task-dispatch code, out of scope for adding a test harness.
+
+**Practical implications for writing new tests:**
+- A bare `Flask` + `db.init_app()` is enough for model-level tests and for testing free functions that don't need the full app. Prefer putting DB-credential/config-reading helpers in a plain top-level module (not inside `views/admin/`) specifically so they stay importable/testable without tripping the `celery.py` chain.
+- Anything that genuinely needs the full app (routing, Flask-Security, blueprint-registered views) can't be tested this way yet — that needs the `celery.py` fix above first.
+
+`APP_NAME`/`APP_VER` must also be set *before* `rrwebapp` is imported at all, regardless of the above — [`__init__.py:35`](app/src/rrwebapp/__init__.py#L35) reads `environ['APP_NAME']` at module import time, and [`version.py:3`](app/src/rrwebapp/version.py#L3) reads `environ['APP_VER']` the same way. Both are normally supplied by Docker Compose's `.env`; `conftest.py` sets defaults via `os.environ.setdefault(...)` as its first lines, before any `rrwebapp` import. Get the ordering wrong and every test errors at collection, not just the ones touching those modules.
+
+Separately, `settings.Testing` was also given `APP_LOUTILITY`, `EXCEPTION_EMAIL`, and the three `SECURITY_EMAIL_SUBJECT_*` keys it was missing (see [`settings.py`](app/src/rrwebapp/settings.py)) — in real deployments these come from `config/<app>.cfg`'s `[app]` section, which `Testing` doesn't load, but `create_app()` reads them unconditionally during `setlogging()`/security-email setup regardless of `DEBUG`/`TESTING`. Not currently exercised by the test suite (since it avoids `create_app()`, per above) but left in place since it's a real, correct gap-fix — needed the moment anything does call `create_app(Testing)`, e.g. once the `celery.py` fix above lands.
+
 ### Database Migrations
 
 Migrations use Alembic via Flask-Migrate. The `dbupgrade_and_run.sh` script in the container runs `flask db upgrade` automatically on startup.
