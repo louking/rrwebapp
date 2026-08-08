@@ -1985,8 +1985,8 @@ class DownloadResults(MethodView):
                 flash('at least one Result Set must be selected')
                 return redirect(url_for('.downloadresults'))
                 
-            # use credentials (if configured) for home club's children's full names, and for API registration compliance
-            with get_runsignup_client() as rsu:
+            # getrace/geteventresults don't require credentials; api_reg_token/secret still sent if configured
+            with get_runsignup_client(anonymous=True) as rsu:
                 for resultsset in resultssets:
                     race_id, event_id, resultsset_id = resultsset.split('/')
                     if not race:
@@ -2055,8 +2055,8 @@ class AjaxDownloadResults(MethodView):
 
                     race_id = rsuraceurl.group(1)
                 
-                    # get result set information from race
-                    with get_runsignup_client() as rsu:
+                    # get result set information from race; getraceevents/getresultsets don't require credentials
+                    with get_runsignup_client(anonymous=True) as rsu:
                         raceevents = rsu.getraceevents(race_id)
                         rsutime = asctime('%m/%d/%Y %H:%M')
                         for event in raceevents:

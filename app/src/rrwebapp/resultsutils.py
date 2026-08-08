@@ -900,15 +900,22 @@ class ServiceResultFile(object):
         return serviceresult
     
 
-def get_runsignup_client(**kwargs):
+def get_runsignup_client(anonymous=False, **kwargs):
     '''
     create a running.runsignup.RunSignUp client, using stored credentials if configured, else anonymous access
 
+    api_reg_token / api_reg_secret (RunSignUp's API caller registration credentials) are sent whenever
+    configured, regardless of anonymous, since RunSignUp requires registration for all callers, authenticated
+    or not
+
+    :param anonymous: if True, don't send key/secret even if configured, e.g. to test unauthenticated access
     :param kwargs: additional RunSignUp() arguments, e.g. debug=True
     '''
     creds = ApiCredentials.query.filter_by(name='runsignup').first()
     if creds:
-        return RunSignUp(key=creds.key, secret=creds.secret,
+        key = creds.key if not anonymous else None
+        secret = creds.secret if not anonymous else None
+        return RunSignUp(key=key, secret=secret,
                           api_reg_token=creds.api_reg_token, api_reg_secret=creds.api_reg_secret,
                           **kwargs)
     return RunSignUp(**kwargs)
