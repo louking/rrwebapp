@@ -31,6 +31,7 @@ from loutilities.transform import Transform
 from loutilities.namesplitter import split_full_name
 from dominate.tags import span
 from nameparser import HumanName
+from running.runsignup import RunSignUp
 
 # homegrown
 from . import app
@@ -898,6 +899,20 @@ class ServiceResultFile(object):
                 
         return serviceresult
     
+
+def get_runsignup_client(**kwargs):
+    '''
+    create a running.runsignup.RunSignUp client, using stored credentials if configured, else anonymous access
+
+    :param kwargs: additional RunSignUp() arguments, e.g. debug=True
+    '''
+    creds = ApiCredentials.query.filter_by(name='runsignup').first()
+    if creds:
+        return RunSignUp(key=creds.key, secret=creds.secret,
+                          api_reg_token=creds.api_reg_token, api_reg_secret=creds.api_reg_secret,
+                          **kwargs)
+    return RunSignUp(**kwargs)
+
 
 class ServiceAttributes(object):
     '''

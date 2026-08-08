@@ -37,7 +37,6 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField
 from wtforms.validators import DataRequired
 from requests import get as requests_get
-from running.runsignup import RunSignUp
 
 # home grown
 from . import bp
@@ -53,7 +52,7 @@ from ...clubmember import DbClubMember
 from ...crudapi import CrudApi
 from ...model import Runner, ManagedResult, RaceResult, Race, Exclusion, Series, Divisions, Club, ClubAffiliation, dbdate
 from ...model import rendertime, renderfloat, rendermember, renderlocation, renderseries
-from ...resultsutils import ServiceAttributes, LocationServer, get_distance
+from ...resultsutils import ServiceAttributes, LocationServer, get_distance, get_runsignup_client
 from ...resultsutils import DIFF_CUTOFF, DISP_MATCH, DISP_CLOSE, DISP_CLOSEAGE, DISP_MISSED
 from ...resultsutils import ImportResults, tYmd, getrunnerchoices, get_earliestrace, ClubAffiliationLookup
 from ...model import RaceResultService, ApiCredentials
@@ -1986,8 +1985,8 @@ class DownloadResults(MethodView):
                 flash('at least one Result Set must be selected')
                 return redirect(url_for('.downloadresults'))
                 
-            # use credentials for home club's children's full names
-            with RunSignUp() as rsu:
+            # use credentials (if configured) for home club's children's full names, and for API registration compliance
+            with get_runsignup_client() as rsu:
                 for resultsset in resultssets:
                     race_id, event_id, resultsset_id = resultsset.split('/')
                     if not race:
@@ -2057,7 +2056,7 @@ class AjaxDownloadResults(MethodView):
                     race_id = rsuraceurl.group(1)
                 
                     # get result set information from race
-                    with RunSignUp() as rsu:
+                    with get_runsignup_client() as rsu:
                         raceevents = rsu.getraceevents(race_id)
                         rsutime = asctime('%m/%d/%Y %H:%M')
                         for event in raceevents:

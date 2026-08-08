@@ -19,24 +19,26 @@ from ...model import db, ApiCredentials, RaceResultService, insert_or_update
 # servicecredentials endpoint
 #----------------------------------------------------------------------
 
-sc_dbattrs = 'id,name,key,secret'.split(',')
-sc_formfields = 'rowid,name,key,secret'.split(',')
+sc_dbattrs = 'id,name,key,secret,api_reg_token,api_reg_secret'.split(',')
+sc_formfields = 'rowid,name,key,secret,api_reg_token,api_reg_secret'.split(',')
 sc_dbmapping = OrderedDict(list(zip(sc_dbattrs, sc_formfields)))
 sc_formmapping = OrderedDict(list(zip(sc_formfields, sc_dbattrs)))
 sc = CrudApi(
     app = bp,
-    pagename = 'Service Credentials', 
-    endpoint = 'admin.servicecredentials', 
+    pagename = 'Service Credentials',
+    endpoint = 'admin.servicecredentials',
     rule = '/servicecredentials',
-    dbmapping = sc_dbmapping, 
-    formmapping = sc_formmapping, 
-    writepermission = owner_permission.can, 
-    dbtable = ApiCredentials, 
+    dbmapping = sc_dbmapping,
+    formmapping = sc_formmapping,
+    writepermission = owner_permission.can,
+    dbtable = ApiCredentials,
     clientcolumns = [
         { 'data': 'name', 'name': 'name', 'label': 'Service Name' },
-        { 'data': 'key', 'name': 'key', 'label': 'Key', 'render':'$.fn.dataTable.render.text()' }, 
-        { 'data': 'secret', 'name': 'secret', 'label': 'Secret', 'render':'$.fn.dataTable.render.text()' }
-    ], 
+        { 'data': 'key', 'name': 'key', 'label': 'Key', 'render':'$.fn.dataTable.render.text()' },
+        { 'data': 'secret', 'name': 'secret', 'label': 'Secret', 'render':'$.fn.dataTable.render.text()' },
+        { 'data': 'api_reg_token', 'name': 'api_reg_token', 'label': 'API Reg Token', 'render':'$.fn.dataTable.render.text()' },
+        { 'data': 'api_reg_secret', 'name': 'api_reg_secret', 'label': 'API Reg Secret', 'render':'$.fn.dataTable.render.text()' }
+    ],
     servercolumns = None,  # no ajax
     byclub = False, 
     idSrc = 'rowid', 

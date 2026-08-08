@@ -161,16 +161,20 @@ class ApiCredentials(Base):
     name = Column(String(20), unique=True)
     key = Column(String(1024))
     secret = Column(String(1024))
+    api_reg_token = Column(String(1024))
+    api_reg_secret = Column(String(1024))
     useraccesstokens = relationship('UserAccessToken',backref='apicredentials',cascade="all, delete")
     raceresultservices = relationship('RaceResultService',backref='apicredentials',cascade="all, delete")
 
     #----------------------------------------------------------------------
-    def __init__(self, name=None, key=None, secret=None):
+    def __init__(self, name=None, key=None, secret=None, api_reg_token=None, api_reg_secret=None):
     #----------------------------------------------------------------------
         self.name = name
         self.key = key
         self.secret = secret
-        
+        self.api_reg_token = api_reg_token
+        self.api_reg_secret = api_reg_secret
+
     #----------------------------------------------------------------------
     def __repr__(self):
     #----------------------------------------------------------------------

@@ -43,7 +43,7 @@ Race results can be imported from multiple sources:
 ### Key Dependencies
 
 - **`loutilities`** (sibling repo at `../loutilities/loutilities`) — provides `DbCrudApi` (DataTables CRUD base class), Flask helpers, age grade calculations, `timeu` utilities, and JS/CSS table assets; templates are loaded via `PackageLoader('loutilities', 'tables-assets/templates')`
-- **`runtilities`** — race result parsing utilities
+- **`runtilities`** — race result parsing utilities; must be `>=3.0.1` (see [External API Credentials](#external-api-credentials-runsignup-athlinks-etc) below for why)
 
 ## Development
 
@@ -170,6 +170,24 @@ Custom read-only API endpoints on the `admin` blueprint use `flask.views.MethodV
 ### Age Grade Models
 
 Three related models in [`model.py`](app/src/rrwebapp/model.py) (`AgeGradeTable` → `AgeGradeCategory` → `AgeGradeFactor`). Distance is stored as `dist_mm = int(dist_km * 1_000_000)` (i.e. millimetres). `AgeGradeCategory.oc_secs` holds the open-class (world record) performance in seconds for that distance.
+
+### External API Credentials (RunSignUp, Athlinks, etc.)
+
+Unlike sibling apps `members`/`contracts` (single-org, credentials read once from Flask config via `current_app.config['RSU_KEY']` etc.), rrwebapp is multi-club, so external API credentials are **database-backed**, not config-backed:
+
+- **`ApiCredentials`** ([`model.py`](app/src/rrwebapp/model.py)) — one row per external service, keyed by `name` (e.g. `'runsignup'`, `'athlinks'`), holding `key`/`secret` plus `api_reg_token`/`api_reg_secret` (RunSignUp's separate API-caller-registration credentials, required by RunSignUp starting 2027-01-01 per `running.runsignup.RunSignupBase`'s docstring — see `runtilities` version note below). Admin-editable via the "Service Credentials" screen ([`services.py`](app/src/rrwebapp/views/admin/services.py)). `name` is `unique` ([model.py:161](app/src/rrwebapp/model.py#L161)) — despite rrwebapp being multi-club, there is exactly **one** `'runsignup'` row for the whole install, shared by every club and by both RunSignUp-touching features (membership sync in `member.py`, results download in `resultsutils.py`/`results.py`). Don't assume per-club credential isolation here the way `session['club_id']` scoping works elsewhere in the app.
+- **`RaceResultService`** ([`model.py`](app/src/rrwebapp/model.py)) — links a `club_id` to an `apicredentials_id`, plus a JSON `attrs` blob for per-club service config (e.g. `maxdistance`). Read via `ServiceAttributes` in [`resultsutils.py`](app/src/rrwebapp/resultsutils.py).
+- **`Club.memberserviceapi`/`memberserviceid`** — a separate link used specifically for the *membership* sync flow ([`member.py`](app/src/rrwebapp/views/admin/member.py)), not results.
+
+The lookup pattern is `ApiCredentials.query.filter_by(name=servicename).first()` — see [`athlinksresults.py`](app/src/rrwebapp/athlinksresults.py) for the simplest example, or `get_runsignup_client()` in [`resultsutils.py`](app/src/rrwebapp/resultsutils.py) (used by `DownloadResults`/`AjaxDownloadResults` in [`results.py`](app/src/rrwebapp/views/admin/results.py); falls back to anonymous `RunSignUp()` access if no `'runsignup'` row exists). Deliberately placed in `resultsutils.py` rather than `results.py` itself — see the Testing section's `celery.py` gotcha above for why.
+
+**On the "credentials reveal fuller names" premise**: the original 2021 code comment this change was based on claimed RunSignUp shows minors' full names only to authenticated callers. A same-race CSV diff between anonymous and authenticated `DownloadResults` output (v4.2.5 vs. v4.3.0.dev1, compared 2026-08-07) showed the *only* difference was RunSignUp's placeholder for registrants who opted into its "Anonymous" privacy setting: `last_name` changes from `Anonymous` (unauthenticated) to `Participant` (authenticated) — a cosmetic placeholder swap, not a real name being revealed either way. No minor's actual last name changed between the two runs in that test. Don't assume authenticating actually surfaces real minor names without further verification against a race known to have masked-minor rows specifically (as opposed to "Anonymous"-flagged rows, which are a different RunSignUp privacy mechanism).
+
+RunSignUp's actual masked-name format (confirmed by direct observation, separate from the "Anonymous" mechanism above) is **first initial + full last name** (e.g. "C. Richardson"), not a masked last name — the reverse of what might be assumed. `ClubMembers.findmember()`/`set_initialdisposition()` in `resultsutils.py` can still fuzzy-match a masked, initial-only first name to a specific roster member — but per [issue #684](https://github.com/louking/rrwebapp/issues/684) (not yet fixed), the deeper problem isn't just match-confidence risk: even when the match *is* correct, every downstream view (standings, the published `/seriesresults/<id>` page, `editparticipants`) unconditionally displays that member's full name from the `Runner`/members table, silently overriding the runner's RunSignUp-level choice to have that specific result shown redacted. The fix direction under discussion is display-layer (preserve/show the redacted form in standings/results) rather than a matching-algorithm fix.
+
+`runtilities` must be `>=3.0.0` for `api_reg_token`/`api_reg_secret` support (`RunSignupBase` didn't exist before that). Note `runtilities==3.0.0`'s `running.runningahead` module had a bug (module-level `import version` that always failed) which broke rrwebapp's app startup entirely, since [`analyzeagegrade.py`](app/src/rrwebapp/analyzeagegrade.py) imports it — fixed upstream in the `running` repo as of `runtilities>=3.0.1`. `members`/`contracts` never hit this because they only import `running.runsignup`, never `running.runningahead`.
+
+**"Download Results" is a hybrid of page-scraping and the REST API, not purely one or the other**: `AjaxDownloadResults.get()` ([`results.py`](app/src/rrwebapp/views/admin/results.py)) is hit first, when a user pastes a RunSignUp results-page URL — it fetches and **scrapes the raw HTML** (`requests_get(url)`, checks for a `cdnjs.runsignup.com` marker, regex-extracts the numeric race ID from `/Race/Results/([0-9]*)/` in the page text) because there's no API endpoint to resolve a results-page URL to a race ID. Once it has the race ID, it switches to the **REST API** (`get_runsignup_client()` → `getraceevents()`/`getresultsets()`) to populate the result-set picker. `DownloadResults.post()` (the actual download, triggered on form submit) is REST-API-only (`getrace()`/`geteventresults()`) — no scraping. Credentials only affect the API-based steps; the initial URL-paste/scrape step needs no auth (public page).
 
 ### RaceResult Duplicate Prevention
 

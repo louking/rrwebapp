@@ -406,7 +406,8 @@ class AjaxImportMembers(MethodView):
                 memberfilename = 'members.csv'
                 ext = '.csv'
                 memberpathname = os.path.join(tempdir,memberfilename)
-                rsu_members2csv(apiid, apikey, apisecret, rsu_api2filemapping, filepath=memberpathname, encoding=encoding)
+                rsu_members2csv(apiid, apikey, apisecret, rsu_api2filemapping, filepath=memberpathname, encoding=encoding,
+                                 api_reg_token=thisapi.api_reg_token, api_reg_secret=thisapi.api_reg_secret)
 
             else:
                 # save file for import
