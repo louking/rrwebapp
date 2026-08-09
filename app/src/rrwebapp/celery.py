@@ -31,7 +31,7 @@ dbserver = dbconfig['dbserver']
 dbname = dbconfig['dbname']
 with open(f'/run/secrets/appdb-password') as pw:
     dbpassword = pw.readline().strip()
-celeryconfig['result_backend'] = f'db+mysql://{dbuser}:{dbpassword}@{dbserver}/{dbname}'
+celeryconfig['result_backend'] = f'db+mysql+pymysql://{dbuser}:{dbpassword}@{dbserver}/{dbname}'
 
 username = celeryconfig['username']
 brokerserver = celeryconfig['brokerserver']
