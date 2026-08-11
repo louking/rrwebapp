@@ -1,6 +1,0 @@
-{
-    "connect_kwargs": {
-        "key_filename": "/mnt/c/Users/lking/Documents/Lou/putty/fsrc-server-do-appuser.sshkey"
-    },
-    "user": "appuser"
-}
