@@ -96,7 +96,7 @@ more-itertools==10.6.0
 nameparser==1.1.1
 ndg-httpsclient==0.5.1
 numpy==2.2.2
-oauthlib==3.3.1
+oauthlib==4.0.0
 openpyxl==3.1.5
 packaging==26.3
 pandas==2.2.3
