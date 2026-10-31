@@ -19,7 +19,7 @@ cached-property==1.5.2
 cachetools==5.2.0
 cattrs==24.1.2
 celery==5.4.0
-certifi==2026.4.22
+certifi==2026.10.18
 cffi==2.0.0
 chardet==5.0.0
 charset-normalizer==2.1.0
