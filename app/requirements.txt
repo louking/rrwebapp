@@ -109,7 +109,7 @@ pip-upgrader==1.4.15
 pluggy==1.6.0
 prompt-toolkit==3.0.30
 pure-eval==0.2.2
-pyasn1==0.6.4
+pyasn1==0.6.5
 pycparser==2.21
 pydantic==2.9.2
 pydantic_core==2.23.4
