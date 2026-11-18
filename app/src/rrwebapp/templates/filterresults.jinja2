@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% block pagename %}
+    {{ pagename }}
+{% endblock %}
+{% block scripts %}
+    <style>
+        #filterresults-warning, #filterresults-summary {
+            display: none;
+            margin-top: 1em;
+        }
+    </style>
+    <script type="text/javascript">
+        $( function() {
+            filterresults();
+        });
+    </script>
+    {{ super() }}
+{% endblock %}
+{% block body %}
+  <div id="error-container" class="DTE_Form_Error" style="display: none;"></div>
+  <form id="filterresults-form">
+    <p>
+      <label class="Label" for="raceid">Race</label>
+      <select id="raceid" name="raceid">
+        <option value="">select race</option>
+        {% for race in races %}
+          <option value="{{ race.id }}" data-membersonly="{{ 'true' if race.series[0].membersonly else 'false' }}">{{ race.date }} {{ race.name }}</option>
+        {% endfor %}
+      </select>
+    </p>
+    <p>
+      <label class="Label" for="file">Results File</label>
+      <input id="file" type="file" name="file" accept=".csv,.xls,.xlsx">
+    </p>
+    <div id="filterresults-warning" class="ui-state-highlight">
+      This race's series is not members only. Edit Participants shows every unmatched result as
+      missed for such a race, so filtering keeps every result.
+    </div>
+    <p><button id="filterresults-button" type="button">Filter Results</button></p>
+  </form>
+  <div id="filterresults-summary"></div>
+{% endblock %}

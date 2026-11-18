@@ -16,6 +16,7 @@ from csv import DictWriter, reader, writer
 from tempfile import TemporaryDirectory
 from datetime import datetime
 from re import escape
+from uuid import UUID, uuid4
 
 # pypi
 import flask
@@ -59,7 +60,8 @@ from ...model import RaceResultService, ApiCredentials
 from ...model import SERIES_OPTION_REQUIRES_CLUB, SERIES_OPTION_DISPLAY_CLUB
 from ...datatables_utils import DataTablesEditor, dt_editor_response, get_request_action, get_request_data
 from ...forms import SeriesResultForm
-from ...tasks import importresultstask
+from ...tasks import importresultstask, filterresultstask
+from ...resultsfilter import ResultsFilter, headerError as FilterHeaderError
 from ...helpers import getagfactors
 
 class BooleanError(Exception): pass
@@ -2090,3 +2092,173 @@ class AjaxDownloadResults(MethodView):
             return jsonify(error='url required')
 
 bp.add_url_rule('/_downloadresults',view_func=AjaxDownloadResults.as_view('_downloadresults'),methods=['GET'])
+
+#----------------------------------------------------------------------
+# filter results -- reduce a large results file to potential member matches (#700)
+#----------------------------------------------------------------------
+
+FILTER_FILETYPES = ['csv', 'xls', 'xlsx']
+
+def filteroutpath(club_id, task_id):
+    '''
+    path of filtered results file for this club and task
+
+    :param club_id: club id
+    :param task_id: task id, must be a uuid string (checked to prevent path traversal)
+    :rtype: full pathname
+    '''
+    # raises ValueError if not a uuid
+    task_id = str(UUID(task_id))
+    return os.path.join(UPLOAD_TEMP_DIR, f'filterresults-{int(club_id)}-{task_id}.csv')
+
+class FilterResults(MethodView):
+    decorators = [login_required]
+
+    def get(self):
+        club_id = flask.session['club_id']
+        thisyear = flask.session['year']
+        if not ViewClubDataPermission(club_id).can():
+            abort(403)
+
+        # Import requires the race to be in a series, so only offer those
+        races = Race.query.filter_by(club_id=club_id, year=thisyear, active=True).order_by(Race.date).all()
+        races = [r for r in races if r.series]
+        return render_template(
+            'filterresults.jinja2',
+            pagename='Filter Results',
+            races=races,
+        )
+
+bp.add_url_rule('/filterresults', view_func=FilterResults.as_view('filterresults'), methods=['GET'])
+
+class AjaxFilterResults(MethodView):
+    decorators = [login_required]
+
+    def post(self):
+        # outside of try so abort isn't turned into failure_response
+        club_id = flask.session['club_id']
+        if not ViewClubDataPermission(club_id).can():
+            db.session.rollback()
+            abort(403)
+
+        try:
+            resultfile = request.files.get('file')
+            if not resultfile or not resultfile.filename:
+                db.session.rollback()
+                return failure_response(cause='Choose a results file')
+            ext = resultfile.filename.split('.')[-1].lower() if '.' in resultfile.filename else ''
+            if ext not in FILTER_FILETYPES:
+                db.session.rollback()
+                return failure_response(cause=f'Invalid file type for {resultfile.filename}, must be one of {", ".join(FILTER_FILETYPES)}')
+
+            try:
+                raceid = int(request.form.get('raceid', ''))
+            except ValueError:
+                db.session.rollback()
+                return failure_response(cause='Choose a race')
+            race = Race.query.filter_by(club_id=club_id, id=raceid).first()
+            if not race:
+                db.session.rollback()
+                return failure_response(cause=f'race id={raceid} does not exist for this club')
+            if not race.series:
+                db.session.rollback()
+                return failure_response(cause='Race needs to be included in at least one series to import results')
+
+            # save under unique name so simultaneous uploads don't collide
+            task_id = str(uuid4())
+            inpathname = os.path.join(UPLOAD_TEMP_DIR, f'filterresults-in-{task_id}.{ext}')
+            resultfile.save(inpathname)
+
+            # check the header before starting the task
+            try:
+                rf = ResultsFilter(inpathname)
+                rf.close()
+            except FilterHeaderError as e:
+                os.remove(inpathname)
+                db.session.rollback()
+                cause = f'{e}'.replace(inpathname, resultfile.filename)
+                current_app.logger.warning(cause)
+                return failure_response(cause=cause)
+
+            filterresultstask.apply_async((club_id, raceid, inpathname, filteroutpath(club_id, task_id)), task_id=task_id)
+
+            db.session.rollback()   # nothing to write
+            return jsonify({'success': True, 'current': 0, 'total': 100,
+                            'location': url_for('.filterresultsstatus', task_id=task_id)}), 202, {}
+
+        except Exception as e:
+            db.session.rollback()
+            cause = traceback.format_exc()
+            current_app.logger.error(cause)
+            return failure_response(cause=cause)
+
+bp.add_url_rule('/_filterresults', view_func=AjaxFilterResults.as_view('_filterresults'), methods=['POST'])
+
+class FilterResultsStatus(MethodView):
+    decorators = [login_required]
+
+    def get(self, task_id):
+        club_id = flask.session['club_id']
+        if not ViewClubDataPermission(club_id).can():
+            abort(403)
+
+        task = filterresultstask.AsyncResult(task_id)
+
+        if task.state == 'PENDING':
+            response = {'state': task.state, 'current': 0, 'total': 100}
+
+        elif task.state != 'FAILURE':
+            response = {
+                'state': task.state,
+                'current': task.info.get('current', 0),
+                'total': task.info.get('total', 1),
+            }
+
+            if task.state == 'SUCCESS':
+                # traceback indicates an error occurred
+                response['cause'] = task.info.get('traceback', '')
+                if response['cause'] == '':
+                    for stat in ['read', 'kept', 'agefrommember']:
+                        response[stat] = task.info.get(stat)
+                    response['download'] = url_for('.filterresultsdownload', raceid=task.info.get('raceid'), task_id=task_id)
+                try:
+                    task.forget()
+                except NotImplementedError:
+                    pass
+
+        else:
+            response = {'state': task.state, 'current': 100, 'total': 100, 'cause': str(task.info)}
+
+        return jsonify(response)
+
+bp.add_url_rule('/filterresultsstatus/<task_id>', view_func=FilterResultsStatus.as_view('filterresultsstatus'), methods=['GET'])
+
+class FilterResultsDownload(MethodView):
+    decorators = [login_required]
+
+    def get(self, raceid, task_id):
+        club_id = flask.session['club_id']
+        if not ViewClubDataPermission(club_id).can():
+            abort(403)
+
+        race = Race.query.filter_by(club_id=club_id, id=raceid).first()
+        try:
+            outpathname = filteroutpath(club_id, task_id)
+        except ValueError:
+            abort(404)
+        if not race or not os.path.exists(outpathname):
+            abort(404)
+
+        # file has member names in it, so don't leave it around once it's been sent
+        @flask.after_this_request
+        def removefile(response):
+            try:
+                os.remove(outpathname)
+            except OSError:
+                current_app.logger.warning(f'could not remove {outpathname}')
+            return response
+
+        return send_file(outpathname, as_attachment=True, mimetype='text/csv',
+                         download_name=secure_filename(f'filtered-{race.year}-{race.name}.csv'))
+
+bp.add_url_rule('/filterresultsdownload/<int:raceid>/<task_id>', view_func=FilterResultsDownload.as_view('filterresultsdownload'), methods=['GET'])

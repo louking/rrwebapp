@@ -86,6 +86,40 @@ data (e.g., RunSignUp).
     :align: center
 
 
+.. _Filter Results view:
+
+Filter Results view
+======================
+**Navigation:** Scoring > Filter Results
+
+This view reduces a large results file to the results which might be club members, so a very large race (e.g., Marine
+Corps Marathon, about 25,000 finishers) can be imported. Choose the race and the results file (csv, xls or xlsx), then
+click **Filter Results**. A progress bar is shown while the file is processed, which can take several minutes for a large
+race. When processing is done, the view shows how many results were kept. Click **Download filtered results** to get the
+file. The file is removed from the server once it's downloaded, so run the filter again if another copy is needed. Import
+the file from the :ref:`Races view` as usual.
+
+A result is kept if the :ref:`Edit Participants view` would show it with a Match value (*definite*, *similar* or
+*closeage*). The filter uses the same matching as import, so the results dropped are the ones which would have an empty
+Match after import. The race must be in a series, because the series determines who is a candidate. For a series which is
+not members only, every result which doesn't match a candidate shows as *missed*, so filtering keeps every result. The view
+shows a warning when such a race is selected.
+
+The file header must have place, name (or first and last name), time, and age or age group columns. Age groups can be
+like "35 to 39", "35-39", "M35-39", "F4044", "80+", "80 & Over" or "19 & Under". When the age group has a gender prefix
+and the file has no gender column, the gender comes from the prefix. When the file has an age column, that age is used.
+
+Every time column in the file is copied to the downloaded file. Chip, net or actual time is written as **chiptime**, a
+column headed just "time" as **time**, and gun or clock time as **guntime**. Import uses the first of these that is
+present, so chip time is used when the file has both chip and gun times. To import gun time instead, delete the
+**chiptime** column, or rename the columns, before importing.
+
+When the file has age groups, each result is checked at the ages in its age group which could match a candidate with a
+similar name. The age in the downloaded file is the one which gives the best Match value. When the age group is blank,
+the candidate's age on the race date is used. The original age group and the Match value are in the **age group** and
+**filter note** columns. Import ignores these columns.
+
+
 .. _Edit Participants view:
 
 Edit Participants view

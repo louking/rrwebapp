@@ -82,6 +82,7 @@ asset_bundles = {
         'background-post-data-manager.js',          # from loutilities
         'managemembers.js',
         'downloadresults.js',
+        'filterresults.js',
         'RaceResults.js',
 
         output='gen/admin.js',

@@ -281,8 +281,11 @@ added from a file when all the results for a race are added at once, or individu
 
 Add Results from File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Follow these instructions to add results from a race results file. Import files must follow the format defined 
+Follow these instructions to add results from a race results file. Import files must follow the format defined
 at :ref:`Results File Format`.
+
+For a very large race, or a results file with age groups instead of ages, first use the :ref:`Filter Results view` to
+create a smaller file in the import format.
 
 * Make sure year and club are set correctly in the scoretility header
 * Click Races in navigation menu

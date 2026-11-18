@@ -27,6 +27,7 @@ from .resultsutils import StoreServiceResults
 from .resultssummarize import summarize
 from .resultsutils import ImportResults
 from .raceresults import RaceResults
+from .resultsfilter import ResultsFilter
 from . import clubmember
 
 class ParameterError(Exception): pass
@@ -168,6 +169,51 @@ def importresultstask(self, club_id, raceid, resultpathname):
         # tell the admins that this happened
         admins = current_app.config['APP_ADMINS']
         sendmail('[scoretility] importresultstask: exception occurred', 'noreply@scoretility.com', admins, '', text=traceback.format_exc())
+
+        # report this as success, but since traceback is present, server will tell user
+        return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}
+
+@celeryapp.task(bind=True)
+def filterresultstask(self, club_id, raceid, inpathname, outpathname):
+    '''
+    background task to filter a large results file to rows which Import would give a disposition
+
+    :param club_id: club identifier
+    :param raceid: race identifier
+    :param inpathname: full pathname of uploaded results file, removed when done
+    :param outpathname: full pathname of filtered csv file to create
+    '''
+    try:
+        # count rows for progress reporting
+        rf = ResultsFilter(inpathname)
+        total = rf.count()
+        rf.close()
+        self.update_state(state='PROGRESS', meta={'current': 0, 'total': total})
+
+        # same matching as Import on Edit Participants
+        importer = ImportResults(club_id, raceid)
+        rf = ResultsFilter(inpathname, importer)
+        progress = lambda current: self.update_state(state='PROGRESS', meta={'current': current, 'total': total})
+        stats = rf.filter(outpathname, progress=progress, progressevery=max(total // 100, 1))
+        rf.close()
+        os.remove(inpathname)
+
+        db.session.rollback()   # nothing written, release the session
+        return {'current': total, 'total': total, 'raceid': raceid, **stats}
+
+    except:
+        db.session.rollback()
+
+        # don't leave files behind; a partial output file may have member names in it
+        for pathname in [inpathname, outpathname]:
+            try:
+                os.remove(pathname)
+            except OSError:
+                pass
+
+        # tell the admins that this happened
+        admins = current_app.config['APP_ADMINS']
+        sendmail('[scoretility] filterresultstask: exception occurred', 'noreply@scoretility.com', admins, '', text=traceback.format_exc())
 
         # report this as success, but since traceback is present, server will tell user
         return {'current': 100, 'total': 100, 'traceback': traceback.format_exc()}
